@@ -1,0 +1,908 @@
+import { useState } from "react";
+import { useParams } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import {
+  Cake,
+  Plus,
+  Trash2,
+  ChevronRight,
+  ChevronLeft,
+  Check,
+  Loader2,
+  Calendar,
+  User,
+  Mail,
+  Phone,
+  MessageSquare,
+  MapPin,
+  CheckCircle2,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { ThemeToggle } from "@/components/theme-toggle";
+import {
+  calculateTotal,
+  calculateTierPrice,
+  formatCurrency,
+  createDefaultTier,
+} from "@/lib/calculator";
+import { apiRequest } from "@/lib/queryClient";
+import {
+  CAKE_SIZES,
+  CAKE_SHAPES,
+  CAKE_FLAVORS,
+  FROSTING_TYPES,
+  DECORATIONS,
+  DELIVERY_OPTIONS,
+  EVENT_TYPES,
+  type CakeTier,
+  type CalculatorPayload,
+  type Baker,
+} from "@shared/schema";
+import heroImage from "@assets/generated_images/elegant_wedding_cake_hero.png";
+
+const contactSchema = z.object({
+  name: z.string().min(2, "Name is required"),
+  email: z.string().email("Please enter a valid email"),
+  phone: z.string().min(10, "Please enter a valid phone number"),
+  eventType: z.string().optional(),
+  eventDate: z.string().optional(),
+  guestCount: z.string().optional(),
+  deliveryAddress: z.string().optional(),
+  specialRequests: z.string().optional(),
+});
+
+type ContactFormData = z.infer<typeof contactSchema>;
+
+const STEPS = ["Build Your Cake", "Decorations", "Event Details", "Contact Info", "Review"];
+
+export default function CalculatorPage() {
+  const { slug } = useParams<{ slug: string }>();
+  const [currentStep, setCurrentStep] = useState(0);
+  const [tiers, setTiers] = useState<CakeTier[]>([createDefaultTier()]);
+  const [decorations, setDecorations] = useState<string[]>([]);
+  const [deliveryOption, setDeliveryOption] = useState("pickup");
+  const [submitted, setSubmitted] = useState(false);
+
+  const { data: baker, isLoading: isLoadingBaker, error } = useQuery<Baker>({
+    queryKey: ["/api/public/baker", slug],
+    enabled: !!slug,
+  });
+
+  const form = useForm<ContactFormData>({
+    resolver: zodResolver(contactSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      eventType: "",
+      eventDate: "",
+      guestCount: "",
+      deliveryAddress: "",
+      specialRequests: "",
+    },
+  });
+
+  const submitMutation = useMutation({
+    mutationFn: async (data: ContactFormData) => {
+      const payload: CalculatorPayload = {
+        tiers,
+        decorations,
+        deliveryOption,
+        deliveryAddress: data.deliveryAddress,
+        specialRequests: data.specialRequests,
+      };
+      const totals = calculateTotal(payload);
+
+      const res = await apiRequest("POST", `/api/public/calculator/submit?tenant=${slug}`, {
+        customerName: data.name,
+        customerEmail: data.email,
+        customerPhone: data.phone,
+        eventType: data.eventType,
+        eventDate: data.eventDate || null,
+        guestCount: data.guestCount ? parseInt(data.guestCount) : null,
+        calculatorPayload: payload,
+        estimatedTotal: totals.total.toFixed(2),
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      setSubmitted(true);
+    },
+  });
+
+  const payload: CalculatorPayload = {
+    tiers,
+    decorations,
+    deliveryOption,
+  };
+  const totals = calculateTotal(payload);
+
+  const addTier = () => {
+    setTiers([...tiers, createDefaultTier()]);
+  };
+
+  const removeTier = (index: number) => {
+    if (tiers.length > 1) {
+      setTiers(tiers.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateTier = (index: number, field: keyof CakeTier, value: string) => {
+    const updated = [...tiers];
+    updated[index] = { ...updated[index], [field]: value };
+    setTiers(updated);
+  };
+
+  const toggleDecoration = (id: string) => {
+    setDecorations((prev) =>
+      prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id]
+    );
+  };
+
+  const nextStep = () => {
+    if (currentStep < STEPS.length - 1) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const prevStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const onSubmit = (data: ContactFormData) => {
+    submitMutation.mutate(data);
+  };
+
+  if (isLoadingBaker) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="h-64 bg-muted animate-pulse" />
+        <div className="max-w-4xl mx-auto p-6 -mt-20">
+          <Skeleton className="h-96 w-full rounded-lg" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !baker) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="max-w-md w-full mx-4">
+          <CardContent className="pt-6 text-center">
+            <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+              <Cake className="h-8 w-8 text-destructive" />
+            </div>
+            <h1 className="text-xl font-semibold mb-2">Bakery Not Found</h1>
+            <p className="text-muted-foreground">
+              We couldn't find a bakery with that name. Please check the link and try again.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="flex items-center justify-between gap-4 px-6 py-4 border-b">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-9 h-9 rounded-md bg-primary">
+              <Cake className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <span className="font-semibold">{baker.businessName}</span>
+          </div>
+          <ThemeToggle />
+        </header>
+
+        <main className="flex items-center justify-center min-h-[calc(100vh-73px)] p-6">
+          <Card className="max-w-md w-full text-center">
+            <CardContent className="pt-8 pb-8">
+              <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-6">
+                <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
+              </div>
+              <h1 className="text-2xl font-bold mb-3" data-testid="text-success-title">
+                Thank You!
+              </h1>
+              <p className="text-muted-foreground mb-6">
+                We've received your request and will be in touch within 24 hours with your custom quote.
+              </p>
+              <div className="p-4 rounded-lg bg-muted">
+                <p className="text-sm text-muted-foreground mb-1">Your estimated total</p>
+                <p className="text-3xl font-bold">{formatCurrency(totals.total)}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="flex items-center justify-between gap-4 px-6 py-4 border-b sticky top-0 z-50 bg-background">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-9 h-9 rounded-md bg-primary">
+            <Cake className="h-5 w-5 text-primary-foreground" />
+          </div>
+          <div>
+            <span className="font-semibold">{baker.businessName}</span>
+            {baker.phone && (
+              <p className="text-xs text-muted-foreground">{baker.phone}</p>
+            )}
+          </div>
+        </div>
+        <ThemeToggle />
+      </header>
+
+      <div className="relative h-64 md:h-80 overflow-hidden">
+        <img
+          src={heroImage}
+          alt="Beautiful custom cake"
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-slate-900/40 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-3xl md:text-4xl font-bold mb-2">
+              Custom Cake Calculator
+            </h1>
+            <p className="text-white/80">
+              Design your perfect cake and get an instant estimate
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <main className="max-w-4xl mx-auto p-6 -mt-6 relative z-10">
+        <Card className="shadow-lg">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <div>
+                <CardTitle className="text-lg">{STEPS[currentStep]}</CardTitle>
+                <CardDescription>
+                  Step {currentStep + 1} of {STEPS.length}
+                </CardDescription>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">Estimated Total</p>
+                <p className="text-2xl font-bold" data-testid="text-running-total">
+                  {formatCurrency(totals.total)}
+                </p>
+              </div>
+            </div>
+            <Progress value={((currentStep + 1) / STEPS.length) * 100} className="h-2" />
+          </CardHeader>
+
+          <Form {...form}>
+            <CardContent>
+              {currentStep === 0 && (
+                <StepCakeBuilder
+                  tiers={tiers}
+                  onUpdateTier={updateTier}
+                  onAddTier={addTier}
+                  onRemoveTier={removeTier}
+                />
+              )}
+
+              {currentStep === 1 && (
+                <StepDecorations
+                  selected={decorations}
+                  onToggle={toggleDecoration}
+                />
+              )}
+
+              {currentStep === 2 && (
+                <StepEventDetails
+                  form={form}
+                  deliveryOption={deliveryOption}
+                  onDeliveryChange={setDeliveryOption}
+                />
+              )}
+
+              {currentStep === 3 && <StepContactInfo form={form} />}
+
+              {currentStep === 4 && (
+                <StepReview
+                  tiers={tiers}
+                  decorations={decorations}
+                  deliveryOption={deliveryOption}
+                  totals={totals}
+                  form={form}
+                />
+              )}
+
+              <div className="flex items-center justify-between gap-4 mt-8 pt-6 border-t">
+                <Button
+                  variant="outline"
+                  onClick={prevStep}
+                  disabled={currentStep === 0}
+                  data-testid="button-prev-step"
+                >
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
+
+                {currentStep < STEPS.length - 1 ? (
+                  <Button onClick={nextStep} data-testid="button-next-step">
+                    Continue
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={form.handleSubmit(onSubmit)}
+                    disabled={submitMutation.isPending}
+                    data-testid="button-submit"
+                  >
+                    {submitMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="mr-2 h-4 w-4" />
+                        Submit Request
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Form>
+        </Card>
+
+        <p className="text-center text-sm text-muted-foreground mt-6">
+          This is an estimate only. Final pricing will be confirmed in your custom quote.
+        </p>
+      </main>
+    </div>
+  );
+}
+
+interface StepCakeBuilderProps {
+  tiers: CakeTier[];
+  onUpdateTier: (index: number, field: keyof CakeTier, value: string) => void;
+  onAddTier: () => void;
+  onRemoveTier: (index: number) => void;
+}
+
+function StepCakeBuilder({ tiers, onUpdateTier, onAddTier, onRemoveTier }: StepCakeBuilderProps) {
+  return (
+    <div className="space-y-4">
+      <Accordion type="single" collapsible defaultValue="tier-0" className="space-y-4">
+        {tiers.map((tier, index) => (
+          <AccordionItem key={index} value={`tier-${index}`} className="border rounded-lg px-4">
+            <AccordionTrigger className="hover:no-underline">
+              <div className="flex items-center justify-between gap-4 w-full pr-4">
+                <span className="font-medium">Tier {index + 1}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-muted-foreground">
+                    {CAKE_SIZES.find((s) => s.id === tier.size)?.label} - {formatCurrency(calculateTierPrice(tier))}
+                  </span>
+                  {tiers.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemoveTier(index);
+                      }}
+                      data-testid={`button-remove-tier-${index}`}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="pt-4 pb-6 space-y-6">
+              <div>
+                <Label className="text-sm font-medium mb-3 block">Size</Label>
+                <RadioGroup
+                  value={tier.size}
+                  onValueChange={(value) => onUpdateTier(index, "size", value)}
+                  className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+                >
+                  {CAKE_SIZES.map((size) => (
+                    <Label
+                      key={size.id}
+                      className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover-elevate has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                    >
+                      <RadioGroupItem value={size.id} data-testid={`radio-size-${size.id}-${index}`} />
+                      <div className="flex-1">
+                        <p className="font-medium">{size.label}</p>
+                        <p className="text-xs text-muted-foreground">{size.servings} servings</p>
+                      </div>
+                      <span className="font-medium">{formatCurrency(size.basePrice)}</span>
+                    </Label>
+                  ))}
+                </RadioGroup>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium mb-3 block">Shape</Label>
+                <RadioGroup
+                  value={tier.shape}
+                  onValueChange={(value) => onUpdateTier(index, "shape", value)}
+                  className="grid gap-3 sm:grid-cols-2"
+                >
+                  {CAKE_SHAPES.map((shape) => (
+                    <Label
+                      key={shape.id}
+                      className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover-elevate has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                    >
+                      <RadioGroupItem value={shape.id} data-testid={`radio-shape-${shape.id}-${index}`} />
+                      <span className="flex-1">{shape.label}</span>
+                      <span className="text-muted-foreground">
+                        {shape.priceModifier > 0 ? `+${formatCurrency(shape.priceModifier)}` : "Included"}
+                      </span>
+                    </Label>
+                  ))}
+                </RadioGroup>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium mb-3 block">Flavor</Label>
+                <RadioGroup
+                  value={tier.flavor}
+                  onValueChange={(value) => onUpdateTier(index, "flavor", value)}
+                  className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+                >
+                  {CAKE_FLAVORS.map((flavor) => (
+                    <Label
+                      key={flavor.id}
+                      className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover-elevate has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                    >
+                      <RadioGroupItem value={flavor.id} data-testid={`radio-flavor-${flavor.id}-${index}`} />
+                      <span className="flex-1">{flavor.label}</span>
+                      <span className="text-muted-foreground">
+                        {flavor.priceModifier > 0 ? `+${formatCurrency(flavor.priceModifier)}` : "Included"}
+                      </span>
+                    </Label>
+                  ))}
+                </RadioGroup>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium mb-3 block">Frosting</Label>
+                <RadioGroup
+                  value={tier.frosting}
+                  onValueChange={(value) => onUpdateTier(index, "frosting", value)}
+                  className="grid gap-3 sm:grid-cols-2"
+                >
+                  {FROSTING_TYPES.map((frosting) => (
+                    <Label
+                      key={frosting.id}
+                      className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover-elevate has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                    >
+                      <RadioGroupItem value={frosting.id} data-testid={`radio-frosting-${frosting.id}-${index}`} />
+                      <span className="flex-1">{frosting.label}</span>
+                      <span className="text-muted-foreground">
+                        {frosting.priceModifier > 0 ? `+${formatCurrency(frosting.priceModifier)}` : "Included"}
+                      </span>
+                    </Label>
+                  ))}
+                </RadioGroup>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
+
+      <Button variant="outline" onClick={onAddTier} className="w-full" data-testid="button-add-tier">
+        <Plus className="mr-2 h-4 w-4" />
+        Add Another Tier
+      </Button>
+    </div>
+  );
+}
+
+interface StepDecorationsProps {
+  selected: string[];
+  onToggle: (id: string) => void;
+}
+
+function StepDecorations({ selected, onToggle }: StepDecorationsProps) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {DECORATIONS.map((decoration) => (
+        <Label
+          key={decoration.id}
+          className="flex items-center gap-3 p-4 border rounded-lg cursor-pointer hover-elevate has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+        >
+          <Checkbox
+            checked={selected.includes(decoration.id)}
+            onCheckedChange={() => onToggle(decoration.id)}
+            data-testid={`checkbox-decoration-${decoration.id}`}
+          />
+          <span className="flex-1">{decoration.label}</span>
+          <span className="font-medium">{formatCurrency(decoration.price)}</span>
+        </Label>
+      ))}
+    </div>
+  );
+}
+
+interface StepEventDetailsProps {
+  form: ReturnType<typeof useForm<ContactFormData>>;
+  deliveryOption: string;
+  onDeliveryChange: (value: string) => void;
+}
+
+function StepEventDetails({ form, deliveryOption, onDeliveryChange }: StepEventDetailsProps) {
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField
+          control={form.control}
+          name="eventType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Event Type</FormLabel>
+              <Select value={field.value} onValueChange={field.onChange}>
+                <FormControl>
+                  <SelectTrigger data-testid="select-event-type">
+                    <SelectValue placeholder="Select event type" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {EVENT_TYPES.map((type) => (
+                    <SelectItem key={type.id} value={type.id}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="eventDate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Event Date</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    {...field}
+                    type="date"
+                    className="pl-10"
+                    data-testid="input-event-date"
+                  />
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="guestCount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Guest Count (optional)</FormLabel>
+              <FormControl>
+                <Input
+                  {...field}
+                  type="number"
+                  placeholder="e.g., 50"
+                  data-testid="input-guest-count"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <div>
+        <Label className="text-sm font-medium mb-3 block">Delivery Option</Label>
+        <RadioGroup
+          value={deliveryOption}
+          onValueChange={onDeliveryChange}
+          className="space-y-3"
+        >
+          {DELIVERY_OPTIONS.map((option) => (
+            <Label
+              key={option.id}
+              className="flex items-center gap-3 p-4 border rounded-lg cursor-pointer hover-elevate has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+            >
+              <RadioGroupItem value={option.id} data-testid={`radio-delivery-${option.id}`} />
+              <span className="flex-1">{option.label}</span>
+              <span className="font-medium">
+                {option.price > 0 ? formatCurrency(option.price) : "Free"}
+              </span>
+            </Label>
+          ))}
+        </RadioGroup>
+      </div>
+
+      {deliveryOption !== "pickup" && (
+        <FormField
+          control={form.control}
+          name="deliveryAddress"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Delivery Address</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Textarea
+                    {...field}
+                    placeholder="Enter your delivery address"
+                    className="pl-10"
+                    rows={2}
+                    data-testid="textarea-delivery-address"
+                  />
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
+    </div>
+  );
+}
+
+interface StepContactInfoProps {
+  form: ReturnType<typeof useForm<ContactFormData>>;
+}
+
+function StepContactInfo({ form }: StepContactInfoProps) {
+  return (
+    <Form {...form}>
+      <div className="space-y-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Your Name</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    {...field}
+                    placeholder="John Smith"
+                    className="pl-10"
+                    data-testid="input-name"
+                  />
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    {...field}
+                    type="email"
+                    placeholder="you@example.com"
+                    className="pl-10"
+                    data-testid="input-email"
+                  />
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="phone"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Phone</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    {...field}
+                    type="tel"
+                    placeholder="(555) 123-4567"
+                    className="pl-10"
+                    data-testid="input-phone"
+                  />
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="specialRequests"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Special Requests (optional)</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <MessageSquare className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Textarea
+                    {...field}
+                    placeholder="Any specific requirements or requests..."
+                    className="pl-10"
+                    rows={3}
+                    data-testid="textarea-special-requests"
+                  />
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+    </Form>
+  );
+}
+
+interface StepReviewProps {
+  tiers: CakeTier[];
+  decorations: string[];
+  deliveryOption: string;
+  totals: ReturnType<typeof calculateTotal>;
+  form: ReturnType<typeof useForm<ContactFormData>>;
+}
+
+function StepReview({ tiers, decorations, deliveryOption, totals, form }: StepReviewProps) {
+  const values = form.watch();
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="font-semibold mb-3">Cake Details</h3>
+        <div className="space-y-2">
+          {tiers.map((tier, index) => {
+            const size = CAKE_SIZES.find((s) => s.id === tier.size);
+            const shape = CAKE_SHAPES.find((s) => s.id === tier.shape);
+            const flavor = CAKE_FLAVORS.find((f) => f.id === tier.flavor);
+            const frosting = FROSTING_TYPES.find((f) => f.id === tier.frosting);
+            const price = calculateTierPrice(tier);
+
+            return (
+              <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div>
+                  <p className="font-medium">Tier {index + 1}: {size?.label}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {shape?.label}, {flavor?.label}, {frosting?.label}
+                  </p>
+                </div>
+                <span className="font-medium">{formatCurrency(price)}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {decorations.length > 0 && (
+        <div>
+          <h3 className="font-semibold mb-3">Decorations</h3>
+          <div className="space-y-2">
+            {decorations.map((id) => {
+              const dec = DECORATIONS.find((d) => d.id === id);
+              return (
+                <div key={id} className="flex items-center justify-between">
+                  <span>{dec?.label}</span>
+                  <span className="font-medium">{formatCurrency(dec?.price || 0)}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <h3 className="font-semibold mb-3">Delivery</h3>
+        <div className="flex items-center justify-between">
+          <span>{DELIVERY_OPTIONS.find((d) => d.id === deliveryOption)?.label}</span>
+          <span className="font-medium">
+            {totals.deliveryTotal > 0 ? formatCurrency(totals.deliveryTotal) : "Free"}
+          </span>
+        </div>
+      </div>
+
+      <div className="border-t pt-4 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground">Subtotal</span>
+          <span>{formatCurrency(totals.subtotal)}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground">Tax (8%)</span>
+          <span>{formatCurrency(totals.tax)}</span>
+        </div>
+        <div className="flex items-center justify-between text-lg font-bold pt-2 border-t">
+          <span>Estimated Total</span>
+          <span data-testid="text-final-total">{formatCurrency(totals.total)}</span>
+        </div>
+      </div>
+
+      <div className="border-t pt-4">
+        <h3 className="font-semibold mb-3">Contact Information</h3>
+        <div className="grid gap-2 text-sm">
+          <div className="flex gap-2">
+            <span className="text-muted-foreground w-20">Name:</span>
+            <span>{values.name || "-"}</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="text-muted-foreground w-20">Email:</span>
+            <span>{values.email || "-"}</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="text-muted-foreground w-20">Phone:</span>
+            <span>{values.phone || "-"}</span>
+          </div>
+          {values.eventType && (
+            <div className="flex gap-2">
+              <span className="text-muted-foreground w-20">Event:</span>
+              <span className="capitalize">{values.eventType}</span>
+            </div>
+          )}
+          {values.eventDate && (
+            <div className="flex gap-2">
+              <span className="text-muted-foreground w-20">Date:</span>
+              <span>{new Date(values.eventDate).toLocaleDateString()}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="p-4 bg-muted/50 rounded-lg text-center">
+        <p className="text-sm text-muted-foreground">
+          This is an estimate. Final pricing will be confirmed in your custom quote.
+        </p>
+      </div>
+    </div>
+  );
+}
