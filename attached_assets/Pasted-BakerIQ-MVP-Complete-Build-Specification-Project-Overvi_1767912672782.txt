@@ -1,0 +1,358 @@
+BakerIQ MVP - Complete Build Specification
+Project Overview
+BakerIQ is a lead capture and quote management tool for custom cake bakers. The MVP focuses on one core workflow: customers use a public pricing calculator to get cake estimates, which creates leads for bakers. Bakers review leads and manually create quotes when ready.
+
+Philosophy: Keep it simple. No payment processing, no AI features, no marketplace - just lead capture and quoting that works.
+
+Database Schema
+Tables
+bakers
+
+id (uuid, primary key)
+email (text, unique, required)
+passwordHash (text, required)
+businessName (text, required)
+slug (text, unique, required) - URL-friendly identifier like "sweet-treats-bakery"
+phone (text, optional)
+address (text, optional)
+createdAt (timestamp)
+customers
+
+id (uuid, primary key)
+bakerId (uuid, foreign key to bakers)
+name (text, required)
+email (text, required)
+phone (text, optional)
+createdAt (timestamp)
+Unique constraint on (bakerId, email)
+leads
+
+id (uuid, primary key)
+bakerId (uuid, foreign key to bakers)
+customerId (uuid, foreign key to customers, optional)
+customerName (text, required)
+customerEmail (text, required)
+customerPhone (text, optional)
+eventDate (date, optional)
+eventType (text, optional) - wedding, birthday, corporate, other
+guestCount (integer, optional)
+calculatorPayload (jsonb) - stores all calculator selections
+estimatedTotal (decimal)
+status (text) - new, contacted, quoted, converted, lost
+notes (text, optional)
+createdAt (timestamp)
+quotes
+
+id (uuid, primary key)
+bakerId (uuid, foreign key to bakers)
+customerId (uuid, foreign key to customers)
+leadId (uuid, foreign key to leads, optional)
+quoteNumber (text, required) - auto-generated like "Q-2026-001"
+title (text, required)
+eventDate (date, optional)
+status (text) - draft, sent, approved, declined
+subtotal (decimal)
+taxRate (decimal, default 0.08)
+taxAmount (decimal)
+total (decimal)
+notes (text, optional)
+createdAt (timestamp)
+updatedAt (timestamp)
+quote_items
+
+id (uuid, primary key)
+quoteId (uuid, foreign key to quotes)
+name (text, required)
+description (text, optional)
+quantity (integer, default 1)
+unitPrice (decimal, required)
+totalPrice (decimal, required)
+category (text) - cake, decoration, delivery, other
+sortOrder (integer)
+Calculator Configuration
+Cake Sizes (Base Prices)
+Size	Servings	Base Price
+6" Round	10-12	$45
+8" Round	20-24	$65
+10" Round	35-40	$95
+12" Round	50-56	$125
+Quarter Sheet	20-24	$55
+Half Sheet	40-48	$85
+Full Sheet	80-96	$145
+Cake Shapes
+Shape	Price Modifier
+Round	+$0
+Square	+$10
+Heart	+$15
+Custom	+$25
+Cake Flavors
+Flavor	Price Modifier
+Vanilla	+$0
+Chocolate	+$0
+Red Velvet	+$10
+Lemon	+$5
+Marble	+$5
+Carrot	+$10
+Funfetti	+$5
+Frosting Types
+Frosting	Price Modifier
+Buttercream	+$0
+Cream Cheese	+$10
+Fondant	+$25
+Ganache	+$15
+Whipped Cream	+$5
+Decorations (Add-ons)
+Decoration	Price
+Fresh Flowers	$35
+Edible Flowers	$25
+Custom Cake Topper	$20
+Edible Image	$15
+Gold/Silver Leaf	$30
+Sprinkles	$5
+Fruit Topping	$20
+Chocolate Drip	$15
+Macarons (6)	$18
+Meringue Kisses	$12
+Delivery
+Pickup: Free
+Local Delivery (within 15 miles): $25
+Extended Delivery (15-30 miles): $45
+Tax Rate
+Default: 8%
+Core Features
+1. Public Calculator Page (/c/:slug)
+URL Format: /c/sweet-treats-bakery
+
+Calculator Steps:
+
+Cake Builder - Add one or more tiers
+
+Select size, shape, flavor, frosting for each tier
+Show running total as options are selected
+"Add Another Tier" button for multi-tier cakes
+Decorations - Select add-ons
+
+Checkbox list of decoration options
+Show price next to each option
+Event Details
+
+Event type dropdown (Wedding, Birthday, Anniversary, Corporate, Other)
+Event date picker
+Guest count (optional)
+Delivery preference (Pickup, Local, Extended)
+Delivery address if delivery selected
+Contact Info
+
+Name (required)
+Email (required)
+Phone (required)
+Special requests/notes (optional)
+Summary & Submit
+
+Show itemized breakdown
+Display estimated total
+Clear disclaimer: "This is an estimate. Final pricing will be confirmed in your quote."
+Submit button creates lead and shows success message
+Success State: "Thank you! We've received your request and will be in touch within 24 hours."
+
+2. Baker Registration & Login
+Registration (/signup):
+
+Business name
+Email
+Password (min 8 characters)
+Auto-generates slug from business name
+Login (/login):
+
+Email
+Password
+"Forgot password" link (can be placeholder for MVP)
+3. Baker Dashboard (/dashboard)
+Layout: Sidebar navigation with main content area
+
+Sidebar Links:
+
+Dashboard (home/overview)
+Leads
+Quotes
+Customers
+Settings
+Dashboard Overview:
+
+New leads count (last 7 days)
+Pending quotes count
+Recent leads list (5 most recent)
+Quick action: "View All Leads"
+4. Leads Page (/leads)
+Table Columns:
+
+Date submitted
+Customer name
+Contact info (email, phone)
+Event date
+Cake summary (e.g., "2-tier, 8" + 10", Chocolate")
+Estimated total
+Status badge
+Actions
+Lead Row Actions:
+
+View details (opens lead detail)
+Create quote (creates quote from lead data)
+Change status dropdown
+Lead Detail View (/leads/:id):
+
+Full customer information
+Complete calculator submission data
+Notes field (baker can add notes)
+Status selector
+"Create Quote" button
+5. Quotes Page (/quotes)
+Table Columns:
+
+Quote number
+Customer name
+Event date
+Total
+Status badge
+Created date
+Actions
+Quote Actions:
+
+Edit
+Duplicate
+Delete (with confirmation)
+6. Quote Builder (/quotes/:id or /quotes/new)
+Sections:
+
+Customer Info:
+
+Select existing customer or create new
+If from lead, auto-populated
+Quote Details:
+
+Quote title (e.g., "Wedding Cake - Smith/Jones")
+Event date
+Line Items Table:
+
+Editable rows: Item name, description, qty, unit price, total
+Add row button
+Delete row button
+If created from lead, pre-populated from calculator data
+Totals:
+
+Subtotal (auto-calculated)
+Tax rate input (default 8%)
+Tax amount (auto-calculated)
+Total (auto-calculated)
+Notes:
+
+Free text area for quote notes
+Actions:
+
+Save as Draft
+(Future: Send to Customer)
+7. Customers Page (/customers)
+Simple Table:
+
+Name
+Email
+Phone
+of quotes
+Last activity date
+Click row to see customer detail with quote history
+
+8. Settings Page (/settings)
+Business Profile:
+
+Business name
+Email
+Phone
+Address
+Slug (display only, show public calculator URL)
+Account:
+
+Change password
+UI/UX Requirements
+Design System
+Primary Color: Warm pink/rose (#E91E63 or similar)
+Secondary Color: Slate gray for text and backgrounds
+Font: Clean sans-serif (Inter or system fonts)
+Style: Modern, clean, professional but friendly
+Layout
+Public pages: Centered content, clean header with logo
+Baker dashboard: Fixed sidebar (collapsible on mobile), main content area
+Mobile: Fully responsive, sidebar becomes hamburger menu
+Components (use shadcn/ui)
+Cards for dashboard widgets
+Tables for lists
+Forms with proper validation feedback
+Toasts for success/error messages
+Modal dialogs for confirmations
+Badges for status indicators
+Status Colors
+New: Blue
+Contacted: Yellow
+Quoted: Purple
+Converted: Green
+Lost: Gray
+Draft: Gray
+Sent: Blue
+Approved: Green
+Declined: Red
+API Endpoints
+Public (No Auth)
+POST /api/public/calculator/submit?tenant=:slug - Submit calculator form, creates lead
+GET /api/public/calculator/settings?tenant=:slug - Get calculator config for a baker
+Auth
+POST /api/auth/register - Create baker account
+POST /api/auth/login - Login, returns session
+POST /api/auth/logout - Logout
+GET /api/auth/session - Get current session
+Baker (Requires Auth)
+GET /api/bakers/me - Get current baker profile
+PATCH /api/bakers/me - Update baker profile
+Leads
+GET /api/leads - List leads for current baker
+GET /api/leads/:id - Get lead detail
+PATCH /api/leads/:id - Update lead (status, notes)
+POST /api/leads/:id/quote - Create quote from lead
+Quotes
+GET /api/quotes - List quotes
+POST /api/quotes - Create new quote
+GET /api/quotes/:id - Get quote with items
+PATCH /api/quotes/:id - Update quote
+DELETE /api/quotes/:id - Delete quote
+Quote Items
+POST /api/quotes/:id/items - Add item to quote
+PATCH /api/quotes/:id/items/:itemId - Update item
+DELETE /api/quotes/:id/items/:itemId - Delete item
+Customers
+GET /api/customers - List customers
+POST /api/customers - Create customer
+GET /api/customers/:id - Get customer with quotes
+Tech Stack
+Frontend: React 18, TypeScript, Vite
+Routing: Wouter
+State/Data: TanStack Query v5
+Forms: React Hook Form + Zod validation
+UI Components: shadcn/ui + Tailwind CSS
+Backend: Express.js, TypeScript
+Database: PostgreSQL with Drizzle ORM
+Session: Express sessions with PostgreSQL store
+What NOT to Build (Save for Later)
+Payment processing / Stripe integration
+Contract management
+Invoice generation
+AI features (suggestions, scoring)
+Email sending (auto-replies, notifications)
+Public marketplace/directory
+Multi-user teams
+Analytics/reporting
+File uploads / photo gallery
+Test Data
+Create a demo baker on first run:
+
+Business Name: "Sweet Dreams Bakery"
+Email: demo@bakeriq.app
+Password: demo123
+Slug: sweet-dreams-bakery
