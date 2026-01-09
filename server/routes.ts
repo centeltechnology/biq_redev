@@ -6,6 +6,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { pool } from "./db";
 import connectPgSimple from "connect-pg-simple";
+import { sendNewLeadNotification, sendLeadConfirmationToCustomer } from "./email";
 
 const PgSession = connectPgSimple(session);
 
@@ -756,6 +757,24 @@ export async function registerRoutes(
         estimatedTotal: data.estimatedTotal,
         status: "new",
       });
+
+      // Send email notifications (non-blocking)
+      const estimatedTotal = parseFloat(data.estimatedTotal);
+      Promise.all([
+        sendNewLeadNotification(baker.email, baker.businessName, {
+          customerName: data.customerName,
+          customerEmail: data.customerEmail,
+          customerPhone: data.customerPhone,
+          eventType: data.eventType,
+          eventDate: data.eventDate || undefined,
+          estimatedTotal,
+        }),
+        sendLeadConfirmationToCustomer(data.customerEmail, data.customerName, baker.businessName, {
+          eventType: data.eventType,
+          eventDate: data.eventDate || undefined,
+          estimatedTotal,
+        }),
+      ]).catch((err) => console.error("Email notification error:", err));
 
       res.json({ success: true, leadId: lead.id });
     } catch (error: any) {
