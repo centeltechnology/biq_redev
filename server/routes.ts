@@ -203,6 +203,10 @@ export async function registerRoutes(
         paymentCashapp: z.string().optional().nullable(),
         paymentVenmo: z.string().optional().nullable(),
         depositPercentage: z.number().min(0).max(100).optional().nullable(),
+        socialFacebook: z.string().optional().nullable(),
+        socialInstagram: z.string().optional().nullable(),
+        socialTiktok: z.string().optional().nullable(),
+        socialPinterest: z.string().optional().nullable(),
       });
 
       const data = schema.parse(req.body);
@@ -704,7 +708,12 @@ export async function registerRoutes(
       id: baker.id,
       businessName: baker.businessName,
       phone: baker.phone,
+      address: baker.address,
       slug: baker.slug,
+      socialFacebook: baker.socialFacebook,
+      socialInstagram: baker.socialInstagram,
+      socialTiktok: baker.socialTiktok,
+      socialPinterest: baker.socialPinterest,
     });
   });
 
