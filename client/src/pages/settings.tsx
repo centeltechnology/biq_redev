@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
-import { Copy, Check, Loader2, ExternalLink } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Copy, Check, Loader2, ExternalLink, CreditCard, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -156,6 +157,35 @@ export default function SettingsPage() {
     ? `${window.location.origin}/c/${baker.slug}`
     : "";
 
+  const { data: subscription } = useQuery<{
+    plan: string;
+    monthlyLeadCount: number;
+    leadLimit: number;
+    isAtLimit: boolean;
+  }>({
+    queryKey: ["/api/subscription/status"],
+  });
+
+  const upgradeMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/subscription/checkout");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.url) window.location.href = data.url;
+    },
+  });
+
+  const portalMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/subscription/portal");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.url) window.location.href = data.url;
+    },
+  });
+
   const copyCalculatorUrl = () => {
     navigator.clipboard.writeText(calculatorUrl);
     setCopied(true);
@@ -204,6 +234,68 @@ export default function SettingsPage() {
                 </a>
               </Button>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Subscription
+              </CardTitle>
+              <CardDescription>
+                Manage your BakerIQ subscription
+              </CardDescription>
+            </div>
+            {subscription?.plan === "pro" ? (
+              <Badge variant="default" className="bg-primary">Pro</Badge>
+            ) : (
+              <Badge variant="outline">Free</Badge>
+            )}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {subscription?.plan === "pro" ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-sm">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span>Unlimited leads per month</span>
+                </div>
+                <Button 
+                  variant="outline" 
+                  onClick={() => portalMutation.mutate()}
+                  disabled={portalMutation.isPending}
+                  data-testid="button-manage-subscription"
+                >
+                  {portalMutation.isPending ? "Loading..." : "Manage Subscription"}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="text-sm text-muted-foreground">
+                  <p>You're on the free plan with <strong>{subscription?.monthlyLeadCount || 0}/{subscription?.leadLimit || 10}</strong> leads used this month.</p>
+                </div>
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    Upgrade to Pro - $9.97/month
+                  </h4>
+                  <ul className="text-sm text-muted-foreground mt-2 space-y-1">
+                    <li>Unlimited leads per month</li>
+                    <li>Priority email notifications</li>
+                    <li>Cancel anytime</li>
+                  </ul>
+                  <Button 
+                    className="mt-4 w-full"
+                    onClick={() => upgradeMutation.mutate()}
+                    disabled={upgradeMutation.isPending}
+                    data-testid="button-upgrade-subscription"
+                  >
+                    {upgradeMutation.isPending ? "Loading..." : "Upgrade Now"}
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

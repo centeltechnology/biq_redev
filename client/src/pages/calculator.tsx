@@ -118,6 +118,7 @@ export default function CalculatorPage() {
   const [addons, setAddons] = useState<{ id: string; quantity?: number; attendees?: number }[]>([]);
   const [deliveryOption, setDeliveryOption] = useState("pickup");
   const [submitted, setSubmitted] = useState(false);
+  const [leadLimitReached, setLeadLimitReached] = useState(false);
 
   const { data: baker, isLoading: isLoadingBaker, error } = useQuery<Baker>({
     queryKey: ["/api/public/baker", slug],
@@ -163,10 +164,23 @@ export default function CalculatorPage() {
         calculatorPayload: payload,
         estimatedTotal: totals.total.toFixed(2),
       });
+      if (!res.ok) {
+        const errorData = await res.json();
+        if (errorData.limitReached) {
+          setLeadLimitReached(true);
+          throw new Error("limit_reached");
+        }
+        throw new Error(errorData.message || "Failed to submit");
+      }
       return res.json();
     },
     onSuccess: () => {
       setSubmitted(true);
+    },
+    onError: (err: Error) => {
+      if (err.message !== "limit_reached") {
+        console.error("Submission error:", err);
+      }
     },
   });
 
@@ -261,6 +275,42 @@ export default function CalculatorPage() {
             </p>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  if (leadLimitReached) {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="flex items-center justify-between gap-4 px-6 py-4 border-b">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-9 h-9 rounded-md bg-primary">
+              <Cake className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <span className="font-semibold">{baker?.businessName}</span>
+          </div>
+          <ThemeToggle />
+        </header>
+        <main className="flex items-center justify-center min-h-[calc(100vh-73px)] p-6">
+          <Card className="max-w-md w-full text-center">
+            <CardContent className="pt-8 pb-8">
+              <div className="w-20 h-20 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center mx-auto mb-6">
+                <Mail className="h-10 w-10 text-yellow-600 dark:text-yellow-400" />
+              </div>
+              <h1 className="text-2xl font-bold mb-3" data-testid="text-limit-title">
+                Unable to Accept Inquiries
+              </h1>
+              <p className="text-muted-foreground mb-4">
+                {baker?.businessName} is temporarily unable to accept new inquiries. Please try again later or contact them directly.
+              </p>
+              {baker?.email && (
+                <Button variant="outline" asChild>
+                  <a href={`mailto:${baker.email}`}>Contact {baker.businessName}</a>
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        </main>
       </div>
     );
   }

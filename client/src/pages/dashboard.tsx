@@ -1,13 +1,21 @@
 import { Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
-import { ClipboardList, FileText, Users, ArrowRight, Calendar, DollarSign, TrendingUp, CalendarCheck } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { ClipboardList, FileText, Users, ArrowRight, Calendar, DollarSign, TrendingUp, CalendarCheck, Sparkles, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/status-badge";
 import { formatCurrency } from "@/lib/calculator";
+import { apiRequest } from "@/lib/queryClient";
 import type { Lead, Quote, Order } from "@shared/schema";
+
+interface SubscriptionStatus {
+  plan: string;
+  monthlyLeadCount: number;
+  leadLimit: number;
+  isAtLimit: boolean;
+}
 
 interface UpcomingOrder extends Order {
   customerName: string;
@@ -41,9 +49,61 @@ export default function DashboardPage() {
     queryKey: ["/api/orders/upcoming"],
   });
 
+  const { data: subscription } = useQuery<SubscriptionStatus>({
+    queryKey: ["/api/subscription/status"],
+  });
+
+  const upgradeMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/subscription/checkout");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    },
+  });
+
+  const showUpgradePrompt = subscription && subscription.plan === "free" && 
+    subscription.monthlyLeadCount >= subscription.leadLimit - 3;
+
   return (
     <DashboardLayout title="Dashboard">
       <div className="space-y-6">
+        {showUpgradePrompt && (
+          <Card className={subscription.isAtLimit ? "border-destructive bg-destructive/5" : "border-primary/50 bg-primary/5"}>
+            <CardContent className="flex items-center justify-between gap-4 py-4">
+              <div className="flex items-center gap-3">
+                {subscription.isAtLimit ? (
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                ) : (
+                  <Sparkles className="h-5 w-5 text-primary" />
+                )}
+                <div>
+                  <p className="font-medium" data-testid="text-lead-limit-status">
+                    {subscription.isAtLimit 
+                      ? "You've reached your lead limit" 
+                      : `${subscription.monthlyLeadCount}/${subscription.leadLimit} leads used this month`}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {subscription.isAtLimit 
+                      ? "Upgrade to Pro to continue receiving leads" 
+                      : "Upgrade to Pro for unlimited leads"}
+                  </p>
+                </div>
+              </div>
+              <Button 
+                onClick={() => upgradeMutation.mutate()} 
+                disabled={upgradeMutation.isPending}
+                data-testid="button-upgrade"
+              >
+                {upgradeMutation.isPending ? "Loading..." : "Upgrade to Pro - $9.97/mo"}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <RevenueCard
             title="Monthly Revenue"

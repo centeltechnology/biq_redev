@@ -28,7 +28,11 @@ export const bakers = pgTable("bakers", {
   // Email verification
   emailVerified: timestamp("email_verified"),
   // Role for admin access
-  role: text("role").notNull().default("baker"), // "baker" or "admin"
+  role: text("role").notNull().default("baker"), // "baker" or "super_admin"
+  // Subscription
+  plan: text("plan").notNull().default("free"), // "free" or "pro"
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

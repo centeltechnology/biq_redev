@@ -8,6 +8,11 @@ import { pool } from "./db";
 import connectPgSimple from "connect-pg-simple";
 import { sendNewLeadNotification, sendLeadConfirmationToCustomer, sendPasswordResetEmail, sendEmailVerification, sendQuoteNotification } from "./email";
 import crypto from "crypto";
+import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
+import { db } from "./db";
+import { sql } from "drizzle-orm";
+
+const FREE_LEAD_LIMIT = 10;
 
 const PgSession = connectPgSimple(session);
 
@@ -883,6 +888,19 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Baker not found" });
       }
 
+      // Check lead limit for free plan
+      if (baker.plan === "free" || !baker.plan) {
+        const monthlyLeadCount = await storage.getMonthlyLeadCount(baker.id);
+        if (monthlyLeadCount >= FREE_LEAD_LIMIT) {
+          return res.status(403).json({ 
+            message: "Lead limit reached", 
+            limitReached: true,
+            limit: FREE_LEAD_LIMIT,
+            count: monthlyLeadCount
+          });
+        }
+      }
+
       const schema = z.object({
         customerName: z.string().min(2),
         customerEmail: z.string().email(),
@@ -946,6 +964,144 @@ export async function registerRoutes(
       }
       console.error("Calculator submit error:", error);
       res.status(500).json({ message: "Failed to submit calculator" });
+    }
+  });
+
+  // Stripe Subscription Routes
+  app.get("/api/stripe/publishable-key", async (req, res) => {
+    try {
+      const key = await getStripePublishableKey();
+      res.json({ publishableKey: key });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get Stripe key" });
+    }
+  });
+
+  app.get("/api/subscription/status", requireAuth, async (req, res) => {
+    const baker = await storage.getBaker(req.session.bakerId!);
+    if (!baker) {
+      return res.status(404).json({ message: "Baker not found" });
+    }
+
+    const monthlyLeadCount = await storage.getMonthlyLeadCount(baker.id);
+    
+    res.json({
+      plan: baker.plan || "free",
+      monthlyLeadCount,
+      leadLimit: FREE_LEAD_LIMIT,
+      isAtLimit: (baker.plan === "free" || !baker.plan) && monthlyLeadCount >= FREE_LEAD_LIMIT,
+    });
+  });
+
+  app.post("/api/subscription/checkout", requireAuth, async (req, res) => {
+    try {
+      const baker = await storage.getBaker(req.session.bakerId!);
+      if (!baker) {
+        return res.status(404).json({ message: "Baker not found" });
+      }
+
+      const stripe = await getUncachableStripeClient();
+
+      // Create or get Stripe customer
+      let customerId = baker.stripeCustomerId;
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: baker.email,
+          metadata: { bakerId: baker.id },
+        });
+        await storage.updateBaker(baker.id, { stripeCustomerId: customer.id });
+        customerId = customer.id;
+      }
+
+      // Get the Pro price from Stripe
+      const prices = await stripe.prices.list({
+        lookup_keys: ["bakeriq_pro_monthly"],
+        active: true,
+        limit: 1,
+      });
+
+      let priceId: string;
+      if (prices.data.length > 0) {
+        priceId = prices.data[0].id;
+      } else {
+        // Fallback: search for any active BakerIQ Pro price
+        const products = await stripe.products.search({ query: "name:'BakerIQ Pro'" });
+        if (products.data.length === 0) {
+          return res.status(400).json({ message: "No subscription product found. Please run the seed script." });
+        }
+        const productPrices = await stripe.prices.list({
+          product: products.data[0].id,
+          active: true,
+          limit: 1,
+        });
+        if (productPrices.data.length === 0) {
+          return res.status(400).json({ message: "No price found for subscription." });
+        }
+        priceId = productPrices.data[0].id;
+      }
+
+      // Create checkout session
+      const baseUrl = `https://${req.get("host")}`;
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        payment_method_types: ["card"],
+        line_items: [{ price: priceId, quantity: 1 }],
+        mode: "subscription",
+        success_url: `${baseUrl}/settings?subscription=success`,
+        cancel_url: `${baseUrl}/settings?subscription=cancelled`,
+        metadata: { bakerId: baker.id },
+      });
+
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error("Checkout error:", error);
+      res.status(500).json({ message: "Failed to create checkout session" });
+    }
+  });
+
+  app.post("/api/subscription/portal", requireAuth, async (req, res) => {
+    try {
+      const baker = await storage.getBaker(req.session.bakerId!);
+      if (!baker?.stripeCustomerId) {
+        return res.status(400).json({ message: "No subscription found" });
+      }
+
+      const stripe = await getUncachableStripeClient();
+      const baseUrl = `https://${req.get("host")}`;
+      
+      const session = await stripe.billingPortal.sessions.create({
+        customer: baker.stripeCustomerId,
+        return_url: `${baseUrl}/settings`,
+      });
+
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error("Portal error:", error);
+      res.status(500).json({ message: "Failed to create billing portal session" });
+    }
+  });
+
+  // Webhook handling for subscription updates (called by stripe-replit-sync)
+  app.post("/api/subscription/webhook-update", async (req, res) => {
+    try {
+      const { customerId, subscriptionId, status } = req.body;
+      
+      // Find baker by Stripe customer ID
+      const allBakers = await storage.getAllBakers();
+      const baker = allBakers.find(b => b.stripeCustomerId === customerId);
+      
+      if (baker) {
+        const plan = status === "active" || status === "trialing" ? "pro" : "free";
+        await storage.updateBaker(baker.id, {
+          stripeSubscriptionId: subscriptionId,
+          plan,
+        });
+      }
+      
+      res.json({ received: true });
+    } catch (error) {
+      console.error("Webhook update error:", error);
+      res.status(500).json({ message: "Failed to process webhook" });
     }
   });
 
