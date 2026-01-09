@@ -16,6 +16,7 @@ import QuotesPage from "@/pages/quotes";
 import QuoteBuilderPage from "@/pages/quote-builder";
 import CustomersPage from "@/pages/customers";
 import SettingsPage from "@/pages/settings";
+import PricingPage from "@/pages/pricing";
 import CalculatorPage from "@/pages/calculator";
 import CalendarPage from "@/pages/calendar";
 
@@ -51,6 +52,9 @@ function Router() {
       </Route>
       <Route path="/calendar">
         <ProtectedRoute><CalendarPage /></ProtectedRoute>
+      </Route>
+      <Route path="/pricing">
+        <ProtectedRoute><PricingPage /></ProtectedRoute>
       </Route>
       <Route path="/settings">
         <ProtectedRoute><SettingsPage /></ProtectedRoute>
