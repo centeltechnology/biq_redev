@@ -26,6 +26,7 @@ import {
   FROSTING_TYPES,
   DECORATIONS,
   DELIVERY_OPTIONS,
+  ADDONS,
   type Lead,
   type CalculatorPayload,
 } from "@shared/schema";
@@ -236,6 +237,37 @@ export default function LeadDetailPage() {
                       </div>
                     )}
 
+                    {payload.addons && payload.addons.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium text-muted-foreground mb-2">
+                          Addons
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {payload.addons.map((addon) => {
+                            const addonInfo = ADDONS.find((a) => a.id === addon.id);
+                            let label = addonInfo?.label || addon.id;
+                            if (addon.attendees) {
+                              label += ` (${addon.attendees} guests)`;
+                            } else if (addon.quantity && addon.quantity !== 1) {
+                              if (addon.quantity === 0.5) {
+                                label += ` (Half Dozen)`;
+                              } else {
+                                label += ` (${addon.quantity} Dozen)`;
+                              }
+                            }
+                            return (
+                              <span
+                                key={addon.id}
+                                className="px-3 py-1 rounded-full bg-muted text-sm"
+                              >
+                                {label}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
                     {payload.deliveryOption && (
                       <div>
                         <h4 className="text-sm font-medium text-muted-foreground mb-1">
@@ -317,6 +349,12 @@ export default function LeadDetailPage() {
                       <span className="text-muted-foreground">Decorations</span>
                       <span>{formatCurrency(totals.decorationsTotal)}</span>
                     </div>
+                    {totals.addonsTotal > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Addons</span>
+                        <span>{formatCurrency(totals.addonsTotal)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Delivery</span>
                       <span>{formatCurrency(totals.deliveryTotal)}</span>

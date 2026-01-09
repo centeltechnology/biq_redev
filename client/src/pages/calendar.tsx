@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { 
   ChevronLeft, 
@@ -11,12 +11,22 @@ import {
   User,
   ArrowRight,
   Search,
+  FileText,
+  ExternalLink,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { formatCurrency } from "@/lib/calculator";
 import type { Order } from "@shared/schema";
@@ -56,8 +66,10 @@ function getFirstDayOfMonth(year: number, month: number): number {
 }
 
 export default function CalendarPage() {
+  const [, setLocation] = useLocation();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedOrder, setSelectedOrder] = useState<OrderWithDetails | null>(null);
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
 
@@ -204,20 +216,20 @@ export default function CalendarPage() {
                         </div>
                         <div className="space-y-1">
                           {ordersByDate[day]?.map((order) => (
-                            <Link key={order.id} href={`/quotes/${order.quoteId}`}>
-                              <div
-                                className="text-xs p-1.5 rounded bg-primary/10 hover-elevate active-elevate-2 cursor-pointer truncate"
-                                data-testid={`order-${order.id}`}
-                              >
-                                <div className="flex items-center gap-1">
-                                  <Cake className="h-3 w-3 flex-shrink-0" />
-                                  <span className="truncate font-medium">{order.customerName}</span>
-                                </div>
-                                <div className="text-muted-foreground mt-0.5">
-                                  {formatCurrency(Number(order.amount))}
-                                </div>
+                            <div
+                              key={order.id}
+                              className="text-xs p-1.5 rounded bg-primary/10 hover-elevate active-elevate-2 cursor-pointer truncate"
+                              data-testid={`order-${order.id}`}
+                              onClick={() => setSelectedOrder(order)}
+                            >
+                              <div className="flex items-center gap-1">
+                                <Cake className="h-3 w-3 flex-shrink-0" />
+                                <span className="truncate font-medium">{order.customerName}</span>
                               </div>
-                            </Link>
+                              <div className="text-muted-foreground mt-0.5">
+                                {formatCurrency(Number(order.amount))}
+                              </div>
+                            </div>
                           ))}
                         </div>
                       </>
@@ -263,6 +275,111 @@ export default function CalendarPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Cake className="h-5 w-5" />
+              Order Details
+            </DialogTitle>
+            <DialogDescription>
+              {selectedOrder?.title}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedOrder && (
+            <div className="space-y-4">
+              <div className="grid gap-3">
+                <div className="flex items-center gap-3">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Customer</p>
+                    <p className="font-medium">{selectedOrder.customerName}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Event Date</p>
+                    <p className="font-medium">
+                      {selectedOrder.eventDate
+                        ? new Date(selectedOrder.eventDate).toLocaleDateString("en-US", {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })
+                        : "Not set"}
+                    </p>
+                  </div>
+                </div>
+
+                {selectedOrder.eventType && (
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Event Type</p>
+                      <p className="font-medium capitalize">{selectedOrder.eventType}</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3">
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Amount</p>
+                    <p className="font-medium text-lg">{formatCurrency(Number(selectedOrder.amount))}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Payment Method</p>
+                    <p className="font-medium">
+                      {PAYMENT_METHOD_LABELS[selectedOrder.paymentMethod] || selectedOrder.paymentMethod}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge
+                  variant="secondary"
+                  className={`${FULFILLMENT_STATUS_COLORS[selectedOrder.fulfillmentStatus]}`}
+                >
+                  {selectedOrder.fulfillmentStatus.replace("_", " ")}
+                </Badge>
+                <Badge variant="outline" className="capitalize">
+                  {selectedOrder.paymentStatus.replace("_", " ")}
+                </Badge>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setSelectedOrder(null)}
+              data-testid="button-close-order-modal"
+            >
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                if (selectedOrder) {
+                  setSelectedOrder(null);
+                  setLocation(`/quotes/${selectedOrder.quoteId}`);
+                }
+              }}
+              data-testid="button-view-quote"
+            >
+              View Quote
+              <ExternalLink className="ml-2 h-4 w-4" />
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

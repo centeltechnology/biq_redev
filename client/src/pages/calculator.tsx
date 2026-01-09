@@ -93,6 +93,7 @@ export default function CalculatorPage() {
   const { slug } = useParams<{ slug: string }>();
   const [currentStep, setCurrentStep] = useState(0);
   const [tiers, setTiers] = useState<CakeTier[]>([createDefaultTier()]);
+  const [openTierAccordion, setOpenTierAccordion] = useState<string>("tier-0");
   const [decorations, setDecorations] = useState<string[]>([]);
   const [addons, setAddons] = useState<{ id: string; quantity?: number; attendees?: number }[]>([]);
   const [deliveryOption, setDeliveryOption] = useState("pickup");
@@ -158,7 +159,9 @@ export default function CalculatorPage() {
   const totals = calculateTotal(payload, bakerConfig);
 
   const addTier = () => {
+    const newTierIndex = tiers.length;
     setTiers([...tiers, createDefaultTier()]);
+    setOpenTierAccordion(`tier-${newTierIndex}`);
   };
 
   const removeTier = (index: number) => {
@@ -191,6 +194,10 @@ export default function CalculatorPage() {
 
   const updateAddonAttendees = (id: string, attendees: number) => {
     setAddons((prev) => prev.map(a => a.id === id ? { ...a, attendees } : a));
+  };
+
+  const updateAddonQuantity = (id: string, quantity: number) => {
+    setAddons((prev) => prev.map(a => a.id === id ? { ...a, quantity } : a));
   };
 
   const nextStep = () => {
@@ -283,9 +290,20 @@ export default function CalculatorPage() {
           </div>
           <div>
             <span className="font-semibold">{baker.businessName}</span>
-            {baker.phone && (
-              <p className="text-xs text-muted-foreground">{baker.phone}</p>
-            )}
+            <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+              {baker.phone && (
+                <span className="flex items-center gap-1">
+                  <Phone className="h-3 w-3" />
+                  {baker.phone}
+                </span>
+              )}
+              {baker.address && (
+                <span className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  {baker.address.split('\n')[0]}
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <ThemeToggle />
@@ -339,6 +357,8 @@ export default function CalculatorPage() {
                   onAddTier={addTier}
                   onRemoveTier={removeTier}
                   config={bakerConfig}
+                  openAccordion={openTierAccordion}
+                  onAccordionChange={setOpenTierAccordion}
                 />
               )}
 
@@ -354,7 +374,9 @@ export default function CalculatorPage() {
                   selected={addons}
                   onToggle={toggleAddon}
                   onUpdateAttendees={updateAddonAttendees}
+                  onUpdateQuantity={updateAddonQuantity}
                   guestCount={form.watch("guestCount")}
+                  config={bakerConfig}
                 />
               )}
 
@@ -434,12 +456,14 @@ interface StepCakeBuilderProps {
   onAddTier: () => void;
   onRemoveTier: (index: number) => void;
   config?: CalculatorConfig;
+  openAccordion: string;
+  onAccordionChange: (value: string) => void;
 }
 
-function StepCakeBuilder({ tiers, onUpdateTier, onAddTier, onRemoveTier, config }: StepCakeBuilderProps) {
+function StepCakeBuilder({ tiers, onUpdateTier, onAddTier, onRemoveTier, config, openAccordion, onAccordionChange }: StepCakeBuilderProps) {
   return (
     <div className="space-y-4">
-      <Accordion type="single" collapsible defaultValue="tier-0" className="space-y-4">
+      <Accordion type="single" collapsible value={openAccordion} onValueChange={onAccordionChange} className="space-y-4">
         {tiers.map((tier, index) => (
           <AccordionItem key={index} value={`tier-${index}`} className="border rounded-lg px-4">
             <AccordionTrigger className="hover:no-underline">
@@ -597,11 +621,24 @@ interface StepAddonsProps {
   selected: { id: string; quantity?: number; attendees?: number }[];
   onToggle: (id: string, attendees?: number) => void;
   onUpdateAttendees: (id: string, attendees: number) => void;
+  onUpdateQuantity: (id: string, quantity: number) => void;
   guestCount?: string;
+  config?: CalculatorConfig;
 }
 
-function StepAddons({ selected, onToggle, onUpdateAttendees, guestCount }: StepAddonsProps) {
+const QUANTITY_OPTIONS = [
+  { value: 0.5, label: "Half Dozen (6)" },
+  { value: 1, label: "1 Dozen (12)" },
+  { value: 2, label: "2 Dozen (24)" },
+  { value: 3, label: "3 Dozen (36)" },
+  { value: 4, label: "4 Dozen (48)" },
+];
+
+function StepAddons({ selected, onToggle, onUpdateAttendees, onUpdateQuantity, guestCount, config }: StepAddonsProps) {
   const defaultAttendees = guestCount ? parseInt(guestCount) : 50;
+  const addonHasQuantity = (addonId: string) => {
+    return ["dipped-strawberries", "chocolate-apples", "candied-apples"].includes(addonId);
+  };
 
   return (
     <div className="space-y-4">
@@ -614,6 +651,9 @@ function StepAddons({ selected, onToggle, onUpdateAttendees, guestCount }: StepA
           const selectedAddon = selected.find(a => a.id === addon.id);
           const isPerAttendee = addon.pricingType === "per-attendee";
           const minAttendees = "minAttendees" in addon ? addon.minAttendees : 0;
+          const hasQuantitySelector = addonHasQuantity(addon.id);
+          const customAddon = config?.addons?.find(a => a.id === addon.id);
+          const addonPrice = customAddon?.price ?? addon.price;
 
           return (
             <div key={addon.id} className="space-y-2">
@@ -629,12 +669,17 @@ function StepAddons({ selected, onToggle, onUpdateAttendees, guestCount }: StepA
                   <span>{addon.label}</span>
                   {isPerAttendee && (
                     <p className="text-xs text-muted-foreground">
-                      ${addon.price}/person (min {minAttendees} guests)
+                      ${addonPrice}/person (min {minAttendees} guests)
+                    </p>
+                  )}
+                  {hasQuantitySelector && !isPerAttendee && (
+                    <p className="text-xs text-muted-foreground">
+                      {formatCurrency(addonPrice)} per dozen
                     </p>
                   )}
                 </div>
                 <span className="font-medium">
-                  {isPerAttendee ? `$${addon.price}/person` : formatCurrency(addon.price)}
+                  {isPerAttendee ? `$${addonPrice}/person` : formatCurrency(addonPrice)}
                 </span>
               </Label>
               {isSelected && isPerAttendee && (
@@ -652,7 +697,32 @@ function StepAddons({ selected, onToggle, onUpdateAttendees, guestCount }: StepA
                     data-testid={`input-addon-attendees-${addon.id}`}
                   />
                   <span className="text-sm text-muted-foreground">
-                    = {formatCurrency(addon.price * (selectedAddon?.attendees || defaultAttendees))}
+                    = {formatCurrency(addonPrice * (selectedAddon?.attendees || defaultAttendees))}
+                  </span>
+                </div>
+              )}
+              {isSelected && hasQuantitySelector && !isPerAttendee && (
+                <div className="ml-8 flex items-center gap-3">
+                  <Label htmlFor={`quantity-${addon.id}`} className="text-sm">
+                    Quantity:
+                  </Label>
+                  <Select
+                    value={String(selectedAddon?.quantity || 1)}
+                    onValueChange={(v) => onUpdateQuantity(addon.id, parseFloat(v))}
+                  >
+                    <SelectTrigger className="w-40" data-testid={`select-addon-quantity-${addon.id}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {QUANTITY_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={String(opt.value)}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <span className="text-sm text-muted-foreground">
+                    = {formatCurrency(addonPrice * (selectedAddon?.quantity || 1))}
                   </span>
                 </div>
               )}

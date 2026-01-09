@@ -27,6 +27,10 @@ const profileSchema = z.object({
   email: z.string().email("Please enter a valid email"),
   phone: z.string().optional(),
   address: z.string().optional(),
+  socialFacebook: z.string().optional(),
+  socialInstagram: z.string().optional(),
+  socialTiktok: z.string().optional(),
+  socialPinterest: z.string().optional(),
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -66,6 +70,10 @@ export default function SettingsPage() {
       email: "",
       phone: "",
       address: "",
+      socialFacebook: "",
+      socialInstagram: "",
+      socialTiktok: "",
+      socialPinterest: "",
     },
   });
 
@@ -96,6 +104,10 @@ export default function SettingsPage() {
         email: baker.email,
         phone: baker.phone || "",
         address: baker.address || "",
+        socialFacebook: baker.socialFacebook || "",
+        socialInstagram: baker.socialInstagram || "",
+        socialTiktok: baker.socialTiktok || "",
+        socialPinterest: baker.socialPinterest || "",
       });
       paymentForm.reset({
         paymentZelle: baker.paymentZelle || "",
@@ -265,6 +277,67 @@ export default function SettingsPage() {
                     </FormItem>
                   )}
                 />
+
+                <div className="pt-4 border-t">
+                  <h4 className="text-sm font-medium mb-4">Social Media</h4>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <FormField
+                      control={profileForm.control}
+                      name="socialFacebook"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Facebook</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="facebook.com/yourbakery" data-testid="input-social-facebook" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={profileForm.control}
+                      name="socialInstagram"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Instagram</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="@yourbakery" data-testid="input-social-instagram" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={profileForm.control}
+                      name="socialTiktok"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>TikTok</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="@yourbakery" data-testid="input-social-tiktok" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={profileForm.control}
+                      name="socialPinterest"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Pinterest</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="pinterest.com/yourbakery" data-testid="input-social-pinterest" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
 
                 <Button
                   type="submit"

@@ -12,6 +12,11 @@ export const bakers = pgTable("bakers", {
   slug: text("slug").notNull().unique(),
   phone: text("phone"),
   address: text("address"),
+  // Social media
+  socialFacebook: text("social_facebook"),
+  socialInstagram: text("social_instagram"),
+  socialTiktok: text("social_tiktok"),
+  socialPinterest: text("social_pinterest"),
   // Payment options
   paymentZelle: text("payment_zelle"),
   paymentPaypal: text("payment_paypal"),

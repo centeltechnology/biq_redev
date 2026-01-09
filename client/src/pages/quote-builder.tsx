@@ -58,6 +58,7 @@ import {
   FROSTING_TYPES,
   DECORATIONS,
   DELIVERY_OPTIONS,
+  ADDONS,
   ORDER_PAYMENT_METHODS,
   type Quote,
   type QuoteItem,
@@ -235,6 +236,41 @@ export default function QuoteBuilderPage() {
               quantity: 1,
               unitPrice: dec.price,
               category: "decoration",
+            });
+          }
+        });
+      }
+
+      // Add addons
+      if (payload?.addons) {
+        payload.addons.forEach((addonData) => {
+          const addon = ADDONS.find((a) => a.id === addonData.id);
+          if (addon) {
+            let description = "";
+            let quantity = 1;
+            let unitPrice = addon.price;
+            
+            if (addon.pricingType === "per-attendee" && addonData.attendees) {
+              description = `${addonData.attendees} guests @ $${addon.price}/person`;
+              unitPrice = addon.price * addonData.attendees;
+            } else if (addonData.quantity) {
+              if (addonData.quantity === 0.5) {
+                description = "Half Dozen";
+              } else if (addonData.quantity > 1) {
+                description = `${addonData.quantity} Dozen`;
+              } else {
+                description = "1 Dozen";
+              }
+              unitPrice = addon.price * addonData.quantity;
+            }
+            
+            items.push({
+              id: `addon-${addonData.id}-${Date.now()}`,
+              name: addon.label,
+              description,
+              quantity: 1,
+              unitPrice,
+              category: "addon",
             });
           }
         });
