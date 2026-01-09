@@ -11,16 +11,14 @@ import type { Quote, QuoteItem } from "@shared/schema";
 interface PublicBaker {
   id: string;
   businessName: string;
-  tagline?: string | null;
   email?: string | null;
   phone?: string | null;
   address?: string | null;
   depositPercentage?: number | null;
-  acceptedPayments?: string[] | null;
-  zelleEmail?: string | null;
-  paypalEmail?: string | null;
-  venmoHandle?: string | null;
-  cashappHandle?: string | null;
+  paymentZelle?: string | null;
+  paymentPaypal?: string | null;
+  paymentVenmo?: string | null;
+  paymentCashapp?: string | null;
 }
 
 interface PublicCustomer {
@@ -280,35 +278,38 @@ export default function QuoteViewPage() {
                 </div>
                 <Separator />
                 <div className="text-sm">
-                  <p className="font-medium mb-2">Accepted Payment Methods:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {baker.acceptedPayments && (baker.acceptedPayments as string[]).length > 0 ? (
-                      (baker.acceptedPayments as string[]).map((method) => (
-                        <Badge key={method} variant="secondary" className="capitalize">
-                          {method}
-                        </Badge>
-                      ))
-                    ) : (
-                      <span className="text-muted-foreground">Contact baker for payment options</span>
-                    )}
-                  </div>
+                  <p className="font-medium mb-2">Payment Methods:</p>
+                  {(baker.paymentZelle || baker.paymentPaypal || baker.paymentVenmo || baker.paymentCashapp) ? (
+                    <div className="space-y-2">
+                      {baker.paymentZelle && (
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">Zelle</Badge>
+                          <span>{baker.paymentZelle}</span>
+                        </div>
+                      )}
+                      {baker.paymentPaypal && (
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">PayPal</Badge>
+                          <span>{baker.paymentPaypal}</span>
+                        </div>
+                      )}
+                      {baker.paymentVenmo && (
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">Venmo</Badge>
+                          <span>{baker.paymentVenmo}</span>
+                        </div>
+                      )}
+                      {baker.paymentCashapp && (
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">Cash App</Badge>
+                          <span>{baker.paymentCashapp}</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">Contact baker for payment options</span>
+                  )}
                 </div>
-                {(baker.zelleEmail || baker.paypalEmail || baker.venmoHandle || baker.cashappHandle) && (
-                  <div className="text-sm space-y-1 pt-2">
-                    {baker.zelleEmail && (
-                      <p><span className="text-muted-foreground">Zelle:</span> {baker.zelleEmail}</p>
-                    )}
-                    {baker.paypalEmail && (
-                      <p><span className="text-muted-foreground">PayPal:</span> {baker.paypalEmail}</p>
-                    )}
-                    {baker.venmoHandle && (
-                      <p><span className="text-muted-foreground">Venmo:</span> @{baker.venmoHandle}</p>
-                    )}
-                    {baker.cashappHandle && (
-                      <p><span className="text-muted-foreground">Cash App:</span> ${baker.cashappHandle}</p>
-                    )}
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>
