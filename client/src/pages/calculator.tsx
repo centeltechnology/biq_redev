@@ -88,6 +88,25 @@ const contactSchema = z.object({
 
 type ContactFormData = z.infer<typeof contactSchema>;
 
+function formatSocialUrl(value: string, platform: "facebook" | "instagram" | "tiktok" | "pinterest"): string {
+  const trimmed = value.trim();
+  
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+  
+  const handle = trimmed.replace(/^@/, "");
+  
+  const baseUrls: Record<string, string> = {
+    facebook: "https://facebook.com/",
+    instagram: "https://instagram.com/",
+    tiktok: "https://tiktok.com/@",
+    pinterest: "https://pinterest.com/",
+  };
+  
+  return baseUrls[platform] + handle;
+}
+
 const STEPS = ["Build Your Cake", "Decorations", "Addons", "Event Details", "Contact Info", "Review"];
 
 export default function CalculatorPage() {
@@ -312,7 +331,7 @@ export default function CalculatorPage() {
             <div className="flex items-center gap-1">
               {baker.socialFacebook && (
                 <a
-                  href={baker.socialFacebook}
+                  href={formatSocialUrl(baker.socialFacebook, "facebook")}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="p-2 rounded-md hover-elevate text-muted-foreground hover:text-foreground transition-colors"
@@ -323,7 +342,7 @@ export default function CalculatorPage() {
               )}
               {baker.socialInstagram && (
                 <a
-                  href={baker.socialInstagram}
+                  href={formatSocialUrl(baker.socialInstagram, "instagram")}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="p-2 rounded-md hover-elevate text-muted-foreground hover:text-foreground transition-colors"
@@ -334,7 +353,7 @@ export default function CalculatorPage() {
               )}
               {baker.socialTiktok && (
                 <a
-                  href={baker.socialTiktok}
+                  href={formatSocialUrl(baker.socialTiktok, "tiktok")}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="p-2 rounded-md hover-elevate text-muted-foreground hover:text-foreground transition-colors"
@@ -345,7 +364,7 @@ export default function CalculatorPage() {
               )}
               {baker.socialPinterest && (
                 <a
-                  href={baker.socialPinterest}
+                  href={formatSocialUrl(baker.socialPinterest, "pinterest")}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="p-2 rounded-md hover-elevate text-muted-foreground hover:text-foreground transition-colors"
