@@ -69,8 +69,8 @@ export interface IStorage {
   // Orders
   getOrder(id: string): Promise<Order | undefined>;
   getOrdersByBaker(bakerId: string): Promise<Order[]>;
-  getOrdersByMonth(bakerId: string, year: number, month: number): Promise<Order[]>;
-  getOrdersWithCustomer(bakerId: string): Promise<(Order & { customer?: { name: string } })[]>;
+  getOrdersByMonth(bakerId: string, year: number, month: number): Promise<(Order & { customerName: string; eventType: string | null })[]>;
+  getOrdersWithCustomer(bakerId: string): Promise<(Order & { customerName: string; eventType: string | null })[]>;
   createOrder(order: InsertOrder): Promise<Order>;
   updateOrder(id: string, data: Partial<InsertOrder>): Promise<Order | undefined>;
   deleteOrder(id: string): Promise<void>;
@@ -80,7 +80,7 @@ export interface IStorage {
     yearlyCount: number;
     yearlyRevenue: number;
   }>;
-  getUpcomingOrders(bakerId: string): Promise<(Order & { customer?: { name: string } })[]>;
+  getUpcomingOrders(bakerId: string): Promise<(Order & { customerName: string; eventType: string | null })[]>;
   getOrderByQuoteId(quoteId: string): Promise<Order | undefined>;
 }
 
@@ -322,13 +322,13 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(orders).where(eq(orders.bakerId, bakerId)).orderBy(desc(orders.eventDate));
   }
 
-  async getOrdersByMonth(bakerId: string, year: number, month: number): Promise<Order[]> {
+  async getOrdersByMonth(bakerId: string, year: number, month: number): Promise<(Order & { customerName: string; eventType: string | null })[]> {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0);
     const startStr = startDate.toISOString().split('T')[0];
     const endStr = endDate.toISOString().split('T')[0];
     
-    return db
+    const ordersList = await db
       .select()
       .from(orders)
       .where(
@@ -339,9 +339,36 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .orderBy(orders.eventDate);
+    
+    const result = await Promise.all(
+      ordersList.map(async (order) => {
+        const [customer] = await db
+          .select({ name: customers.name })
+          .from(customers)
+          .where(eq(customers.id, order.customerId));
+        
+        // Get event type from linked quote if available
+        let eventType: string | null = null;
+        if (order.quoteId) {
+          const [quote] = await db
+            .select({ title: quotes.title })
+            .from(quotes)
+            .where(eq(quotes.id, order.quoteId));
+          eventType = quote?.title || null;
+        }
+        
+        return { 
+          ...order, 
+          customerName: customer?.name || 'Unknown',
+          eventType
+        };
+      })
+    );
+    
+    return result;
   }
 
-  async getOrdersWithCustomer(bakerId: string): Promise<(Order & { customer?: { name: string } })[]> {
+  async getOrdersWithCustomer(bakerId: string): Promise<(Order & { customerName: string; eventType: string | null })[]> {
     const ordersList = await db
       .select()
       .from(orders)
@@ -354,7 +381,22 @@ export class DatabaseStorage implements IStorage {
           .select({ name: customers.name })
           .from(customers)
           .where(eq(customers.id, order.customerId));
-        return { ...order, customer };
+        
+        // Get event type from linked quote if available
+        let eventType: string | null = null;
+        if (order.quoteId) {
+          const [quote] = await db
+            .select({ title: quotes.title })
+            .from(quotes)
+            .where(eq(quotes.id, order.quoteId));
+          eventType = quote?.title || null;
+        }
+        
+        return { 
+          ...order, 
+          customerName: customer?.name || 'Unknown',
+          eventType
+        };
       })
     );
 
@@ -421,7 +463,7 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async getUpcomingOrders(bakerId: string): Promise<(Order & { customer?: { name: string } })[]> {
+  async getUpcomingOrders(bakerId: string): Promise<(Order & { customerName: string; eventType: string | null })[]> {
     const today = new Date();
     const nextWeek = new Date();
     nextWeek.setDate(nextWeek.getDate() + 7);
@@ -447,7 +489,22 @@ export class DatabaseStorage implements IStorage {
           .select({ name: customers.name })
           .from(customers)
           .where(eq(customers.id, order.customerId));
-        return { ...order, customer };
+        
+        // Get event type from linked quote if available
+        let eventType: string | null = null;
+        if (order.quoteId) {
+          const [quote] = await db
+            .select({ title: quotes.title })
+            .from(quotes)
+            .where(eq(quotes.id, order.quoteId));
+          eventType = quote?.title || null;
+        }
+        
+        return { 
+          ...order, 
+          customerName: customer?.name || 'Unknown',
+          eventType
+        };
       })
     );
 

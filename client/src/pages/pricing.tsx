@@ -23,7 +23,31 @@ export default function PricingPage() {
 
   const updatePricingMutation = useMutation({
     mutationFn: async (config: CalculatorConfig) => {
-      const res = await apiRequest("PATCH", "/api/bakers/me", { calculatorConfig: config });
+      // Build complete config with defaults for any missing categories
+      const completeConfig: CalculatorConfig = {
+        sizes: config.sizes || CAKE_SIZES.map(s => ({
+          id: s.id,
+          label: s.label,
+          servings: s.servings,
+          basePrice: s.basePrice
+        })),
+        flavors: config.flavors || CAKE_FLAVORS.map(f => ({
+          id: f.id,
+          label: f.label,
+          priceModifier: f.priceModifier
+        })),
+        frostings: config.frostings || FROSTING_TYPES.map(f => ({
+          id: f.id,
+          label: f.label,
+          priceModifier: f.priceModifier
+        })),
+        decorations: config.decorations || DECORATIONS.map(d => ({
+          id: d.id,
+          label: d.label,
+          price: d.price
+        })),
+      };
+      const res = await apiRequest("PATCH", "/api/bakers/me", { calculatorConfig: completeConfig });
       return res.json();
     },
     onSuccess: () => {

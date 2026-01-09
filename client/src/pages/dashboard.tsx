@@ -10,7 +10,8 @@ import { formatCurrency } from "@/lib/calculator";
 import type { Lead, Quote, Order } from "@shared/schema";
 
 interface UpcomingOrder extends Order {
-  customer?: { name: string };
+  customerName: string;
+  eventType: string | null;
 }
 
 interface DashboardStats {
@@ -130,7 +131,7 @@ export default function DashboardPage() {
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate text-sm">{order.title}</p>
                         <p className="text-xs text-muted-foreground">
-                          {order.customer?.name || "Unknown customer"}
+                          {order.customerName || "Unknown customer"}
                         </p>
                       </div>
                       <div className="text-right">

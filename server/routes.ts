@@ -414,12 +414,17 @@ export async function registerRoutes(
       if (isBeingApproved) {
         const existingOrder = await storage.getOrderByQuoteId(req.params.id);
         if (!existingOrder) {
+          // Use updated values if provided, otherwise fall back to existing quote values
+          const orderTitle = data.title || existingQuote.title;
+          const orderEventDate = data.eventDate !== undefined ? data.eventDate : existingQuote.eventDate;
+          const orderCustomerId = data.customerId || existingQuote.customerId;
+          
           await storage.createOrder({
             bakerId: req.session.bakerId!,
             quoteId: req.params.id,
-            customerId: existingQuote.customerId,
-            eventDate: existingQuote.eventDate,
-            title: existingQuote.title,
+            customerId: orderCustomerId,
+            eventDate: orderEventDate,
+            title: orderTitle,
             amount: total.toFixed(2),
             paymentMethod: "cash", // Default payment method
             paymentStatus: "paid",

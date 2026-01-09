@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Mail, Phone, FileText, Calendar } from "lucide-react";
+import { Search, Mail, Phone, FileText, Calendar, ChevronDown, ChevronRight, DollarSign, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -14,14 +16,24 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DashboardLayout } from "@/components/dashboard-layout";
+import { formatCurrency } from "@/lib/calculator";
 import type { Customer, Quote } from "@shared/schema";
 
 interface CustomerWithQuotes extends Customer {
   quotes: Quote[];
 }
 
+const STATUS_COLORS: Record<string, string> = {
+  draft: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
+  pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+  sent: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  approved: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  rejected: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+};
+
 export default function CustomersPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
 
   const { data: customers, isLoading } = useQuery<CustomerWithQuotes[]>({
     queryKey: ["/api/customers"],
@@ -34,6 +46,10 @@ export default function CustomersPage() {
       customer.email.toLowerCase().includes(searchQuery.toLowerCase())
     );
   });
+
+  const toggleExpanded = (customerId: string) => {
+    setExpandedCustomer(expandedCustomer === customerId ? null : customerId);
+  };
 
   return (
     <DashboardLayout title="Customers">
@@ -71,6 +87,7 @@ export default function CustomersPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-[40px]"></TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead>Contact</TableHead>
                       <TableHead className="hidden md:table-cell">Quotes</TableHead>
@@ -79,7 +96,12 @@ export default function CustomersPage() {
                   </TableHeader>
                   <TableBody>
                     {filteredCustomers?.map((customer) => (
-                      <CustomerTableRow key={customer.id} customer={customer} />
+                      <CustomerTableRow 
+                        key={customer.id} 
+                        customer={customer} 
+                        isExpanded={expandedCustomer === customer.id}
+                        onToggle={() => toggleExpanded(customer.id)}
+                      />
                     ))}
                   </TableBody>
                 </Table>
@@ -92,43 +114,116 @@ export default function CustomersPage() {
   );
 }
 
-function CustomerTableRow({ customer }: { customer: CustomerWithQuotes }) {
+function CustomerTableRow({ 
+  customer, 
+  isExpanded, 
+  onToggle 
+}: { 
+  customer: CustomerWithQuotes;
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
   const quoteCount = customer.quotes?.length || 0;
   const lastActivity = customer.quotes?.[0]?.createdAt
     ? new Date(customer.quotes[0].createdAt).toLocaleDateString()
     : new Date(customer.createdAt).toLocaleDateString();
 
   return (
-    <TableRow data-testid={`customer-row-${customer.id}`} className="cursor-pointer hover-elevate">
-      <TableCell>
-        <p className="font-medium">{customer.name}</p>
-      </TableCell>
-      <TableCell>
-        <div className="space-y-1">
-          <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Mail className="h-3.5 w-3.5" />
-            {customer.email}
-          </p>
-          {customer.phone && (
-            <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Phone className="h-3.5 w-3.5" />
-              {customer.phone}
-            </p>
+    <>
+      <TableRow 
+        data-testid={`customer-row-${customer.id}`} 
+        className="cursor-pointer hover-elevate"
+        onClick={onToggle}
+      >
+        <TableCell className="w-[40px]">
+          {quoteCount > 0 && (
+            isExpanded ? (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            )
           )}
-        </div>
-      </TableCell>
-      <TableCell className="hidden md:table-cell">
-        <span className="flex items-center gap-2">
-          <FileText className="h-4 w-4 text-muted-foreground" />
-          {quoteCount} {quoteCount === 1 ? "quote" : "quotes"}
-        </span>
-      </TableCell>
-      <TableCell className="hidden lg:table-cell">
-        <span className="flex items-center gap-2 text-muted-foreground">
-          <Calendar className="h-4 w-4" />
-          {lastActivity}
-        </span>
-      </TableCell>
-    </TableRow>
+        </TableCell>
+        <TableCell>
+          <p className="font-medium">{customer.name}</p>
+        </TableCell>
+        <TableCell>
+          <div className="space-y-1">
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Mail className="h-3.5 w-3.5" />
+              {customer.email}
+            </p>
+            {customer.phone && (
+              <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Phone className="h-3.5 w-3.5" />
+                {customer.phone}
+              </p>
+            )}
+          </div>
+        </TableCell>
+        <TableCell className="hidden md:table-cell">
+          <span className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            {quoteCount} {quoteCount === 1 ? "quote" : "quotes"}
+          </span>
+        </TableCell>
+        <TableCell className="hidden lg:table-cell">
+          <span className="flex items-center gap-2 text-muted-foreground">
+            <Calendar className="h-4 w-4" />
+            {lastActivity}
+          </span>
+        </TableCell>
+      </TableRow>
+      {isExpanded && customer.quotes?.length > 0 && (
+        <TableRow className="bg-muted/30">
+          <TableCell colSpan={5} className="p-0">
+            <div className="p-4 space-y-2">
+              <p className="text-sm font-medium text-muted-foreground mb-3">Quotes for {customer.name}</p>
+              <div className="space-y-2">
+                {customer.quotes.map((quote) => (
+                  <Link key={quote.id} href={`/quotes/${quote.id}`}>
+                    <div 
+                      className="flex items-center justify-between p-3 rounded-md border bg-background hover-elevate active-elevate-2 cursor-pointer"
+                      data-testid={`quote-row-${quote.id}`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div>
+                          <p className="font-medium text-sm">{quote.quoteNumber}</p>
+                          <p className="text-xs text-muted-foreground">{quote.title}</p>
+                        </div>
+                        <Badge 
+                          variant="secondary" 
+                          className={`text-xs ${STATUS_COLORS[quote.status]}`}
+                        >
+                          {quote.status}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="font-medium text-sm flex items-center gap-1">
+                            <DollarSign className="h-3.5 w-3.5" />
+                            {formatCurrency(Number(quote.total))}
+                          </p>
+                          {quote.eventDate && (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {new Date(quote.eventDate).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                        <Button variant="ghost" size="sm" className="text-xs" data-testid={`button-view-quote-${quote.id}`}>
+                          View
+                          <ArrowRight className="ml-1 h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </TableCell>
+        </TableRow>
+      )}
+    </>
   );
 }
