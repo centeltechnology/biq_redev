@@ -4,7 +4,7 @@ import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CAKE_SIZES, CAKE_FLAVORS, FROSTING_TYPES, DECORATIONS, type CalculatorConfig } from "@shared/schema";
+import { CAKE_SIZES, CAKE_FLAVORS, FROSTING_TYPES, DECORATIONS, DELIVERY_OPTIONS, ADDONS, type CalculatorConfig } from "@shared/schema";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -45,6 +45,18 @@ export default function PricingPage() {
           id: d.id,
           label: d.label,
           price: d.price
+        })),
+        deliveryOptions: config.deliveryOptions || DELIVERY_OPTIONS.map(d => ({
+          id: d.id,
+          label: d.label,
+          price: d.price
+        })),
+        addons: config.addons || ADDONS.map(a => ({
+          id: a.id,
+          label: a.label,
+          price: a.price,
+          pricingType: a.pricingType,
+          minAttendees: "minAttendees" in a ? a.minAttendees : undefined
         })),
       };
       const res = await apiRequest("PATCH", "/api/bakers/me", { calculatorConfig: completeConfig });
@@ -127,6 +139,44 @@ export default function PricingPage() {
       d.id === decorationId ? { ...d, price } : d
     );
     setPricingConfig({ ...pricingConfig, decorations: updatedDecorations });
+  };
+
+  const getDeliveryPrice = (deliveryId: string) => {
+    const customDelivery = pricingConfig.deliveryOptions?.find(d => d.id === deliveryId);
+    const defaultDelivery = DELIVERY_OPTIONS.find(d => d.id === deliveryId);
+    return customDelivery?.price ?? defaultDelivery?.price ?? 0;
+  };
+
+  const updateDeliveryPrice = (deliveryId: string, price: number) => {
+    const defaultDeliveries = DELIVERY_OPTIONS.map(d => ({
+      id: d.id,
+      label: d.label,
+      price: pricingConfig.deliveryOptions?.find(x => x.id === d.id)?.price ?? d.price
+    }));
+    const updatedDeliveries = defaultDeliveries.map(d => 
+      d.id === deliveryId ? { ...d, price } : d
+    );
+    setPricingConfig({ ...pricingConfig, deliveryOptions: updatedDeliveries });
+  };
+
+  const getAddonPrice = (addonId: string) => {
+    const customAddon = pricingConfig.addons?.find(a => a.id === addonId);
+    const defaultAddon = ADDONS.find(a => a.id === addonId);
+    return customAddon?.price ?? defaultAddon?.price ?? 0;
+  };
+
+  const updateAddonPrice = (addonId: string, price: number) => {
+    const defaultAddons = ADDONS.map(a => ({
+      id: a.id,
+      label: a.label,
+      price: pricingConfig.addons?.find(x => x.id === a.id)?.price ?? a.price,
+      pricingType: a.pricingType,
+      minAttendees: "minAttendees" in a ? a.minAttendees : undefined
+    }));
+    const updatedAddons = defaultAddons.map(a => 
+      a.id === addonId ? { ...a, price } : a
+    );
+    setPricingConfig({ ...pricingConfig, addons: updatedAddons });
   };
 
   return (
@@ -243,6 +293,69 @@ export default function PricingPage() {
                       value={getDecorationPrice(decoration.id)}
                       onChange={(e) => updateDecorationPrice(decoration.id, Number(e.target.value))}
                       data-testid={`input-decoration-price-${decoration.id}`}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Addons</CardTitle>
+            <CardDescription>
+              Set prices for extra sweet treats and services
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3">
+              {ADDONS.map((addon) => (
+                <div key={addon.id} className="flex items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <span className="text-sm font-medium">{addon.label}</span>
+                    {addon.pricingType === "per-attendee" && (
+                      <span className="text-xs text-muted-foreground ml-2">(per attendee)</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">$</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      className="w-20"
+                      value={getAddonPrice(addon.id)}
+                      onChange={(e) => updateAddonPrice(addon.id, Number(e.target.value))}
+                      data-testid={`input-addon-price-${addon.id}`}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Delivery & Setup</CardTitle>
+            <CardDescription>
+              Set prices for delivery and setup options
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3">
+              {DELIVERY_OPTIONS.map((delivery) => (
+                <div key={delivery.id} className="flex items-center justify-between gap-4">
+                  <span className="text-sm font-medium flex-1">{delivery.label}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">$</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      className="w-20"
+                      value={getDeliveryPrice(delivery.id)}
+                      onChange={(e) => updateDeliveryPrice(delivery.id, Number(e.target.value))}
+                      data-testid={`input-delivery-price-${delivery.id}`}
                     />
                   </div>
                 </div>
