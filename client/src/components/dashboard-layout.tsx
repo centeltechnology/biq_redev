@@ -95,8 +95,8 @@ export function DashboardLayout({ children, title, actions }: DashboardLayoutPro
                     Unlimited Quotes
                   </Badge>
                 ) : subscription.plan === "basic" ? (
-                  <Badge variant="outline" className="gap-1" data-testid="badge-basic-plan">
-                    {subscription.monthlyQuoteCount}/{subscription.quoteLimit} quotes
+                  <Badge variant="secondary" className="gap-1" data-testid="badge-basic-plan">
+                    Basic: {subscription.monthlyQuoteCount}/{subscription.quoteLimit}
                   </Badge>
                 ) : (
                   <div className="flex items-center gap-2">
