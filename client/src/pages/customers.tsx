@@ -1,12 +1,33 @@
-import { useState } from "react";
-import { Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
-import { Search, Mail, Phone, FileText, Calendar, ChevronDown, ChevronRight, DollarSign, ArrowRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Link, useSearch } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Search, Mail, Phone, FileText, Calendar, ChevronDown, ChevronRight, DollarSign, ArrowRight, Plus, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+
 import {
   Table,
   TableBody,
@@ -18,6 +39,14 @@ import {
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { formatCurrency } from "@/lib/calculator";
 import type { Customer, Quote } from "@shared/schema";
+
+const customerSchema = z.object({
+  name: z.string().min(2, "Name is required"),
+  email: z.string().email("Valid email is required"),
+  phone: z.string().optional(),
+});
+
+type CustomerFormData = z.infer<typeof customerSchema>;
 
 interface CustomerWithQuotes extends Customer {
   quotes: Quote[];
@@ -34,9 +63,36 @@ const STATUS_COLORS: Record<string, string> = {
 export default function CustomersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const { toast } = useToast();
+  const searchParams = useSearch();
+
+  const form = useForm<CustomerFormData>({
+    resolver: zodResolver(customerSchema),
+    defaultValues: { name: "", email: "", phone: "" },
+  });
+
+  useEffect(() => {
+    if (searchParams.includes("new=true")) {
+      setShowAddDialog(true);
+    }
+  }, [searchParams]);
 
   const { data: customers, isLoading } = useQuery<CustomerWithQuotes[]>({
     queryKey: ["/api/customers"],
+  });
+
+  const createCustomerMutation = useMutation({
+    mutationFn: async (data: CustomerFormData) => {
+      const res = await apiRequest("POST", "/api/customers", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      toast({ title: "Customer added successfully" });
+      setShowAddDialog(false);
+      form.reset();
+    },
   });
 
   const filteredCustomers = customers?.filter((customer) => {
@@ -52,7 +108,84 @@ export default function CustomersPage() {
   };
 
   return (
-    <DashboardLayout title="Customers">
+    <DashboardLayout 
+      title="Customers"
+      actions={
+        <Button onClick={() => setShowAddDialog(true)} data-testid="button-add-customer">
+          <Plus className="mr-2 h-4 w-4" />
+          Add Customer
+        </Button>
+      }
+    >
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Customer</DialogTitle>
+            <DialogDescription>
+              Add a customer to your contact list
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit((data) => createCustomerMutation.mutate(data))} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Customer name" data-testid="input-customer-name" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="email" placeholder="email@example.com" data-testid="input-customer-email" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone (optional)</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="(555) 123-4567" data-testid="input-customer-phone" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={createCustomerMutation.isPending} data-testid="button-save-customer">
+                  {createCustomerMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Add Customer"
+                  )}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
       <div className="space-y-4">
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
