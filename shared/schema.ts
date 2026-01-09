@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, integer, decimal, date, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, decimal, date, timestamp, jsonb, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -68,7 +68,9 @@ export const bakerOnboardingEmails = pgTable("baker_onboarding_emails", {
   sentAt: timestamp("sent_at").defaultNow().notNull(),
   status: text("status").notNull().default("sent"), // "sent", "failed"
   error: text("error"),
-});
+}, (table) => [
+  uniqueIndex("baker_email_day_unique").on(table.bakerId, table.emailDay),
+]);
 
 export const bakerOnboardingEmailsRelations = relations(bakerOnboardingEmails, ({ one }) => ({
   baker: one(bakers, {

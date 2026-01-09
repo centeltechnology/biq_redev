@@ -636,35 +636,48 @@ export class DatabaseStorage implements IStorage {
       emailDay,
       status,
       error: error || null,
+    }).onConflictDoUpdate({
+      target: [bakerOnboardingEmails.bakerId, bakerOnboardingEmails.emailDay],
+      set: {
+        status,
+        error: error || null,
+        sentAt: new Date(),
+      },
     });
   }
 
   async getBakersForOnboardingEmails(targetDay: number): Promise<Baker[]> {
-    // Get bakers who signed up exactly targetDay days ago and haven't received this email yet
+    // Get bakers who signed up at least targetDay days ago and haven't successfully received this email yet
     const targetDate = new Date();
     targetDate.setDate(targetDate.getDate() - targetDay);
-    const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
-    const endOfDay = new Date(startOfDay);
-    endOfDay.setDate(endOfDay.getDate() + 1);
-
-    // Get all bakers who signed up on the target day
+    
+    // Get all bakers who signed up on or before the target date
     const eligibleBakers = await db.select().from(bakers).where(
-      and(
-        gte(bakers.createdAt, startOfDay),
-        lte(bakers.createdAt, endOfDay)
-      )
+      lte(bakers.createdAt, targetDate)
     );
 
-    // Filter out bakers who have already received this day's email
+    // Filter out bakers who have already successfully received this day's email
     const result: Baker[] = [];
     for (const baker of eligibleBakers) {
-      const alreadySent = await this.hasOnboardingEmailBeenSent(baker.id, targetDay);
-      if (!alreadySent) {
+      // Check if there's a successful send for this day
+      const successfullySent = await this.hasOnboardingEmailSucceeded(baker.id, targetDay);
+      if (!successfullySent) {
         result.push(baker);
       }
     }
 
     return result;
+  }
+
+  async hasOnboardingEmailSucceeded(bakerId: string, emailDay: number): Promise<boolean> {
+    const [result] = await db.select().from(bakerOnboardingEmails).where(
+      and(
+        eq(bakerOnboardingEmails.bakerId, bakerId),
+        eq(bakerOnboardingEmails.emailDay, emailDay),
+        eq(bakerOnboardingEmails.status, "sent")
+      )
+    );
+    return !!result;
   }
 }
 

@@ -6,7 +6,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { pool } from "./db";
 import connectPgSimple from "connect-pg-simple";
-import { sendNewLeadNotification, sendLeadConfirmationToCustomer, sendPasswordResetEmail, sendEmailVerification, sendQuoteNotification } from "./email";
+import { sendNewLeadNotification, sendLeadConfirmationToCustomer, sendPasswordResetEmail, sendEmailVerification, sendQuoteNotification, sendOnboardingEmail } from "./email";
 import crypto from "crypto";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { db } from "./db";
@@ -115,6 +115,19 @@ export async function registerRoutes(
         await sendEmailVerification(baker.email, verifyToken, baseUrl);
       } catch (emailError) {
         console.error("Failed to send verification email:", emailError);
+      }
+
+      // Send welcome onboarding email (day 0)
+      try {
+        const welcomeSent = await sendOnboardingEmail(baker.email, baker.businessName, 0, baseUrl);
+        if (welcomeSent) {
+          await storage.recordOnboardingEmail(baker.id, 0, "sent");
+        } else {
+          await storage.recordOnboardingEmail(baker.id, 0, "failed", "Email send returned false");
+        }
+      } catch (emailError: any) {
+        console.error("Failed to send welcome email:", emailError);
+        await storage.recordOnboardingEmail(baker.id, 0, "failed", emailError?.message || "Unknown error");
       }
 
       req.session.bakerId = baker.id;
