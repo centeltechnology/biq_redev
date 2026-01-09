@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { usePageTitle } from "@/hooks/use-page-title";
 import { CheckCircle, Calendar, DollarSign, FileText, Cake, Printer } from "lucide-react";
 import type { Quote, QuoteItem } from "@shared/schema";
 
@@ -55,6 +56,8 @@ export default function QuoteViewPage() {
     },
     enabled: !!id,
   });
+
+  usePageTitle(data?.quote?.title ? `Quote: ${data.quote.title}` : "Your Quote");
 
   if (isLoading) {
     return (
