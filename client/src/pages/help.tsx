@@ -1,0 +1,267 @@
+import { Link } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { 
+  Cake, 
+  Calculator, 
+  Users, 
+  FileText, 
+  Settings,
+  CalendarCheck,
+  ArrowRight,
+  MessageSquare,
+  Mail,
+  BookOpen
+} from "lucide-react";
+
+export default function HelpPage() {
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+        <div className="container max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+          <Link href="/">
+            <div className="flex items-center gap-2 cursor-pointer">
+              <Cake className="h-8 w-8 text-primary" />
+              <span className="text-xl font-bold">BakerIQ</span>
+            </div>
+          </Link>
+          <nav className="flex items-center gap-4">
+            <Link href="/help">
+              <Button variant="ghost" className="text-primary" data-testid="link-help">Help</Button>
+            </Link>
+            <Link href="/faq">
+              <Button variant="ghost" data-testid="link-faq">FAQ</Button>
+            </Link>
+            <Link href="/login">
+              <Button variant="outline" data-testid="link-login">Log In</Button>
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      <main className="py-12 md:py-20">
+        <div className="container max-w-5xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h1 className="text-3xl md:text-4xl font-bold mb-4">Help Center</h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Learn how to get the most out of BakerIQ for your bakery business.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6 mb-12">
+            <Card className="hover-elevate">
+              <CardHeader>
+                <Calculator className="h-10 w-10 text-primary mb-2" />
+                <CardTitle>Getting Started</CardTitle>
+                <CardDescription>Set up your account and calculator</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium">1. Create Your Account</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Sign up with your email and business name. Your unique calculator URL will be created automatically based on your business name.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">2. Configure Your Pricing</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Go to Calculator Pricing in the dashboard to set your prices for cake sizes, flavors, decorations, and addons.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">3. Share Your Calculator</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Copy your unique calculator URL from Settings and share it on your website, social media, or with customers directly.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate">
+              <CardHeader>
+                <Users className="h-10 w-10 text-primary mb-2" />
+                <CardTitle>Managing Leads</CardTitle>
+                <CardDescription>Track and convert your inquiries</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium">Lead Statuses</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Track leads through stages: New, Contacted, Quoted, Won, or Lost. Update status as you work with each customer.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Lead Details</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Click on any lead to see their full cake design, contact info, and event details from the calculator.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Converting to Quotes</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Click "Create Quote" on any lead to start a professional quote with their details pre-filled.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate">
+              <CardHeader>
+                <FileText className="h-10 w-10 text-primary mb-2" />
+                <CardTitle>Creating Quotes</CardTitle>
+                <CardDescription>Build professional estimates</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium">Quote Builder</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Add line items for each part of the order: tiers, decorations, delivery, and custom items.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Quote Status</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Track quotes as Draft, Sent, Accepted, Declined, or Expired. Update as customers respond.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Converting to Orders</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Once a quote is accepted, convert it to an order to track in your calendar.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate">
+              <CardHeader>
+                <CalendarCheck className="h-10 w-10 text-primary mb-2" />
+                <CardTitle>Order Calendar</CardTitle>
+                <CardDescription>View your upcoming orders</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium">Calendar View</h4>
+                  <p className="text-sm text-muted-foreground">
+                    See all your confirmed orders displayed by date. Different colors indicate order status.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Search Orders</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Use the search bar to find orders by customer name, title, or event type.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Order Details</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Click on any order to view full details including customer contact info and delivery requirements.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate">
+              <CardHeader>
+                <Settings className="h-10 w-10 text-primary mb-2" />
+                <CardTitle>Calculator Pricing</CardTitle>
+                <CardDescription>Customize your prices</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium">Base Prices</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Set prices for each cake size. These form the foundation of your estimates.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Flavors & Frostings</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Add price adjustments for premium flavors and specialty frostings.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Addons & Delivery</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Configure prices for extras like dipped strawberries, sweets tables, and delivery fees.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate">
+              <CardHeader>
+                <Mail className="h-10 w-10 text-primary mb-2" />
+                <CardTitle>Email Notifications</CardTitle>
+                <CardDescription>Stay informed automatically</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium">New Lead Alerts</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Receive an email whenever a customer submits an inquiry through your calculator.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Customer Confirmations</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Customers automatically receive a confirmation email with their estimate details.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Quote Notifications</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Send professional quote emails to customers directly from the platform.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="bg-muted/30 rounded-2xl p-8 text-center">
+            <MessageSquare className="h-12 w-12 text-primary mx-auto mb-4" />
+            <h2 className="text-2xl font-bold mb-2">Still have questions?</h2>
+            <p className="text-muted-foreground mb-6">
+              Check out our FAQ or get in touch with support.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link href="/faq">
+                <Button variant="outline" className="gap-2" data-testid="button-view-faq">
+                  <BookOpen className="h-4 w-4" />
+                  View FAQ
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <footer className="py-12 border-t">
+        <div className="container max-w-7xl mx-auto px-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <Link href="/">
+              <div className="flex items-center gap-2 cursor-pointer">
+                <Cake className="h-6 w-6 text-primary" />
+                <span className="font-semibold">BakerIQ</span>
+              </div>
+            </Link>
+            <div className="flex items-center gap-6">
+              <Link href="/help">
+                <span className="text-sm text-muted-foreground hover:text-foreground">Help</span>
+              </Link>
+              <Link href="/faq">
+                <span className="text-sm text-muted-foreground hover:text-foreground">FAQ</span>
+              </Link>
+              <Link href="/login">
+                <span className="text-sm text-muted-foreground hover:text-foreground">Log In</span>
+              </Link>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Made with love for cake bakers everywhere
+            </p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}

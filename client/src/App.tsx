@@ -1,4 +1,4 @@
-import { Switch, Route, Redirect } from "wouter";
+import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -7,6 +7,9 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { ProtectedRoute } from "@/components/protected-route";
 
 import NotFound from "@/pages/not-found";
+import HomePage from "@/pages/home";
+import HelpPage from "@/pages/help";
+import FAQPage from "@/pages/faq";
 import LoginPage from "@/pages/login";
 import SignupPage from "@/pages/signup";
 import DashboardPage from "@/pages/dashboard";
@@ -23,7 +26,9 @@ import CalendarPage from "@/pages/calendar";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={() => <Redirect to="/login" />} />
+      <Route path="/" component={HomePage} />
+      <Route path="/help" component={HelpPage} />
+      <Route path="/faq" component={FAQPage} />
       <Route path="/login" component={LoginPage} />
       <Route path="/signup" component={SignupPage} />
       <Route path="/dashboard">
