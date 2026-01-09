@@ -218,6 +218,7 @@ export interface CalculatorConfig {
   frostings?: { id: string; label: string; priceModifier: number }[];
   decorations?: { id: string; label: string; price: number }[];
   deliveryOptions?: { id: string; label: string; price: number }[];
+  addons?: { id: string; label: string; price: number; pricingType: "flat" | "per-attendee"; minAttendees?: number }[];
 }
 
 export interface CakeTier {
@@ -230,6 +231,7 @@ export interface CakeTier {
 export interface CalculatorPayload {
   tiers: CakeTier[];
   decorations: string[];
+  addons: { id: string; quantity?: number; attendees?: number }[];
   deliveryOption: string;
   deliveryAddress?: string;
   specialRequests?: string;
@@ -288,6 +290,14 @@ export const DELIVERY_OPTIONS = [
   { id: "pickup", label: "Pickup", price: 0 },
   { id: "local", label: "Local Delivery (within 15 miles)", price: 25 },
   { id: "extended", label: "Extended Delivery (15-30 miles)", price: 45 },
+  { id: "setup", label: "Delivery + Setup", price: 75 },
+] as const;
+
+export const ADDONS = [
+  { id: "dipped-strawberries", label: "Dipped Strawberries (dozen)", price: 35, pricingType: "flat" as const },
+  { id: "chocolate-apples", label: "Chocolate Apples (6)", price: 30, pricingType: "flat" as const },
+  { id: "candied-apples", label: "Candied Apples (6)", price: 28, pricingType: "flat" as const },
+  { id: "full-sweets-table", label: "Full Sweets Table", price: 5, pricingType: "per-attendee" as const, minAttendees: 20 },
 ] as const;
 
 export const EVENT_TYPES = [
