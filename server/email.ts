@@ -115,7 +115,7 @@ export async function sendNewLeadNotification(
   <div class="container">
     <div class="header">
       <h1>New Lead Received!</h1>
-      <p>A customer is interested in your cakes</p>
+      <p>A customer is interested in your creations</p>
     </div>
     <div class="content">
       <h2>Lead Details</h2>
