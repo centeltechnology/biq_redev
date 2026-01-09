@@ -337,6 +337,7 @@ export async function registerRoutes(
         notifyNewLead: z.number().min(0).max(1).optional(),
         notifyQuoteViewed: z.number().min(0).max(1).optional(),
         notifyQuoteAccepted: z.number().min(0).max(1).optional(),
+        calculatorConfig: z.any().optional(),
       });
 
       const data = schema.parse(req.body);
