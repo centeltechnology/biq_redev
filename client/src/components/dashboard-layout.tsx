@@ -1,10 +1,22 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Sparkles } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { apiRequest } from "@/lib/queryClient";
+
+interface SubscriptionStatus {
+  plan: string;
+  monthlyLeadCount: number;
+  leadLimit: number;
+  isAtLimit: boolean;
+}
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -15,6 +27,21 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children, title, actions }: DashboardLayoutProps) {
   const { isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
+
+  const { data: subscription } = useQuery<SubscriptionStatus>({
+    queryKey: ["/api/subscription/status"],
+    enabled: isAuthenticated,
+  });
+
+  const upgradeMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/subscription/checkout");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.url) window.location.href = data.url;
+    },
+  });
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -61,6 +88,29 @@ export function DashboardLayout({ children, title, actions }: DashboardLayoutPro
               {title && <h1 className="text-lg font-semibold">{title}</h1>}
             </div>
             <div className="flex items-center gap-2">
+              {subscription && (
+                subscription.plan === "pro" ? (
+                  <Badge variant="outline" className="gap-1" data-testid="badge-pro-plan">
+                    <Sparkles className="h-3 w-3" />
+                    Unlimited
+                  </Badge>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground" data-testid="text-lead-count">
+                      {subscription.monthlyLeadCount}/{subscription.leadLimit} leads
+                    </span>
+                    <Button 
+                      size="sm" 
+                      onClick={() => upgradeMutation.mutate()}
+                      disabled={upgradeMutation.isPending}
+                      data-testid="button-header-upgrade"
+                    >
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      Upgrade
+                    </Button>
+                  </div>
+                )
+              )}
               {actions}
               <ThemeToggle />
             </div>
