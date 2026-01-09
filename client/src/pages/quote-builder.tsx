@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Plus, Trash2, Loader2, Save, CreditCard } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Loader2, Save, CreditCard, CheckCircle, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
   Table,
   TableBody,
   TableCell,
@@ -48,6 +58,7 @@ import {
   FROSTING_TYPES,
   DECORATIONS,
   DELIVERY_OPTIONS,
+  ORDER_PAYMENT_METHODS,
   type Quote,
   type QuoteItem,
   type Customer,
@@ -99,6 +110,8 @@ export default function QuoteBuilderPage() {
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [leadPopulated, setLeadPopulated] = useState(false);
   const [customerFromLead, setCustomerFromLead] = useState<string | null>(null);
+  const [convertDialogOpen, setConvertDialogOpen] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("cash");
 
   const { data: quote, isLoading: isLoadingQuote } = useQuery<QuoteWithItems>({
     queryKey: ["/api/quotes", editingQuoteId],
@@ -285,6 +298,32 @@ export default function QuoteBuilderPage() {
       toast({ title: "Quote saved successfully" });
     },
   });
+
+  const convertToOrderMutation = useMutation({
+    mutationFn: async (data: { quoteId: string; paymentMethod: string }) => {
+      const res = await apiRequest("POST", "/api/orders", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/quotes", editingQuoteId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/quotes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      setConvertDialogOpen(false);
+      toast({ 
+        title: "Order created",
+        description: "The quote has been converted to an order and added to your calendar.",
+      });
+      setLocation("/calendar");
+    },
+  });
+
+  const handleConvertToOrder = () => {
+    if (!editingQuoteId) return;
+    convertToOrderMutation.mutate({
+      quoteId: editingQuoteId,
+      paymentMethod: selectedPaymentMethod,
+    });
+  };
 
   const addLineItem = () => {
     setLineItems([
@@ -694,6 +733,95 @@ export default function QuoteBuilderPage() {
                           </>
                         )}
                       </Button>
+                      
+                      {!isNew && quote && quote.status !== "approved" && (
+                        <Dialog open={convertDialogOpen} onOpenChange={setConvertDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full"
+                              data-testid="button-convert-to-order"
+                            >
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              Convert to Order
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle className="flex items-center gap-2">
+                                <Calendar className="h-5 w-5" />
+                                Convert Quote to Order
+                              </DialogTitle>
+                              <DialogDescription>
+                                Mark this quote as accepted and add it to your calendar. 
+                                Select how the customer paid below.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="payment-method">Payment Method</Label>
+                                <Select
+                                  value={selectedPaymentMethod}
+                                  onValueChange={setSelectedPaymentMethod}
+                                >
+                                  <SelectTrigger id="payment-method" data-testid="select-payment-method">
+                                    <SelectValue placeholder="Select payment method" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {ORDER_PAYMENT_METHODS.map((method) => (
+                                      <SelectItem key={method.id} value={method.id}>
+                                        {method.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="rounded-md bg-muted p-3 text-sm">
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Quote Total</span>
+                                  <span className="font-medium">{formatCurrency(total)}</span>
+                                </div>
+                                {quote.eventDate && (
+                                  <div className="flex justify-between mt-1">
+                                    <span className="text-muted-foreground">Event Date</span>
+                                    <span className="font-medium">
+                                      {new Date(quote.eventDate).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setConvertDialogOpen(false)}
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                type="button"
+                                onClick={handleConvertToOrder}
+                                disabled={convertToOrderMutation.isPending}
+                                data-testid="button-confirm-convert"
+                              >
+                                {convertToOrderMutation.isPending ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Converting...
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle className="mr-2 h-4 w-4" />
+                                    Create Order
+                                  </>
+                                )}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

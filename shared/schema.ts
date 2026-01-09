@@ -90,6 +90,8 @@ export const quotes = pgTable("quotes", {
   taxAmount: decimal("tax_amount", { precision: 10, scale: 2 }).notNull(),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
   notes: text("notes"),
+  acceptedAt: timestamp("accepted_at"),
+  paidAt: timestamp("paid_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -130,6 +132,37 @@ export const quoteItemsRelations = relations(quoteItems, ({ one }) => ({
   }),
 }));
 
+// Orders table - for accepted/paid quotes
+export const orders = pgTable("orders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  bakerId: varchar("baker_id").notNull().references(() => bakers.id),
+  quoteId: varchar("quote_id").notNull().references(() => quotes.id),
+  customerId: varchar("customer_id").notNull().references(() => customers.id),
+  eventDate: date("event_date"),
+  title: text("title").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  paymentMethod: text("payment_method").notNull(), // cash, zelle, paypal, cashapp, venmo
+  paymentStatus: text("payment_status").notNull().default("paid"), // paid, partial, pending
+  fulfillmentStatus: text("fulfillment_status").notNull().default("booked"), // booked, in_progress, completed, cancelled
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const ordersRelations = relations(orders, ({ one }) => ({
+  baker: one(bakers, {
+    fields: [orders.bakerId],
+    references: [bakers.id],
+  }),
+  quote: one(quotes, {
+    fields: [orders.quoteId],
+    references: [quotes.id],
+  }),
+  customer: one(customers, {
+    fields: [orders.customerId],
+    references: [customers.id],
+  }),
+}));
+
 // Insert Schemas
 export const insertBakerSchema = createInsertSchema(bakers).omit({
   id: true,
@@ -156,6 +189,11 @@ export const insertQuoteItemSchema = createInsertSchema(quoteItems).omit({
   id: true,
 });
 
+export const insertOrderSchema = createInsertSchema(orders).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type Baker = typeof bakers.$inferSelect;
 export type InsertBaker = z.infer<typeof insertBakerSchema>;
@@ -167,6 +205,8 @@ export type Quote = typeof quotes.$inferSelect;
 export type InsertQuote = z.infer<typeof insertQuoteSchema>;
 export type QuoteItem = typeof quoteItems.$inferSelect;
 export type InsertQuoteItem = z.infer<typeof insertQuoteItemSchema>;
+export type Order = typeof orders.$inferSelect;
+export type InsertOrder = z.infer<typeof insertOrderSchema>;
 
 // Calculator Configuration Types
 export interface CakeTier {
@@ -260,6 +300,27 @@ export const QUOTE_STATUSES = [
   { id: "sent", label: "Sent", color: "blue" },
   { id: "approved", label: "Approved", color: "green" },
   { id: "declined", label: "Declined", color: "red" },
+] as const;
+
+export const ORDER_PAYMENT_METHODS = [
+  { id: "cash", label: "Cash" },
+  { id: "zelle", label: "Zelle" },
+  { id: "paypal", label: "PayPal" },
+  { id: "cashapp", label: "Cash App" },
+  { id: "venmo", label: "Venmo" },
+] as const;
+
+export const ORDER_PAYMENT_STATUSES = [
+  { id: "paid", label: "Paid", color: "green" },
+  { id: "partial", label: "Partial", color: "yellow" },
+  { id: "pending", label: "Pending", color: "gray" },
+] as const;
+
+export const ORDER_FULFILLMENT_STATUSES = [
+  { id: "booked", label: "Booked", color: "blue" },
+  { id: "in_progress", label: "In Progress", color: "yellow" },
+  { id: "completed", label: "Completed", color: "green" },
+  { id: "cancelled", label: "Cancelled", color: "red" },
 ] as const;
 
 export const DEFAULT_TAX_RATE = 0.08;

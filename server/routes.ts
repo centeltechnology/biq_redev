@@ -527,6 +527,134 @@ export async function registerRoutes(
     }
   });
 
+  // Orders Routes
+  app.get("/api/orders", requireAuth, async (req, res) => {
+    try {
+      const { month, year } = req.query;
+      let ordersList;
+      
+      if (month && year) {
+        ordersList = await storage.getOrdersByMonth(
+          req.session.bakerId!,
+          parseInt(year as string),
+          parseInt(month as string)
+        );
+      } else {
+        ordersList = await storage.getOrdersWithCustomer(req.session.bakerId!);
+      }
+      
+      res.json(ordersList);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch orders" });
+    }
+  });
+
+  app.get("/api/orders/stats", requireAuth, async (req, res) => {
+    try {
+      const stats = await storage.getOrderStats(req.session.bakerId!);
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch order stats" });
+    }
+  });
+
+  app.get("/api/orders/:id", requireAuth, async (req, res) => {
+    const order = await storage.getOrder(req.params.id);
+    if (!order || order.bakerId !== req.session.bakerId) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+    res.json(order);
+  });
+
+  app.post("/api/orders", requireAuth, async (req, res) => {
+    try {
+      const schema = z.object({
+        quoteId: z.string(),
+        paymentMethod: z.string(),
+        paymentStatus: z.string().optional(),
+        notes: z.string().optional(),
+      });
+
+      const data = schema.parse(req.body);
+
+      // Get the quote to copy details
+      const quote = await storage.getQuote(data.quoteId);
+      if (!quote || quote.bakerId !== req.session.bakerId) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+
+      // Determine the effective payment status (defaults to "paid")
+      const effectivePaymentStatus = data.paymentStatus || "paid";
+      
+      // Update quote status to approved and set timestamps
+      await storage.updateQuote(data.quoteId, { 
+        status: "approved",
+        acceptedAt: new Date(),
+        ...(effectivePaymentStatus === "paid" ? { paidAt: new Date() } : {})
+      });
+
+      const order = await storage.createOrder({
+        bakerId: req.session.bakerId!,
+        quoteId: data.quoteId,
+        customerId: quote.customerId,
+        eventDate: quote.eventDate,
+        title: quote.title,
+        amount: quote.total,
+        paymentMethod: data.paymentMethod,
+        paymentStatus: effectivePaymentStatus,
+        fulfillmentStatus: "booked",
+        notes: data.notes || null,
+      });
+
+      res.json(order);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      console.error("Order creation error:", error);
+      res.status(500).json({ message: "Failed to create order" });
+    }
+  });
+
+  app.patch("/api/orders/:id", requireAuth, async (req, res) => {
+    try {
+      const existingOrder = await storage.getOrder(req.params.id);
+      if (!existingOrder || existingOrder.bakerId !== req.session.bakerId) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+
+      const schema = z.object({
+        paymentStatus: z.string().optional(),
+        fulfillmentStatus: z.string().optional(),
+        notes: z.string().optional(),
+      });
+
+      const data = schema.parse(req.body);
+      
+      // Update paidAt on the quote when payment status changes to paid
+      if (data.paymentStatus === "paid" && existingOrder.paymentStatus !== "paid") {
+        await storage.updateQuote(existingOrder.quoteId, { paidAt: new Date() });
+      }
+      
+      const order = await storage.updateOrder(req.params.id, data);
+      res.json(order);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      res.status(500).json({ message: "Failed to update order" });
+    }
+  });
+
+  app.delete("/api/orders/:id", requireAuth, async (req, res) => {
+    const order = await storage.getOrder(req.params.id);
+    if (!order || order.bakerId !== req.session.bakerId) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+    await storage.deleteOrder(req.params.id);
+    res.json({ success: true });
+  });
+
   // Public Routes
   app.get("/api/public/baker/:slug", async (req, res) => {
     const baker = await storage.getBakerBySlug(req.params.slug);

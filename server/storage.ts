@@ -4,6 +4,7 @@ import {
   leads,
   quotes,
   quoteItems,
+  orders,
   type Baker,
   type InsertBaker,
   type Customer,
@@ -14,9 +15,11 @@ import {
   type InsertQuote,
   type QuoteItem,
   type InsertQuoteItem,
+  type Order,
+  type InsertOrder,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, gte, sql } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
 
 export interface IStorage {
   // Bakers
@@ -61,6 +64,21 @@ export interface IStorage {
     pendingQuotesCount: number;
     totalCustomers: number;
     recentLeads: Lead[];
+  }>;
+
+  // Orders
+  getOrder(id: string): Promise<Order | undefined>;
+  getOrdersByBaker(bakerId: string): Promise<Order[]>;
+  getOrdersByMonth(bakerId: string, year: number, month: number): Promise<Order[]>;
+  getOrdersWithCustomer(bakerId: string): Promise<(Order & { customer?: { name: string } })[]>;
+  createOrder(order: InsertOrder): Promise<Order>;
+  updateOrder(id: string, data: Partial<InsertOrder>): Promise<Order | undefined>;
+  deleteOrder(id: string): Promise<void>;
+  getOrderStats(bakerId: string): Promise<{
+    monthlyCount: number;
+    monthlyRevenue: number;
+    yearlyCount: number;
+    yearlyRevenue: number;
   }>;
 }
 
@@ -282,6 +300,115 @@ export class DatabaseStorage implements IStorage {
       pendingQuotesCount: Number(pendingQuotesResult?.count || 0),
       totalCustomers: Number(customersResult?.count || 0),
       recentLeads,
+    };
+  }
+
+  // Orders
+  async getOrder(id: string): Promise<Order | undefined> {
+    const [order] = await db.select().from(orders).where(eq(orders.id, id));
+    return order || undefined;
+  }
+
+  async getOrdersByBaker(bakerId: string): Promise<Order[]> {
+    return db.select().from(orders).where(eq(orders.bakerId, bakerId)).orderBy(desc(orders.eventDate));
+  }
+
+  async getOrdersByMonth(bakerId: string, year: number, month: number): Promise<Order[]> {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0);
+    const startStr = startDate.toISOString().split('T')[0];
+    const endStr = endDate.toISOString().split('T')[0];
+    
+    return db
+      .select()
+      .from(orders)
+      .where(
+        and(
+          eq(orders.bakerId, bakerId),
+          gte(orders.eventDate, startStr),
+          lte(orders.eventDate, endStr)
+        )
+      )
+      .orderBy(orders.eventDate);
+  }
+
+  async getOrdersWithCustomer(bakerId: string): Promise<(Order & { customer?: { name: string } })[]> {
+    const ordersList = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.bakerId, bakerId))
+      .orderBy(desc(orders.eventDate));
+
+    const result = await Promise.all(
+      ordersList.map(async (order) => {
+        const [customer] = await db
+          .select({ name: customers.name })
+          .from(customers)
+          .where(eq(customers.id, order.customerId));
+        return { ...order, customer };
+      })
+    );
+
+    return result;
+  }
+
+  async createOrder(insertOrder: InsertOrder): Promise<Order> {
+    const [order] = await db.insert(orders).values(insertOrder).returning();
+    return order;
+  }
+
+  async updateOrder(id: string, data: Partial<InsertOrder>): Promise<Order | undefined> {
+    const [order] = await db.update(orders).set(data).where(eq(orders.id, id)).returning();
+    return order || undefined;
+  }
+
+  async deleteOrder(id: string): Promise<void> {
+    await db.delete(orders).where(eq(orders.id, id));
+  }
+
+  async getOrderStats(bakerId: string): Promise<{
+    monthlyCount: number;
+    monthlyRevenue: number;
+    yearlyCount: number;
+    yearlyRevenue: number;
+  }> {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const startOfMonthStr = startOfMonth.toISOString().split('T')[0];
+    const startOfYearStr = startOfYear.toISOString().split('T')[0];
+
+    const [monthlyResult] = await db
+      .select({
+        count: sql<number>`count(*)`,
+        revenue: sql<number>`coalesce(sum(amount::numeric), 0)`,
+      })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.bakerId, bakerId),
+          gte(orders.createdAt, startOfMonth)
+        )
+      );
+
+    const [yearlyResult] = await db
+      .select({
+        count: sql<number>`count(*)`,
+        revenue: sql<number>`coalesce(sum(amount::numeric), 0)`,
+      })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.bakerId, bakerId),
+          gte(orders.createdAt, startOfYear)
+        )
+      );
+
+    return {
+      monthlyCount: Number(monthlyResult?.count || 0),
+      monthlyRevenue: Number(monthlyResult?.revenue || 0),
+      yearlyCount: Number(yearlyResult?.count || 0),
+      yearlyRevenue: Number(yearlyResult?.revenue || 0),
     };
   }
 }

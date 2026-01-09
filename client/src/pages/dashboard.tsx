@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ClipboardList, FileText, Users, ArrowRight, Calendar, DollarSign } from "lucide-react";
+import { ClipboardList, FileText, Users, ArrowRight, Calendar, DollarSign, TrendingUp, CalendarCheck } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,27 +16,47 @@ interface DashboardStats {
   recentLeads: Lead[];
 }
 
+interface OrderStats {
+  monthlyCount: number;
+  monthlyRevenue: number;
+  yearlyCount: number;
+  yearlyRevenue: number;
+}
+
 export default function DashboardPage() {
   const { data: stats, isLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
   });
 
+  const { data: orderStats, isLoading: isLoadingOrders } = useQuery<OrderStats>({
+    queryKey: ["/api/orders/stats"],
+  });
+
   return (
     <DashboardLayout title="Dashboard">
       <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <RevenueCard
+            title="Monthly Revenue"
+            subtitle={new Date().toLocaleDateString('en-US', { month: 'long' })}
+            value={orderStats?.monthlyRevenue}
+            count={orderStats?.monthlyCount}
+            icon={DollarSign}
+            isLoading={isLoadingOrders}
+          />
+          <RevenueCard
+            title="Yearly Revenue"
+            subtitle={new Date().getFullYear().toString()}
+            value={orderStats?.yearlyRevenue}
+            count={orderStats?.yearlyCount}
+            icon={TrendingUp}
+            isLoading={isLoadingOrders}
+          />
           <MetricCard
             title="New Leads"
             subtitle="Last 7 days"
             value={stats?.newLeadsCount}
             icon={ClipboardList}
-            isLoading={isLoading}
-          />
-          <MetricCard
-            title="Pending Quotes"
-            subtitle="Awaiting response"
-            value={stats?.pendingQuotesCount}
-            icon={FileText}
             isLoading={isLoading}
           />
           <MetricCard
@@ -46,6 +66,40 @@ export default function DashboardPage() {
             icon={Users}
             isLoading={isLoading}
           />
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
+              <div>
+                <CardTitle className="text-lg">Pending Quotes</CardTitle>
+                <CardDescription>{stats?.pendingQuotesCount || 0} awaiting response</CardDescription>
+              </div>
+              <Button variant="outline" asChild>
+                <Link href="/quotes" data-testid="link-view-all-quotes">
+                  View All
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <CalendarCheck className="h-5 w-5" />
+                  Upcoming Orders
+                </CardTitle>
+                <CardDescription>View your order calendar</CardDescription>
+              </div>
+              <Button variant="outline" asChild>
+                <Link href="/calendar" data-testid="link-view-calendar">
+                  View Calendar
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </CardHeader>
+          </Card>
         </div>
 
         <Card>
@@ -111,6 +165,44 @@ function MetricCard({ title, subtitle, value, icon: Icon, isLoading }: MetricCar
             )}
             <p className="text-sm font-medium text-foreground">{title}</p>
             <p className="text-xs text-muted-foreground">{subtitle}</p>
+          </div>
+          <div className="flex items-center justify-center w-10 h-10 rounded-md bg-primary/10">
+            <Icon className="h-5 w-5 text-primary" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+interface RevenueCardProps {
+  title: string;
+  subtitle: string;
+  value?: number;
+  count?: number;
+  icon: React.ComponentType<{ className?: string }>;
+  isLoading: boolean;
+}
+
+function RevenueCard({ title, subtitle, value, count, icon: Icon, isLoading }: RevenueCardProps) {
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            {isLoading ? (
+              <Skeleton className="h-8 w-24 mb-1" />
+            ) : (
+              <p className="text-2xl font-bold" data-testid={`revenue-${title.toLowerCase().replace(/\s/g, "-")}`}>
+                {formatCurrency(value ?? 0)}
+              </p>
+            )}
+            <p className="text-sm font-medium text-foreground">{title}</p>
+            {isLoading ? (
+              <Skeleton className="h-3 w-16" />
+            ) : (
+              <p className="text-xs text-muted-foreground">{count ?? 0} orders - {subtitle}</p>
+            )}
           </div>
           <div className="flex items-center justify-center w-10 h-10 rounded-md bg-primary/10">
             <Icon className="h-5 w-5 text-primary" />
