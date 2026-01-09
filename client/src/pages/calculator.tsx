@@ -254,8 +254,22 @@ export default function CalculatorPage() {
     setAddons((prev) => prev.map(a => a.id === id ? { ...a, quantity } : a));
   };
 
+  const getMergedTreats = () => {
+    const defaultTreats = TREATS.map(t => ({ ...t, enabled: true as boolean | undefined }));
+    const defaultTreatIds = new Set(TREATS.map(t => t.id));
+    
+    if (!bakerConfig?.treats || bakerConfig.treats.length === 0) {
+      return defaultTreats;
+    }
+    const customTreatsById = new Map(bakerConfig.treats.map(t => [t.id, t]));
+    const mergedDefaults = defaultTreats.map(d => customTreatsById.get(d.id) || d);
+    const customOnly = bakerConfig.treats.filter(t => !defaultTreatIds.has(t.id));
+    return [...mergedDefaults, ...customOnly];
+  };
+
   const updateTreatQuantity = (id: string, quantity: number) => {
-    const treat = TREATS.find(t => t.id === id);
+    const allTreats = getMergedTreats();
+    const treat = allTreats.find(t => t.id === id);
     const minQty = treat?.minQuantity || 1;
     
     if (quantity <= 0) {
@@ -699,7 +713,20 @@ function StepTreats({ selected, onUpdateQuantity, config }: StepTreatsProps) {
     return selected.find(t => t.id === id)?.quantity || 0;
   };
 
-  const effectiveTreats = config?.treats || TREATS;
+  const defaultTreats = TREATS.map(t => ({ ...t, enabled: true as boolean | undefined }));
+  const defaultTreatIds = new Set(TREATS.map(t => t.id));
+  
+  const mergedTreats = (() => {
+    if (!config?.treats || config.treats.length === 0) {
+      return defaultTreats;
+    }
+    const customTreatsById = new Map(config.treats.map(t => [t.id, t]));
+    const mergedDefaults = defaultTreats.map(d => customTreatsById.get(d.id) || d);
+    const customOnly = config.treats.filter(t => !defaultTreatIds.has(t.id));
+    return [...mergedDefaults, ...customOnly];
+  })();
+  
+  const effectiveTreats = mergedTreats.filter(t => t.enabled !== false);
 
   return (
     <div className="space-y-4">
@@ -1305,7 +1332,21 @@ interface StepReviewProps {
 
 function StepReview({ category, tiers, decorations, addons, treats, deliveryOption, totals, form, config }: StepReviewProps) {
   const values = form.watch();
-  const effectiveTreats = config?.treats || TREATS;
+  
+  const defaultTreats = TREATS.map(t => ({ ...t, enabled: true as boolean | undefined }));
+  const defaultTreatIds = new Set(TREATS.map(t => t.id));
+  
+  const mergedTreats = (() => {
+    if (!config?.treats || config.treats.length === 0) {
+      return defaultTreats;
+    }
+    const customTreatsById = new Map(config.treats.map(t => [t.id, t]));
+    const mergedDefaults = defaultTreats.map(d => customTreatsById.get(d.id) || d);
+    const customOnly = config.treats.filter(t => !defaultTreatIds.has(t.id));
+    return [...mergedDefaults, ...customOnly];
+  })();
+  
+  const effectiveTreats = mergedTreats.filter(t => t.enabled !== false);
 
   return (
     <div className="space-y-6">

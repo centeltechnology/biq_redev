@@ -97,6 +97,10 @@ function getEffectiveTreatPrice(treatId: string, config?: CalculatorConfig): num
 
 export function calculateTreatsPrice(treats: TreatSelection[], config?: CalculatorConfig): number {
   return treats.reduce((total, treat) => {
+    const customTreat = config?.treats?.find(t => t.id === treat.id);
+    if (customTreat?.enabled === false) {
+      return total;
+    }
     const price = getEffectiveTreatPrice(treat.id, config);
     return total + (price * treat.quantity);
   }, 0);

@@ -194,7 +194,7 @@ export default function PricingPage() {
     setPricingConfig({ ...pricingConfig, addons: updatedAddons });
   };
 
-  const defaultTreatIds = new Set(TREATS.map(t => t.id));
+  const defaultTreatIds: Set<string> = new Set(TREATS.map(t => t.id));
 
   const isDefaultTreat = (treatId: string) => {
     return defaultTreatIds.has(treatId);
@@ -205,10 +205,7 @@ export default function PricingPage() {
   };
 
   const getAllTreats = () => {
-    if (pricingConfig.treats && pricingConfig.treats.length > 0) {
-      return pricingConfig.treats;
-    }
-    return TREATS.map(t => ({
+    const defaultTreats = TREATS.map(t => ({
       id: t.id,
       label: t.label,
       description: t.description,
@@ -216,6 +213,16 @@ export default function PricingPage() {
       minQuantity: t.minQuantity,
       enabled: true
     }));
+    
+    if (!pricingConfig.treats || pricingConfig.treats.length === 0) {
+      return defaultTreats;
+    }
+    
+    const customTreatsById = new Map(pricingConfig.treats.map(t => [t.id, t]));
+    const mergedDefaults = defaultTreats.map(d => customTreatsById.get(d.id) || d);
+    const customOnly = pricingConfig.treats.filter(t => !defaultTreatIds.has(t.id));
+    
+    return [...mergedDefaults, ...customOnly];
   };
 
   const updateTreat = (treatId: string, updates: Partial<{ label: string; description: string; unitPrice: number; enabled: boolean }>) => {
