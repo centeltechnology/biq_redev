@@ -256,6 +256,7 @@ export interface CalculatorConfig {
   decorations?: { id: string; label: string; price: number }[];
   deliveryOptions?: { id: string; label: string; price: number }[];
   addons?: { id: string; label: string; price: number; pricingType: "flat" | "per-attendee"; minAttendees?: number }[];
+  treats?: { id: string; label: string; description: string; unitPrice: number; minQuantity: number }[];
 }
 
 export interface CakeTier {
@@ -265,10 +266,20 @@ export interface CakeTier {
   frosting: string;
 }
 
+export interface TreatSelection {
+  id: string;
+  quantity: number;
+}
+
 export interface CalculatorPayload {
-  tiers: CakeTier[];
-  decorations: string[];
-  addons: { id: string; quantity?: number; attendees?: number }[];
+  category: "cake" | "treat";
+  // Cake-specific fields
+  tiers?: CakeTier[];
+  decorations?: string[];
+  addons?: { id: string; quantity?: number; attendees?: number }[];
+  // Treat-specific fields
+  treats?: TreatSelection[];
+  // Common fields
   deliveryOption: string;
   deliveryAddress?: string;
   specialRequests?: string;
@@ -335,6 +346,22 @@ export const ADDONS = [
   { id: "chocolate-apples", label: "Chocolate Apples (6)", price: 30, pricingType: "flat" as const },
   { id: "candied-apples", label: "Candied Apples (6)", price: 28, pricingType: "flat" as const },
   { id: "full-sweets-table", label: "Full Sweets Table", price: 5, pricingType: "per-attendee" as const, minAttendees: 20 },
+] as const;
+
+// Treats - standalone treat items (not cake add-ons)
+export const TREATS = [
+  { id: "dipped-strawberries-dozen", label: "Chocolate Dipped Strawberries", description: "Per dozen", unitPrice: 35, minQuantity: 1 },
+  { id: "dipped-strawberries-half", label: "Chocolate Dipped Strawberries", description: "Half dozen", unitPrice: 20, minQuantity: 1 },
+  { id: "chocolate-apples", label: "Chocolate Covered Apples", description: "Per apple", unitPrice: 8, minQuantity: 3 },
+  { id: "candied-apples", label: "Candied Apples", description: "Per apple", unitPrice: 6, minQuantity: 3 },
+  { id: "cake-pops", label: "Cake Pops", description: "Per dozen", unitPrice: 30, minQuantity: 1 },
+  { id: "cupcakes-standard", label: "Standard Cupcakes", description: "Per dozen", unitPrice: 36, minQuantity: 1 },
+  { id: "cupcakes-gourmet", label: "Gourmet Cupcakes", description: "Per dozen", unitPrice: 48, minQuantity: 1 },
+  { id: "cookies-decorated", label: "Decorated Sugar Cookies", description: "Per dozen", unitPrice: 42, minQuantity: 1 },
+  { id: "cookies-plain", label: "Assorted Cookies", description: "Per dozen", unitPrice: 24, minQuantity: 1 },
+  { id: "brownies", label: "Brownies", description: "Per dozen", unitPrice: 30, minQuantity: 1 },
+  { id: "rice-treats", label: "Rice Crispy Treats", description: "Per dozen", unitPrice: 24, minQuantity: 1 },
+  { id: "pretzel-rods", label: "Chocolate Pretzel Rods", description: "Per dozen", unitPrice: 18, minQuantity: 1 },
 ] as const;
 
 export const EVENT_TYPES = [

@@ -6,10 +6,12 @@ import {
   DECORATIONS,
   DELIVERY_OPTIONS,
   ADDONS,
+  TREATS,
   DEFAULT_TAX_RATE,
   type CakeTier,
   type CalculatorPayload,
   type CalculatorConfig,
+  type TreatSelection,
 } from "@shared/schema";
 
 // Get effective pricing based on custom config or default
@@ -85,24 +87,50 @@ export function calculateAddonsPrice(addons: { id: string; quantity?: number; at
   }, 0);
 }
 
+// Get effective treat price from custom config or default
+function getEffectiveTreatPrice(treatId: string, config?: CalculatorConfig): number {
+  const customTreat = config?.treats?.find(t => t.id === treatId);
+  if (customTreat) return customTreat.unitPrice;
+  const defaultTreat = TREATS.find(t => t.id === treatId);
+  return defaultTreat?.unitPrice || 0;
+}
+
+export function calculateTreatsPrice(treats: TreatSelection[], config?: CalculatorConfig): number {
+  return treats.reduce((total, treat) => {
+    const price = getEffectiveTreatPrice(treat.id, config);
+    return total + (price * treat.quantity);
+  }, 0);
+}
+
 export function calculateTotal(payload: CalculatorPayload, config?: CalculatorConfig): {
   tiersTotal: number;
   decorationsTotal: number;
   addonsTotal: number;
+  treatsTotal: number;
   deliveryTotal: number;
   subtotal: number;
   tax: number;
   total: number;
 } {
-  const tiersTotal = payload.tiers.reduce(
-    (sum, tier) => sum + calculateTierPrice(tier, config),
-    0
-  );
-  const decorationsTotal = calculateDecorationsPrice(payload.decorations, config);
-  const addonsTotal = calculateAddonsPrice(payload.addons || [], config);
+  // Handle cake calculations
+  const tiersTotal = payload.category === "cake" && payload.tiers 
+    ? payload.tiers.reduce((sum, tier) => sum + calculateTierPrice(tier, config), 0)
+    : 0;
+  const decorationsTotal = payload.category === "cake" && payload.decorations
+    ? calculateDecorationsPrice(payload.decorations, config)
+    : 0;
+  const addonsTotal = payload.category === "cake" && payload.addons
+    ? calculateAddonsPrice(payload.addons, config)
+    : 0;
+
+  // Handle treats calculations
+  const treatsTotal = payload.category === "treat" && payload.treats
+    ? calculateTreatsPrice(payload.treats, config)
+    : 0;
+
   const deliveryTotal = calculateDeliveryPrice(payload.deliveryOption, config);
 
-  const subtotal = tiersTotal + decorationsTotal + addonsTotal + deliveryTotal;
+  const subtotal = tiersTotal + decorationsTotal + addonsTotal + treatsTotal + deliveryTotal;
   const tax = subtotal * DEFAULT_TAX_RATE;
   const total = subtotal + tax;
 
@@ -110,6 +138,7 @@ export function calculateTotal(payload: CalculatorPayload, config?: CalculatorCo
     tiersTotal,
     decorationsTotal,
     addonsTotal,
+    treatsTotal,
     deliveryTotal,
     subtotal,
     tax,
@@ -131,7 +160,16 @@ export function getTierSummary(tier: CakeTier): string {
 }
 
 export function getPayloadSummary(payload: CalculatorPayload): string {
-  if (payload.tiers.length === 0) return "No tiers selected";
+  if (payload.category === "treat") {
+    if (!payload.treats || payload.treats.length === 0) return "No treats selected";
+    const treatNames = payload.treats.map(t => {
+      const treat = TREATS.find(tr => tr.id === t.id);
+      return `${treat?.label || t.id} x${t.quantity}`;
+    });
+    return treatNames.slice(0, 3).join(", ") + (treatNames.length > 3 ? "..." : "");
+  }
+  
+  if (!payload.tiers || payload.tiers.length === 0) return "No tiers selected";
   if (payload.tiers.length === 1) {
     return getTierSummary(payload.tiers[0]);
   }
