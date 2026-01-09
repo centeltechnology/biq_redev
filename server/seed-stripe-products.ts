@@ -5,53 +5,97 @@ async function seedProducts() {
   
   const stripe = await getUncachableStripeClient();
 
-  // Check if BakerIQ Pro product already exists
-  const existingProducts = await stripe.products.search({ 
+  // Seed BakerIQ Basic product ($9.97/month - 25 quotes)
+  let basicProduct;
+  const existingBasic = await stripe.products.search({ 
+    query: "name:'BakerIQ Basic'" 
+  });
+
+  if (existingBasic.data.length > 0) {
+    basicProduct = existingBasic.data[0];
+    console.log('BakerIQ Basic product already exists:', basicProduct.id);
+  } else {
+    basicProduct = await stripe.products.create({
+      name: 'BakerIQ Basic',
+      description: '25 quotes per month for your bakery business',
+      metadata: {
+        quoteLimit: '25',
+        plan: 'basic',
+      },
+    });
+    console.log('Created Basic product:', basicProduct.id);
+  }
+
+  // Check/create Basic price
+  const basicPrices = await stripe.prices.list({
+    product: basicProduct.id,
+    active: true,
+  });
+  
+  if (basicPrices.data.length === 0) {
+    const basicPrice = await stripe.prices.create({
+      product: basicProduct.id,
+      unit_amount: 997, // $9.97 in cents
+      currency: 'usd',
+      recurring: {
+        interval: 'month',
+      },
+      lookup_key: 'bakeriq_basic_monthly',
+      metadata: {
+        plan: 'basic',
+      },
+    });
+    console.log('Created Basic price:', basicPrice.id, '- $9.97/month');
+  } else {
+    console.log('Basic price already exists:', basicPrices.data[0].id);
+  }
+
+  // Seed BakerIQ Pro product ($29.97/month - unlimited quotes)
+  let proProduct;
+  const existingPro = await stripe.products.search({ 
     query: "name:'BakerIQ Pro'" 
   });
 
-  if (existingProducts.data.length > 0) {
-    console.log('BakerIQ Pro product already exists:', existingProducts.data[0].id);
-    
-    // Get prices for this product
-    const prices = await stripe.prices.list({
-      product: existingProducts.data[0].id,
-      active: true,
+  if (existingPro.data.length > 0) {
+    proProduct = existingPro.data[0];
+    console.log('BakerIQ Pro product already exists:', proProduct.id);
+  } else {
+    proProduct = await stripe.products.create({
+      name: 'BakerIQ Pro',
+      description: 'Unlimited quotes per month for your bakery business',
+      metadata: {
+        quoteLimit: 'unlimited',
+        plan: 'pro',
+      },
     });
-    
-    if (prices.data.length > 0) {
-      console.log('Price already exists:', prices.data[0].id);
-      return;
-    }
+    console.log('Created Pro product:', proProduct.id);
   }
 
-  // Create the BakerIQ Pro product
-  const product = await stripe.products.create({
-    name: 'BakerIQ Pro',
-    description: 'Unlimited leads per month for your bakery business',
-    metadata: {
-      leadLimit: 'unlimited',
-    },
+  // Check/create Pro price
+  const proPrices = await stripe.prices.list({
+    product: proProduct.id,
+    active: true,
   });
-  console.log('Created product:', product.id);
-
-  // Create the $9.97/month price
-  const price = await stripe.prices.create({
-    product: product.id,
-    unit_amount: 997, // $9.97 in cents
-    currency: 'usd',
-    recurring: {
-      interval: 'month',
-    },
-    metadata: {
-      plan: 'pro',
-    },
-  });
-  console.log('Created price:', price.id, '- $9.97/month');
+  
+  if (proPrices.data.length === 0) {
+    const proPrice = await stripe.prices.create({
+      product: proProduct.id,
+      unit_amount: 2997, // $29.97 in cents
+      currency: 'usd',
+      recurring: {
+        interval: 'month',
+      },
+      lookup_key: 'bakeriq_pro_monthly',
+      metadata: {
+        plan: 'pro',
+      },
+    });
+    console.log('Created Pro price:', proPrice.id, '- $29.97/month');
+  } else {
+    console.log('Pro price already exists:', proPrices.data[0].id);
+  }
 
   console.log('Stripe products seeded successfully!');
-  console.log('Product ID:', product.id);
-  console.log('Price ID:', price.id);
 }
 
 seedProducts().catch(console.error);

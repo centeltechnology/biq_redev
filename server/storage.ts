@@ -86,6 +86,7 @@ export interface IStorage {
   getUpcomingOrders(bakerId: string): Promise<(Order & { customerName: string; eventType: string | null })[]>;
   getOrderByQuoteId(quoteId: string): Promise<Order | undefined>;
   getMonthlyLeadCount(bakerId: string): Promise<number>;
+  getMonthlyQuoteCount(bakerId: string): Promise<number>;
 
   // Password Reset Tokens
   createPasswordResetToken(bakerId: string, token: string, expiresAt: Date): Promise<void>;
@@ -549,6 +550,21 @@ export class DatabaseStorage implements IStorage {
         and(
           eq(leads.bakerId, bakerId),
           gte(leads.createdAt, startOfMonth)
+        )
+      );
+    return result[0]?.count || 0;
+  }
+
+  async getMonthlyQuoteCount(bakerId: string): Promise<number> {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const result = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(quotes)
+      .where(
+        and(
+          eq(quotes.bakerId, bakerId),
+          gte(quotes.createdAt, startOfMonth)
         )
       );
     return result[0]?.count || 0;

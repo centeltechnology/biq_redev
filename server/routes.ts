@@ -13,7 +13,10 @@ import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { CAKE_SIZES, CAKE_SHAPES, CAKE_FLAVORS, FROSTING_TYPES, DECORATIONS, DELIVERY_OPTIONS, ADDONS } from "@shared/schema";
 
-const FREE_LEAD_LIMIT = 10;
+// Quote limits per plan (monthly)
+const FREE_QUOTE_LIMIT = 5;
+const BASIC_QUOTE_LIMIT = 25;
+// Pro plan has unlimited quotes
 
 const PgSession = connectPgSimple(session);
 
@@ -657,19 +660,42 @@ export async function registerRoutes(
   // Send quote via email
   app.post("/api/quotes/:id/send", requireAuth, async (req, res) => {
     try {
+      const bakerId = req.session.bakerId!;
+      const baker = await storage.getBaker(bakerId);
+      if (!baker) {
+        return res.status(400).json({ message: "Baker not found" });
+      }
+
+      // Check quote limit for the baker's plan
+      const plan = baker.plan || "free";
+      let quoteLimit: number | null = FREE_QUOTE_LIMIT;
+      if (plan === "basic") {
+        quoteLimit = BASIC_QUOTE_LIMIT;
+      } else if (plan === "pro") {
+        quoteLimit = null; // unlimited
+      }
+      
+      if (quoteLimit !== null) {
+        const monthlyQuoteCount = await storage.getMonthlyQuoteCount(bakerId);
+        if (monthlyQuoteCount >= quoteLimit) {
+          return res.status(403).json({
+            message: "Quote limit reached",
+            limitReached: true,
+            limit: quoteLimit,
+            count: monthlyQuoteCount,
+            plan,
+          });
+        }
+      }
+
       const quote = await storage.getQuoteWithItems(req.params.id);
-      if (!quote || quote.bakerId !== req.session.bakerId) {
+      if (!quote || quote.bakerId !== bakerId) {
         return res.status(404).json({ message: "Quote not found" });
       }
 
       const customer = await storage.getCustomer(quote.customerId);
       if (!customer) {
         return res.status(400).json({ message: "Customer not found" });
-      }
-
-      const baker = await storage.getBaker(req.session.bakerId!);
-      if (!baker) {
-        return res.status(400).json({ message: "Baker not found" });
       }
 
       const baseUrl = process.env.REPLIT_DEV_DOMAIN 
@@ -1054,18 +1080,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Baker not found" });
       }
 
-      // Check lead limit for free plan
-      if (baker.plan === "free" || !baker.plan) {
-        const monthlyLeadCount = await storage.getMonthlyLeadCount(baker.id);
-        if (monthlyLeadCount >= FREE_LEAD_LIMIT) {
-          return res.status(403).json({ 
-            message: "Lead limit reached", 
-            limitReached: true,
-            limit: FREE_LEAD_LIMIT,
-            count: monthlyLeadCount
-          });
-        }
-      }
+      // Leads are unlimited - limits only apply to quotes sent
 
       const schema = z.object({
         customerName: z.string().min(2),
@@ -1151,13 +1166,24 @@ export async function registerRoutes(
       return res.status(404).json({ message: "Baker not found" });
     }
 
-    const monthlyLeadCount = await storage.getMonthlyLeadCount(baker.id);
+    const monthlyQuoteCount = await storage.getMonthlyQuoteCount(baker.id);
+    const plan = baker.plan || "free";
+    
+    // Determine quote limit based on plan
+    let quoteLimit: number | null = FREE_QUOTE_LIMIT;
+    if (plan === "basic") {
+      quoteLimit = BASIC_QUOTE_LIMIT;
+    } else if (plan === "pro") {
+      quoteLimit = null; // unlimited
+    }
+    
+    const isAtLimit = quoteLimit !== null && monthlyQuoteCount >= quoteLimit;
     
     res.json({
-      plan: baker.plan || "free",
-      monthlyLeadCount,
-      leadLimit: FREE_LEAD_LIMIT,
-      isAtLimit: (baker.plan === "free" || !baker.plan) && monthlyLeadCount >= FREE_LEAD_LIMIT,
+      plan,
+      monthlyQuoteCount,
+      quoteLimit,
+      isAtLimit,
     });
   });
 
@@ -1167,6 +1193,10 @@ export async function registerRoutes(
       if (!baker) {
         return res.status(404).json({ message: "Baker not found" });
       }
+
+      const requestedPlan = req.body.plan || "pro"; // Default to pro
+      const lookupKey = requestedPlan === "basic" ? "bakeriq_basic_monthly" : "bakeriq_pro_monthly";
+      const productName = requestedPlan === "basic" ? "BakerIQ Basic" : "BakerIQ Pro";
 
       const stripe = await getUncachableStripeClient();
 
@@ -1181,9 +1211,9 @@ export async function registerRoutes(
         customerId = customer.id;
       }
 
-      // Get the Pro price from Stripe
+      // Get the price from Stripe by lookup key
       const prices = await stripe.prices.list({
-        lookup_keys: ["bakeriq_pro_monthly"],
+        lookup_keys: [lookupKey],
         active: true,
         limit: 1,
       });
@@ -1192,8 +1222,8 @@ export async function registerRoutes(
       if (prices.data.length > 0) {
         priceId = prices.data[0].id;
       } else {
-        // Fallback: search for any active BakerIQ Pro price
-        const products = await stripe.products.search({ query: "name:'BakerIQ Pro'" });
+        // Fallback: search for the product by name
+        const products = await stripe.products.search({ query: `name:'${productName}'` });
         if (products.data.length === 0) {
           return res.status(400).json({ message: "No subscription product found. Please run the seed script." });
         }
@@ -1217,7 +1247,7 @@ export async function registerRoutes(
         mode: "subscription",
         success_url: `${baseUrl}/settings?subscription=success`,
         cancel_url: `${baseUrl}/settings?subscription=cancelled`,
-        metadata: { bakerId: baker.id },
+        metadata: { bakerId: baker.id, plan: requestedPlan },
       });
 
       res.json({ url: session.url });
@@ -1252,14 +1282,34 @@ export async function registerRoutes(
   // Webhook handling for subscription updates (called by stripe-replit-sync)
   app.post("/api/subscription/webhook-update", async (req, res) => {
     try {
-      const { customerId, subscriptionId, status } = req.body;
+      const { customerId, subscriptionId, status, priceId } = req.body;
       
       // Find baker by Stripe customer ID
       const allBakers = await storage.getAllBakers();
       const baker = allBakers.find(b => b.stripeCustomerId === customerId);
       
       if (baker) {
-        const plan = status === "active" || status === "trialing" ? "pro" : "free";
+        let plan = "free";
+        if (status === "active" || status === "trialing") {
+          // Try to determine plan from price lookup key or metadata
+          // Default to pro for backwards compatibility
+          plan = req.body.plan || "pro";
+          
+          // If we have a priceId, try to look up the plan
+          if (priceId) {
+            try {
+              const stripe = await getUncachableStripeClient();
+              const price = await stripe.prices.retrieve(priceId);
+              if (price.metadata?.plan) {
+                plan = price.metadata.plan;
+              } else if (price.lookup_key?.includes("basic")) {
+                plan = "basic";
+              }
+            } catch (e) {
+              console.log("Could not retrieve price info, using default plan");
+            }
+          }
+        }
         await storage.updateBaker(baker.id, {
           stripeSubscriptionId: subscriptionId,
           plan,

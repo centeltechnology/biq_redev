@@ -13,8 +13,8 @@ import type { Lead, Quote, Order } from "@shared/schema";
 
 interface SubscriptionStatus {
   plan: string;
-  monthlyLeadCount: number;
-  leadLimit: number;
+  monthlyQuoteCount: number;
+  quoteLimit: number | null;
   isAtLimit: boolean;
 }
 
@@ -64,8 +64,8 @@ export default function DashboardPage() {
   });
 
   const upgradeMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/subscription/checkout");
+    mutationFn: async (plan: string = "basic") => {
+      const res = await apiRequest("POST", "/api/subscription/checkout", { plan });
       return res.json();
     },
     onSuccess: (data) => {
@@ -76,7 +76,7 @@ export default function DashboardPage() {
   });
 
   const showUpgradePrompt = subscription && subscription.plan === "free" && 
-    subscription.monthlyLeadCount >= subscription.leadLimit - 3;
+    subscription.quoteLimit !== null && subscription.monthlyQuoteCount >= subscription.quoteLimit - 2;
 
   return (
     <DashboardLayout title="Dashboard">
@@ -121,24 +121,24 @@ export default function DashboardPage() {
                   <Sparkles className="h-5 w-5 text-primary" />
                 )}
                 <div>
-                  <p className="font-medium" data-testid="text-lead-limit-status">
+                  <p className="font-medium" data-testid="text-quote-limit-status">
                     {subscription.isAtLimit 
-                      ? "You've reached your lead limit" 
-                      : `${subscription.monthlyLeadCount}/${subscription.leadLimit} leads used this month`}
+                      ? "You've reached your quote limit" 
+                      : `${subscription.monthlyQuoteCount}/${subscription.quoteLimit} quotes sent this month`}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {subscription.isAtLimit 
-                      ? "Upgrade to Pro to continue receiving leads" 
-                      : "Upgrade to Pro for unlimited leads"}
+                      ? "Upgrade to send more quotes" 
+                      : "Upgrade for more quotes per month"}
                   </p>
                 </div>
               </div>
               <Button 
-                onClick={() => upgradeMutation.mutate()} 
+                onClick={() => upgradeMutation.mutate("basic")} 
                 disabled={upgradeMutation.isPending}
                 data-testid="button-upgrade"
               >
-                {upgradeMutation.isPending ? "Loading..." : "Upgrade to Pro - $9.97/mo"}
+                {upgradeMutation.isPending ? "Loading..." : "Upgrade Now"}
               </Button>
             </CardContent>
           </Card>

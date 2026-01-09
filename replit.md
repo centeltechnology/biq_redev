@@ -54,6 +54,13 @@ Preferred communication style: Simple, everyday language.
 - **Path Aliases**: `@/` for client code, `@shared/` for shared code
 - **Component Structure**: UI primitives in `components/ui/`, feature components at component root
 
+### Subscription Model
+- **Free Plan**: 5 quotes sent per month, unlimited leads received
+- **Basic Plan**: 25 quotes per month @ $9.97/month
+- **Pro Plan**: Unlimited quotes per month @ $29.97/month
+- Stripe integration for subscription management
+- Quote limits enforced when sending quotes (drafts are free)
+
 ## External Dependencies
 
 ### Database

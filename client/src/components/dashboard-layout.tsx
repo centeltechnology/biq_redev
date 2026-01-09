@@ -13,8 +13,8 @@ import { apiRequest } from "@/lib/queryClient";
 
 interface SubscriptionStatus {
   plan: string;
-  monthlyLeadCount: number;
-  leadLimit: number;
+  monthlyQuoteCount: number;
+  quoteLimit: number | null;
   isAtLimit: boolean;
 }
 
@@ -34,8 +34,8 @@ export function DashboardLayout({ children, title, actions }: DashboardLayoutPro
   });
 
   const upgradeMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/subscription/checkout");
+    mutationFn: async (plan: string = "basic") => {
+      const res = await apiRequest("POST", "/api/subscription/checkout", { plan });
       return res.json();
     },
     onSuccess: (data) => {
@@ -92,16 +92,20 @@ export function DashboardLayout({ children, title, actions }: DashboardLayoutPro
                 subscription.plan === "pro" ? (
                   <Badge variant="outline" className="gap-1" data-testid="badge-pro-plan">
                     <Sparkles className="h-3 w-3" />
-                    Unlimited
+                    Unlimited Quotes
+                  </Badge>
+                ) : subscription.plan === "basic" ? (
+                  <Badge variant="outline" className="gap-1" data-testid="badge-basic-plan">
+                    {subscription.monthlyQuoteCount}/{subscription.quoteLimit} quotes
                   </Badge>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground" data-testid="text-lead-count">
-                      {subscription.monthlyLeadCount}/{subscription.leadLimit} leads
+                    <span className="text-sm text-muted-foreground" data-testid="text-quote-count">
+                      {subscription.monthlyQuoteCount}/{subscription.quoteLimit} quotes
                     </span>
                     <Button 
                       size="sm" 
-                      onClick={() => upgradeMutation.mutate()}
+                      onClick={() => upgradeMutation.mutate("basic")}
                       disabled={upgradeMutation.isPending}
                       data-testid="button-header-upgrade"
                     >

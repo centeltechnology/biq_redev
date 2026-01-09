@@ -160,16 +160,16 @@ export default function SettingsPage() {
 
   const { data: subscription } = useQuery<{
     plan: string;
-    monthlyLeadCount: number;
-    leadLimit: number;
+    monthlyQuoteCount: number;
+    quoteLimit: number | null;
     isAtLimit: boolean;
   }>({
     queryKey: ["/api/subscription/status"],
   });
 
   const upgradeMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/subscription/checkout");
+    mutationFn: async (plan: string = "pro") => {
+      const res = await apiRequest("POST", "/api/subscription/checkout", { plan });
       return res.json();
     },
     onSuccess: (data) => {
@@ -262,6 +262,8 @@ export default function SettingsPage() {
             </div>
             {subscription?.plan === "pro" ? (
               <Badge variant="default" className="bg-primary">Pro</Badge>
+            ) : subscription?.plan === "basic" ? (
+              <Badge variant="secondary">Basic</Badge>
             ) : (
               <Badge variant="outline">Free</Badge>
             )}
@@ -271,7 +273,7 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-sm">
                   <Sparkles className="h-4 w-4 text-primary" />
-                  <span>Unlimited leads per month</span>
+                  <span>Unlimited quotes per month</span>
                 </div>
                 <Button 
                   variant="outline" 
@@ -282,29 +284,72 @@ export default function SettingsPage() {
                   {portalMutation.isPending ? "Loading..." : "Manage Subscription"}
                 </Button>
               </div>
+            ) : subscription?.plan === "basic" ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-sm">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span>25 quotes per month</span>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => portalMutation.mutate()}
+                    disabled={portalMutation.isPending}
+                    data-testid="button-manage-subscription"
+                  >
+                    {portalMutation.isPending ? "Loading..." : "Manage Subscription"}
+                  </Button>
+                  <Button 
+                    onClick={() => upgradeMutation.mutate("pro")}
+                    disabled={upgradeMutation.isPending}
+                    data-testid="button-upgrade-to-pro"
+                  >
+                    {upgradeMutation.isPending ? "Loading..." : "Upgrade to Pro"}
+                  </Button>
+                </div>
+              </div>
             ) : (
               <div className="space-y-4">
                 <div className="text-sm text-muted-foreground">
-                  <p>You're on the free plan with <strong>{subscription?.monthlyLeadCount || 0}/{subscription?.leadLimit || 10}</strong> leads used this month.</p>
+                  <p>You're on the free plan with <strong>{subscription?.monthlyQuoteCount || 0}/{subscription?.quoteLimit || 5}</strong> quotes sent this month.</p>
                 </div>
-                <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-                  <h4 className="font-medium flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-primary" />
-                    Upgrade to Pro - $9.97/month
-                  </h4>
-                  <ul className="text-sm text-muted-foreground mt-2 space-y-1">
-                    <li>Unlimited leads per month</li>
-                    <li>Priority email notifications</li>
-                    <li>Cancel anytime</li>
-                  </ul>
-                  <Button 
-                    className="mt-4 w-full"
-                    onClick={() => upgradeMutation.mutate()}
-                    disabled={upgradeMutation.isPending}
-                    data-testid="button-upgrade-subscription"
-                  >
-                    {upgradeMutation.isPending ? "Loading..." : "Upgrade Now"}
-                  </Button>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="bg-muted/50 border rounded-lg p-4">
+                    <h4 className="font-medium">Basic - $9.97/month</h4>
+                    <ul className="text-sm text-muted-foreground mt-2 space-y-1">
+                      <li>25 quotes per month</li>
+                      <li>Unlimited leads</li>
+                      <li>Cancel anytime</li>
+                    </ul>
+                    <Button 
+                      variant="outline"
+                      className="mt-4 w-full"
+                      onClick={() => upgradeMutation.mutate("basic")}
+                      disabled={upgradeMutation.isPending}
+                      data-testid="button-upgrade-basic"
+                    >
+                      {upgradeMutation.isPending ? "Loading..." : "Get Basic"}
+                    </Button>
+                  </div>
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                    <h4 className="font-medium flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      Pro - $29.97/month
+                    </h4>
+                    <ul className="text-sm text-muted-foreground mt-2 space-y-1">
+                      <li>Unlimited quotes</li>
+                      <li>Unlimited leads</li>
+                      <li>Cancel anytime</li>
+                    </ul>
+                    <Button 
+                      className="mt-4 w-full"
+                      onClick={() => upgradeMutation.mutate("pro")}
+                      disabled={upgradeMutation.isPending}
+                      data-testid="button-upgrade-pro"
+                    >
+                      {upgradeMutation.isPending ? "Loading..." : "Get Pro"}
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
