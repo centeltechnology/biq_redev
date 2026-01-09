@@ -20,6 +20,7 @@ import {
   MapPin,
   CheckCircle2,
 } from "lucide-react";
+import { SiFacebook, SiInstagram, SiTiktok, SiPinterest } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -306,7 +307,57 @@ export default function CalculatorPage() {
             </div>
           </div>
         </div>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          {(baker.socialFacebook || baker.socialInstagram || baker.socialTiktok || baker.socialPinterest) && (
+            <div className="flex items-center gap-1">
+              {baker.socialFacebook && (
+                <a
+                  href={baker.socialFacebook}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-md hover-elevate text-muted-foreground hover:text-foreground transition-colors"
+                  data-testid="link-social-facebook"
+                >
+                  <SiFacebook className="h-4 w-4" />
+                </a>
+              )}
+              {baker.socialInstagram && (
+                <a
+                  href={baker.socialInstagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-md hover-elevate text-muted-foreground hover:text-foreground transition-colors"
+                  data-testid="link-social-instagram"
+                >
+                  <SiInstagram className="h-4 w-4" />
+                </a>
+              )}
+              {baker.socialTiktok && (
+                <a
+                  href={baker.socialTiktok}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-md hover-elevate text-muted-foreground hover:text-foreground transition-colors"
+                  data-testid="link-social-tiktok"
+                >
+                  <SiTiktok className="h-4 w-4" />
+                </a>
+              )}
+              {baker.socialPinterest && (
+                <a
+                  href={baker.socialPinterest}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-md hover-elevate text-muted-foreground hover:text-foreground transition-colors"
+                  data-testid="link-social-pinterest"
+                >
+                  <SiPinterest className="h-4 w-4" />
+                </a>
+              )}
+            </div>
+          )}
+          <ThemeToggle />
+        </div>
       </header>
 
       <div className="relative h-64 md:h-80 overflow-hidden">
