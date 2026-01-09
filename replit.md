@@ -3,12 +3,18 @@
 ## Overview
 
 BakerIQ is a lead capture and quote management tool for custom cake bakers. The application enables bakers to:
-- Provide public pricing calculators for customers to get cake estimates
+- Provide public pricing calculators for customers to get cake and treats estimates
 - Capture leads when customers submit calculator inquiries
 - Manage customer relationships and convert leads to quotes
 - Create and track detailed quotes with line items
+- Configure custom pricing for cakes, decorations, addons, and treats
 
 The MVP focuses on simplicity: no payment processing, no AI features, no marketplace - just lead capture and quoting that works.
+
+### Calculator Categories
+The public calculator (/c/:slug) supports two categories:
+- **Cakes**: Multi-tier cake builder with size, shape, flavor, frosting, decorations, and addons
+- **Treats**: Standalone treat items like cupcakes, cake pops, cookies, brownies, dipped strawberries, etc.
 
 ## User Preferences
 
