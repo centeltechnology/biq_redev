@@ -116,6 +116,43 @@ const faqs = [
       {
         q: "How do I share my calculator?",
         a: "Your calculator URL is shown in Settings. Copy it and share on your website, Instagram bio, Facebook page, or anywhere you connect with potential customers. The URL format is: /c/your-bakery-slug"
+      },
+      {
+        q: "How do I reset my password?",
+        a: "Click 'Forgot password?' on the login page and enter your email address. You'll receive a password reset link that's valid for 1 hour. Follow the link to set a new password."
+      },
+      {
+        q: "How do I verify my email address?",
+        a: "When you sign up, we send a verification email to your address. Click the link in that email to verify. If you didn't receive it, you can request a new verification email from your Settings page."
+      },
+      {
+        q: "How do I add my social media links?",
+        a: "Go to Settings and scroll to the Social Media section. You can add your Facebook, Instagram, TikTok, and Pinterest handles or URLs. These will appear in your calculator header so customers can find you."
+      }
+    ]
+  },
+  {
+    category: "Troubleshooting",
+    questions: [
+      {
+        q: "Why isn't my calculator showing my updated prices?",
+        a: "Prices update immediately after you save them in Calculator Pricing. Try refreshing your browser or clearing your cache. If prices still don't appear, make sure you clicked 'Save Prices' after making changes."
+      },
+      {
+        q: "A customer says they didn't receive an email - what should I do?",
+        a: "Ask them to check their spam/junk folder first. Customer confirmation emails are sent automatically when they submit the calculator. If emails consistently aren't being delivered, contact support to check your email configuration."
+      },
+      {
+        q: "How do I delete a lead or quote?",
+        a: "You can delete leads from the lead detail page and quotes from the quote builder. Look for the delete button (trash icon) in the page header. Note that deleting is permanent and cannot be undone."
+      },
+      {
+        q: "My calendar isn't showing all my orders - why?",
+        a: "Only orders with an event date appear on the calendar. Make sure your orders have event dates set. Also check that the order status isn't 'Cancelled' - cancelled orders are hidden from the calendar."
+      },
+      {
+        q: "Can I recover a deleted lead or quote?",
+        a: "Unfortunately, deleted items cannot be recovered. We recommend updating the status to 'Lost' instead of deleting if you might need to reference the information later."
       }
     ]
   }

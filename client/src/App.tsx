@@ -22,6 +22,7 @@ import SettingsPage from "@/pages/settings";
 import PricingPage from "@/pages/pricing";
 import CalculatorPage from "@/pages/calculator";
 import CalendarPage from "@/pages/calendar";
+import AdminPage from "@/pages/admin";
 
 function Router() {
   return (
@@ -63,6 +64,9 @@ function Router() {
       </Route>
       <Route path="/settings">
         <ProtectedRoute><SettingsPage /></ProtectedRoute>
+      </Route>
+      <Route path="/admin">
+        <ProtectedRoute><AdminPage /></ProtectedRoute>
       </Route>
       <Route path="/c/:slug" component={CalculatorPage} />
       <Route component={NotFound} />
