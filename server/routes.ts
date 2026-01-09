@@ -1107,6 +1107,7 @@ export async function registerRoutes(
 
       // Send email notifications (non-blocking)
       const estimatedTotal = parseFloat(data.estimatedTotal);
+      const category = data.calculatorPayload?.category as "cake" | "treat" | undefined;
       Promise.all([
         sendNewLeadNotification(baker.email, baker.businessName, {
           customerName: data.customerName,
@@ -1120,6 +1121,7 @@ export async function registerRoutes(
           eventType: data.eventType,
           eventDate: data.eventDate || undefined,
           estimatedTotal,
+          category,
         }),
       ]).catch((err) => console.error("Email notification error:", err));
 

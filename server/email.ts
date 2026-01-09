@@ -200,8 +200,10 @@ export async function sendLeadConfirmationToCustomer(
     eventType?: string;
     eventDate?: string;
     estimatedTotal: number;
+    category?: "cake" | "treat";
   }
 ): Promise<boolean> {
+  const orderType = lead.category === "treat" ? "treats" : "custom cakes";
   const html = `
 <!DOCTYPE html>
 <html>
@@ -223,7 +225,7 @@ export async function sendLeadConfirmationToCustomer(
     </div>
     <div class="content">
       <p>Hi ${customerName},</p>
-      <p>Thank you for your interest in our custom cakes! We've received your inquiry and will get back to you soon.</p>
+      <p>Thank you for your interest in our ${orderType}! We've received your inquiry and will get back to you soon.</p>
       <div class="highlight">
         <h3 style="margin-top: 0;">Your Estimate Summary</h3>
         ${lead.eventType ? `<p><strong>Event:</strong> ${lead.eventType}</p>` : ""}
@@ -242,10 +244,11 @@ export async function sendLeadConfirmationToCustomer(
 </html>
 `;
 
+  const subjectType = lead.category === "treat" ? "Treats" : "Cake";
   const text = `
 Hi ${customerName},
 
-Thank you for your interest in our custom cakes! We've received your inquiry and will get back to you soon.
+Thank you for your interest in our ${orderType}! We've received your inquiry and will get back to you soon.
 
 Your Estimate Summary:
 ${lead.eventType ? `Event: ${lead.eventType}` : ""}
@@ -262,7 +265,7 @@ ${bakerBusinessName}
 
   return sendEmail({
     to: customerEmail,
-    subject: `Your Cake Inquiry - ${bakerBusinessName}`,
+    subject: `Your ${subjectType} Inquiry - ${bakerBusinessName}`,
     html,
     text,
   });
@@ -300,12 +303,25 @@ export async function sendQuoteNotification(
 ): Promise<boolean> {
   const items = quote.items || [];
   const cakeItems = items.filter(i => i.category === "cake");
+  const treatItems = items.filter(i => i.category === "treat");
   const decorationItems = items.filter(i => i.category === "decoration");
   const addonItems = items.filter(i => i.category === "addon");
   const deliveryItems = items.filter(i => i.category === "delivery");
   const otherItems = items.filter(i => i.category === "other" && i.name);
 
   const depositAmount = quote.depositPercentage ? quote.total * (quote.depositPercentage / 100) : 0;
+
+  // Determine order type for dynamic text
+  const hasCake = cakeItems.length > 0;
+  const hasTreats = treatItems.length > 0;
+  let orderType = "order";
+  if (hasCake && !hasTreats) {
+    orderType = "cake order";
+  } else if (hasTreats && !hasCake) {
+    orderType = "treats order";
+  } else if (hasCake && hasTreats) {
+    orderType = "order";
+  }
 
   const renderItems = (items: QuoteItem[]) => items.map(item => `
     <tr>
@@ -345,7 +361,7 @@ export async function sendQuoteNotification(
     </div>
     <div class="content">
       <p>Hi ${customerName},</p>
-      <p>Great news! We've prepared a custom quote for your cake order.</p>
+      <p>Great news! We've prepared a custom quote for your ${orderType}.</p>
       
       <div class="quote-summary">
         <p class="quote-number">Quote #${quote.quoteNumber}</p>
@@ -354,6 +370,11 @@ export async function sendQuoteNotification(
         ${cakeItems.length > 0 ? `
           <p class="section-title">Cake</p>
           <table>${renderItems(cakeItems)}</table>
+        ` : ""}
+        
+        ${treatItems.length > 0 ? `
+          <p class="section-title">Treats</p>
+          <table>${renderItems(treatItems)}</table>
         ` : ""}
         
         ${decorationItems.length > 0 ? `
@@ -423,7 +444,7 @@ export async function sendQuoteNotification(
   const text = `
 Hi ${customerName},
 
-Great news! We've prepared a custom quote for your cake order.
+Great news! We've prepared a custom quote for your ${orderType}.
 
 Quote #${quote.quoteNumber}
 ${quote.eventDate ? `Event Date: ${new Date(quote.eventDate).toLocaleDateString()}` : ""}
