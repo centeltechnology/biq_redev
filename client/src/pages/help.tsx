@@ -216,6 +216,62 @@ export default function HelpPage() {
                 </div>
               </CardContent>
             </Card>
+
+            <Card className="hover-elevate">
+              <CardHeader>
+                <Cake className="h-10 w-10 text-primary mb-2" />
+                <CardTitle>Cakes & Treats</CardTitle>
+                <CardDescription>What customers can order</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium">Custom Cakes</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Multi-tier cakes with customizable sizes, shapes, flavors, frostings, decorations, and addons.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Treats</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Cupcakes, cake pops, cookies, brownies, dipped strawberries, and more. Enable or disable items in Calculator Pricing.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Delivery & Setup</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Offer standard delivery, rush delivery, or full setup service with customizable pricing.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate">
+              <CardHeader>
+                <ArrowRight className="h-10 w-10 text-primary mb-2" />
+                <CardTitle>Subscription Plans</CardTitle>
+                <CardDescription>Choose the right plan for you</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium">Free Plan</h4>
+                  <p className="text-sm text-muted-foreground">
+                    5 quotes per month, unlimited leads. Perfect for getting started.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Basic - $9.97/month</h4>
+                  <p className="text-sm text-muted-foreground">
+                    25 quotes per month for growing bakeries.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Pro - $29.97/month</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Unlimited quotes for busy professionals. Upgrade anytime in Settings.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           <div className="bg-muted/30 rounded-2xl p-8 text-center">

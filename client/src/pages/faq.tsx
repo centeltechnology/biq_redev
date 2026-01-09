@@ -22,7 +22,11 @@ const faqs = [
       },
       {
         q: "Can I customize what options appear in my calculator?",
-        a: "Currently, the calculator shows a standard set of options (sizes, shapes, flavors, frostings, decorations, and addons). The prices for each option are fully customizable. We're working on adding the ability to enable/disable specific options."
+        a: "Yes! For treats, you can enable or disable specific items (cupcakes, cake pops, cookies, etc.) from Calculator Pricing. For cakes, all options are available with fully customizable pricing."
+      },
+      {
+        q: "What can customers order through the calculator?",
+        a: "The calculator supports two categories: Cakes (multi-tier custom cakes with sizes, shapes, flavors, frostings, decorations, and addons) and Treats (cupcakes, cake pops, cookies, brownies, dipped strawberries, and more)."
       }
     ]
   },
@@ -128,6 +132,27 @@ const faqs = [
       {
         q: "How do I add my social media links?",
         a: "Go to Settings and scroll to the Social Media section. You can add your Facebook, Instagram, TikTok, and Pinterest handles or URLs. These will appear in your calculator header so customers can find you."
+      }
+    ]
+  },
+  {
+    category: "Subscription & Plans",
+    questions: [
+      {
+        q: "What plans are available?",
+        a: "BakerIQ offers three plans: Free (5 quotes per month), Basic ($9.97/month for 25 quotes), and Pro ($29.97/month for unlimited quotes). All plans include unlimited leads - you only pay based on how many quotes you send."
+      },
+      {
+        q: "What counts toward my quote limit?",
+        a: "Only quotes you actually send to customers count toward your monthly limit. You can create unlimited draft quotes on any plan. Leads from your calculator are always unlimited."
+      },
+      {
+        q: "How do I upgrade my plan?",
+        a: "Go to Settings in your dashboard and scroll to the Subscription section. You can upgrade to Basic or Pro, and manage your subscription through Stripe's secure portal."
+      },
+      {
+        q: "Can I cancel or downgrade my subscription?",
+        a: "Yes! Click 'Manage Subscription' in Settings to access the Stripe portal. You can cancel anytime, and your paid features will remain active until the end of your billing period."
       }
     ]
   },
