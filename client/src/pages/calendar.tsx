@@ -59,7 +59,7 @@ export default function CalendarPage() {
   const currentMonth = currentDate.getMonth();
 
   const { data: orders, isLoading } = useQuery<OrderWithDetails[]>({
-    queryKey: ["/api/orders", { month: currentMonth + 1, year: currentYear }],
+    queryKey: [`/api/orders?month=${currentMonth + 1}&year=${currentYear}`],
   });
 
   const goToPreviousMonth = () => {
