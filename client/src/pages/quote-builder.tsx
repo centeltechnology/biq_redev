@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Plus, Trash2, Loader2, Save, CreditCard, CheckCircle, Calendar } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Loader2, Save, CreditCard, CheckCircle, Calendar, Send } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -350,6 +350,28 @@ export default function QuoteBuilderPage() {
         description: "The quote has been converted to an order and added to your calendar.",
       });
       setLocation("/calendar");
+    },
+  });
+
+  const sendQuoteMutation = useMutation({
+    mutationFn: async (quoteId: string) => {
+      const res = await apiRequest("POST", `/api/quotes/${quoteId}/send`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/quotes", editingQuoteId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/quotes"] });
+      toast({ 
+        title: "Quote sent",
+        description: "The quote has been emailed to the customer.",
+      });
+    },
+    onError: () => {
+      toast({ 
+        title: "Failed to send",
+        description: "Could not send the quote. Please try again.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -769,6 +791,36 @@ export default function QuoteBuilderPage() {
                           </>
                         )}
                       </Button>
+
+                      {!isNew && quote && quote.status !== "sent" && quote.status !== "approved" && (
+                        <Button
+                          type="button"
+                          variant="default"
+                          className="w-full"
+                          disabled={sendQuoteMutation.isPending}
+                          onClick={() => editingQuoteId && sendQuoteMutation.mutate(editingQuoteId)}
+                          data-testid="button-send-quote"
+                        >
+                          {sendQuoteMutation.isPending ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Sending...
+                            </>
+                          ) : (
+                            <>
+                              <Send className="mr-2 h-4 w-4" />
+                              Send Quote to Customer
+                            </>
+                          )}
+                        </Button>
+                      )}
+
+                      {!isNew && quote && quote.status === "sent" && (
+                        <div className="text-center text-sm text-muted-foreground py-2">
+                          <CheckCircle className="inline-block mr-1 h-4 w-4 text-green-500" />
+                          Quote sent to customer
+                        </div>
+                      )}
                       
                       {!isNew && quote && quote.status !== "approved" && (
                         <Dialog open={convertDialogOpen} onOpenChange={setConvertDialogOpen}>
