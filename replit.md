@@ -79,6 +79,14 @@ Preferred communication style: Simple, everyday language.
 - esbuild for server bundling in production
 - TypeScript for type checking
 
+### Onboarding Email System
+- **Welcome Email (Day 0)**: Sent immediately on signup
+- **7-Day Series (Days 1-7)**: Automated emails covering pricing setup, quotes, leads, calendar, treats, plans, and success tips
+- **Scheduler**: Runs hourly via `server/onboarding-scheduler.ts`, checks for eligible bakers
+- **Tracking**: `baker_onboarding_emails` table with unique constraint on (baker_id, email_day)
+- **Retry Logic**: Failed emails are recorded and retried by scheduler; successful sends prevent duplicates
+
 ### Environment Variables Required
 - `DATABASE_URL`: PostgreSQL connection string
 - `SESSION_SECRET`: Secret for session encryption (optional in dev, defaults to dev key)
+- `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SES_REGION`: For email sending via AWS SES
