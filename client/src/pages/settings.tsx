@@ -288,7 +288,7 @@ export default function SettingsPage() {
                         <FormItem>
                           <FormLabel>Facebook</FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="facebook.com/yourbakery" data-testid="input-social-facebook" />
+                            <Input {...field} placeholder="@yourbakery" data-testid="input-social-facebook" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -330,7 +330,7 @@ export default function SettingsPage() {
                         <FormItem>
                           <FormLabel>Pinterest</FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="pinterest.com/yourbakery" data-testid="input-social-pinterest" />
+                            <Input {...field} placeholder="@yourbakery" data-testid="input-social-pinterest" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
