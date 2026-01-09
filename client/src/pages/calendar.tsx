@@ -10,7 +10,9 @@ import {
   Clock,
   User,
   ArrowRight,
+  Search,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -55,11 +57,22 @@ function getFirstDayOfMonth(year: number, month: number): number {
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [searchQuery, setSearchQuery] = useState("");
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
 
   const { data: orders, isLoading } = useQuery<OrderWithDetails[]>({
     queryKey: [`/api/orders?month=${currentMonth + 1}&year=${currentYear}`],
+  });
+
+  const filteredOrders = orders?.filter((order) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      order.title.toLowerCase().includes(query) ||
+      order.customerName.toLowerCase().includes(query) ||
+      (order.eventType && order.eventType.toLowerCase().includes(query))
+    );
   });
 
   const goToPreviousMonth = () => {
@@ -78,7 +91,7 @@ export default function CalendarPage() {
   const firstDayOfMonth = getFirstDayOfMonth(currentYear, currentMonth);
 
   const ordersByDate: Record<number, OrderWithDetails[]> = {};
-  orders?.forEach((order) => {
+  filteredOrders?.forEach((order) => {
     if (!order.eventDate) return;
     const eventDate = new Date(order.eventDate);
     if (
@@ -107,43 +120,55 @@ export default function CalendarPage() {
     calendarDays.push(day);
   }
 
-  const monthlyTotal = orders?.reduce((sum, order) => sum + Number(order.amount), 0) ?? 0;
-  const orderCount = orders?.length ?? 0;
+  const monthlyTotal = filteredOrders?.reduce((sum, order) => sum + Number(order.amount), 0) ?? 0;
+  const orderCount = filteredOrders?.length ?? 0;
 
   return (
     <DashboardLayout title="Calendar">
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={goToPreviousMonth}
-              data-testid="button-prev-month"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <h2 className="text-xl font-semibold min-w-[200px] text-center">
-              {MONTHS[currentMonth]} {currentYear}
-            </h2>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={goToNextMonth}
-              data-testid="button-next-month"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">{orderCount}</span> orders 
-              <span className="mx-2">|</span>
-              <span className="font-medium text-foreground">{formatCurrency(monthlyTotal)}</span> total
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={goToPreviousMonth}
+                data-testid="button-prev-month"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <h2 className="text-xl font-semibold min-w-[200px] text-center">
+                {MONTHS[currentMonth]} {currentYear}
+              </h2>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={goToNextMonth}
+                data-testid="button-next-month"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
-            <Button variant="outline" size="sm" onClick={goToToday} data-testid="button-today">
-              Today
-            </Button>
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-muted-foreground">
+                <span className="font-medium text-foreground">{orderCount}</span> orders 
+                <span className="mx-2">|</span>
+                <span className="font-medium text-foreground">{formatCurrency(monthlyTotal)}</span> total
+              </div>
+              <Button variant="outline" size="sm" onClick={goToToday} data-testid="button-today">
+                Today
+              </Button>
+            </div>
+          </div>
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search orders by title or customer..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+              data-testid="input-search-orders"
+            />
           </div>
         </div>
 
@@ -219,15 +244,15 @@ export default function CalendarPage() {
                   <Skeleton key={i} className="h-20 w-full" />
                 ))}
               </div>
-            ) : orders?.length === 0 ? (
+            ) : filteredOrders?.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <CalendarIcon className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p className="font-medium">No orders this month</p>
-                <p className="text-sm">Create quotes and convert them to orders to see them here</p>
+                <p className="font-medium">{searchQuery ? "No matching orders" : "No orders this month"}</p>
+                <p className="text-sm">{searchQuery ? "Try adjusting your search" : "Create quotes and convert them to orders to see them here"}</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {orders
+                {filteredOrders
                   ?.filter((o) => o.eventDate)
                   .sort((a, b) => new Date(a.eventDate!).getTime() - new Date(b.eventDate!).getTime())
                   .map((order) => (
