@@ -665,6 +665,12 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Baker not found" });
       }
 
+      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+        : process.env.REPLIT_DOMAINS 
+          ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
+          : "https://bakeriq.app";
+      
       await sendQuoteNotification(
         customer.email,
         customer.name,
@@ -672,7 +678,14 @@ export async function registerRoutes(
         {
           quoteNumber: quote.quoteNumber,
           total: parseFloat(quote.total || "0"),
+          subtotal: parseFloat(quote.subtotal || "0"),
+          taxAmount: parseFloat(quote.taxAmount || "0"),
+          taxRate: parseFloat(quote.taxRate || "0"),
+          eventDate: quote.eventDate || undefined,
           notes: quote.notes || undefined,
+          items: quote.items || [],
+          depositPercentage: baker.depositPercentage || undefined,
+          viewUrl: `${baseUrl}/q/${quote.id}`,
         }
       );
 
@@ -971,6 +984,49 @@ export async function registerRoutes(
       socialTiktok: baker.socialTiktok,
       socialPinterest: baker.socialPinterest,
     });
+  });
+
+  app.get("/api/public/quote/:id", async (req, res) => {
+    try {
+      const quoteWithItems = await storage.getQuoteWithItems(req.params.id);
+      if (!quoteWithItems) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+
+      const baker = await storage.getBaker(quoteWithItems.bakerId);
+      if (!baker) {
+        return res.status(404).json({ message: "Baker not found" });
+      }
+
+      const customer = await storage.getCustomer(quoteWithItems.customerId);
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      res.json({
+        quote: quoteWithItems,
+        baker: {
+          id: baker.id,
+          businessName: baker.businessName,
+          tagline: baker.tagline,
+          depositPercentage: baker.depositPercentage,
+          acceptedPayments: baker.acceptedPayments,
+          zelleEmail: baker.zelleEmail ? "Available" : null,
+          paypalEmail: baker.paypalEmail ? "Available" : null,
+          venmoHandle: baker.venmoHandle ? `@${baker.venmoHandle}` : null,
+          cashappHandle: baker.cashappHandle ? `$${baker.cashappHandle}` : null,
+        },
+        customer: {
+          id: customer.id,
+          name: customer.name,
+          email: customer.email.replace(/(.{2}).*(@.*)/, "$1***$2"),
+          phone: null,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching public quote:", error);
+      res.status(500).json({ message: "Failed to fetch quote" });
+    }
   });
 
   app.post("/api/public/calculator/submit", async (req, res) => {

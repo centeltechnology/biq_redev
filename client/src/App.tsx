@@ -23,6 +23,7 @@ import PricingPage from "@/pages/pricing";
 import CalculatorPage from "@/pages/calculator";
 import CalendarPage from "@/pages/calendar";
 import AdminPage from "@/pages/admin";
+import QuoteViewPage from "@/pages/quote-view";
 
 function Router() {
   return (
@@ -69,6 +70,7 @@ function Router() {
         <ProtectedRoute><AdminPage /></ProtectedRoute>
       </Route>
       <Route path="/c/:slug" component={CalculatorPage} />
+      <Route path="/q/:id" component={QuoteViewPage} />
       <Route component={NotFound} />
     </Switch>
   );

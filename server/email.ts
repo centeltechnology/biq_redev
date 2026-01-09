@@ -268,6 +268,14 @@ ${bakerBusinessName}
   });
 }
 
+interface QuoteItem {
+  name: string;
+  description?: string | null;
+  quantity: number;
+  totalPrice: string;
+  category: string;
+}
+
 export async function sendQuoteNotification(
   customerEmail: string,
   customerName: string,
@@ -275,40 +283,117 @@ export async function sendQuoteNotification(
   quote: {
     quoteNumber: string;
     total: number;
-    expiresAt?: string;
+    subtotal: number;
+    taxAmount: number;
+    taxRate: number;
+    eventDate?: string;
     notes?: string;
+    items: QuoteItem[];
+    depositPercentage?: number;
+    viewUrl: string;
   }
 ): Promise<boolean> {
+  const items = quote.items || [];
+  const cakeItems = items.filter(i => i.category === "cake");
+  const decorationItems = items.filter(i => i.category === "decoration");
+  const addonItems = items.filter(i => i.category === "addon");
+  const deliveryItems = items.filter(i => i.category === "delivery");
+  const otherItems = items.filter(i => i.category === "other" && i.name);
+
+  const depositAmount = quote.depositPercentage ? quote.total * (quote.depositPercentage / 100) : 0;
+
+  const renderItems = (items: QuoteItem[]) => items.map(item => `
+    <tr>
+      <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${item.name}${item.description ? `<br><span style="color: #666; font-size: 12px;">${item.description}</span>` : ""}</td>
+      <td style="padding: 8px 0; border-bottom: 1px solid #eee; text-align: right;">${formatCurrency(parseFloat(item.totalPrice))}</td>
+    </tr>
+  `).join("");
+
   const html = `
 <!DOCTYPE html>
 <html>
 <head>
   <style>
-    body { font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #333; }
+    body { font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
     .header { background: linear-gradient(135deg, #E91E63, #F06292); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
     .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px; }
-    .quote-box { background: white; padding: 25px; border-radius: 8px; text-align: center; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .quote-number { color: #666; font-size: 14px; }
-    .quote-total { font-size: 2em; color: #E91E63; font-weight: bold; margin: 10px 0; }
+    .quote-summary { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .quote-number { color: #666; font-size: 14px; margin-bottom: 5px; }
+    .section-title { font-weight: bold; color: #E91E63; margin: 20px 0 10px 0; font-size: 14px; text-transform: uppercase; }
+    .total-row { font-size: 1.4em; color: #E91E63; font-weight: bold; }
+    .cta { display: inline-block; background: #E91E63; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600; }
     .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>Your Quote is Ready!</h1>
-      <p>${bakerBusinessName}</p>
+      <h1 style="margin: 0;">Your Quote is Ready!</h1>
+      <p style="margin: 10px 0 0 0; opacity: 0.9;">${bakerBusinessName}</p>
     </div>
     <div class="content">
       <p>Hi ${customerName},</p>
       <p>Great news! We've prepared a custom quote for your cake order.</p>
-      <div class="quote-box">
+      
+      <div class="quote-summary">
         <p class="quote-number">Quote #${quote.quoteNumber}</p>
-        <p class="quote-total">${formatCurrency(quote.total)}</p>
-        ${quote.expiresAt ? `<p style="color: #666; font-size: 14px;">Valid until: ${quote.expiresAt}</p>` : ""}
+        ${quote.eventDate ? `<p style="margin: 5px 0; color: #666;">Event Date: <strong>${new Date(quote.eventDate).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</strong></p>` : ""}
+        
+        ${cakeItems.length > 0 ? `
+          <p class="section-title">Cake</p>
+          <table>${renderItems(cakeItems)}</table>
+        ` : ""}
+        
+        ${decorationItems.length > 0 ? `
+          <p class="section-title">Decorations</p>
+          <table>${renderItems(decorationItems)}</table>
+        ` : ""}
+        
+        ${addonItems.length > 0 ? `
+          <p class="section-title">Extras</p>
+          <table>${renderItems(addonItems)}</table>
+        ` : ""}
+        
+        ${deliveryItems.length > 0 ? `
+          <p class="section-title">Delivery</p>
+          <table>${renderItems(deliveryItems)}</table>
+        ` : ""}
+        
+        ${otherItems.length > 0 ? `
+          <p class="section-title">Other</p>
+          <table>${renderItems(otherItems)}</table>
+        ` : ""}
+        
+        <table style="margin-top: 20px; border-top: 2px solid #eee; padding-top: 15px;">
+          <tr>
+            <td style="padding: 5px 0; color: #666;">Subtotal</td>
+            <td style="padding: 5px 0; text-align: right;">${formatCurrency(quote.subtotal)}</td>
+          </tr>
+          <tr>
+            <td style="padding: 5px 0; color: #666;">Tax (${(quote.taxRate * 100).toFixed(1)}%)</td>
+            <td style="padding: 5px 0; text-align: right;">${formatCurrency(quote.taxAmount)}</td>
+          </tr>
+          <tr class="total-row">
+            <td style="padding: 15px 0 5px 0;"><strong>Total</strong></td>
+            <td style="padding: 15px 0 5px 0; text-align: right;"><strong>${formatCurrency(quote.total)}</strong></td>
+          </tr>
+          ${quote.depositPercentage && quote.depositPercentage > 0 ? `
+          <tr>
+            <td style="padding: 5px 0; color: #666;">Deposit Required (${quote.depositPercentage}%)</td>
+            <td style="padding: 5px 0; text-align: right; font-weight: bold;">${formatCurrency(depositAmount)}</td>
+          </tr>
+          ` : ""}
+        </table>
       </div>
-      ${quote.notes ? `<p><strong>Notes:</strong> ${quote.notes}</p>` : ""}
+      
+      ${quote.notes ? `<p style="background: #fff3cd; padding: 15px; border-radius: 6px;"><strong>Notes:</strong> ${quote.notes}</p>` : ""}
+      
+      <p style="text-align: center;">
+        <a href="${quote.viewUrl}" class="cta">View Full Quote & Payment Details</a>
+      </p>
+      
       <p>To confirm your order, please respond to this email or contact us directly.</p>
       <p style="margin-top: 30px;">Sweet regards,<br><strong>${bakerBusinessName}</strong></p>
     </div>
@@ -320,16 +405,30 @@ export async function sendQuoteNotification(
 </html>
 `;
 
+  const itemsText = items
+    .filter(i => i.name)
+    .map(i => `  - ${i.name}: ${formatCurrency(parseFloat(i.totalPrice))}`)
+    .join("\n");
+
   const text = `
 Hi ${customerName},
 
 Great news! We've prepared a custom quote for your cake order.
 
 Quote #${quote.quoteNumber}
+${quote.eventDate ? `Event Date: ${new Date(quote.eventDate).toLocaleDateString()}` : ""}
+
+Items:
+${itemsText}
+
+Subtotal: ${formatCurrency(quote.subtotal)}
+Tax (${(quote.taxRate * 100).toFixed(1)}%): ${formatCurrency(quote.taxAmount)}
 Total: ${formatCurrency(quote.total)}
-${quote.expiresAt ? `Valid until: ${quote.expiresAt}` : ""}
+${quote.depositPercentage ? `Deposit Required (${quote.depositPercentage}%): ${formatCurrency(depositAmount)}` : ""}
 
 ${quote.notes ? `Notes: ${quote.notes}` : ""}
+
+View your full quote with payment details: ${quote.viewUrl}
 
 To confirm your order, please respond to this email or contact us directly.
 
