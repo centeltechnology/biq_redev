@@ -595,3 +595,268 @@ This link will expire in 24 hours.
     text,
   });
 }
+
+// Onboarding email templates
+interface OnboardingEmailData {
+  day: number;
+  subject: string;
+  title: string;
+  content: string;
+  ctaText?: string;
+  ctaUrl?: string;
+}
+
+const ONBOARDING_EMAILS: OnboardingEmailData[] = [
+  {
+    day: 0,
+    subject: "Welcome to BakerIQ! Let's get you started",
+    title: "Welcome to BakerIQ!",
+    content: `
+      <p>Congratulations on taking the first step to streamline your bakery business!</p>
+      <p>BakerIQ helps you capture leads, create professional quotes, and manage your orders all in one place.</p>
+      <h3 style="color: #E91E63; margin-top: 24px;">Quick Start Checklist:</h3>
+      <ul style="padding-left: 20px;">
+        <li><strong>Set your prices</strong> - Go to Calculator Pricing to customize your rates</li>
+        <li><strong>Share your calculator</strong> - Copy your unique link from Settings</li>
+        <li><strong>Wait for leads</strong> - You'll get an email when customers submit inquiries</li>
+      </ul>
+      <p style="margin-top: 20px;">You're on the <strong>Free plan</strong> with 5 quotes per month. Upgrade anytime for more!</p>
+    `,
+    ctaText: "Go to Dashboard",
+    ctaUrl: "/dashboard",
+  },
+  {
+    day: 1,
+    subject: "Set up your pricing - Day 1 of getting started",
+    title: "Set Up Your Pricing",
+    content: `
+      <p>Your public calculator is ready - now let's customize your prices!</p>
+      <h3 style="color: #E91E63; margin-top: 24px;">What you can customize:</h3>
+      <ul style="padding-left: 20px;">
+        <li><strong>Cake sizes</strong> - Set base prices for each tier size</li>
+        <li><strong>Flavors & frostings</strong> - Add premiums for specialty options</li>
+        <li><strong>Decorations</strong> - Price your artistic touches</li>
+        <li><strong>Addons</strong> - Dipped strawberries, sweets tables, and more</li>
+        <li><strong>Delivery fees</strong> - Standard, rush, and setup service pricing</li>
+      </ul>
+      <p style="margin-top: 20px;">Customers will see estimates based on YOUR prices when they use your calculator.</p>
+    `,
+    ctaText: "Set Your Prices",
+    ctaUrl: "/calculator-pricing",
+  },
+  {
+    day: 2,
+    subject: "Create professional quotes - Day 2",
+    title: "Creating Professional Quotes",
+    content: `
+      <p>When a customer is interested, turn their inquiry into a polished quote!</p>
+      <h3 style="color: #E91E63; margin-top: 24px;">Quote builder features:</h3>
+      <ul style="padding-left: 20px;">
+        <li><strong>Pre-filled details</strong> - Lead information carries over automatically</li>
+        <li><strong>Line items</strong> - Add cakes, decorations, delivery, and custom items</li>
+        <li><strong>Professional emails</strong> - Send quotes directly to customers</li>
+        <li><strong>Status tracking</strong> - See when quotes are viewed and accepted</li>
+      </ul>
+      <p style="margin-top: 20px;"><strong>Tip:</strong> Draft quotes don't count toward your monthly limit - only sent quotes do!</p>
+    `,
+    ctaText: "View Your Leads",
+    ctaUrl: "/leads",
+  },
+  {
+    day: 3,
+    subject: "Managing leads effectively - Day 3",
+    title: "Managing Your Leads",
+    content: `
+      <p>Every calculator submission becomes a lead you can track and convert.</p>
+      <h3 style="color: #E91E63; margin-top: 24px;">Lead management tips:</h3>
+      <ul style="padding-left: 20px;">
+        <li><strong>Update status</strong> - Mark leads as Contacted, Quoted, Won, or Lost</li>
+        <li><strong>Add notes</strong> - Keep track of conversations and details</li>
+        <li><strong>Quick actions</strong> - Create quotes or convert to customers in one click</li>
+        <li><strong>Email notifications</strong> - Get alerted when new leads come in</li>
+      </ul>
+      <p style="margin-top: 20px;">Leads are <strong>unlimited on all plans</strong> - never miss an opportunity!</p>
+    `,
+    ctaText: "View Leads",
+    ctaUrl: "/leads",
+  },
+  {
+    day: 4,
+    subject: "Your order calendar - Day 4",
+    title: "Using the Order Calendar",
+    content: `
+      <p>Once a quote is accepted, convert it to an order and track it on your calendar.</p>
+      <h3 style="color: #E91E63; margin-top: 24px;">Calendar features:</h3>
+      <ul style="padding-left: 20px;">
+        <li><strong>Visual timeline</strong> - See all upcoming orders at a glance</li>
+        <li><strong>Payment tracking</strong> - Monitor deposits and balances due</li>
+        <li><strong>Order details</strong> - Click any order for full specifications</li>
+        <li><strong>Search</strong> - Find orders by customer name or event type</li>
+      </ul>
+      <p style="margin-top: 20px;">Never miss a delivery date again!</p>
+    `,
+    ctaText: "View Calendar",
+    ctaUrl: "/orders/calendar",
+  },
+  {
+    day: 5,
+    subject: "Customize your treats menu - Day 5",
+    title: "Customizing Your Treats",
+    content: `
+      <p>Your calculator can offer more than just cakes! Customize what treats you sell.</p>
+      <h3 style="color: #E91E63; margin-top: 24px;">Available treats:</h3>
+      <ul style="padding-left: 20px;">
+        <li>Cupcakes (standard & gourmet)</li>
+        <li>Cake pops</li>
+        <li>Decorated cookies</li>
+        <li>Brownies & rice treats</li>
+        <li>Dipped strawberries & chocolate apples</li>
+        <li>And more!</li>
+      </ul>
+      <p style="margin-top: 20px;">In Calculator Pricing, you can <strong>enable or disable</strong> any treat item and set your own prices.</p>
+    `,
+    ctaText: "Customize Treats",
+    ctaUrl: "/calculator-pricing",
+  },
+  {
+    day: 6,
+    subject: "Grow with the right plan - Day 6",
+    title: "Choose Your Plan",
+    content: `
+      <p>As your business grows, BakerIQ grows with you!</p>
+      <h3 style="color: #E91E63; margin-top: 24px;">Plans to fit your needs:</h3>
+      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        <tr style="background: #f8f9fa;">
+          <td style="padding: 12px; border: 1px solid #e9ecef;"><strong>Free</strong></td>
+          <td style="padding: 12px; border: 1px solid #e9ecef;">5 quotes/month</td>
+          <td style="padding: 12px; border: 1px solid #e9ecef;">$0</td>
+        </tr>
+        <tr>
+          <td style="padding: 12px; border: 1px solid #e9ecef;"><strong>Basic</strong></td>
+          <td style="padding: 12px; border: 1px solid #e9ecef;">25 quotes/month</td>
+          <td style="padding: 12px; border: 1px solid #e9ecef;">$9.97/mo</td>
+        </tr>
+        <tr style="background: #fce4ec;">
+          <td style="padding: 12px; border: 1px solid #e9ecef;"><strong>Pro</strong></td>
+          <td style="padding: 12px; border: 1px solid #e9ecef;">Unlimited quotes</td>
+          <td style="padding: 12px; border: 1px solid #e9ecef;">$29.97/mo</td>
+        </tr>
+      </table>
+      <p><strong>Remember:</strong> Leads are always unlimited, and draft quotes don't count!</p>
+    `,
+    ctaText: "View Plans",
+    ctaUrl: "/settings",
+  },
+  {
+    day: 7,
+    subject: "Tips for success - Day 7",
+    title: "Tips for Success",
+    content: `
+      <p>You're all set! Here are some final tips to make the most of BakerIQ:</p>
+      <h3 style="color: #E91E63; margin-top: 24px;">Pro tips from successful bakers:</h3>
+      <ul style="padding-left: 20px;">
+        <li><strong>Share your link everywhere</strong> - Instagram bio, Facebook, business cards</li>
+        <li><strong>Respond quickly</strong> - Leads go cold fast, so quote them promptly</li>
+        <li><strong>Add social links</strong> - Help customers find you on social media</li>
+        <li><strong>Set your payment methods</strong> - Make it easy for customers to pay</li>
+        <li><strong>Check your calendar weekly</strong> - Stay organized with upcoming orders</li>
+      </ul>
+      <p style="margin-top: 20px;">Thank you for choosing BakerIQ. We're here to help your bakery thrive!</p>
+    `,
+    ctaText: "Go to Dashboard",
+    ctaUrl: "/dashboard",
+  },
+];
+
+export function getOnboardingEmailTemplate(day: number): OnboardingEmailData | undefined {
+  return ONBOARDING_EMAILS.find(e => e.day === day);
+}
+
+export async function sendOnboardingEmail(
+  bakerEmail: string,
+  businessName: string,
+  day: number,
+  baseUrl: string
+): Promise<boolean> {
+  const template = getOnboardingEmailTemplate(day);
+  if (!template) {
+    console.error(`No onboarding email template found for day ${day}`);
+    return false;
+  }
+
+  const ctaUrl = template.ctaUrl ? `${baseUrl}${template.ctaUrl}` : null;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #E91E63, #F06292); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px; }
+    .cta { display: inline-block; background: #E91E63; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+    ul { margin: 16px 0; }
+    li { margin: 8px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0;">${template.title}</h1>
+      ${day > 0 ? `<p style="margin: 10px 0 0 0; opacity: 0.9;">Day ${day} of your onboarding journey</p>` : ''}
+    </div>
+    <div class="content">
+      <p>Hi ${businessName},</p>
+      ${template.content}
+      ${ctaUrl && template.ctaText ? `
+      <p style="text-align: center; margin-top: 24px;">
+        <a href="${ctaUrl}" class="cta">${template.ctaText}</a>
+      </p>
+      ` : ''}
+    </div>
+    <div class="footer">
+      <p>This email was sent by BakerIQ to help you get started.</p>
+      <p style="margin-top: 8px;"><a href="${baseUrl}/settings" style="color: #666;">Manage email preferences</a></p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  const textContent = template.content
+    .replace(/<h3[^>]*>/g, '\n\n')
+    .replace(/<\/h3>/g, '\n')
+    .replace(/<li><strong>([^<]+)<\/strong>/g, '- $1')
+    .replace(/<li>/g, '- ')
+    .replace(/<\/li>/g, '')
+    .replace(/<ul[^>]*>/g, '')
+    .replace(/<\/ul>/g, '')
+    .replace(/<p[^>]*>/g, '\n')
+    .replace(/<\/p>/g, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .trim();
+
+  const text = `
+Hi ${businessName},
+
+${template.title}
+${day > 0 ? `Day ${day} of your onboarding journey` : ''}
+
+${textContent}
+
+${ctaUrl ? `${template.ctaText}: ${ctaUrl}` : ''}
+
+---
+This email was sent by BakerIQ to help you get started.
+`;
+
+  return sendEmail({
+    to: bakerEmail,
+    subject: template.subject,
+    html,
+    text,
+  });
+}
