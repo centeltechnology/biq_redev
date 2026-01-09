@@ -4,7 +4,7 @@ import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CAKE_SIZES, CAKE_FLAVORS, FROSTING_TYPES, DECORATIONS, DELIVERY_OPTIONS, ADDONS, type CalculatorConfig } from "@shared/schema";
+import { CAKE_SIZES, CAKE_FLAVORS, FROSTING_TYPES, DECORATIONS, DELIVERY_OPTIONS, ADDONS, TREATS, type CalculatorConfig } from "@shared/schema";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -57,6 +57,13 @@ export default function PricingPage() {
           price: a.price,
           pricingType: a.pricingType,
           minAttendees: "minAttendees" in a ? a.minAttendees : undefined
+        })),
+        treats: config.treats || TREATS.map(t => ({
+          id: t.id,
+          label: t.label,
+          description: t.description,
+          unitPrice: t.unitPrice,
+          minQuantity: t.minQuantity
         })),
       };
       const res = await apiRequest("PATCH", "/api/bakers/me", { calculatorConfig: completeConfig });
@@ -177,6 +184,26 @@ export default function PricingPage() {
       a.id === addonId ? { ...a, price } : a
     );
     setPricingConfig({ ...pricingConfig, addons: updatedAddons });
+  };
+
+  const getTreatPrice = (treatId: string) => {
+    const customTreat = pricingConfig.treats?.find(t => t.id === treatId);
+    const defaultTreat = TREATS.find(t => t.id === treatId);
+    return customTreat?.unitPrice ?? defaultTreat?.unitPrice ?? 0;
+  };
+
+  const updateTreatPrice = (treatId: string, unitPrice: number) => {
+    const defaultTreats = TREATS.map(t => ({
+      id: t.id,
+      label: t.label,
+      description: t.description,
+      unitPrice: pricingConfig.treats?.find(x => x.id === t.id)?.unitPrice ?? t.unitPrice,
+      minQuantity: t.minQuantity
+    }));
+    const updatedTreats = defaultTreats.map(t => 
+      t.id === treatId ? { ...t, unitPrice } : t
+    );
+    setPricingConfig({ ...pricingConfig, treats: updatedTreats });
   };
 
   return (
@@ -327,6 +354,38 @@ export default function PricingPage() {
                       value={getAddonPrice(addon.id)}
                       onChange={(e) => updateAddonPrice(addon.id, Number(e.target.value))}
                       data-testid={`input-addon-price-${addon.id}`}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Treats</CardTitle>
+            <CardDescription>
+              Set prices for standalone treat items
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3">
+              {TREATS.map((treat) => (
+                <div key={treat.id} className="flex items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <span className="text-sm font-medium">{treat.label}</span>
+                    <span className="text-xs text-muted-foreground ml-2">({treat.description})</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">$</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      className="w-20"
+                      value={getTreatPrice(treat.id)}
+                      onChange={(e) => updateTreatPrice(treat.id, Number(e.target.value))}
+                      data-testid={`input-treat-price-${treat.id}`}
                     />
                   </div>
                 </div>
