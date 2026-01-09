@@ -7,7 +7,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/status-badge";
 import { formatCurrency } from "@/lib/calculator";
-import type { Lead, Quote } from "@shared/schema";
+import type { Lead, Quote, Order } from "@shared/schema";
+
+interface UpcomingOrder extends Order {
+  customer?: { name: string };
+}
 
 interface DashboardStats {
   newLeadsCount: number;
@@ -30,6 +34,10 @@ export default function DashboardPage() {
 
   const { data: orderStats, isLoading: isLoadingOrders } = useQuery<OrderStats>({
     queryKey: ["/api/orders/stats"],
+  });
+
+  const { data: upcomingOrders, isLoading: isLoadingUpcoming } = useQuery<UpcomingOrder[]>({
+    queryKey: ["/api/orders/upcoming"],
   });
 
   return (
@@ -90,7 +98,7 @@ export default function DashboardPage() {
                   <CalendarCheck className="h-5 w-5" />
                   Upcoming Orders
                 </CardTitle>
-                <CardDescription>View your order calendar</CardDescription>
+                <CardDescription>Next 7 days</CardDescription>
               </div>
               <Button variant="outline" asChild>
                 <Link href="/calendar" data-testid="link-view-calendar">
@@ -99,6 +107,51 @@ export default function DashboardPage() {
                 </Link>
               </Button>
             </CardHeader>
+            <CardContent>
+              {isLoadingUpcoming ? (
+                <div className="space-y-2">
+                  {[...Array(3)].map((_, i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
+                </div>
+              ) : !upcomingOrders || upcomingOrders.length === 0 ? (
+                <div className="text-center py-4 text-muted-foreground">
+                  <CalendarCheck className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No orders this week</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {upcomingOrders.slice(0, 5).map((order) => (
+                    <div
+                      key={order.id}
+                      className="flex items-center justify-between gap-4 p-3 rounded-md border"
+                      data-testid={`upcoming-order-${order.id}`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate text-sm">{order.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {order.customer?.name || "Unknown customer"}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium">
+                          {order.eventDate
+                            ? new Date(order.eventDate + 'T00:00:00').toLocaleDateString('en-US', {
+                                weekday: 'short',
+                                month: 'short',
+                                day: 'numeric',
+                              })
+                            : "No date"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatCurrency(Number(order.amount))}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
           </Card>
         </div>
 

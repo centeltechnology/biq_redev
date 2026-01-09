@@ -18,6 +18,8 @@ export const bakers = pgTable("bakers", {
   paymentCashapp: text("payment_cashapp"),
   paymentVenmo: text("payment_venmo"),
   depositPercentage: integer("deposit_percentage").default(50),
+  // Calculator configuration - custom pricing overrides
+  calculatorConfig: jsonb("calculator_config"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -209,6 +211,15 @@ export type Order = typeof orders.$inferSelect;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 
 // Calculator Configuration Types
+export interface CalculatorConfig {
+  sizes?: { id: string; label: string; servings: string; basePrice: number }[];
+  shapes?: { id: string; label: string; priceModifier: number }[];
+  flavors?: { id: string; label: string; priceModifier: number }[];
+  frostings?: { id: string; label: string; priceModifier: number }[];
+  decorations?: { id: string; label: string; price: number }[];
+  deliveryOptions?: { id: string; label: string; price: number }[];
+}
+
 export interface CakeTier {
   size: string;
   shape: string;

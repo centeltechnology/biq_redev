@@ -68,6 +68,7 @@ import {
   EVENT_TYPES,
   type CakeTier,
   type CalculatorPayload,
+  type CalculatorConfig,
   type Baker,
 } from "@shared/schema";
 import heroImage from "@assets/generated_images/elegant_wedding_cake_hero.png";
@@ -114,6 +115,9 @@ export default function CalculatorPage() {
     },
   });
 
+  // Get baker's custom pricing config
+  const bakerConfig = baker?.calculatorConfig as CalculatorConfig | undefined;
+
   const submitMutation = useMutation({
     mutationFn: async (data: ContactFormData) => {
       const payload: CalculatorPayload = {
@@ -123,7 +127,7 @@ export default function CalculatorPage() {
         deliveryAddress: data.deliveryAddress,
         specialRequests: data.specialRequests,
       };
-      const totals = calculateTotal(payload);
+      const totals = calculateTotal(payload, bakerConfig);
 
       const res = await apiRequest("POST", `/api/public/calculator/submit?tenant=${slug}`, {
         customerName: data.name,
@@ -147,7 +151,7 @@ export default function CalculatorPage() {
     decorations,
     deliveryOption,
   };
-  const totals = calculateTotal(payload);
+  const totals = calculateTotal(payload, bakerConfig);
 
   const addTier = () => {
     setTiers([...tiers, createDefaultTier()]);
@@ -316,6 +320,7 @@ export default function CalculatorPage() {
                   onUpdateTier={updateTier}
                   onAddTier={addTier}
                   onRemoveTier={removeTier}
+                  config={bakerConfig}
                 />
               )}
 
@@ -343,6 +348,7 @@ export default function CalculatorPage() {
                   deliveryOption={deliveryOption}
                   totals={totals}
                   form={form}
+                  config={bakerConfig}
                 />
               )}
 
@@ -399,9 +405,10 @@ interface StepCakeBuilderProps {
   onUpdateTier: (index: number, field: keyof CakeTier, value: string) => void;
   onAddTier: () => void;
   onRemoveTier: (index: number) => void;
+  config?: CalculatorConfig;
 }
 
-function StepCakeBuilder({ tiers, onUpdateTier, onAddTier, onRemoveTier }: StepCakeBuilderProps) {
+function StepCakeBuilder({ tiers, onUpdateTier, onAddTier, onRemoveTier, config }: StepCakeBuilderProps) {
   return (
     <div className="space-y-4">
       <Accordion type="single" collapsible defaultValue="tier-0" className="space-y-4">
@@ -412,7 +419,7 @@ function StepCakeBuilder({ tiers, onUpdateTier, onAddTier, onRemoveTier }: StepC
                 <span className="font-medium">Tier {index + 1}</span>
                 <div className="flex items-center gap-3">
                   <span className="text-sm text-muted-foreground">
-                    {CAKE_SIZES.find((s) => s.id === tier.size)?.label} - {formatCurrency(calculateTierPrice(tier))}
+                    {CAKE_SIZES.find((s) => s.id === tier.size)?.label} - {formatCurrency(calculateTierPrice(tier, config))}
                   </span>
                   {tiers.length > 1 && (
                     <Button
@@ -794,9 +801,10 @@ interface StepReviewProps {
   deliveryOption: string;
   totals: ReturnType<typeof calculateTotal>;
   form: ReturnType<typeof useForm<ContactFormData>>;
+  config?: CalculatorConfig;
 }
 
-function StepReview({ tiers, decorations, deliveryOption, totals, form }: StepReviewProps) {
+function StepReview({ tiers, decorations, deliveryOption, totals, form, config }: StepReviewProps) {
   const values = form.watch();
 
   return (
@@ -809,7 +817,7 @@ function StepReview({ tiers, decorations, deliveryOption, totals, form }: StepRe
             const shape = CAKE_SHAPES.find((s) => s.id === tier.shape);
             const flavor = CAKE_FLAVORS.find((f) => f.id === tier.flavor);
             const frosting = FROSTING_TYPES.find((f) => f.id === tier.frosting);
-            const price = calculateTierPrice(tier);
+            const price = calculateTierPrice(tier, config);
 
             return (
               <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">

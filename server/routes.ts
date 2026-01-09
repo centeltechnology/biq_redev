@@ -393,6 +393,9 @@ export async function registerRoutes(
       const taxAmount = subtotal * taxRate;
       const total = subtotal + taxAmount;
 
+      // Check if status is being changed to "approved"
+      const isBeingApproved = data.status === "approved" && existingQuote.status !== "approved";
+      
       const quote = await storage.updateQuote(req.params.id, {
         title: data.title,
         customerId: data.customerId,
@@ -403,7 +406,28 @@ export async function registerRoutes(
         taxAmount: taxAmount.toFixed(2),
         total: total.toFixed(2),
         notes: data.notes,
+        // Set timestamps when approving
+        ...(isBeingApproved ? { acceptedAt: new Date(), paidAt: new Date() } : {}),
       });
+
+      // Auto-create order when quote is approved (if no order exists for this quote)
+      if (isBeingApproved) {
+        const existingOrder = await storage.getOrderByQuoteId(req.params.id);
+        if (!existingOrder) {
+          await storage.createOrder({
+            bakerId: req.session.bakerId!,
+            quoteId: req.params.id,
+            customerId: existingQuote.customerId,
+            eventDate: existingQuote.eventDate,
+            title: existingQuote.title,
+            amount: total.toFixed(2),
+            paymentMethod: "cash", // Default payment method
+            paymentStatus: "paid",
+            fulfillmentStatus: "booked",
+            notes: null,
+          });
+        }
+      }
 
       // Update items if provided
       if (data.items) {
@@ -555,6 +579,15 @@ export async function registerRoutes(
       res.json(stats);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch order stats" });
+    }
+  });
+
+  app.get("/api/orders/upcoming", requireAuth, async (req, res) => {
+    try {
+      const upcomingOrders = await storage.getUpcomingOrders(req.session.bakerId!);
+      res.json(upcomingOrders);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch upcoming orders" });
     }
   });
 

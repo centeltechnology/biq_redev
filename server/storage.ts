@@ -80,6 +80,8 @@ export interface IStorage {
     yearlyCount: number;
     yearlyRevenue: number;
   }>;
+  getUpcomingOrders(bakerId: string): Promise<(Order & { customer?: { name: string } })[]>;
+  getOrderByQuoteId(quoteId: string): Promise<Order | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -283,10 +285,17 @@ export class DatabaseStorage implements IStorage {
       .from(quotes)
       .where(and(eq(quotes.bakerId, bakerId), eq(quotes.status, "draft")));
 
+    // Only count customers who have at least one approved or sent quote (not just new leads)
     const [customersResult] = await db
-      .select({ count: sql<number>`count(*)` })
+      .select({ count: sql<number>`count(distinct ${customers.id})` })
       .from(customers)
-      .where(eq(customers.bakerId, bakerId));
+      .innerJoin(quotes, eq(customers.id, quotes.customerId))
+      .where(
+        and(
+          eq(customers.bakerId, bakerId),
+          sql`${quotes.status} IN ('approved', 'sent')`
+        )
+      );
 
     const recentLeads = await db
       .select()
@@ -410,6 +419,44 @@ export class DatabaseStorage implements IStorage {
       yearlyCount: Number(yearlyResult?.count || 0),
       yearlyRevenue: Number(yearlyResult?.revenue || 0),
     };
+  }
+
+  async getUpcomingOrders(bakerId: string): Promise<(Order & { customer?: { name: string } })[]> {
+    const today = new Date();
+    const nextWeek = new Date();
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    const todayStr = today.toISOString().split('T')[0];
+    const nextWeekStr = nextWeek.toISOString().split('T')[0];
+
+    const ordersList = await db
+      .select()
+      .from(orders)
+      .where(
+        and(
+          eq(orders.bakerId, bakerId),
+          gte(orders.eventDate, todayStr),
+          lte(orders.eventDate, nextWeekStr),
+          sql`${orders.fulfillmentStatus} NOT IN ('completed', 'cancelled')`
+        )
+      )
+      .orderBy(orders.eventDate);
+
+    const result = await Promise.all(
+      ordersList.map(async (order) => {
+        const [customer] = await db
+          .select({ name: customers.name })
+          .from(customers)
+          .where(eq(customers.id, order.customerId));
+        return { ...order, customer };
+      })
+    );
+
+    return result;
+  }
+
+  async getOrderByQuoteId(quoteId: string): Promise<Order | undefined> {
+    const [order] = await db.select().from(orders).where(eq(orders.quoteId, quoteId));
+    return order || undefined;
   }
 }
 
