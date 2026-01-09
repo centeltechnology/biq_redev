@@ -5,6 +5,7 @@ import { createServer } from "http";
 import { runMigrations } from "stripe-replit-sync";
 import { getStripeSync } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
+import { startOnboardingScheduler } from "./onboarding-scheduler";
 
 const app = express();
 const httpServer = createServer(app);
@@ -156,6 +157,12 @@ app.use((req, res, next) => {
     },
     () => {
       log(`serving on port ${port}`);
+      
+      // Start onboarding email scheduler
+      const baseUrl = process.env.REPLIT_DOMAINS
+        ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
+        : `http://localhost:${port}`;
+      startOnboardingScheduler(baseUrl);
     },
   );
 })();
