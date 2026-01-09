@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { ClipboardList, FileText, Users, ArrowRight, Calendar, DollarSign, TrendingUp, CalendarCheck, Sparkles, AlertTriangle } from "lucide-react";
+import { ClipboardList, FileText, Users, ArrowRight, Calendar, DollarSign, TrendingUp, CalendarCheck, Sparkles, AlertTriangle, Plus, UserPlus } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -136,6 +136,38 @@ export default function DashboardPage() {
             isLoading={isLoading}
           />
         </div>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button asChild data-testid="button-quick-new-quote">
+              <Link href="/quotes/new">
+                <Plus className="mr-2 h-4 w-4" />
+                Create Quote
+              </Link>
+            </Button>
+            <Button variant="outline" asChild data-testid="button-quick-new-customer">
+              <Link href="/customers?new=true">
+                <UserPlus className="mr-2 h-4 w-4" />
+                Add Customer
+              </Link>
+            </Button>
+            <Button variant="outline" asChild data-testid="button-quick-view-leads">
+              <Link href="/leads">
+                <ClipboardList className="mr-2 h-4 w-4" />
+                View Leads
+              </Link>
+            </Button>
+            <Button variant="outline" asChild data-testid="button-quick-calendar">
+              <Link href="/calendar">
+                <Calendar className="mr-2 h-4 w-4" />
+                Calendar
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
 
         <div className="grid gap-4 md:grid-cols-2">
           <Card>

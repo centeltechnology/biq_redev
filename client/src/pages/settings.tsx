@@ -3,8 +3,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Copy, Check, Loader2, ExternalLink, CreditCard, Sparkles } from "lucide-react";
+import { Copy, Check, Loader2, ExternalLink, CreditCard, Sparkles, Bell } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -183,6 +184,17 @@ export default function SettingsPage() {
     },
     onSuccess: (data) => {
       if (data.url) window.location.href = data.url;
+    },
+  });
+
+  const updateNotificationsMutation = useMutation({
+    mutationFn: async (data: { notifyNewLead?: number; notifyQuoteViewed?: number; notifyQuoteAccepted?: number }) => {
+      const res = await apiRequest("PATCH", "/api/bakers/me", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
+      toast({ title: "Notification preferences updated" });
     },
   });
 
@@ -668,6 +680,62 @@ export default function SettingsPage() {
                 </Button>
               </form>
             </Form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              Email Notifications
+            </CardTitle>
+            <CardDescription>
+              Choose which emails you want to receive
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">New Lead Alerts</p>
+                <p className="text-sm text-muted-foreground">Get notified when someone submits the calculator</p>
+              </div>
+              <Switch
+                checked={baker?.notifyNewLead === 1}
+                onCheckedChange={(checked) => {
+                  updateNotificationsMutation.mutate({ notifyNewLead: checked ? 1 : 0 });
+                }}
+                disabled={updateNotificationsMutation.isPending}
+                data-testid="switch-notify-new-lead"
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Quote Viewed</p>
+                <p className="text-sm text-muted-foreground">Get notified when a customer views their quote</p>
+              </div>
+              <Switch
+                checked={baker?.notifyQuoteViewed === 1}
+                onCheckedChange={(checked) => {
+                  updateNotificationsMutation.mutate({ notifyQuoteViewed: checked ? 1 : 0 });
+                }}
+                disabled={updateNotificationsMutation.isPending}
+                data-testid="switch-notify-quote-viewed"
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Quote Accepted</p>
+                <p className="text-sm text-muted-foreground">Get notified when a customer accepts a quote</p>
+              </div>
+              <Switch
+                checked={baker?.notifyQuoteAccepted === 1}
+                onCheckedChange={(checked) => {
+                  updateNotificationsMutation.mutate({ notifyQuoteAccepted: checked ? 1 : 0 });
+                }}
+                disabled={updateNotificationsMutation.isPending}
+                data-testid="switch-notify-quote-accepted"
+              />
+            </div>
           </CardContent>
         </Card>
       </div>

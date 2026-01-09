@@ -327,6 +327,9 @@ export async function registerRoutes(
         socialInstagram: z.string().optional().nullable(),
         socialTiktok: z.string().optional().nullable(),
         socialPinterest: z.string().optional().nullable(),
+        notifyNewLead: z.number().min(0).max(1).optional(),
+        notifyQuoteViewed: z.number().min(0).max(1).optional(),
+        notifyQuoteAccepted: z.number().min(0).max(1).optional(),
       });
 
       const data = schema.parse(req.body);

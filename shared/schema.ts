@@ -33,6 +33,10 @@ export const bakers = pgTable("bakers", {
   plan: text("plan").notNull().default("free"), // "free" or "pro"
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
+  // Email notification preferences
+  notifyNewLead: integer("notify_new_lead").notNull().default(1),
+  notifyQuoteViewed: integer("notify_quote_viewed").notNull().default(1),
+  notifyQuoteAccepted: integer("notify_quote_accepted").notNull().default(1),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
