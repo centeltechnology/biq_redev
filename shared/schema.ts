@@ -60,6 +60,26 @@ export const emailVerificationTokens = pgTable("email_verification_tokens", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Onboarding email tracking - tracks which onboarding emails have been sent to each baker
+export const bakerOnboardingEmails = pgTable("baker_onboarding_emails", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  bakerId: varchar("baker_id").notNull().references(() => bakers.id),
+  emailDay: integer("email_day").notNull(), // 0 = welcome, 1-7 = onboarding series
+  sentAt: timestamp("sent_at").defaultNow().notNull(),
+  status: text("status").notNull().default("sent"), // "sent", "failed"
+  error: text("error"),
+});
+
+export const bakerOnboardingEmailsRelations = relations(bakerOnboardingEmails, ({ one }) => ({
+  baker: one(bakers, {
+    fields: [bakerOnboardingEmails.bakerId],
+    references: [bakers.id],
+  }),
+}));
+
+export type BakerOnboardingEmail = typeof bakerOnboardingEmails.$inferSelect;
+export type InsertBakerOnboardingEmail = typeof bakerOnboardingEmails.$inferInsert;
+
 export const bakersRelations = relations(bakers, ({ many }) => ({
   customers: many(customers),
   leads: many(leads),
