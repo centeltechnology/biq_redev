@@ -7,6 +7,7 @@ import {
   orders,
   passwordResetTokens,
   emailVerificationTokens,
+  bakerOnboardingEmails,
   type Baker,
   type InsertBaker,
   type Customer,
@@ -19,6 +20,7 @@ import {
   type InsertQuoteItem,
   type Order,
   type InsertOrder,
+  type BakerOnboardingEmail,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
@@ -101,6 +103,12 @@ export interface IStorage {
 
   // Admin
   getAllBakers(): Promise<Baker[]>;
+
+  // Onboarding Emails
+  getOnboardingEmailsSent(bakerId: string): Promise<BakerOnboardingEmail[]>;
+  hasOnboardingEmailBeenSent(bakerId: string, emailDay: number): Promise<boolean>;
+  recordOnboardingEmail(bakerId: string, emailDay: number, status: string, error?: string): Promise<void>;
+  getBakersForOnboardingEmails(targetDay: number): Promise<Baker[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -605,6 +613,58 @@ export class DatabaseStorage implements IStorage {
   // Admin
   async getAllBakers(): Promise<Baker[]> {
     return db.select().from(bakers).orderBy(desc(bakers.createdAt));
+  }
+
+  // Onboarding Emails
+  async getOnboardingEmailsSent(bakerId: string): Promise<BakerOnboardingEmail[]> {
+    return db.select().from(bakerOnboardingEmails).where(eq(bakerOnboardingEmails.bakerId, bakerId));
+  }
+
+  async hasOnboardingEmailBeenSent(bakerId: string, emailDay: number): Promise<boolean> {
+    const [result] = await db.select().from(bakerOnboardingEmails).where(
+      and(
+        eq(bakerOnboardingEmails.bakerId, bakerId),
+        eq(bakerOnboardingEmails.emailDay, emailDay)
+      )
+    );
+    return !!result;
+  }
+
+  async recordOnboardingEmail(bakerId: string, emailDay: number, status: string, error?: string): Promise<void> {
+    await db.insert(bakerOnboardingEmails).values({
+      bakerId,
+      emailDay,
+      status,
+      error: error || null,
+    });
+  }
+
+  async getBakersForOnboardingEmails(targetDay: number): Promise<Baker[]> {
+    // Get bakers who signed up exactly targetDay days ago and haven't received this email yet
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() - targetDay);
+    const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setDate(endOfDay.getDate() + 1);
+
+    // Get all bakers who signed up on the target day
+    const eligibleBakers = await db.select().from(bakers).where(
+      and(
+        gte(bakers.createdAt, startOfDay),
+        lte(bakers.createdAt, endOfDay)
+      )
+    );
+
+    // Filter out bakers who have already received this day's email
+    const result: Baker[] = [];
+    for (const baker of eligibleBakers) {
+      const alreadySent = await this.hasOnboardingEmailBeenSent(baker.id, targetDay);
+      if (!alreadySent) {
+        result.push(baker);
+      }
+    }
+
+    return result;
   }
 }
 
