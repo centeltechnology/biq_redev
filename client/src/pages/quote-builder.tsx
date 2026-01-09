@@ -59,6 +59,7 @@ import {
   DECORATIONS,
   DELIVERY_OPTIONS,
   ADDONS,
+  TREATS,
   ORDER_PAYMENT_METHODS,
   type Quote,
   type QuoteItem,
@@ -167,8 +168,11 @@ export default function QuoteBuilderPage() {
   useEffect(() => {
     if (lead && customers && !leadPopulated) {
       const payload = lead.calculatorPayload as {
+        category?: "cake" | "treat";
         tiers?: CakeTier[];
         decorations?: string[];
+        addons?: { id: string; quantity?: number; attendees?: number }[];
+        treats?: { id: string; quantity: number }[];
         deliveryOption?: string;
         deliveryAddress?: string;
         specialRequests?: string;
@@ -271,6 +275,23 @@ export default function QuoteBuilderPage() {
               quantity: 1,
               unitPrice,
               category: "addon",
+            });
+          }
+        });
+      }
+
+      // Add treats
+      if (payload?.treats) {
+        payload.treats.forEach((treatData) => {
+          const treat = TREATS.find((t) => t.id === treatData.id);
+          if (treat) {
+            items.push({
+              id: `treat-${treatData.id}-${Date.now()}`,
+              name: treat.label,
+              description: `${treat.description} × ${treatData.quantity}`,
+              quantity: treatData.quantity,
+              unitPrice: treat.unitPrice,
+              category: "treat",
             });
           }
         });

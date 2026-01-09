@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -6,7 +6,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
   Cake,
+  Cookie,
   Plus,
+  Minus,
   Trash2,
   ChevronRight,
   ChevronLeft,
@@ -55,6 +57,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import {
   calculateTotal,
   calculateTierPrice,
+  calculateTreatsPrice,
   formatCurrency,
   createDefaultTier,
 } from "@/lib/calculator";
@@ -67,8 +70,10 @@ import {
   DECORATIONS,
   DELIVERY_OPTIONS,
   ADDONS,
+  TREATS,
   EVENT_TYPES,
   type CakeTier,
+  type TreatSelection,
   type CalculatorPayload,
   type CalculatorConfig,
   type Baker,
@@ -107,18 +112,26 @@ function formatSocialUrl(value: string, platform: "facebook" | "instagram" | "ti
   return baseUrls[platform] + handle;
 }
 
-const STEPS = ["Build Your Cake", "Decorations", "Addons", "Event Details", "Contact Info", "Review"];
+const CAKE_STEPS = ["Choose Category", "Build Your Cake", "Decorations", "Addons", "Event Details", "Contact Info", "Review"];
+const TREAT_STEPS = ["Choose Category", "Select Treats", "Event Details", "Contact Info", "Review"];
 
 export default function CalculatorPage() {
   const { slug } = useParams<{ slug: string }>();
   const [currentStep, setCurrentStep] = useState(0);
+  const [category, setCategory] = useState<"cake" | "treat" | undefined>(undefined);
   const [tiers, setTiers] = useState<CakeTier[]>([createDefaultTier()]);
   const [openTierAccordion, setOpenTierAccordion] = useState<string>("tier-0");
   const [decorations, setDecorations] = useState<string[]>([]);
   const [addons, setAddons] = useState<{ id: string; quantity?: number; attendees?: number }[]>([]);
+  const [treats, setTreats] = useState<TreatSelection[]>([]);
   const [deliveryOption, setDeliveryOption] = useState("pickup");
   const [submitted, setSubmitted] = useState(false);
   const [leadLimitReached, setLeadLimitReached] = useState(false);
+
+  const STEPS = useMemo(() => {
+    if (!category) return ["Choose Category"];
+    return category === "cake" ? CAKE_STEPS : TREAT_STEPS;
+  }, [category]);
 
   const { data: baker, isLoading: isLoadingBaker, error } = useQuery<Baker>({
     queryKey: ["/api/public/baker", slug],
@@ -139,20 +152,35 @@ export default function CalculatorPage() {
     },
   });
 
-  // Get baker's custom pricing config
   const bakerConfig = baker?.calculatorConfig as CalculatorConfig | undefined;
+
+  const payload: CalculatorPayload = useMemo(() => {
+    if (category === "treat") {
+      return {
+        category: "treat",
+        treats,
+        deliveryOption,
+      };
+    }
+    return {
+      category: "cake",
+      tiers,
+      decorations,
+      addons,
+      deliveryOption,
+    };
+  }, [category, tiers, decorations, addons, treats, deliveryOption]);
+
+  const totals = calculateTotal(payload, bakerConfig);
 
   const submitMutation = useMutation({
     mutationFn: async (data: ContactFormData) => {
-      const payload: CalculatorPayload = {
-        tiers,
-        decorations,
-        addons,
-        deliveryOption,
+      const submitPayload: CalculatorPayload = {
+        ...payload,
         deliveryAddress: data.deliveryAddress,
         specialRequests: data.specialRequests,
       };
-      const totals = calculateTotal(payload, bakerConfig);
+      const submitTotals = calculateTotal(submitPayload, bakerConfig);
 
       const res = await apiRequest("POST", `/api/public/calculator/submit?tenant=${slug}`, {
         customerName: data.name,
@@ -161,8 +189,8 @@ export default function CalculatorPage() {
         eventType: data.eventType,
         eventDate: data.eventDate || null,
         guestCount: data.guestCount ? parseInt(data.guestCount) : null,
-        calculatorPayload: payload,
-        estimatedTotal: totals.total.toFixed(2),
+        calculatorPayload: submitPayload,
+        estimatedTotal: submitTotals.total.toFixed(2),
       });
       if (!res.ok) {
         const errorData = await res.json();
@@ -183,14 +211,6 @@ export default function CalculatorPage() {
       }
     },
   });
-
-  const payload: CalculatorPayload = {
-    tiers,
-    decorations,
-    addons,
-    deliveryOption,
-  };
-  const totals = calculateTotal(payload, bakerConfig);
 
   const addTier = () => {
     const newTierIndex = tiers.length;
@@ -234,6 +254,28 @@ export default function CalculatorPage() {
     setAddons((prev) => prev.map(a => a.id === id ? { ...a, quantity } : a));
   };
 
+  const updateTreatQuantity = (id: string, quantity: number) => {
+    const treat = TREATS.find(t => t.id === id);
+    const minQty = treat?.minQuantity || 1;
+    
+    if (quantity <= 0) {
+      setTreats(prev => prev.filter(t => t.id !== id));
+    } else {
+      setTreats(prev => {
+        const existing = prev.find(t => t.id === id);
+        if (existing) {
+          return prev.map(t => t.id === id ? { ...t, quantity: Math.max(minQty, quantity) } : t);
+        }
+        return [...prev, { id, quantity: Math.max(minQty, quantity) }];
+      });
+    }
+  };
+
+  const handleCategorySelect = (selectedCategory: "cake" | "treat") => {
+    setCategory(selectedCategory);
+    setCurrentStep(1);
+  };
+
   const nextStep = () => {
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
@@ -242,12 +284,92 @@ export default function CalculatorPage() {
 
   const prevStep = () => {
     if (currentStep > 0) {
+      if (currentStep === 1) {
+        setCategory(undefined);
+      }
       setCurrentStep(currentStep - 1);
     }
   };
 
   const onSubmit = (data: ContactFormData) => {
     submitMutation.mutate(data);
+  };
+
+  const getCurrentStepName = () => {
+    return STEPS[currentStep] || "Choose Category";
+  };
+
+  const renderCurrentStep = () => {
+    const stepName = getCurrentStepName();
+    
+    switch (stepName) {
+      case "Choose Category":
+        return <StepCategory onSelect={handleCategorySelect} />;
+      case "Build Your Cake":
+        return (
+          <StepCakeBuilder
+            tiers={tiers}
+            onUpdateTier={updateTier}
+            onAddTier={addTier}
+            onRemoveTier={removeTier}
+            config={bakerConfig}
+            openAccordion={openTierAccordion}
+            onAccordionChange={setOpenTierAccordion}
+          />
+        );
+      case "Select Treats":
+        return (
+          <StepTreats
+            selected={treats}
+            onUpdateQuantity={updateTreatQuantity}
+            config={bakerConfig}
+          />
+        );
+      case "Decorations":
+        return (
+          <StepDecorations
+            selected={decorations}
+            onToggle={toggleDecoration}
+          />
+        );
+      case "Addons":
+        return (
+          <StepAddons
+            selected={addons}
+            onToggle={toggleAddon}
+            onUpdateAttendees={updateAddonAttendees}
+            onUpdateQuantity={updateAddonQuantity}
+            guestCount={form.watch("guestCount")}
+            config={bakerConfig}
+          />
+        );
+      case "Event Details":
+        return (
+          <StepEventDetails
+            form={form}
+            deliveryOption={deliveryOption}
+            onDeliveryChange={setDeliveryOption}
+          />
+        );
+      case "Contact Info":
+        return <StepContactInfo form={form} />;
+      case "Review":
+        return (
+          <StepReview
+            category={category}
+            tiers={tiers}
+            decorations={decorations}
+            addons={addons}
+            treats={treats}
+            deliveryOption={deliveryOption}
+            totals={totals}
+            form={form}
+            config={bakerConfig}
+          />
+        );
+      default:
+        return null;
+    }
   };
 
   if (isLoadingBaker) {
@@ -439,10 +561,10 @@ export default function CalculatorPage() {
         <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
           <div className="max-w-4xl mx-auto">
             <h1 className="text-3xl md:text-4xl font-bold mb-2">
-              Custom Cake Calculator
+              Custom Order Calculator
             </h1>
             <p className="text-white/80">
-              Design your perfect cake and get an instant estimate
+              Design your perfect order and get an instant estimate
             </p>
           </div>
         </div>
@@ -453,111 +575,64 @@ export default function CalculatorPage() {
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between gap-4 mb-4">
               <div>
-                <CardTitle className="text-lg">{STEPS[currentStep]}</CardTitle>
+                <CardTitle className="text-lg">{getCurrentStepName()}</CardTitle>
                 <CardDescription>
                   Step {currentStep + 1} of {STEPS.length}
                 </CardDescription>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">Estimated Total</p>
-                <p className="text-2xl font-bold" data-testid="text-running-total">
-                  {formatCurrency(totals.total)}
-                </p>
-              </div>
+              {category && (
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Estimated Total</p>
+                  <p className="text-2xl font-bold" data-testid="text-running-total">
+                    {formatCurrency(totals.total)}
+                  </p>
+                </div>
+              )}
             </div>
             <Progress value={((currentStep + 1) / STEPS.length) * 100} className="h-2" />
           </CardHeader>
 
           <Form {...form}>
             <CardContent>
-              {currentStep === 0 && (
-                <StepCakeBuilder
-                  tiers={tiers}
-                  onUpdateTier={updateTier}
-                  onAddTier={addTier}
-                  onRemoveTier={removeTier}
-                  config={bakerConfig}
-                  openAccordion={openTierAccordion}
-                  onAccordionChange={setOpenTierAccordion}
-                />
-              )}
+              {renderCurrentStep()}
 
-              {currentStep === 1 && (
-                <StepDecorations
-                  selected={decorations}
-                  onToggle={toggleDecoration}
-                />
-              )}
-
-              {currentStep === 2 && (
-                <StepAddons
-                  selected={addons}
-                  onToggle={toggleAddon}
-                  onUpdateAttendees={updateAddonAttendees}
-                  onUpdateQuantity={updateAddonQuantity}
-                  guestCount={form.watch("guestCount")}
-                  config={bakerConfig}
-                />
-              )}
-
-              {currentStep === 3 && (
-                <StepEventDetails
-                  form={form}
-                  deliveryOption={deliveryOption}
-                  onDeliveryChange={setDeliveryOption}
-                />
-              )}
-
-              {currentStep === 4 && <StepContactInfo form={form} />}
-
-              {currentStep === 5 && (
-                <StepReview
-                  tiers={tiers}
-                  decorations={decorations}
-                  addons={addons}
-                  deliveryOption={deliveryOption}
-                  totals={totals}
-                  form={form}
-                  config={bakerConfig}
-                />
-              )}
-
-              <div className="flex items-center justify-between gap-4 mt-8 pt-6 border-t">
-                <Button
-                  variant="outline"
-                  onClick={prevStep}
-                  disabled={currentStep === 0}
-                  data-testid="button-prev-step"
-                >
-                  <ChevronLeft className="mr-2 h-4 w-4" />
-                  Back
-                </Button>
-
-                {currentStep < STEPS.length - 1 ? (
-                  <Button onClick={nextStep} data-testid="button-next-step">
-                    Continue
-                    <ChevronRight className="ml-2 h-4 w-4" />
-                  </Button>
-                ) : (
+              {currentStep > 0 && (
+                <div className="flex items-center justify-between gap-4 mt-8 pt-6 border-t">
                   <Button
-                    onClick={form.handleSubmit(onSubmit)}
-                    disabled={submitMutation.isPending}
-                    data-testid="button-submit"
+                    variant="outline"
+                    onClick={prevStep}
+                    data-testid="button-prev-step"
                   >
-                    {submitMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Submitting...
-                      </>
-                    ) : (
-                      <>
-                        <Check className="mr-2 h-4 w-4" />
-                        Submit Request
-                      </>
-                    )}
+                    <ChevronLeft className="mr-2 h-4 w-4" />
+                    Back
                   </Button>
-                )}
-              </div>
+
+                  {currentStep < STEPS.length - 1 ? (
+                    <Button onClick={nextStep} data-testid="button-next-step">
+                      Continue
+                      <ChevronRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={form.handleSubmit(onSubmit)}
+                      disabled={submitMutation.isPending}
+                      data-testid="button-submit"
+                    >
+                      {submitMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Submitting...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="mr-2 h-4 w-4" />
+                          Submit Request
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Form>
         </Card>
@@ -566,6 +641,136 @@ export default function CalculatorPage() {
           This is an estimate only. Final pricing will be confirmed in your custom quote.
         </p>
       </main>
+    </div>
+  );
+}
+
+interface StepCategoryProps {
+  onSelect: (category: "cake" | "treat") => void;
+}
+
+function StepCategory({ onSelect }: StepCategoryProps) {
+  return (
+    <div className="space-y-4">
+      <p className="text-center text-muted-foreground mb-6">
+        What would you like to order today?
+      </p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <button
+          onClick={() => onSelect("cake")}
+          className="p-6 border rounded-lg text-left hover-elevate cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-primary"
+          data-testid="button-category-cake"
+        >
+          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+            <Cake className="h-8 w-8 text-primary" />
+          </div>
+          <h3 className="text-xl font-semibold mb-2">Cakes</h3>
+          <p className="text-muted-foreground">
+            Custom cakes for any occasion
+          </p>
+        </button>
+
+        <button
+          onClick={() => onSelect("treat")}
+          className="p-6 border rounded-lg text-left hover-elevate cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-primary"
+          data-testid="button-category-treat"
+        >
+          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+            <Cookie className="h-8 w-8 text-primary" />
+          </div>
+          <h3 className="text-xl font-semibold mb-2">Treats</h3>
+          <p className="text-muted-foreground">
+            Cookies, cupcakes, cake pops & more
+          </p>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+interface StepTreatsProps {
+  selected: TreatSelection[];
+  onUpdateQuantity: (id: string, quantity: number) => void;
+  config?: CalculatorConfig;
+}
+
+function StepTreats({ selected, onUpdateQuantity, config }: StepTreatsProps) {
+  const getTreatQuantity = (id: string) => {
+    return selected.find(t => t.id === id)?.quantity || 0;
+  };
+
+  const effectiveTreats = config?.treats || TREATS;
+
+  return (
+    <div className="space-y-4">
+      <p className="text-muted-foreground mb-4">
+        Select your treats and quantities below.
+      </p>
+      <div className="space-y-3">
+        {effectiveTreats.map((treat) => {
+          const quantity = getTreatQuantity(treat.id);
+          const isSelected = quantity > 0;
+          
+          return (
+            <div
+              key={treat.id}
+              className={`p-4 border rounded-lg transition-colors ${isSelected ? 'border-primary bg-primary/5' : ''}`}
+            >
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium">{treat.label}</p>
+                  <p className="text-sm text-muted-foreground">{treat.description}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="font-medium text-right min-w-[70px]">
+                    {formatCurrency(treat.unitPrice)}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => onUpdateQuantity(treat.id, quantity - 1)}
+                      disabled={quantity === 0}
+                      data-testid={`button-treat-minus-${treat.id}`}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <span className="w-8 text-center font-medium" data-testid={`text-treat-quantity-${treat.id}`}>
+                      {quantity}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => onUpdateQuantity(treat.id, quantity === 0 ? treat.minQuantity : quantity + 1)}
+                      data-testid={`button-treat-plus-${treat.id}`}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              {isSelected && (
+                <div className="mt-2 pt-2 border-t flex justify-end">
+                  <span className="text-sm text-muted-foreground">
+                    Subtotal: <span className="font-medium text-foreground">{formatCurrency(treat.unitPrice * quantity)}</span>
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      
+      {selected.length > 0 && (
+        <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+          <div className="flex items-center justify-between">
+            <span className="font-medium">Selected Treats Total</span>
+            <span className="font-bold text-lg">
+              {formatCurrency(calculateTreatsPrice(selected, config))}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -627,7 +832,7 @@ function StepCakeBuilder({ tiers, onUpdateTier, onAddTier, onRemoveTier, config,
                         <p className="font-medium">{size.label}</p>
                         <p className="text-xs text-muted-foreground">{size.servings} servings</p>
                       </div>
-                      <span className="font-medium">{formatCurrency(size.basePrice)}</span>
+                      <span className="text-sm font-medium">{formatCurrency(size.basePrice)}</span>
                     </Label>
                   ))}
                 </RadioGroup>
@@ -638,7 +843,7 @@ function StepCakeBuilder({ tiers, onUpdateTier, onAddTier, onRemoveTier, config,
                 <RadioGroup
                   value={tier.shape}
                   onValueChange={(value) => onUpdateTier(index, "shape", value)}
-                  className="grid gap-3 sm:grid-cols-2"
+                  className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
                 >
                   {CAKE_SHAPES.map((shape) => (
                     <Label
@@ -647,9 +852,9 @@ function StepCakeBuilder({ tiers, onUpdateTier, onAddTier, onRemoveTier, config,
                     >
                       <RadioGroupItem value={shape.id} data-testid={`radio-shape-${shape.id}-${index}`} />
                       <span className="flex-1">{shape.label}</span>
-                      <span className="text-muted-foreground">
-                        {shape.priceModifier > 0 ? `+${formatCurrency(shape.priceModifier)}` : "Included"}
-                      </span>
+                      {shape.priceModifier > 0 && (
+                        <span className="text-xs text-muted-foreground">+{formatCurrency(shape.priceModifier)}</span>
+                      )}
                     </Label>
                   ))}
                 </RadioGroup>
@@ -669,9 +874,9 @@ function StepCakeBuilder({ tiers, onUpdateTier, onAddTier, onRemoveTier, config,
                     >
                       <RadioGroupItem value={flavor.id} data-testid={`radio-flavor-${flavor.id}-${index}`} />
                       <span className="flex-1">{flavor.label}</span>
-                      <span className="text-muted-foreground">
-                        {flavor.priceModifier > 0 ? `+${formatCurrency(flavor.priceModifier)}` : "Included"}
-                      </span>
+                      {flavor.priceModifier > 0 && (
+                        <span className="text-xs text-muted-foreground">+{formatCurrency(flavor.priceModifier)}</span>
+                      )}
                     </Label>
                   ))}
                 </RadioGroup>
@@ -682,7 +887,7 @@ function StepCakeBuilder({ tiers, onUpdateTier, onAddTier, onRemoveTier, config,
                 <RadioGroup
                   value={tier.frosting}
                   onValueChange={(value) => onUpdateTier(index, "frosting", value)}
-                  className="grid gap-3 sm:grid-cols-2"
+                  className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
                 >
                   {FROSTING_TYPES.map((frosting) => (
                     <Label
@@ -691,9 +896,9 @@ function StepCakeBuilder({ tiers, onUpdateTier, onAddTier, onRemoveTier, config,
                     >
                       <RadioGroupItem value={frosting.id} data-testid={`radio-frosting-${frosting.id}-${index}`} />
                       <span className="flex-1">{frosting.label}</span>
-                      <span className="text-muted-foreground">
-                        {frosting.priceModifier > 0 ? `+${formatCurrency(frosting.priceModifier)}` : "Included"}
-                      </span>
+                      {frosting.priceModifier > 0 && (
+                        <span className="text-xs text-muted-foreground">+{formatCurrency(frosting.priceModifier)}</span>
+                      )}
                     </Label>
                   ))}
                 </RadioGroup>
@@ -703,7 +908,12 @@ function StepCakeBuilder({ tiers, onUpdateTier, onAddTier, onRemoveTier, config,
         ))}
       </Accordion>
 
-      <Button variant="outline" onClick={onAddTier} className="w-full" data-testid="button-add-tier">
+      <Button
+        variant="outline"
+        onClick={onAddTier}
+        className="w-full"
+        data-testid="button-add-tier"
+      >
         <Plus className="mr-2 h-4 w-4" />
         Add Another Tier
       </Button>
@@ -718,21 +928,28 @@ interface StepDecorationsProps {
 
 function StepDecorations({ selected, onToggle }: StepDecorationsProps) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {DECORATIONS.map((decoration) => (
-        <Label
-          key={decoration.id}
-          className="flex items-center gap-3 p-4 border rounded-lg cursor-pointer hover-elevate has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-        >
-          <Checkbox
-            checked={selected.includes(decoration.id)}
-            onCheckedChange={() => onToggle(decoration.id)}
-            data-testid={`checkbox-decoration-${decoration.id}`}
-          />
-          <span className="flex-1">{decoration.label}</span>
-          <span className="font-medium">{formatCurrency(decoration.price)}</span>
-        </Label>
-      ))}
+    <div className="space-y-4">
+      <p className="text-muted-foreground mb-4">
+        Select any decorations you'd like to add to your cake.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {DECORATIONS.map((dec) => (
+          <Label
+            key={dec.id}
+            className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer hover-elevate transition-colors ${
+              selected.includes(dec.id) ? "border-primary bg-primary/5" : ""
+            }`}
+          >
+            <Checkbox
+              checked={selected.includes(dec.id)}
+              onCheckedChange={() => onToggle(dec.id)}
+              data-testid={`checkbox-decoration-${dec.id}`}
+            />
+            <span className="flex-1">{dec.label}</span>
+            <span className="font-medium">{formatCurrency(dec.price)}</span>
+          </Label>
+        ))}
+      </div>
     </div>
   );
 }
@@ -746,145 +963,94 @@ interface StepAddonsProps {
   config?: CalculatorConfig;
 }
 
-const QUANTITY_OPTIONS = [
-  { value: 0.5, label: "Half Dozen (6)" },
-  { value: 1, label: "1 Dozen (12)" },
-  { value: 2, label: "2 Dozen (24)" },
-  { value: 3, label: "3 Dozen (36)" },
-  { value: 4, label: "4 Dozen (48)" },
-  { value: 5, label: "5 Dozen (60)" },
-  { value: 6, label: "6 Dozen (72)" },
-  { value: 7, label: "7 Dozen (84)" },
-  { value: 8, label: "8 Dozen (96)" },
-  { value: 9, label: "9 Dozen (108)" },
-  { value: 10, label: "10 Dozen (120)" },
-  { value: 11, label: "11 Dozen (132)" },
-  { value: 12, label: "12 Dozen (144)" },
-  { value: -1, label: "Custom amount..." },
-];
-
 function StepAddons({ selected, onToggle, onUpdateAttendees, onUpdateQuantity, guestCount, config }: StepAddonsProps) {
-  const defaultAttendees = guestCount ? parseInt(guestCount) : 50;
-  const addonHasQuantity = (addonId: string) => {
-    return ["dipped-strawberries", "chocolate-apples", "candied-apples"].includes(addonId);
-  };
-
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Add extra treats and services to your order
+      <p className="text-muted-foreground mb-4">
+        Add any extras to complement your order.
       </p>
-      <div className="grid gap-3">
+      <div className="space-y-3">
         {ADDONS.map((addon) => {
           const isSelected = selected.some(a => a.id === addon.id);
           const selectedAddon = selected.find(a => a.id === addon.id);
           const isPerAttendee = addon.pricingType === "per-attendee";
-          const minAttendees = "minAttendees" in addon ? addon.minAttendees : 0;
-          const hasQuantitySelector = addonHasQuantity(addon.id);
-          const customAddon = config?.addons?.find(a => a.id === addon.id);
-          const addonPrice = customAddon?.price ?? addon.price;
+          const minAttendees = "minAttendees" in addon ? addon.minAttendees : undefined;
 
           return (
-            <div key={addon.id} className="space-y-2">
-              <Label
-                className="flex items-center gap-3 p-4 border rounded-lg cursor-pointer hover-elevate has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-              >
+            <div
+              key={addon.id}
+              className={`p-4 border rounded-lg transition-colors ${isSelected ? 'border-primary bg-primary/5' : ''}`}
+            >
+              <Label className="flex items-start gap-3 cursor-pointer">
                 <Checkbox
                   checked={isSelected}
-                  onCheckedChange={() => onToggle(addon.id, isPerAttendee ? defaultAttendees : undefined)}
+                  onCheckedChange={() => {
+                    const defaultAttendees = guestCount ? parseInt(guestCount) : (minAttendees || 20);
+                    onToggle(addon.id, isPerAttendee ? defaultAttendees : undefined);
+                  }}
+                  className="mt-1"
                   data-testid={`checkbox-addon-${addon.id}`}
                 />
                 <div className="flex-1">
-                  <span>{addon.label}</span>
-                  {isPerAttendee && (
-                    <p className="text-xs text-muted-foreground">
-                      ${addonPrice}/person (min {minAttendees} guests)
-                    </p>
-                  )}
-                  {hasQuantitySelector && !isPerAttendee && (
-                    <p className="text-xs text-muted-foreground">
-                      {formatCurrency(addonPrice)} per dozen
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="font-medium">{addon.label}</span>
+                    <span className="font-medium">
+                      {formatCurrency(addon.price)}
+                      {isPerAttendee && <span className="text-muted-foreground font-normal">/person</span>}
+                    </span>
+                  </div>
+                  {isPerAttendee && minAttendees && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Minimum {minAttendees} guests
                     </p>
                   )}
                 </div>
-                <span className="font-medium">
-                  {isPerAttendee ? `$${addonPrice}/person` : formatCurrency(addonPrice)}
-                </span>
               </Label>
+
               {isSelected && isPerAttendee && (
-                <div className="ml-8 flex items-center gap-3">
-                  <Label htmlFor={`attendees-${addon.id}`} className="text-sm">
-                    Number of guests:
-                  </Label>
-                  <Input
-                    id={`attendees-${addon.id}`}
-                    type="number"
-                    min={minAttendees}
-                    className="w-24"
-                    value={selectedAddon?.attendees || defaultAttendees}
-                    onChange={(e) => onUpdateAttendees(addon.id, parseInt(e.target.value) || minAttendees!)}
-                    data-testid={`input-addon-attendees-${addon.id}`}
-                  />
-                  <span className="text-sm text-muted-foreground">
-                    = {formatCurrency(addonPrice * (selectedAddon?.attendees || defaultAttendees))}
-                  </span>
-                </div>
-              )}
-              {isSelected && hasQuantitySelector && !isPerAttendee && (
-                <div className="ml-8 flex items-center gap-3 flex-wrap">
-                  <Label htmlFor={`quantity-${addon.id}`} className="text-sm">
-                    Quantity:
-                  </Label>
-                  {(selectedAddon?.quantity || 1) > 12 ? (
+                <div className="mt-3 pt-3 border-t">
+                  <div className="flex items-center justify-between gap-4">
+                    <Label className="text-sm">Number of guests</Label>
                     <div className="flex items-center gap-2">
-                      <Input
-                        id={`quantity-${addon.id}`}
-                        type="number"
-                        min={1}
-                        step={0.5}
-                        className="w-24"
-                        value={selectedAddon?.quantity || 1}
-                        onChange={(e) => onUpdateQuantity(addon.id, parseFloat(e.target.value) || 1)}
-                        data-testid={`input-addon-quantity-custom-${addon.id}`}
-                      />
-                      <span className="text-xs text-muted-foreground">dozen</span>
                       <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onUpdateQuantity(addon.id, 1)}
-                        className="text-xs"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          const currentAttendees = selectedAddon?.attendees || minAttendees || 20;
+                          const newAttendees = Math.max(minAttendees || 1, currentAttendees - 1);
+                          onUpdateAttendees(addon.id, newAttendees);
+                        }}
+                        data-testid={`button-addon-attendees-minus-${addon.id}`}
                       >
-                        Use dropdown
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <Input
+                        type="number"
+                        value={selectedAddon?.attendees || minAttendees || 20}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || minAttendees || 1;
+                          onUpdateAttendees(addon.id, Math.max(minAttendees || 1, value));
+                        }}
+                        className="w-20 text-center"
+                        min={minAttendees || 1}
+                        data-testid={`input-addon-attendees-${addon.id}`}
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          const currentAttendees = selectedAddon?.attendees || minAttendees || 20;
+                          onUpdateAttendees(addon.id, currentAttendees + 1);
+                        }}
+                        data-testid={`button-addon-attendees-plus-${addon.id}`}
+                      >
+                        <Plus className="h-4 w-4" />
                       </Button>
                     </div>
-                  ) : (
-                    <Select
-                      value={String(selectedAddon?.quantity || 1)}
-                      onValueChange={(v) => {
-                        const val = parseFloat(v);
-                        if (val === -1) {
-                          onUpdateQuantity(addon.id, 13);
-                        } else {
-                          onUpdateQuantity(addon.id, val);
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="w-44" data-testid={`select-addon-quantity-${addon.id}`}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {QUANTITY_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value} value={String(opt.value)}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                  <span className="text-sm text-muted-foreground">
-                    = {formatCurrency(addonPrice * (selectedAddon?.quantity || 1))}
-                  </span>
+                  </div>
+                  <p className="text-sm text-right mt-2">
+                    Subtotal: <span className="font-medium">{formatCurrency(addon.price * (selectedAddon?.attendees || minAttendees || 20))}</span>
+                  </p>
                 </div>
               )}
             </div>
@@ -911,7 +1077,7 @@ function StepEventDetails({ form, deliveryOption, onDeliveryChange }: StepEventD
           render={({ field }) => (
             <FormItem>
               <FormLabel>Event Type</FormLabel>
-              <Select value={field.value} onValueChange={field.onChange}>
+              <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger data-testid="select-event-type">
                     <SelectValue placeholder="Select event type" />
@@ -919,7 +1085,7 @@ function StepEventDetails({ form, deliveryOption, onDeliveryChange }: StepEventD
                 </FormControl>
                 <SelectContent>
                   {EVENT_TYPES.map((type) => (
-                    <SelectItem key={type.id} value={type.id}>
+                    <SelectItem key={type.id} value={type.id} data-testid={`select-item-event-${type.id}`}>
                       {type.label}
                     </SelectItem>
                   ))}
@@ -951,26 +1117,26 @@ function StepEventDetails({ form, deliveryOption, onDeliveryChange }: StepEventD
             </FormItem>
           )}
         />
-
-        <FormField
-          control={form.control}
-          name="guestCount"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Guest Count (optional)</FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  type="number"
-                  placeholder="e.g., 50"
-                  data-testid="input-guest-count"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
       </div>
+
+      <FormField
+        control={form.control}
+        name="guestCount"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Approximate Guest Count</FormLabel>
+            <FormControl>
+              <Input
+                {...field}
+                type="number"
+                placeholder="e.g., 50"
+                data-testid="input-guest-count"
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
       <div>
         <Label className="text-sm font-medium mb-3 block">Delivery Option</Label>
@@ -1126,82 +1292,112 @@ function StepContactInfo({ form }: StepContactInfoProps) {
 }
 
 interface StepReviewProps {
+  category?: "cake" | "treat";
   tiers: CakeTier[];
   decorations: string[];
   addons: { id: string; quantity?: number; attendees?: number }[];
+  treats: TreatSelection[];
   deliveryOption: string;
   totals: ReturnType<typeof calculateTotal>;
   form: ReturnType<typeof useForm<ContactFormData>>;
   config?: CalculatorConfig;
 }
 
-function StepReview({ tiers, decorations, addons, deliveryOption, totals, form, config }: StepReviewProps) {
+function StepReview({ category, tiers, decorations, addons, treats, deliveryOption, totals, form, config }: StepReviewProps) {
   const values = form.watch();
+  const effectiveTreats = config?.treats || TREATS;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="font-semibold mb-3">Cake Details</h3>
-        <div className="space-y-2">
-          {tiers.map((tier, index) => {
-            const size = CAKE_SIZES.find((s) => s.id === tier.size);
-            const shape = CAKE_SHAPES.find((s) => s.id === tier.shape);
-            const flavor = CAKE_FLAVORS.find((f) => f.id === tier.flavor);
-            const frosting = FROSTING_TYPES.find((f) => f.id === tier.frosting);
-            const price = calculateTierPrice(tier, config);
+      {category === "cake" && (
+        <>
+          <div>
+            <h3 className="font-semibold mb-3">Cake Details</h3>
+            <div className="space-y-2">
+              {tiers.map((tier, index) => {
+                const size = CAKE_SIZES.find((s) => s.id === tier.size);
+                const shape = CAKE_SHAPES.find((s) => s.id === tier.shape);
+                const flavor = CAKE_FLAVORS.find((f) => f.id === tier.flavor);
+                const frosting = FROSTING_TYPES.find((f) => f.id === tier.frosting);
+                const price = calculateTierPrice(tier, config);
 
-            return (
-              <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <div>
-                  <p className="font-medium">Tier {index + 1}: {size?.label}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {shape?.label}, {flavor?.label}, {frosting?.label}
-                  </p>
-                </div>
-                <span className="font-medium">{formatCurrency(price)}</span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {decorations.length > 0 && (
-        <div>
-          <h3 className="font-semibold mb-3">Decorations</h3>
-          <div className="space-y-2">
-            {decorations.map((id) => {
-              const dec = DECORATIONS.find((d) => d.id === id);
-              return (
-                <div key={id} className="flex items-center justify-between">
-                  <span>{dec?.label}</span>
-                  <span className="font-medium">{formatCurrency(dec?.price || 0)}</span>
-                </div>
-              );
-            })}
+                return (
+                  <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <div>
+                      <p className="font-medium">Tier {index + 1}: {size?.label}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {shape?.label}, {flavor?.label}, {frosting?.label}
+                      </p>
+                    </div>
+                    <span className="font-medium">{formatCurrency(price)}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
+
+          {decorations.length > 0 && (
+            <div>
+              <h3 className="font-semibold mb-3">Decorations</h3>
+              <div className="space-y-2">
+                {decorations.map((id) => {
+                  const dec = DECORATIONS.find((d) => d.id === id);
+                  return (
+                    <div key={id} className="flex items-center justify-between">
+                      <span>{dec?.label}</span>
+                      <span className="font-medium">{formatCurrency(dec?.price || 0)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {addons.length > 0 && (
+            <div>
+              <h3 className="font-semibold mb-3">Addons</h3>
+              <div className="space-y-2">
+                {addons.map((addon) => {
+                  const addonInfo = ADDONS.find((a) => a.id === addon.id);
+                  const isPerAttendee = addonInfo?.pricingType === "per-attendee";
+                  const price = isPerAttendee
+                    ? (addonInfo?.price || 0) * (addon.attendees || 0)
+                    : addonInfo?.price || 0;
+                  return (
+                    <div key={addon.id} className="flex items-center justify-between">
+                      <span>
+                        {addonInfo?.label}
+                        {isPerAttendee && addon.attendees && (
+                          <span className="text-muted-foreground text-sm ml-1">
+                            ({addon.attendees} guests)
+                          </span>
+                        )}
+                      </span>
+                      <span className="font-medium">{formatCurrency(price)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
-      {addons.length > 0 && (
+      {category === "treat" && treats.length > 0 && (
         <div>
-          <h3 className="font-semibold mb-3">Addons</h3>
+          <h3 className="font-semibold mb-3">Treats</h3>
           <div className="space-y-2">
-            {addons.map((addon) => {
-              const addonInfo = ADDONS.find((a) => a.id === addon.id);
-              const isPerAttendee = addonInfo?.pricingType === "per-attendee";
-              const price = isPerAttendee
-                ? (addonInfo?.price || 0) * (addon.attendees || 0)
-                : addonInfo?.price || 0;
+            {treats.map((treat) => {
+              const treatInfo = effectiveTreats.find((t) => t.id === treat.id);
+              const price = (treatInfo?.unitPrice || 0) * treat.quantity;
               return (
-                <div key={addon.id} className="flex items-center justify-between">
-                  <span>
-                    {addonInfo?.label}
-                    {isPerAttendee && addon.attendees && (
-                      <span className="text-muted-foreground text-sm ml-1">
-                        ({addon.attendees} guests)
-                      </span>
-                    )}
-                  </span>
+                <div key={treat.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <div>
+                    <p className="font-medium">{treatInfo?.label}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {treatInfo?.description} × {treat.quantity}
+                    </p>
+                  </div>
                   <span className="font-medium">{formatCurrency(price)}</span>
                 </div>
               );

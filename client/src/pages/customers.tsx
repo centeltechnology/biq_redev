@@ -174,7 +174,7 @@ export default function CustomersPage() {
     });
   };
 
-  const payload: CalculatorPayload = { tiers, decorations, addons, deliveryOption };
+  const payload: CalculatorPayload = { category: "cake", tiers, decorations, addons, deliveryOption };
   const totals = calculateTotal(payload);
 
   const handleSubmit = () => {

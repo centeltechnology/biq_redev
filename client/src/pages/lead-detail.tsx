@@ -27,6 +27,7 @@ import {
   DECORATIONS,
   DELIVERY_OPTIONS,
   ADDONS,
+  TREATS,
   type Lead,
   type CalculatorPayload,
 } from "@shared/schema";
@@ -182,7 +183,8 @@ export default function LeadDetailPage() {
 
                 {payload && (
                   <div className="border-t pt-6 space-y-4">
-                    <h3 className="font-semibold">Cake Details</h3>
+                    <h3 className="font-semibold">{payload.category === "treat" ? "Treats" : "Cake Details"}</h3>
+                    {payload.tiers && payload.tiers.length > 0 && (
                     <div className="space-y-3">
                       {payload.tiers.map((tier, index) => {
                         const size = CAKE_SIZES.find((s) => s.id === tier.size);
@@ -215,8 +217,9 @@ export default function LeadDetailPage() {
                         );
                       })}
                     </div>
+                    )}
 
-                    {payload.decorations.length > 0 && (
+                    {payload.decorations && payload.decorations.length > 0 && (
                       <div>
                         <h4 className="text-sm font-medium text-muted-foreground mb-2">
                           Decorations
@@ -265,6 +268,22 @@ export default function LeadDetailPage() {
                             );
                           })}
                         </div>
+                      </div>
+                    )}
+
+                    {payload.treats && payload.treats.length > 0 && (
+                      <div className="space-y-3">
+                        {payload.treats.map((treat) => {
+                          const treatInfo = TREATS.find((t) => t.id === treat.id);
+                          return (
+                            <div key={treat.id} className="p-4 rounded-md bg-muted/50">
+                              <p className="font-medium">{treatInfo?.label}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {treatInfo?.description} × {treat.quantity}
+                              </p>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
 
