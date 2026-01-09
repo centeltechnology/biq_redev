@@ -70,12 +70,13 @@ export default function LoginPage() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel htmlFor="login-email">Email</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
                             {...field}
+                            id="login-email"
                             type="email"
                             placeholder="you@example.com"
                             className="pl-10"
@@ -93,12 +94,13 @@ export default function LoginPage() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel htmlFor="login-password">Password</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
                             {...field}
+                            id="login-password"
                             type="password"
                             placeholder="Enter your password"
                             className="pl-10"

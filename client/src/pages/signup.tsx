@@ -72,12 +72,13 @@ export default function SignupPage() {
                   name="businessName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Business Name</FormLabel>
+                      <FormLabel htmlFor="signup-business-name">Business Name</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
                             {...field}
+                            id="signup-business-name"
                             placeholder="Sweet Dreams Bakery"
                             className="pl-10"
                             data-testid="input-business-name"
@@ -94,12 +95,13 @@ export default function SignupPage() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel htmlFor="signup-email">Email</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
                             {...field}
+                            id="signup-email"
                             type="email"
                             placeholder="you@example.com"
                             className="pl-10"
@@ -117,12 +119,13 @@ export default function SignupPage() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel htmlFor="signup-password">Password</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
                             {...field}
+                            id="signup-password"
                             type="password"
                             placeholder="Minimum 8 characters"
                             className="pl-10"
