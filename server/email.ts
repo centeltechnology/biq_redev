@@ -335,3 +335,124 @@ ${bakerBusinessName}
     text,
   });
 }
+
+export async function sendPasswordResetEmail(
+  email: string,
+  resetToken: string,
+  baseUrl: string
+): Promise<boolean> {
+  const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
+  
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #E91E63, #F06292); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px; }
+    .cta { display: inline-block; background: #E91E63; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Password Reset Request</h1>
+    </div>
+    <div class="content">
+      <p>Hi,</p>
+      <p>We received a request to reset your BakerIQ password. Click the button below to create a new password:</p>
+      <p style="text-align: center;">
+        <a href="${resetUrl}" class="cta">Reset Password</a>
+      </p>
+      <p style="color: #666; font-size: 14px;">This link will expire in 1 hour.</p>
+      <p style="color: #666; font-size: 14px;">If you didn't request a password reset, you can safely ignore this email.</p>
+    </div>
+    <div class="footer">
+      <p>This email was sent by BakerIQ</p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  const text = `
+Password Reset Request
+
+We received a request to reset your BakerIQ password.
+
+Reset your password here: ${resetUrl}
+
+This link will expire in 1 hour.
+
+If you didn't request a password reset, you can safely ignore this email.
+`;
+
+  return sendEmail({
+    to: email,
+    subject: "Reset Your BakerIQ Password",
+    html,
+    text,
+  });
+}
+
+export async function sendEmailVerification(
+  email: string,
+  verificationToken: string,
+  baseUrl: string
+): Promise<boolean> {
+  const verifyUrl = `${baseUrl}/verify-email?token=${verificationToken}`;
+  
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #E91E63, #F06292); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px; }
+    .cta { display: inline-block; background: #E91E63; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Welcome to BakerIQ!</h1>
+    </div>
+    <div class="content">
+      <p>Hi,</p>
+      <p>Thanks for signing up! Please verify your email address by clicking the button below:</p>
+      <p style="text-align: center;">
+        <a href="${verifyUrl}" class="cta">Verify Email</a>
+      </p>
+      <p style="color: #666; font-size: 14px;">This link will expire in 24 hours.</p>
+    </div>
+    <div class="footer">
+      <p>This email was sent by BakerIQ</p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  const text = `
+Welcome to BakerIQ!
+
+Thanks for signing up! Please verify your email address by clicking the link below:
+
+${verifyUrl}
+
+This link will expire in 24 hours.
+`;
+
+  return sendEmail({
+    to: email,
+    subject: "Verify Your BakerIQ Account",
+    html,
+    text,
+  });
+}

@@ -5,6 +5,8 @@ import {
   quotes,
   quoteItems,
   orders,
+  passwordResetTokens,
+  emailVerificationTokens,
   type Baker,
   type InsertBaker,
   type Customer,
@@ -82,6 +84,20 @@ export interface IStorage {
   }>;
   getUpcomingOrders(bakerId: string): Promise<(Order & { customerName: string; eventType: string | null })[]>;
   getOrderByQuoteId(quoteId: string): Promise<Order | undefined>;
+
+  // Password Reset Tokens
+  createPasswordResetToken(bakerId: string, token: string, expiresAt: Date): Promise<void>;
+  getPasswordResetToken(token: string): Promise<{ id: string; bakerId: string; expiresAt: Date; usedAt: Date | null } | undefined>;
+  markPasswordResetTokenUsed(token: string): Promise<void>;
+
+  // Email Verification Tokens
+  createEmailVerificationToken(bakerId: string, token: string, expiresAt: Date): Promise<void>;
+  getEmailVerificationToken(token: string): Promise<{ id: string; bakerId: string; expiresAt: Date; usedAt: Date | null } | undefined>;
+  markEmailVerificationTokenUsed(token: string): Promise<void>;
+  markBakerEmailVerified(bakerId: string): Promise<void>;
+
+  // Admin
+  getAllBakers(): Promise<Baker[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -514,6 +530,43 @@ export class DatabaseStorage implements IStorage {
   async getOrderByQuoteId(quoteId: string): Promise<Order | undefined> {
     const [order] = await db.select().from(orders).where(eq(orders.quoteId, quoteId));
     return order || undefined;
+  }
+
+  // Password Reset Tokens
+  async createPasswordResetToken(bakerId: string, token: string, expiresAt: Date): Promise<void> {
+    await db.insert(passwordResetTokens).values({ bakerId, token, expiresAt });
+  }
+
+  async getPasswordResetToken(token: string): Promise<{ id: string; bakerId: string; expiresAt: Date; usedAt: Date | null } | undefined> {
+    const [result] = await db.select().from(passwordResetTokens).where(eq(passwordResetTokens.token, token));
+    return result || undefined;
+  }
+
+  async markPasswordResetTokenUsed(token: string): Promise<void> {
+    await db.update(passwordResetTokens).set({ usedAt: new Date() }).where(eq(passwordResetTokens.token, token));
+  }
+
+  // Email Verification Tokens
+  async createEmailVerificationToken(bakerId: string, token: string, expiresAt: Date): Promise<void> {
+    await db.insert(emailVerificationTokens).values({ bakerId, token, expiresAt });
+  }
+
+  async getEmailVerificationToken(token: string): Promise<{ id: string; bakerId: string; expiresAt: Date; usedAt: Date | null } | undefined> {
+    const [result] = await db.select().from(emailVerificationTokens).where(eq(emailVerificationTokens.token, token));
+    return result || undefined;
+  }
+
+  async markEmailVerificationTokenUsed(token: string): Promise<void> {
+    await db.update(emailVerificationTokens).set({ usedAt: new Date() }).where(eq(emailVerificationTokens.token, token));
+  }
+
+  async markBakerEmailVerified(bakerId: string): Promise<void> {
+    await db.update(bakers).set({ emailVerified: new Date() }).where(eq(bakers.id, bakerId));
+  }
+
+  // Admin
+  async getAllBakers(): Promise<Baker[]> {
+    return db.select().from(bakers).orderBy(desc(bakers.createdAt));
   }
 }
 

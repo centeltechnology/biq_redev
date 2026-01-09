@@ -702,6 +702,15 @@ const QUANTITY_OPTIONS = [
   { value: 2, label: "2 Dozen (24)" },
   { value: 3, label: "3 Dozen (36)" },
   { value: 4, label: "4 Dozen (48)" },
+  { value: 5, label: "5 Dozen (60)" },
+  { value: 6, label: "6 Dozen (72)" },
+  { value: 7, label: "7 Dozen (84)" },
+  { value: 8, label: "8 Dozen (96)" },
+  { value: 9, label: "9 Dozen (108)" },
+  { value: 10, label: "10 Dozen (120)" },
+  { value: 11, label: "11 Dozen (132)" },
+  { value: 12, label: "12 Dozen (144)" },
+  { value: -1, label: "Custom amount..." },
 ];
 
 function StepAddons({ selected, onToggle, onUpdateAttendees, onUpdateQuantity, guestCount, config }: StepAddonsProps) {
@@ -772,25 +781,57 @@ function StepAddons({ selected, onToggle, onUpdateAttendees, onUpdateQuantity, g
                 </div>
               )}
               {isSelected && hasQuantitySelector && !isPerAttendee && (
-                <div className="ml-8 flex items-center gap-3">
+                <div className="ml-8 flex items-center gap-3 flex-wrap">
                   <Label htmlFor={`quantity-${addon.id}`} className="text-sm">
                     Quantity:
                   </Label>
-                  <Select
-                    value={String(selectedAddon?.quantity || 1)}
-                    onValueChange={(v) => onUpdateQuantity(addon.id, parseFloat(v))}
-                  >
-                    <SelectTrigger className="w-40" data-testid={`select-addon-quantity-${addon.id}`}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {QUANTITY_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={String(opt.value)}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {(selectedAddon?.quantity || 1) > 12 ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id={`quantity-${addon.id}`}
+                        type="number"
+                        min={1}
+                        step={0.5}
+                        className="w-24"
+                        value={selectedAddon?.quantity || 1}
+                        onChange={(e) => onUpdateQuantity(addon.id, parseFloat(e.target.value) || 1)}
+                        data-testid={`input-addon-quantity-custom-${addon.id}`}
+                      />
+                      <span className="text-xs text-muted-foreground">dozen</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onUpdateQuantity(addon.id, 1)}
+                        className="text-xs"
+                      >
+                        Use dropdown
+                      </Button>
+                    </div>
+                  ) : (
+                    <Select
+                      value={String(selectedAddon?.quantity || 1)}
+                      onValueChange={(v) => {
+                        const val = parseFloat(v);
+                        if (val === -1) {
+                          onUpdateQuantity(addon.id, 13);
+                        } else {
+                          onUpdateQuantity(addon.id, val);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="w-44" data-testid={`select-addon-quantity-${addon.id}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {QUANTITY_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value} value={String(opt.value)}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                   <span className="text-sm text-muted-foreground">
                     = {formatCurrency(addonPrice * (selectedAddon?.quantity || 1))}
                   </span>

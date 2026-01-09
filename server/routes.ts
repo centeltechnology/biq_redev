@@ -6,7 +6,8 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { pool } from "./db";
 import connectPgSimple from "connect-pg-simple";
-import { sendNewLeadNotification, sendLeadConfirmationToCustomer } from "./email";
+import { sendNewLeadNotification, sendLeadConfirmationToCustomer, sendPasswordResetEmail, sendEmailVerification, sendQuoteNotification } from "./email";
+import crypto from "crypto";
 
 const PgSession = connectPgSimple(session);
 
@@ -136,6 +137,108 @@ export async function registerRoutes(
       res.clearCookie("connect.sid");
       res.json({ message: "Logged out" });
     });
+  });
+
+  // Forgot Password
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = z.object({ email: z.string().email() }).parse(req.body);
+      
+      const baker = await storage.getBakerByEmail(email);
+      if (!baker) {
+        return res.json({ message: "If an account exists, a reset link has been sent" });
+      }
+
+      const token = crypto.randomBytes(32).toString("hex");
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      await storage.createPasswordResetToken(baker.id, token, expiresAt);
+
+      const baseUrl = `https://${req.get("host")}`;
+      await sendPasswordResetEmail(email, token, baseUrl);
+
+      res.json({ message: "If an account exists, a reset link has been sent" });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      res.status(500).json({ message: "Failed to process request" });
+    }
+  });
+
+  // Reset Password
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const schema = z.object({
+        token: z.string(),
+        password: z.string().min(8, "Password must be at least 8 characters"),
+      });
+      const { token, password } = schema.parse(req.body);
+
+      const resetToken = await storage.getPasswordResetToken(token);
+      if (!resetToken || resetToken.usedAt || new Date() > resetToken.expiresAt) {
+        return res.status(400).json({ message: "Invalid or expired reset link" });
+      }
+
+      const passwordHash = await bcrypt.hash(password, 10);
+      await storage.updateBaker(resetToken.bakerId, { passwordHash });
+      await storage.markPasswordResetTokenUsed(token);
+
+      res.json({ message: "Password has been reset successfully" });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      res.status(500).json({ message: "Failed to reset password" });
+    }
+  });
+
+  // Verify Email
+  app.get("/api/auth/verify-email", async (req, res) => {
+    try {
+      const token = req.query.token as string;
+      if (!token) {
+        return res.status(400).json({ message: "Verification token is required" });
+      }
+
+      const verifyToken = await storage.getEmailVerificationToken(token);
+      if (!verifyToken || verifyToken.usedAt || new Date() > verifyToken.expiresAt) {
+        return res.status(400).json({ message: "Invalid or expired verification link" });
+      }
+
+      await storage.markBakerEmailVerified(verifyToken.bakerId);
+      await storage.markEmailVerificationTokenUsed(token);
+
+      res.json({ message: "Email verified successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to verify email" });
+    }
+  });
+
+  // Resend verification email
+  app.post("/api/auth/resend-verification", requireAuth, async (req, res) => {
+    try {
+      const baker = await storage.getBaker(req.session.bakerId!);
+      if (!baker) {
+        return res.status(404).json({ message: "Baker not found" });
+      }
+
+      if (baker.emailVerified) {
+        return res.json({ message: "Email is already verified" });
+      }
+
+      const token = crypto.randomBytes(32).toString("hex");
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+      await storage.createEmailVerificationToken(baker.id, token, expiresAt);
+
+      const baseUrl = `https://${req.get("host")}`;
+      await sendEmailVerification(baker.email, token, baseUrl);
+
+      res.json({ message: "Verification email sent" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to send verification email" });
+    }
   });
 
   app.get("/api/auth/session", async (req, res) => {
@@ -520,6 +623,45 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Quote duplicate error:", error);
       res.status(500).json({ message: "Failed to duplicate quote" });
+    }
+  });
+
+  // Send quote via email
+  app.post("/api/quotes/:id/send", requireAuth, async (req, res) => {
+    try {
+      const quote = await storage.getQuoteWithItems(req.params.id);
+      if (!quote || quote.bakerId !== req.session.bakerId) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+
+      const customer = await storage.getCustomer(quote.customerId);
+      if (!customer) {
+        return res.status(400).json({ message: "Customer not found" });
+      }
+
+      const baker = await storage.getBaker(req.session.bakerId!);
+      if (!baker) {
+        return res.status(400).json({ message: "Baker not found" });
+      }
+
+      const baseUrl = `https://${req.get("host")}`;
+      await sendQuoteNotification(
+        customer.email,
+        customer.name,
+        baker.businessName,
+        quote.quoteNumber,
+        quote.total || "0",
+        quote.eventDate || "",
+        baseUrl
+      );
+
+      await storage.updateQuote(quote.id, { status: "sent" });
+
+      const updatedQuote = await storage.getQuoteWithItems(quote.id);
+      res.json(updatedQuote);
+    } catch (error) {
+      console.error("Send quote error:", error);
+      res.status(500).json({ message: "Failed to send quote" });
     }
   });
 

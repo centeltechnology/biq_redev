@@ -25,6 +25,30 @@ export const bakers = pgTable("bakers", {
   depositPercentage: integer("deposit_percentage").default(50),
   // Calculator configuration - custom pricing overrides
   calculatorConfig: jsonb("calculator_config"),
+  // Email verification
+  emailVerified: timestamp("email_verified"),
+  // Role for admin access
+  role: text("role").notNull().default("baker"), // "baker" or "admin"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Password reset tokens table
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  bakerId: varchar("baker_id").notNull().references(() => bakers.id),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Email verification tokens table
+export const emailVerificationTokens = pgTable("email_verification_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  bakerId: varchar("baker_id").notNull().references(() => bakers.id),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
