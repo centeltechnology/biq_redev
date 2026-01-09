@@ -5,6 +5,7 @@ import {
   FROSTING_TYPES,
   DECORATIONS,
   DELIVERY_OPTIONS,
+  ADDONS,
   DEFAULT_TAX_RATE,
   type CakeTier,
   type CalculatorPayload,
@@ -64,9 +65,30 @@ export function calculateDeliveryPrice(deliveryOption: string, config?: Calculat
   return option?.price || 0;
 }
 
+function getEffectiveAddonPrice(addonId: string, config?: CalculatorConfig): { price: number; pricingType: "flat" | "per-attendee"; minAttendees?: number } {
+  const customAddon = config?.addons?.find(a => a.id === addonId);
+  if (customAddon) return { price: customAddon.price, pricingType: customAddon.pricingType, minAttendees: customAddon.minAttendees };
+  const defaultAddon = ADDONS.find(a => a.id === addonId);
+  if (defaultAddon) return { price: defaultAddon.price, pricingType: defaultAddon.pricingType, minAttendees: "minAttendees" in defaultAddon ? defaultAddon.minAttendees : undefined };
+  return { price: 0, pricingType: "flat" };
+}
+
+export function calculateAddonsPrice(addons: { id: string; quantity?: number; attendees?: number }[], config?: CalculatorConfig): number {
+  return addons.reduce((total, addon) => {
+    const addonInfo = getEffectiveAddonPrice(addon.id, config);
+    if (addonInfo.pricingType === "per-attendee") {
+      const attendees = addon.attendees || addonInfo.minAttendees || 0;
+      return total + (addonInfo.price * attendees);
+    }
+    const qty = addon.quantity || 1;
+    return total + (addonInfo.price * qty);
+  }, 0);
+}
+
 export function calculateTotal(payload: CalculatorPayload, config?: CalculatorConfig): {
   tiersTotal: number;
   decorationsTotal: number;
+  addonsTotal: number;
   deliveryTotal: number;
   subtotal: number;
   tax: number;
@@ -77,15 +99,17 @@ export function calculateTotal(payload: CalculatorPayload, config?: CalculatorCo
     0
   );
   const decorationsTotal = calculateDecorationsPrice(payload.decorations, config);
+  const addonsTotal = calculateAddonsPrice(payload.addons || [], config);
   const deliveryTotal = calculateDeliveryPrice(payload.deliveryOption, config);
 
-  const subtotal = tiersTotal + decorationsTotal + deliveryTotal;
+  const subtotal = tiersTotal + decorationsTotal + addonsTotal + deliveryTotal;
   const tax = subtotal * DEFAULT_TAX_RATE;
   const total = subtotal + tax;
 
   return {
     tiersTotal,
     decorationsTotal,
+    addonsTotal,
     deliveryTotal,
     subtotal,
     tax,

@@ -65,6 +65,7 @@ import {
   FROSTING_TYPES,
   DECORATIONS,
   DELIVERY_OPTIONS,
+  ADDONS,
   EVENT_TYPES,
   type CakeTier,
   type CalculatorPayload,
@@ -86,13 +87,14 @@ const contactSchema = z.object({
 
 type ContactFormData = z.infer<typeof contactSchema>;
 
-const STEPS = ["Build Your Cake", "Decorations", "Event Details", "Contact Info", "Review"];
+const STEPS = ["Build Your Cake", "Decorations", "Addons", "Event Details", "Contact Info", "Review"];
 
 export default function CalculatorPage() {
   const { slug } = useParams<{ slug: string }>();
   const [currentStep, setCurrentStep] = useState(0);
   const [tiers, setTiers] = useState<CakeTier[]>([createDefaultTier()]);
   const [decorations, setDecorations] = useState<string[]>([]);
+  const [addons, setAddons] = useState<{ id: string; quantity?: number; attendees?: number }[]>([]);
   const [deliveryOption, setDeliveryOption] = useState("pickup");
   const [submitted, setSubmitted] = useState(false);
 
@@ -123,6 +125,7 @@ export default function CalculatorPage() {
       const payload: CalculatorPayload = {
         tiers,
         decorations,
+        addons,
         deliveryOption,
         deliveryAddress: data.deliveryAddress,
         specialRequests: data.specialRequests,
@@ -149,6 +152,7 @@ export default function CalculatorPage() {
   const payload: CalculatorPayload = {
     tiers,
     decorations,
+    addons,
     deliveryOption,
   };
   const totals = calculateTotal(payload, bakerConfig);
@@ -173,6 +177,20 @@ export default function CalculatorPage() {
     setDecorations((prev) =>
       prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id]
     );
+  };
+
+  const toggleAddon = (id: string, attendees?: number) => {
+    setAddons((prev) => {
+      const existing = prev.find(a => a.id === id);
+      if (existing) {
+        return prev.filter(a => a.id !== id);
+      }
+      return [...prev, { id, quantity: 1, attendees }];
+    });
+  };
+
+  const updateAddonAttendees = (id: string, attendees: number) => {
+    setAddons((prev) => prev.map(a => a.id === id ? { ...a, attendees } : a));
   };
 
   const nextStep = () => {
@@ -332,6 +350,15 @@ export default function CalculatorPage() {
               )}
 
               {currentStep === 2 && (
+                <StepAddons
+                  selected={addons}
+                  onToggle={toggleAddon}
+                  onUpdateAttendees={updateAddonAttendees}
+                  guestCount={form.watch("guestCount")}
+                />
+              )}
+
+              {currentStep === 3 && (
                 <StepEventDetails
                   form={form}
                   deliveryOption={deliveryOption}
@@ -339,12 +366,13 @@ export default function CalculatorPage() {
                 />
               )}
 
-              {currentStep === 3 && <StepContactInfo form={form} />}
+              {currentStep === 4 && <StepContactInfo form={form} />}
 
-              {currentStep === 4 && (
+              {currentStep === 5 && (
                 <StepReview
                   tiers={tiers}
                   decorations={decorations}
+                  addons={addons}
                   deliveryOption={deliveryOption}
                   totals={totals}
                   form={form}
@@ -561,6 +589,77 @@ function StepDecorations({ selected, onToggle }: StepDecorationsProps) {
           <span className="font-medium">{formatCurrency(decoration.price)}</span>
         </Label>
       ))}
+    </div>
+  );
+}
+
+interface StepAddonsProps {
+  selected: { id: string; quantity?: number; attendees?: number }[];
+  onToggle: (id: string, attendees?: number) => void;
+  onUpdateAttendees: (id: string, attendees: number) => void;
+  guestCount?: string;
+}
+
+function StepAddons({ selected, onToggle, onUpdateAttendees, guestCount }: StepAddonsProps) {
+  const defaultAttendees = guestCount ? parseInt(guestCount) : 50;
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Add extra treats and services to your order
+      </p>
+      <div className="grid gap-3">
+        {ADDONS.map((addon) => {
+          const isSelected = selected.some(a => a.id === addon.id);
+          const selectedAddon = selected.find(a => a.id === addon.id);
+          const isPerAttendee = addon.pricingType === "per-attendee";
+          const minAttendees = "minAttendees" in addon ? addon.minAttendees : 0;
+
+          return (
+            <div key={addon.id} className="space-y-2">
+              <Label
+                className="flex items-center gap-3 p-4 border rounded-lg cursor-pointer hover-elevate has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+              >
+                <Checkbox
+                  checked={isSelected}
+                  onCheckedChange={() => onToggle(addon.id, isPerAttendee ? defaultAttendees : undefined)}
+                  data-testid={`checkbox-addon-${addon.id}`}
+                />
+                <div className="flex-1">
+                  <span>{addon.label}</span>
+                  {isPerAttendee && (
+                    <p className="text-xs text-muted-foreground">
+                      ${addon.price}/person (min {minAttendees} guests)
+                    </p>
+                  )}
+                </div>
+                <span className="font-medium">
+                  {isPerAttendee ? `$${addon.price}/person` : formatCurrency(addon.price)}
+                </span>
+              </Label>
+              {isSelected && isPerAttendee && (
+                <div className="ml-8 flex items-center gap-3">
+                  <Label htmlFor={`attendees-${addon.id}`} className="text-sm">
+                    Number of guests:
+                  </Label>
+                  <Input
+                    id={`attendees-${addon.id}`}
+                    type="number"
+                    min={minAttendees}
+                    className="w-24"
+                    value={selectedAddon?.attendees || defaultAttendees}
+                    onChange={(e) => onUpdateAttendees(addon.id, parseInt(e.target.value) || minAttendees!)}
+                    data-testid={`input-addon-attendees-${addon.id}`}
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    = {formatCurrency(addon.price * (selectedAddon?.attendees || defaultAttendees))}
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -798,13 +897,14 @@ function StepContactInfo({ form }: StepContactInfoProps) {
 interface StepReviewProps {
   tiers: CakeTier[];
   decorations: string[];
+  addons: { id: string; quantity?: number; attendees?: number }[];
   deliveryOption: string;
   totals: ReturnType<typeof calculateTotal>;
   form: ReturnType<typeof useForm<ContactFormData>>;
   config?: CalculatorConfig;
 }
 
-function StepReview({ tiers, decorations, deliveryOption, totals, form, config }: StepReviewProps) {
+function StepReview({ tiers, decorations, addons, deliveryOption, totals, form, config }: StepReviewProps) {
   const values = form.watch();
 
   return (
@@ -844,6 +944,34 @@ function StepReview({ tiers, decorations, deliveryOption, totals, form, config }
                 <div key={id} className="flex items-center justify-between">
                   <span>{dec?.label}</span>
                   <span className="font-medium">{formatCurrency(dec?.price || 0)}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {addons.length > 0 && (
+        <div>
+          <h3 className="font-semibold mb-3">Addons</h3>
+          <div className="space-y-2">
+            {addons.map((addon) => {
+              const addonInfo = ADDONS.find((a) => a.id === addon.id);
+              const isPerAttendee = addonInfo?.pricingType === "per-attendee";
+              const price = isPerAttendee
+                ? (addonInfo?.price || 0) * (addon.attendees || 0)
+                : addonInfo?.price || 0;
+              return (
+                <div key={addon.id} className="flex items-center justify-between">
+                  <span>
+                    {addonInfo?.label}
+                    {isPerAttendee && addon.attendees && (
+                      <span className="text-muted-foreground text-sm ml-1">
+                        ({addon.attendees} guests)
+                      </span>
+                    )}
+                  </span>
+                  <span className="font-medium">{formatCurrency(price)}</span>
                 </div>
               );
             })}
