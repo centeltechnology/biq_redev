@@ -20,7 +20,7 @@ export default function HelpPage() {
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/">
-            <div className="flex items-center gap-2 cursor-pointer">
+            <div className="flex items-center gap-2 cursor-pointer" data-testid="link-home-logo">
               <Cake className="h-8 w-8 text-primary" />
               <span className="text-xl font-bold">BakerIQ</span>
             </div>
@@ -240,20 +240,20 @@ export default function HelpPage() {
         <div className="container max-w-7xl mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <Link href="/">
-              <div className="flex items-center gap-2 cursor-pointer">
+              <div className="flex items-center gap-2 cursor-pointer" data-testid="footer-link-home-logo">
                 <Cake className="h-6 w-6 text-primary" />
                 <span className="font-semibold">BakerIQ</span>
               </div>
             </Link>
             <div className="flex items-center gap-6">
               <Link href="/help">
-                <span className="text-sm text-muted-foreground hover:text-foreground">Help</span>
+                <span className="text-sm text-muted-foreground hover:text-foreground" data-testid="footer-link-help">Help</span>
               </Link>
               <Link href="/faq">
-                <span className="text-sm text-muted-foreground hover:text-foreground">FAQ</span>
+                <span className="text-sm text-muted-foreground hover:text-foreground" data-testid="footer-link-faq">FAQ</span>
               </Link>
               <Link href="/login">
-                <span className="text-sm text-muted-foreground hover:text-foreground">Log In</span>
+                <span className="text-sm text-muted-foreground hover:text-foreground" data-testid="footer-link-login">Log In</span>
               </Link>
             </div>
             <p className="text-sm text-muted-foreground">
