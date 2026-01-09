@@ -197,6 +197,11 @@ export async function registerRoutes(
         email: z.string().email().optional(),
         phone: z.string().optional(),
         address: z.string().optional(),
+        paymentZelle: z.string().optional().nullable(),
+        paymentPaypal: z.string().optional().nullable(),
+        paymentCashapp: z.string().optional().nullable(),
+        paymentVenmo: z.string().optional().nullable(),
+        depositPercentage: z.number().min(0).max(100).optional().nullable(),
       });
 
       const data = schema.parse(req.body);

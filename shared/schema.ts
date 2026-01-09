@@ -12,6 +12,12 @@ export const bakers = pgTable("bakers", {
   slug: text("slug").notNull().unique(),
   phone: text("phone"),
   address: text("address"),
+  // Payment options
+  paymentZelle: text("payment_zelle"),
+  paymentPaypal: text("payment_paypal"),
+  paymentCashapp: text("payment_cashapp"),
+  paymentVenmo: text("payment_venmo"),
+  depositPercentage: integer("deposit_percentage").default(50),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

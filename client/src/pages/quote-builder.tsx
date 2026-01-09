@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
-import { useParams, Link, useLocation } from "wouter";
+import { useParams, Link, useLocation, useRoute } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Plus, Trash2, Loader2, Save } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft, Plus, Trash2, Loader2, Save, CreditCard } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import {
   Form,
   FormControl,
@@ -34,10 +35,25 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { formatCurrency } from "@/lib/calculator";
+import { formatCurrency, calculateTierPrice } from "@/lib/calculator";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { DEFAULT_TAX_RATE, QUOTE_STATUSES, type Quote, type QuoteItem, type Customer } from "@shared/schema";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  DEFAULT_TAX_RATE,
+  QUOTE_STATUSES,
+  CAKE_SIZES,
+  CAKE_SHAPES,
+  CAKE_FLAVORS,
+  FROSTING_TYPES,
+  DECORATIONS,
+  DELIVERY_OPTIONS,
+  type Quote,
+  type QuoteItem,
+  type Customer,
+  type Lead,
+  type CakeTier,
+} from "@shared/schema";
 
 const quoteFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -64,16 +80,34 @@ interface QuoteWithItems extends Quote {
 }
 
 export default function QuoteBuilderPage() {
-  const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const isNew = id === "new";
-
+  const { baker } = useAuth();
+  
+  // Detect if we're on quote edit route (/quotes/:id)
+  const [isQuoteRoute, quoteRouteParams] = useRoute("/quotes/:id");
+  const quoteId = isQuoteRoute && quoteRouteParams ? quoteRouteParams.id : null;
+  
+  // Detect if we're coming from a lead (/leads/:leadId/quote)
+  const [isLeadRoute, leadRouteParams] = useRoute("/leads/:leadId/quote");
+  const leadId = isLeadRoute && leadRouteParams ? leadRouteParams.leadId : null;
+  
+  // Determine if this is a new quote or editing an existing one
+  const isNew = quoteId === "new" || isLeadRoute || !quoteId;
+  const editingQuoteId = !isNew && quoteId && quoteId !== "new" ? quoteId : null;
+  
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
+  const [leadPopulated, setLeadPopulated] = useState(false);
+  const [customerFromLead, setCustomerFromLead] = useState<string | null>(null);
 
   const { data: quote, isLoading: isLoadingQuote } = useQuery<QuoteWithItems>({
-    queryKey: ["/api/quotes", id],
-    enabled: !isNew && !!id,
+    queryKey: ["/api/quotes", editingQuoteId],
+    enabled: !!editingQuoteId,
+  });
+
+  const { data: lead, isLoading: isLoadingLead } = useQuery<Lead>({
+    queryKey: ["/api/leads", leadId],
+    enabled: !!leadId,
   });
 
   const { data: customers } = useQuery<Customer[]>({
@@ -115,6 +149,118 @@ export default function QuoteBuilderPage() {
     }
   }, [quote, form]);
 
+  // Auto-populate from lead data
+  useEffect(() => {
+    if (lead && customers && !leadPopulated) {
+      const payload = lead.calculatorPayload as {
+        tiers?: CakeTier[];
+        decorations?: string[];
+        deliveryOption?: string;
+        deliveryAddress?: string;
+        specialRequests?: string;
+      } | null;
+
+      // Try to find an existing customer by email
+      let matchedCustomerId = lead.customerId || "";
+      if (!matchedCustomerId && lead.customerEmail) {
+        const existingCustomer = customers.find(
+          (c) => c.email?.toLowerCase() === lead.customerEmail?.toLowerCase()
+        );
+        if (existingCustomer) {
+          matchedCustomerId = existingCustomer.id;
+        }
+      }
+      
+      // Store customer name from lead for display if no match
+      if (!matchedCustomerId) {
+        setCustomerFromLead(lead.customerName);
+      }
+
+      // Set form fields
+      form.reset({
+        title: `${lead.eventType || "Custom"} Cake - ${lead.customerName}`,
+        customerId: matchedCustomerId,
+        eventDate: lead.eventDate || "",
+        status: "draft",
+        taxRate: DEFAULT_TAX_RATE,
+        notes: payload?.specialRequests || "",
+      });
+
+      // Build line items from calculator payload
+      const items: LineItem[] = [];
+
+      // Add cake tiers
+      if (payload?.tiers) {
+        payload.tiers.forEach((tier, index) => {
+          const size = CAKE_SIZES.find((s) => s.id === tier.size);
+          const shape = CAKE_SHAPES.find((s) => s.id === tier.shape);
+          const flavor = CAKE_FLAVORS.find((f) => f.id === tier.flavor);
+          const frosting = FROSTING_TYPES.find((f) => f.id === tier.frosting);
+          
+          const tierPrice = calculateTierPrice(tier);
+          
+          items.push({
+            id: `tier-${index}-${Date.now()}`,
+            name: `Tier ${index + 1}: ${size?.label || tier.size} ${shape?.label || tier.shape} Cake`,
+            description: `${flavor?.label || tier.flavor} with ${frosting?.label || tier.frosting}`,
+            quantity: 1,
+            unitPrice: tierPrice,
+            category: "cake",
+          });
+        });
+      }
+
+      // Add decorations
+      if (payload?.decorations) {
+        payload.decorations.forEach((decId) => {
+          const dec = DECORATIONS.find((d) => d.id === decId);
+          if (dec) {
+            items.push({
+              id: `dec-${decId}-${Date.now()}`,
+              name: dec.label,
+              description: "Decoration",
+              quantity: 1,
+              unitPrice: dec.price,
+              category: "decoration",
+            });
+          }
+        });
+      }
+
+      // Add delivery
+      if (payload?.deliveryOption && payload.deliveryOption !== "pickup") {
+        const delivery = DELIVERY_OPTIONS.find((d) => d.id === payload.deliveryOption);
+        if (delivery) {
+          items.push({
+            id: `delivery-${Date.now()}`,
+            name: delivery.label,
+            description: payload.deliveryAddress || "",
+            quantity: 1,
+            unitPrice: delivery.price,
+            category: "delivery",
+          });
+        }
+      }
+
+      setLineItems(items);
+      setLeadPopulated(true);
+    }
+  }, [lead, customers, leadPopulated, form]);
+
+  // Mutation to create a customer from lead data
+  const createCustomerMutation = useMutation({
+    mutationFn: async (data: { name: string; email: string; phone?: string }) => {
+      const res = await apiRequest("POST", "/api/customers", data);
+      return res.json();
+    },
+    onSuccess: (newCustomer) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      form.setValue("customerId", newCustomer.id);
+      setCustomerFromLead(null);
+      toast({ title: `Customer "${newCustomer.name}" created` });
+    },
+  });
+
   const createMutation = useMutation({
     mutationFn: async (data: QuoteFormData & { items: LineItem[] }) => {
       const res = await apiRequest("POST", "/api/quotes", data);
@@ -129,11 +275,12 @@ export default function QuoteBuilderPage() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: QuoteFormData & { items: LineItem[] }) => {
-      const res = await apiRequest("PATCH", `/api/quotes/${id}`, data);
+      if (!editingQuoteId) throw new Error("No quote ID to update");
+      const res = await apiRequest("PATCH", `/api/quotes/${editingQuoteId}`, data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/quotes", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/quotes", editingQuoteId] });
       queryClient.invalidateQueries({ queryKey: ["/api/quotes"] });
       toast({ title: "Quote saved successfully" });
     },
@@ -240,20 +387,46 @@ export default function QuoteBuilderPage() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Customer</FormLabel>
-                            <Select value={field.value} onValueChange={field.onChange}>
-                              <FormControl>
-                                <SelectTrigger data-testid="select-customer">
-                                  <SelectValue placeholder="Select customer" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {customers?.map((customer) => (
-                                  <SelectItem key={customer.id} value={customer.id}>
-                                    {customer.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <div className="space-y-2">
+                              <Select value={field.value} onValueChange={field.onChange}>
+                                <FormControl>
+                                  <SelectTrigger data-testid="select-customer">
+                                    <SelectValue placeholder="Select customer" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {customers?.map((customer) => (
+                                    <SelectItem key={customer.id} value={customer.id}>
+                                      {customer.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {customerFromLead && lead && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full"
+                                  onClick={() => {
+                                    createCustomerMutation.mutate({
+                                      name: lead.customerName,
+                                      email: lead.customerEmail || "",
+                                      phone: lead.customerPhone || undefined,
+                                    });
+                                  }}
+                                  disabled={createCustomerMutation.isPending}
+                                  data-testid="button-create-customer-from-lead"
+                                >
+                                  {createCustomerMutation.isPending ? (
+                                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <Plus className="mr-2 h-3 w-3" />
+                                  )}
+                                  Create "{customerFromLead}" as customer
+                                </Button>
+                              )}
+                            </div>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -349,7 +522,7 @@ export default function QuoteBuilderPage() {
                         <p>No items added yet</p>
                         <Button
                           type="button"
-                          variant="link"
+                          variant="ghost"
                           onClick={addLineItem}
                           className="mt-2"
                         >
@@ -491,6 +664,17 @@ export default function QuoteBuilderPage() {
                       <span data-testid="text-quote-total">{formatCurrency(total)}</span>
                     </div>
 
+                    {baker?.depositPercentage && baker.depositPercentage > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          Deposit Required ({baker.depositPercentage}%)
+                        </span>
+                        <span className="font-medium" data-testid="text-deposit-amount">
+                          {formatCurrency(total * (baker.depositPercentage / 100))}
+                        </span>
+                      </div>
+                    )}
+
                     <div className="border-t pt-4 space-y-3">
                       <Button
                         type="submit"
@@ -513,6 +697,47 @@ export default function QuoteBuilderPage() {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Payment Options Card */}
+                {(baker?.paymentZelle || baker?.paymentPaypal || baker?.paymentCashapp || baker?.paymentVenmo) && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <CreditCard className="h-4 w-4" />
+                        Payment Options
+                      </CardTitle>
+                      <CardDescription>
+                        Accepted payment methods
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {baker.paymentZelle && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Zelle</span>
+                          <span className="font-medium" data-testid="text-payment-zelle">{baker.paymentZelle}</span>
+                        </div>
+                      )}
+                      {baker.paymentPaypal && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">PayPal</span>
+                          <span className="font-medium" data-testid="text-payment-paypal">{baker.paymentPaypal}</span>
+                        </div>
+                      )}
+                      {baker.paymentCashapp && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Cash App</span>
+                          <span className="font-medium" data-testid="text-payment-cashapp">{baker.paymentCashapp}</span>
+                        </div>
+                      )}
+                      {baker.paymentVenmo && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Venmo</span>
+                          <span className="font-medium" data-testid="text-payment-venmo">{baker.paymentVenmo}</span>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             </div>
           </form>

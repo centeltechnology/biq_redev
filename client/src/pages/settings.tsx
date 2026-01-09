@@ -31,6 +31,16 @@ const profileSchema = z.object({
 
 type ProfileFormData = z.infer<typeof profileSchema>;
 
+const paymentSchema = z.object({
+  paymentZelle: z.string().optional(),
+  paymentPaypal: z.string().optional(),
+  paymentCashapp: z.string().optional(),
+  paymentVenmo: z.string().optional(),
+  depositPercentage: z.number().min(0).max(100),
+});
+
+type PaymentFormData = z.infer<typeof paymentSchema>;
+
 const passwordSchema = z
   .object({
     currentPassword: z.string().min(1, "Current password is required"),
@@ -68,6 +78,17 @@ export default function SettingsPage() {
     },
   });
 
+  const paymentForm = useForm<PaymentFormData>({
+    resolver: zodResolver(paymentSchema),
+    defaultValues: {
+      paymentZelle: "",
+      paymentPaypal: "",
+      paymentCashapp: "",
+      paymentVenmo: "",
+      depositPercentage: 50,
+    },
+  });
+
   useEffect(() => {
     if (baker) {
       profileForm.reset({
@@ -76,8 +97,15 @@ export default function SettingsPage() {
         phone: baker.phone || "",
         address: baker.address || "",
       });
+      paymentForm.reset({
+        paymentZelle: baker.paymentZelle || "",
+        paymentPaypal: baker.paymentPaypal || "",
+        paymentCashapp: baker.paymentCashapp || "",
+        paymentVenmo: baker.paymentVenmo || "",
+        depositPercentage: baker.depositPercentage ?? 50,
+      });
     }
-  }, [baker, profileForm]);
+  }, [baker, profileForm, paymentForm]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: ProfileFormData) => {
@@ -87,6 +115,17 @@ export default function SettingsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
       toast({ title: "Profile updated successfully" });
+    },
+  });
+
+  const updatePaymentMutation = useMutation({
+    mutationFn: async (data: PaymentFormData) => {
+      const res = await apiRequest("PATCH", "/api/bakers/me", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
+      toast({ title: "Payment options updated successfully" });
     },
   });
 
@@ -239,6 +278,136 @@ export default function SettingsPage() {
                     </>
                   ) : (
                     "Save Changes"
+                  )}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Payment Options</CardTitle>
+            <CardDescription>
+              Add your payment details to display on quotes
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...paymentForm}>
+              <form
+                onSubmit={paymentForm.handleSubmit((data) =>
+                  updatePaymentMutation.mutate(data)
+                )}
+                className="space-y-4"
+              >
+                <FormField
+                  control={paymentForm.control}
+                  name="paymentZelle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Zelle</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="Email or phone for Zelle"
+                          data-testid="input-payment-zelle"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={paymentForm.control}
+                  name="paymentPaypal"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>PayPal</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="PayPal email or @username"
+                          data-testid="input-payment-paypal"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={paymentForm.control}
+                  name="paymentCashapp"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cash App</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="$cashtag"
+                          data-testid="input-payment-cashapp"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={paymentForm.control}
+                  name="paymentVenmo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Venmo</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="@username"
+                          data-testid="input-payment-venmo"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={paymentForm.control}
+                  name="depositPercentage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Required Deposit (%)</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="number"
+                          min={0}
+                          max={100}
+                          onChange={(e) => field.onChange(Number(e.target.value))}
+                          data-testid="input-deposit-percentage"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Percentage of total required as deposit to confirm order
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Button
+                  type="submit"
+                  disabled={updatePaymentMutation.isPending}
+                  data-testid="button-save-payment"
+                >
+                  {updatePaymentMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Payment Options"
                   )}
                 </Button>
               </form>
