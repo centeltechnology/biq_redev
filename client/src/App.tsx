@@ -24,6 +24,7 @@ import CalculatorPage from "@/pages/calculator";
 import CalendarPage from "@/pages/calendar";
 import AdminPage from "@/pages/admin";
 import QuoteViewPage from "@/pages/quote-view";
+import VerifyEmailPage from "@/pages/verify-email";
 
 function Router() {
   return (
@@ -71,6 +72,7 @@ function Router() {
       </Route>
       <Route path="/c/:slug" component={CalculatorPage} />
       <Route path="/q/:id" component={QuoteViewPage} />
+      <Route path="/verify-email" component={VerifyEmailPage} />
       <Route component={NotFound} />
     </Switch>
   );
