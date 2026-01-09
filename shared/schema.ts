@@ -249,14 +249,14 @@ export type InsertOrder = z.infer<typeof insertOrderSchema>;
 
 // Calculator Configuration Types
 export interface CalculatorConfig {
-  sizes?: { id: string; label: string; servings: string; basePrice: number }[];
-  shapes?: { id: string; label: string; priceModifier: number }[];
-  flavors?: { id: string; label: string; priceModifier: number }[];
-  frostings?: { id: string; label: string; priceModifier: number }[];
-  decorations?: { id: string; label: string; price: number }[];
-  deliveryOptions?: { id: string; label: string; price: number }[];
-  addons?: { id: string; label: string; price: number; pricingType: "flat" | "per-attendee"; minAttendees?: number }[];
-  treats?: { id: string; label: string; description: string; unitPrice: number; minQuantity: number }[];
+  sizes?: { id: string; label: string; servings: string; basePrice: number; enabled?: boolean }[];
+  shapes?: { id: string; label: string; priceModifier: number; enabled?: boolean }[];
+  flavors?: { id: string; label: string; priceModifier: number; enabled?: boolean }[];
+  frostings?: { id: string; label: string; priceModifier: number; enabled?: boolean }[];
+  decorations?: { id: string; label: string; price: number; enabled?: boolean }[];
+  deliveryOptions?: { id: string; label: string; price: number; enabled?: boolean }[];
+  addons?: { id: string; label: string; price: number; pricingType: "flat" | "per-attendee"; minAttendees?: number; enabled?: boolean }[];
+  treats?: { id: string; label: string; description: string; unitPrice: number; minQuantity: number; enabled?: boolean }[];
 }
 
 export interface CakeTier {

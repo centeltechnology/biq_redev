@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2, Plus } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { CAKE_SIZES, CAKE_FLAVORS, FROSTING_TYPES, DECORATIONS, DELIVERY_OPTIONS, ADDONS, TREATS, type CalculatorConfig } from "@shared/schema";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuth } from "@/hooks/use-auth";
@@ -29,41 +30,48 @@ export default function PricingPage() {
           id: s.id,
           label: s.label,
           servings: s.servings,
-          basePrice: s.basePrice
+          basePrice: s.basePrice,
+          enabled: true
         })),
         flavors: config.flavors || CAKE_FLAVORS.map(f => ({
           id: f.id,
           label: f.label,
-          priceModifier: f.priceModifier
+          priceModifier: f.priceModifier,
+          enabled: true
         })),
         frostings: config.frostings || FROSTING_TYPES.map(f => ({
           id: f.id,
           label: f.label,
-          priceModifier: f.priceModifier
+          priceModifier: f.priceModifier,
+          enabled: true
         })),
         decorations: config.decorations || DECORATIONS.map(d => ({
           id: d.id,
           label: d.label,
-          price: d.price
+          price: d.price,
+          enabled: true
         })),
         deliveryOptions: config.deliveryOptions || DELIVERY_OPTIONS.map(d => ({
           id: d.id,
           label: d.label,
-          price: d.price
+          price: d.price,
+          enabled: true
         })),
         addons: config.addons || ADDONS.map(a => ({
           id: a.id,
           label: a.label,
           price: a.price,
           pricingType: a.pricingType,
-          minAttendees: "minAttendees" in a ? a.minAttendees : undefined
+          minAttendees: "minAttendees" in a ? a.minAttendees : undefined,
+          enabled: true
         })),
         treats: config.treats || TREATS.map(t => ({
           id: t.id,
           label: t.label,
           description: t.description,
           unitPrice: t.unitPrice,
-          minQuantity: t.minQuantity
+          minQuantity: t.minQuantity,
+          enabled: true
         })),
       };
       const res = await apiRequest("PATCH", "/api/bakers/me", { calculatorConfig: completeConfig });
@@ -186,23 +194,54 @@ export default function PricingPage() {
     setPricingConfig({ ...pricingConfig, addons: updatedAddons });
   };
 
-  const getTreatPrice = (treatId: string) => {
-    const customTreat = pricingConfig.treats?.find(t => t.id === treatId);
-    const defaultTreat = TREATS.find(t => t.id === treatId);
-    return customTreat?.unitPrice ?? defaultTreat?.unitPrice ?? 0;
+  const defaultTreatIds = new Set(TREATS.map(t => t.id));
+
+  const isDefaultTreat = (treatId: string) => {
+    return defaultTreatIds.has(treatId);
   };
 
-  const updateTreatPrice = (treatId: string, unitPrice: number) => {
-    const defaultTreats = TREATS.map(t => ({
+  const generateTreatId = () => {
+    return `custom-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  };
+
+  const getAllTreats = () => {
+    if (pricingConfig.treats && pricingConfig.treats.length > 0) {
+      return pricingConfig.treats;
+    }
+    return TREATS.map(t => ({
       id: t.id,
       label: t.label,
       description: t.description,
-      unitPrice: pricingConfig.treats?.find(x => x.id === t.id)?.unitPrice ?? t.unitPrice,
-      minQuantity: t.minQuantity
+      unitPrice: t.unitPrice,
+      minQuantity: t.minQuantity,
+      enabled: true
     }));
-    const updatedTreats = defaultTreats.map(t => 
-      t.id === treatId ? { ...t, unitPrice } : t
+  };
+
+  const updateTreat = (treatId: string, updates: Partial<{ label: string; description: string; unitPrice: number; enabled: boolean }>) => {
+    const currentTreats = getAllTreats();
+    const updatedTreats = currentTreats.map(t => 
+      t.id === treatId ? { ...t, ...updates } : t
     );
+    setPricingConfig({ ...pricingConfig, treats: updatedTreats });
+  };
+
+  const addTreat = () => {
+    const currentTreats = getAllTreats();
+    const newTreat = {
+      id: generateTreatId(),
+      label: "",
+      description: "",
+      unitPrice: 0,
+      minQuantity: 1,
+      enabled: true
+    };
+    setPricingConfig({ ...pricingConfig, treats: [...currentTreats, newTreat] });
+  };
+
+  const removeTreat = (treatId: string) => {
+    const currentTreats = getAllTreats();
+    const updatedTreats = currentTreats.filter(t => t.id !== treatId);
     setPricingConfig({ ...pricingConfig, treats: updatedTreats });
   };
 
@@ -364,32 +403,81 @@ export default function PricingPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Treats</CardTitle>
-            <CardDescription>
-              Set prices for standalone treat items
-            </CardDescription>
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <CardTitle>Treats</CardTitle>
+                <CardDescription>
+                  Manage standalone treat items for your calculator
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={addTreat}
+                data-testid="button-add-treat"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add Treat
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-3">
-              {TREATS.map((treat) => (
-                <div key={treat.id} className="flex items-center justify-between gap-4">
-                  <div className="flex-1">
-                    <span className="text-sm font-medium">{treat.label}</span>
-                    <span className="text-xs text-muted-foreground ml-2">({treat.description})</span>
+            <div className="grid gap-4">
+              {getAllTreats().map((treat) => {
+                const isDefault = isDefaultTreat(treat.id);
+                const isEnabled = treat.enabled !== false;
+                return (
+                  <div
+                    key={treat.id}
+                    className={`grid gap-3 p-3 rounded-lg border ${!isEnabled ? "opacity-50 bg-muted/30" : ""}`}
+                    data-testid={`treat-row-${treat.id}`}
+                  >
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <Switch
+                        checked={isEnabled}
+                        onCheckedChange={(checked) => updateTreat(treat.id, { enabled: checked })}
+                        data-testid={`switch-treat-enabled-${treat.id}`}
+                      />
+                      <Input
+                        placeholder="Product name"
+                        className="flex-1 min-w-[140px]"
+                        value={treat.label}
+                        onChange={(e) => updateTreat(treat.id, { label: e.target.value })}
+                        data-testid={`input-treat-label-${treat.id}`}
+                      />
+                      <Input
+                        placeholder="Description"
+                        className="flex-1 min-w-[120px]"
+                        value={treat.description}
+                        onChange={(e) => updateTreat(treat.id, { description: e.target.value })}
+                        data-testid={`input-treat-description-${treat.id}`}
+                      />
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">$</span>
+                        <Input
+                          type="number"
+                          min={0}
+                          className="w-20"
+                          value={treat.unitPrice}
+                          onChange={(e) => updateTreat(treat.id, { unitPrice: Number(e.target.value) })}
+                          data-testid={`input-treat-price-${treat.id}`}
+                        />
+                      </div>
+                      {!isDefault && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeTreat(treat.id)}
+                          data-testid={`button-delete-treat-${treat.id}`}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
+                      {isDefault && <div className="w-9" />}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">$</span>
-                    <Input
-                      type="number"
-                      min={0}
-                      className="w-20"
-                      value={getTreatPrice(treat.id)}
-                      onChange={(e) => updateTreatPrice(treat.id, Number(e.target.value))}
-                      data-testid={`input-treat-price-${treat.id}`}
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
