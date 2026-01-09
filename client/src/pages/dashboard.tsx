@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { ClipboardList, FileText, Users, ArrowRight, Calendar, DollarSign, TrendingUp, CalendarCheck, Sparkles, AlertTriangle, Plus, UserPlus } from "lucide-react";
+import { ClipboardList, FileText, Users, ArrowRight, Calendar, DollarSign, TrendingUp, CalendarCheck, Sparkles, AlertTriangle, Plus, UserPlus, Mail } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -8,6 +8,7 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/status-badge";
 import { formatCurrency } from "@/lib/calculator";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 import type { Lead, Quote, Order } from "@shared/schema";
 
 interface SubscriptionStatus {
@@ -37,6 +38,8 @@ interface OrderStats {
 }
 
 export default function DashboardPage() {
+  const { baker } = useAuth();
+  
   const { data: stats, isLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
   });
@@ -51,6 +54,13 @@ export default function DashboardPage() {
 
   const { data: subscription } = useQuery<SubscriptionStatus>({
     queryKey: ["/api/subscription/status"],
+  });
+
+  const resendVerificationMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/auth/resend-verification");
+      return res.json();
+    },
   });
 
   const upgradeMutation = useMutation({
@@ -71,6 +81,36 @@ export default function DashboardPage() {
   return (
     <DashboardLayout title="Dashboard">
       <div className="space-y-6">
+        {baker && !baker.emailVerified && (
+          <Card className="border-amber-500/50 bg-amber-500/5">
+            <CardContent className="flex items-center justify-between gap-4 py-4">
+              <div className="flex items-center gap-3">
+                <Mail className="h-5 w-5 text-amber-600" />
+                <div>
+                  <p className="font-medium" data-testid="text-verify-email-reminder">
+                    Please verify your email address
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Check your inbox for a verification link to complete your account setup
+                  </p>
+                </div>
+              </div>
+              <Button 
+                variant="outline"
+                onClick={() => resendVerificationMutation.mutate()} 
+                disabled={resendVerificationMutation.isPending || resendVerificationMutation.isSuccess}
+                data-testid="button-resend-verification"
+              >
+                {resendVerificationMutation.isPending 
+                  ? "Sending..." 
+                  : resendVerificationMutation.isSuccess 
+                    ? "Email Sent!" 
+                    : "Resend Email"}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {showUpgradePrompt && (
           <Card className={subscription.isAtLimit ? "border-destructive bg-destructive/5" : "border-primary/50 bg-primary/5"}>
             <CardContent className="flex items-center justify-between gap-4 py-4">
