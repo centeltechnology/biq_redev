@@ -11,6 +11,7 @@ import crypto from "crypto";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
+import { CAKE_SIZES, CAKE_SHAPES, CAKE_FLAVORS, FROSTING_TYPES, DECORATIONS, DELIVERY_OPTIONS, ADDONS } from "@shared/schema";
 
 const FREE_LEAD_LIMIT = 10;
 
@@ -716,6 +717,99 @@ export async function registerRoutes(
 
       res.json(customer);
     } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      res.status(500).json({ message: "Failed to create customer" });
+    }
+  });
+
+  app.post("/api/customers/with-lead", requireAuth, async (req, res) => {
+    try {
+      const schema = z.object({
+        customer: z.object({
+          name: z.string().min(1),
+          email: z.string().email(),
+          phone: z.string().optional(),
+          eventType: z.string().optional(),
+          eventDate: z.string().optional(),
+        }),
+        cakeDetails: z.object({
+          tiers: z.array(z.object({
+            size: z.string(),
+            shape: z.string(),
+            flavor: z.string(),
+            frosting: z.string(),
+          })),
+          decorations: z.array(z.string()),
+          addons: z.array(z.object({
+            id: z.string(),
+            quantity: z.number().optional(),
+            attendees: z.number().optional(),
+          })),
+          deliveryOption: z.string(),
+          deliveryAddress: z.string().optional(),
+          specialRequests: z.string().optional(),
+        }).optional(),
+      });
+
+      const data = schema.parse(req.body);
+      const bakerId = req.session.bakerId!;
+
+      let customer = await storage.getCustomerByEmail(bakerId, data.customer.email);
+      if (!customer) {
+        customer = await storage.createCustomer({
+          bakerId,
+          name: data.customer.name,
+          email: data.customer.email,
+          phone: data.customer.phone || null,
+        });
+      } else if (data.customer.name !== customer.name || (data.customer.phone || null) !== customer.phone) {
+        customer = await storage.updateCustomer(customer.id, {
+          name: data.customer.name,
+          phone: data.customer.phone || null,
+        });
+      }
+
+      let leadId: string | undefined;
+      if (data.cakeDetails) {
+        let total = 0;
+        for (const tier of data.cakeDetails.tiers) {
+          const size = CAKE_SIZES.find(s => s.id === tier.size);
+          const shape = CAKE_SHAPES.find(s => s.id === tier.shape);
+          const flavor = CAKE_FLAVORS.find(f => f.id === tier.flavor);
+          const frosting = FROSTING_TYPES.find(f => f.id === tier.frosting);
+          total += (size?.basePrice || 0) + (shape?.priceModifier || 0) + (flavor?.priceModifier || 0) + (frosting?.priceModifier || 0);
+        }
+        for (const decId of data.cakeDetails.decorations) {
+          const dec = DECORATIONS.find(d => d.id === decId);
+          total += dec?.price || 0;
+        }
+        for (const addon of data.cakeDetails.addons) {
+          const addonDef = ADDONS.find(a => a.id === addon.id);
+          if (addonDef) total += addonDef.price * (addon.quantity || 1);
+        }
+        const delivery = DELIVERY_OPTIONS.find(d => d.id === data.cakeDetails!.deliveryOption);
+        total += delivery?.price || 0;
+        
+        const lead = await storage.createLead({
+          bakerId,
+          customerId: customer.id,
+          customerName: data.customer.name,
+          customerEmail: data.customer.email,
+          customerPhone: data.customer.phone || null,
+          eventType: data.customer.eventType || null,
+          eventDate: data.customer.eventDate || null,
+          calculatorPayload: data.cakeDetails,
+          estimatedTotal: total.toFixed(2),
+          status: "new",
+        });
+        leadId = lead.id;
+      }
+
+      res.json({ customerId: customer.id, leadId });
+    } catch (error: any) {
+      console.error("Create customer with lead error:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: error.errors[0].message });
       }

@@ -1,15 +1,18 @@
 import { useState, useEffect } from "react";
-import { Link, useSearch } from "wouter";
+import { Link, useSearch, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Search, Mail, Phone, FileText, Calendar, ChevronDown, ChevronRight, DollarSign, ArrowRight, Plus, Loader2 } from "lucide-react";
+import { Search, Mail, Phone, FileText, Calendar, ChevronDown, ChevronRight, DollarSign, ArrowRight, Plus, Loader2, Trash2, Cake } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Dialog,
   DialogContent,
@@ -25,8 +28,34 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { calculateTotal, createDefaultTier, formatCurrency as formatCalcCurrency } from "@/lib/calculator";
+import {
+  CAKE_SIZES,
+  CAKE_SHAPES,
+  CAKE_FLAVORS,
+  FROSTING_TYPES,
+  DECORATIONS,
+  DELIVERY_OPTIONS,
+  ADDONS,
+  EVENT_TYPES,
+  type CakeTier,
+  type CalculatorPayload,
+} from "@shared/schema";
 
 import {
   Table,
@@ -44,6 +73,8 @@ const customerSchema = z.object({
   name: z.string().min(2, "Name is required"),
   email: z.string().email("Valid email is required"),
   phone: z.string().optional(),
+  eventType: z.string().optional(),
+  eventDate: z.string().optional(),
 });
 
 type CustomerFormData = z.infer<typeof customerSchema>;
@@ -64,12 +95,20 @@ export default function CustomersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [dialogStep, setDialogStep] = useState(1);
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const searchParams = useSearch();
 
+  const [tiers, setTiers] = useState<CakeTier[]>([createDefaultTier()]);
+  const [decorations, setDecorations] = useState<string[]>([]);
+  const [addons, setAddons] = useState<{ id: string; quantity?: number }[]>([]);
+  const [deliveryOption, setDeliveryOption] = useState("pickup");
+  const [includeCakeDetails, setIncludeCakeDetails] = useState(false);
+
   const form = useForm<CustomerFormData>({
     resolver: zodResolver(customerSchema),
-    defaultValues: { name: "", email: "", phone: "" },
+    defaultValues: { name: "", email: "", phone: "", eventType: "", eventDate: "" },
   });
 
   useEffect(() => {
@@ -78,22 +117,71 @@ export default function CustomersPage() {
     }
   }, [searchParams]);
 
+  const resetDialog = () => {
+    setDialogStep(1);
+    form.reset();
+    setTiers([createDefaultTier()]);
+    setDecorations([]);
+    setAddons([]);
+    setDeliveryOption("pickup");
+    setIncludeCakeDetails(false);
+  };
+
   const { data: customers, isLoading } = useQuery<CustomerWithQuotes[]>({
     queryKey: ["/api/customers"],
   });
 
-  const createCustomerMutation = useMutation({
-    mutationFn: async (data: CustomerFormData) => {
-      const res = await apiRequest("POST", "/api/customers", data);
+  const createCustomerWithLeadMutation = useMutation({
+    mutationFn: async (data: { customer: CustomerFormData; cakeDetails?: CalculatorPayload }) => {
+      const res = await apiRequest("POST", "/api/customers/with-lead", data);
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
-      toast({ title: "Customer added successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       setShowAddDialog(false);
-      form.reset();
+      resetDialog();
+      if (data.leadId) {
+        toast({ 
+          title: "Customer added with cake details",
+          description: "Ready to create a quote",
+        });
+        setLocation(`/leads/${data.leadId}/quote`);
+      } else {
+        toast({ title: "Customer added successfully" });
+      }
     },
   });
+
+  const updateTier = (index: number, field: keyof CakeTier, value: string) => {
+    const updated = [...tiers];
+    updated[index] = { ...updated[index], [field]: value };
+    setTiers(updated);
+  };
+
+  const addTier = () => setTiers([...tiers, createDefaultTier()]);
+  const removeTier = (index: number) => tiers.length > 1 && setTiers(tiers.filter((_, i) => i !== index));
+
+  const toggleDecoration = (id: string) => {
+    setDecorations(prev => prev.includes(id) ? prev.filter(d => d !== id) : [...prev, id]);
+  };
+
+  const toggleAddon = (id: string) => {
+    setAddons(prev => {
+      const existing = prev.find(a => a.id === id);
+      if (existing) return prev.filter(a => a.id !== id);
+      return [...prev, { id, quantity: 1 }];
+    });
+  };
+
+  const payload: CalculatorPayload = { tiers, decorations, addons, deliveryOption };
+  const totals = calculateTotal(payload);
+
+  const handleSubmit = () => {
+    const customerData = form.getValues();
+    const cakeDetails = includeCakeDetails ? payload : undefined;
+    createCustomerWithLeadMutation.mutate({ customer: customerData, cakeDetails });
+  };
 
   const filteredCustomers = customers?.filter((customer) => {
     return (
@@ -117,72 +205,244 @@ export default function CustomersPage() {
         </Button>
       }
     >
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent>
+      <Dialog open={showAddDialog} onOpenChange={(open) => { setShowAddDialog(open); if (!open) resetDialog(); }}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add New Customer</DialogTitle>
+            <DialogTitle>{dialogStep === 1 ? "Add New Customer" : "Cake Details (Optional)"}</DialogTitle>
             <DialogDescription>
-              Add a customer to your contact list
+              {dialogStep === 1 ? "Enter customer information" : "Add cake configuration to create a lead"}
             </DialogDescription>
           </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit((data) => createCustomerMutation.mutate(data))} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Customer name" data-testid="input-customer-name" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="email" placeholder="email@example.com" data-testid="input-customer-email" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone (optional)</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="(555) 123-4567" data-testid="input-customer-phone" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={createCustomerMutation.isPending} data-testid="button-save-customer">
-                  {createCustomerMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    "Add Customer"
+
+          {dialogStep === 1 ? (
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(() => {
+                if (includeCakeDetails) setDialogStep(2);
+                else handleSubmit();
+              })} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Customer name" data-testid="input-customer-name" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="email" placeholder="email@example.com" data-testid="input-customer-email" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="(555) 123-4567" data-testid="input-customer-phone" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="eventDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Event Date</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="date" data-testid="input-event-date" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormField
+                  control={form.control}
+                  name="eventType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Event Type</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-event-type">
+                            <SelectValue placeholder="Select event type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {EVENT_TYPES.map(type => (
+                            <SelectItem key={type.id} value={type.id}>{type.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex items-center space-x-2 pt-2">
+                  <Checkbox 
+                    id="include-cake" 
+                    checked={includeCakeDetails}
+                    onCheckedChange={(checked) => {
+                      setIncludeCakeDetails(!!checked);
+                      if (!checked) {
+                        setTiers([createDefaultTier()]);
+                        setDecorations([]);
+                        setAddons([]);
+                        setDeliveryOption("pickup");
+                      }
+                    }}
+                    data-testid="checkbox-include-cake"
+                  />
+                  <Label htmlFor="include-cake" className="flex items-center gap-2 cursor-pointer">
+                    <Cake className="h-4 w-4" />
+                    Add cake details now
+                  </Label>
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button type="button" variant="outline" onClick={() => { setShowAddDialog(false); resetDialog(); }}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={createCustomerWithLeadMutation.isPending} data-testid="button-next-step">
+                    {createCustomerWithLeadMutation.isPending ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</>
+                    ) : includeCakeDetails ? "Next: Cake Details" : "Add Customer"}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-3">
+                <h4 className="font-medium">Cake Tiers</h4>
+                {tiers.map((tier, index) => (
+                  <div key={index} className="border rounded-lg p-3 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Tier {index + 1}</span>
+                      {tiers.length > 1 && (
+                        <Button variant="ghost" size="icon" onClick={() => removeTier(index)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Select value={tier.size} onValueChange={(v) => updateTier(index, "size", v)}>
+                        <SelectTrigger><SelectValue placeholder="Size" /></SelectTrigger>
+                        <SelectContent>
+                          {CAKE_SIZES.map(s => <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Select value={tier.shape} onValueChange={(v) => updateTier(index, "shape", v)}>
+                        <SelectTrigger><SelectValue placeholder="Shape" /></SelectTrigger>
+                        <SelectContent>
+                          {CAKE_SHAPES.map(s => <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Select value={tier.flavor} onValueChange={(v) => updateTier(index, "flavor", v)}>
+                        <SelectTrigger><SelectValue placeholder="Flavor" /></SelectTrigger>
+                        <SelectContent>
+                          {CAKE_FLAVORS.map(f => <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Select value={tier.frosting} onValueChange={(v) => updateTier(index, "frosting", v)}>
+                        <SelectTrigger><SelectValue placeholder="Frosting" /></SelectTrigger>
+                        <SelectContent>
+                          {FROSTING_TYPES.map(f => <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" onClick={addTier}>
+                  <Plus className="mr-1 h-4 w-4" /> Add Tier
                 </Button>
               </div>
-            </form>
-          </Form>
+
+              <div className="space-y-2">
+                <h4 className="font-medium">Decorations</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {DECORATIONS.map(dec => (
+                    <div key={dec.id} className="flex items-center space-x-2">
+                      <Checkbox 
+                        id={`dec-${dec.id}`} 
+                        checked={decorations.includes(dec.id)}
+                        onCheckedChange={() => toggleDecoration(dec.id)}
+                      />
+                      <Label htmlFor={`dec-${dec.id}`} className="text-sm cursor-pointer">
+                        {dec.label} (+{formatCurrency(dec.price)})
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="font-medium">Addons</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {ADDONS.filter(a => a.pricingType === "flat").map(addon => (
+                    <div key={addon.id} className="flex items-center space-x-2">
+                      <Checkbox 
+                        id={`addon-${addon.id}`} 
+                        checked={addons.some(a => a.id === addon.id)}
+                        onCheckedChange={() => toggleAddon(addon.id)}
+                      />
+                      <Label htmlFor={`addon-${addon.id}`} className="text-sm cursor-pointer">
+                        {addon.label} (+{formatCurrency(addon.price)})
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="font-medium">Delivery</h4>
+                <RadioGroup value={deliveryOption} onValueChange={setDeliveryOption}>
+                  {DELIVERY_OPTIONS.map(opt => (
+                    <div key={opt.id} className="flex items-center space-x-2">
+                      <RadioGroupItem value={opt.id} id={`del-${opt.id}`} />
+                      <Label htmlFor={`del-${opt.id}`} className="cursor-pointer">
+                        {opt.label} {opt.price > 0 && `(+${formatCurrency(opt.price)})`}
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </div>
+
+              <div className="border-t pt-3 flex items-center justify-between">
+                <div className="text-lg font-semibold">
+                  Estimated Total: {formatCurrency(totals.total)}
+                </div>
+              </div>
+
+              <div className="flex justify-between gap-2 pt-2">
+                <Button variant="outline" onClick={() => setDialogStep(1)}>
+                  Back
+                </Button>
+                <Button onClick={handleSubmit} disabled={createCustomerWithLeadMutation.isPending} data-testid="button-save-customer">
+                  {createCustomerWithLeadMutation.isPending ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</>
+                  ) : "Add Customer & Create Lead"}
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

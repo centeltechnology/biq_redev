@@ -36,6 +36,7 @@ export interface IStorage {
   getCustomersByBaker(bakerId: string): Promise<Customer[]>;
   getCustomerByEmail(bakerId: string, email: string): Promise<Customer | undefined>;
   createCustomer(customer: InsertCustomer): Promise<Customer>;
+  updateCustomer(id: string, data: Partial<InsertCustomer>): Promise<Customer | undefined>;
   getCustomersWithQuotes(bakerId: string): Promise<(Customer & { quotes: Quote[] })[]>;
 
   // Leads
@@ -148,6 +149,11 @@ export class DatabaseStorage implements IStorage {
 
   async createCustomer(insertCustomer: InsertCustomer): Promise<Customer> {
     const [customer] = await db.insert(customers).values(insertCustomer).returning();
+    return customer;
+  }
+
+  async updateCustomer(id: string, data: Partial<InsertCustomer>): Promise<Customer | undefined> {
+    const [customer] = await db.update(customers).set(data).where(eq(customers.id, id)).returning();
     return customer;
   }
 
