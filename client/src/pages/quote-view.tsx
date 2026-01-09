@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { CheckCircle, Calendar, DollarSign, FileText, Cake } from "lucide-react";
+import { CheckCircle, Calendar, DollarSign, FileText, Cake, Printer } from "lucide-react";
 import type { Quote, QuoteItem } from "@shared/schema";
 
 interface PublicBaker {
@@ -103,12 +104,20 @@ export default function QuoteViewPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-pink-50 to-background dark:from-pink-950/20 dark:to-background">
-      <div className="absolute top-4 right-4">
+    <div className="min-h-screen bg-gradient-to-b from-pink-50 to-background dark:from-pink-950/20 dark:to-background print:bg-white print:from-white">
+      <div className="absolute top-4 right-4 flex gap-2 print:hidden">
+        <Button 
+          variant="outline" 
+          size="icon" 
+          onClick={() => window.print()}
+          data-testid="button-print-quote"
+        >
+          <Printer className="h-4 w-4" />
+        </Button>
         <ThemeToggle />
       </div>
 
-      <div className="max-w-3xl mx-auto p-6 py-12">
+      <div className="max-w-3xl mx-auto p-6 py-12 quote-view-container">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-primary mb-2">{baker.businessName}</h1>
           {baker.tagline && <p className="text-muted-foreground">{baker.tagline}</p>}
