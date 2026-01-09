@@ -12,6 +12,9 @@ interface PublicBaker {
   id: string;
   businessName: string;
   tagline?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
   depositPercentage?: number | null;
   acceptedPayments?: string[] | null;
   zelleEmail?: string | null;
@@ -293,16 +296,16 @@ export default function QuoteViewPage() {
                 {(baker.zelleEmail || baker.paypalEmail || baker.venmoHandle || baker.cashappHandle) && (
                   <div className="text-sm space-y-1 pt-2">
                     {baker.zelleEmail && (
-                      <p><span className="text-muted-foreground">Zelle:</span> Available - contact for details</p>
+                      <p><span className="text-muted-foreground">Zelle:</span> {baker.zelleEmail}</p>
                     )}
                     {baker.paypalEmail && (
-                      <p><span className="text-muted-foreground">PayPal:</span> Available - contact for details</p>
+                      <p><span className="text-muted-foreground">PayPal:</span> {baker.paypalEmail}</p>
                     )}
                     {baker.venmoHandle && (
-                      <p><span className="text-muted-foreground">Venmo:</span> {baker.venmoHandle}</p>
+                      <p><span className="text-muted-foreground">Venmo:</span> @{baker.venmoHandle}</p>
                     )}
                     {baker.cashappHandle && (
-                      <p><span className="text-muted-foreground">Cash App:</span> {baker.cashappHandle}</p>
+                      <p><span className="text-muted-foreground">Cash App:</span> ${baker.cashappHandle}</p>
                     )}
                   </div>
                 )}
@@ -319,18 +322,23 @@ export default function QuoteViewPage() {
               <p className="text-sm text-muted-foreground mb-4">
                 To accept this quote and proceed with your order, please contact us:
               </p>
-              {baker.phone && (
-                <p className="text-sm">
-                  <span className="text-muted-foreground">Phone:</span>{" "}
-                  <a href={`tel:${baker.phone}`} className="text-primary hover:underline">{baker.phone}</a>
-                </p>
-              )}
-              {baker.email && (
-                <p className="text-sm">
-                  <span className="text-muted-foreground">Email:</span>{" "}
-                  <a href={`mailto:${baker.email}`} className="text-primary hover:underline">{baker.email}</a>
-                </p>
-              )}
+              <div className="space-y-1">
+                {baker.address && (
+                  <p className="text-sm text-muted-foreground">{baker.address}</p>
+                )}
+                {baker.phone && (
+                  <p className="text-sm">
+                    <span className="text-muted-foreground">Phone:</span>{" "}
+                    <a href={`tel:${baker.phone}`} className="text-primary hover:underline">{baker.phone}</a>
+                  </p>
+                )}
+                {baker.email && (
+                  <p className="text-sm">
+                    <span className="text-muted-foreground">Email:</span>{" "}
+                    <a href={`mailto:${baker.email}`} className="text-primary hover:underline">{baker.email}</a>
+                  </p>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>

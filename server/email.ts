@@ -280,6 +280,11 @@ export async function sendQuoteNotification(
   customerEmail: string,
   customerName: string,
   bakerBusinessName: string,
+  bakerContact: {
+    email?: string | null;
+    phone?: string | null;
+    address?: string | null;
+  },
   quote: {
     quoteNumber: string;
     total: number;
@@ -331,7 +336,12 @@ export async function sendQuoteNotification(
   <div class="container">
     <div class="header">
       <h1 style="margin: 0;">Your Quote is Ready!</h1>
-      <p style="margin: 10px 0 0 0; opacity: 0.9;">${bakerBusinessName}</p>
+      <p style="margin: 10px 0 0 0; opacity: 0.9; font-size: 1.1em;">${bakerBusinessName}</p>
+      <div style="margin-top: 10px; font-size: 13px; opacity: 0.85;">
+        ${bakerContact.address ? `<p style="margin: 3px 0;">${bakerContact.address}</p>` : ""}
+        ${bakerContact.email ? `<p style="margin: 3px 0;">${bakerContact.email}</p>` : ""}
+        ${bakerContact.phone ? `<p style="margin: 3px 0;">${bakerContact.phone}</p>` : ""}
+      </div>
     </div>
     <div class="content">
       <p>Hi ${customerName},</p>
