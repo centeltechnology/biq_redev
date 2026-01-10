@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Plus, Trash2, Loader2, Save, CreditCard, CheckCircle, Calendar, Send } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Loader2, Save, CreditCard, CheckCircle, Calendar, Send, Calculator, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,7 +66,22 @@ import {
   type Customer,
   type Lead,
   type CakeTier,
+  type PricingCalculation,
 } from "@shared/schema";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const quoteFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -79,6 +94,14 @@ const quoteFormSchema = z.object({
 
 type QuoteFormData = z.infer<typeof quoteFormSchema>;
 
+interface PricingSnapshot {
+  materialCost: string;
+  laborHours: string;
+  hourlyRate: string;
+  overheadPercent: string;
+  suggestedPrice: string;
+}
+
 interface LineItem {
   id: string;
   name: string;
@@ -86,6 +109,8 @@ interface LineItem {
   quantity: number;
   unitPrice: number;
   category: string;
+  pricingCalculationId?: string;
+  pricingSnapshot?: PricingSnapshot;
 }
 
 interface QuoteWithItems extends Quote {
@@ -114,6 +139,8 @@ export default function QuoteBuilderPage() {
   const [customerFromLead, setCustomerFromLead] = useState<string | null>(null);
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("cash");
+  const [priceCalcDialogOpen, setPriceCalcDialogOpen] = useState(false);
+  const [priceCalcSearch, setPriceCalcSearch] = useState("");
 
   const { data: quote, isLoading: isLoadingQuote } = useQuery<QuoteWithItems>({
     queryKey: ["/api/quotes", editingQuoteId],
@@ -127,6 +154,11 @@ export default function QuoteBuilderPage() {
 
   const { data: customers } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
+  });
+
+  const { data: pricingCalculations } = useQuery<PricingCalculation[]>({
+    queryKey: ["/api/pricing-calculations"],
+    enabled: priceCalcDialogOpen,
   });
 
   const form = useForm<QuoteFormData>({
@@ -418,6 +450,41 @@ export default function QuoteBuilderPage() {
     ]);
   };
 
+  const addFromPriceCalculation = (calc: PricingCalculation) => {
+    setLineItems([
+      ...lineItems,
+      {
+        id: `calc-${calc.id}-${Date.now()}`,
+        name: calc.name,
+        description: calc.notes || "",
+        quantity: 1,
+        unitPrice: Number(calc.suggestedPrice),
+        category: calc.category,
+        pricingCalculationId: calc.id,
+        pricingSnapshot: {
+          materialCost: calc.materialCost,
+          laborHours: calc.laborHours,
+          hourlyRate: calc.hourlyRate,
+          overheadPercent: calc.overheadPercent,
+          suggestedPrice: calc.suggestedPrice,
+        },
+      },
+    ]);
+    setPriceCalcDialogOpen(false);
+    setPriceCalcSearch("");
+    toast({ title: `Added "${calc.name}" from price calculator` });
+  };
+
+  const filteredCalculations = pricingCalculations?.filter((calc) => {
+    if (!priceCalcSearch.trim()) return true;
+    const search = priceCalcSearch.toLowerCase();
+    return (
+      calc.name.toLowerCase().includes(search) ||
+      calc.category.toLowerCase().includes(search) ||
+      calc.notes?.toLowerCase().includes(search)
+    );
+  });
+
   const updateLineItem = (index: number, field: keyof LineItem, value: string | number) => {
     const updated = [...lineItems];
     updated[index] = { ...updated[index], [field]: value };
@@ -623,16 +690,95 @@ export default function QuoteBuilderPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between gap-4">
                     <CardTitle>Line Items</CardTitle>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={addLineItem}
-                      data-testid="button-add-item"
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Item
-                    </Button>
+                    <div className="flex gap-2 flex-wrap">
+                      <Dialog open={priceCalcDialogOpen} onOpenChange={setPriceCalcDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            data-testid="button-add-from-calculator"
+                          >
+                            <Calculator className="mr-2 h-4 w-4" />
+                            From Price Calc
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-lg">
+                          <DialogHeader>
+                            <DialogTitle>Add from Price Calculator</DialogTitle>
+                            <DialogDescription>
+                              Select a saved calculation to add as a line item
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="py-4">
+                            <div className="relative mb-4">
+                              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                              <Input
+                                placeholder="Search saved calculations..."
+                                value={priceCalcSearch}
+                                onChange={(e) => setPriceCalcSearch(e.target.value)}
+                                className="pl-10"
+                                data-testid="input-search-calculations"
+                              />
+                            </div>
+                            <div className="max-h-80 overflow-y-auto space-y-2">
+                              {!pricingCalculations?.length ? (
+                                <div className="text-center py-6 text-muted-foreground">
+                                  <Calculator className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                  <p>No saved calculations yet</p>
+                                  <p className="text-sm">Create some in the Price Calculator</p>
+                                </div>
+                              ) : filteredCalculations?.length === 0 ? (
+                                <div className="text-center py-6 text-muted-foreground">
+                                  <p>No matching calculations</p>
+                                </div>
+                              ) : (
+                                filteredCalculations?.map((calc) => (
+                                  <div
+                                    key={calc.id}
+                                    className="flex items-center justify-between p-3 rounded-lg border hover-elevate cursor-pointer"
+                                    onClick={() => addFromPriceCalculation(calc)}
+                                    data-testid={`calc-item-${calc.id}`}
+                                  >
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-medium truncate">{calc.name}</span>
+                                        <Badge variant="secondary" className="text-xs">
+                                          {calc.category}
+                                        </Badge>
+                                      </div>
+                                      {calc.notes && (
+                                        <p className="text-sm text-muted-foreground truncate mt-1">
+                                          {calc.notes}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <div className="text-right ml-4">
+                                      <div className="font-medium text-primary">
+                                        {formatCurrency(Number(calc.suggestedPrice))}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground">
+                                        suggested price
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addLineItem}
+                        data-testid="button-add-item"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Item
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     {lineItems.length === 0 ? (
