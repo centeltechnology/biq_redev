@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Calculator, Save, Trash2, Plus, DollarSign, Clock, Package, Percent, Loader2, FileText, Star, StarOff, Sparkles, Crown, Zap, CheckCircle } from "lucide-react";
+import { Calculator, Save, Trash2, Plus, DollarSign, Clock, Package, Percent, Loader2, FileText, Star, StarOff, Sparkles, Crown, Zap, CheckCircle, Eye, EyeOff } from "lucide-react";
 import { InstructionModal } from "@/components/instruction-modal";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
@@ -56,6 +56,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   Tooltip,
   TooltipContent,
@@ -96,6 +97,7 @@ export default function PricingCalculatorPage() {
   const [featureDialogOpen, setFeatureDialogOpen] = useState(false);
   const [itemToFeature, setItemToFeature] = useState<PricingCalculation | null>(null);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const [showOnQuickOrder, setShowOnQuickOrder] = useState(true);
 
   const form = useForm<CalculatorFormData>({
     resolver: zodResolver(calculatorSchema),
@@ -188,8 +190,8 @@ export default function PricingCalculatorPage() {
   });
 
   const featureMutation = useMutation({
-    mutationFn: async ({ id, isFeatured, featuredPrice }: { id: string; isFeatured: boolean; featuredPrice?: string }) => {
-      const res = await apiRequest("POST", `/api/pricing-calculations/${id}/feature`, { isFeatured, featuredPrice });
+    mutationFn: async ({ id, isFeatured, featuredPrice, showOnQuickOrder }: { id: string; isFeatured: boolean; featuredPrice?: string; showOnQuickOrder?: boolean }) => {
+      const res = await apiRequest("POST", `/api/pricing-calculations/${id}/feature`, { isFeatured, featuredPrice, showOnQuickOrder });
       return res.json();
     },
     onSuccess: (_, { isFeatured }) => {
@@ -234,7 +236,8 @@ export default function PricingCalculatorPage() {
 
   const handleFeatureClick = (calc: PricingCalculation) => {
     if (calc.isFeatured) {
-      featureMutation.mutate({ id: calc.id, isFeatured: false });
+      // Preserve showOnQuickOrder when un-featuring
+      featureMutation.mutate({ id: calc.id, isFeatured: false, showOnQuickOrder: calc.showOnQuickOrder ?? true });
     } else {
       // Free plan cannot feature any items
       if (!baker?.plan || baker.plan === "free") {
@@ -251,6 +254,7 @@ export default function PricingCalculatorPage() {
         return;
       }
       setItemToFeature(calc);
+      setShowOnQuickOrder(calc.showOnQuickOrder !== false);
       setFeatureDialogOpen(true);
     }
   };
@@ -615,13 +619,25 @@ export default function PricingCalculatorPage() {
                       data-testid={`row-calculation-${calc.id}`}
                     >
                       <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           {calc.name}
                           {calc.isFeatured && (
-                            <Badge variant="secondary" className="text-xs">
-                              <Sparkles className="h-3 w-3 mr-1" />
-                              Featured
-                            </Badge>
+                            <>
+                              <Badge variant="secondary" className="text-xs">
+                                <Sparkles className="h-3 w-3 mr-1" />
+                                Featured
+                              </Badge>
+                              {calc.showOnQuickOrder === false && (
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Badge variant="outline" className="text-xs text-muted-foreground">
+                                      <EyeOff className="h-3 w-3" />
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Hidden from customers</TooltipContent>
+                                </Tooltip>
+                              )}
+                            </>
                           )}
                         </div>
                       </TableCell>
@@ -651,6 +667,29 @@ export default function PricingCalculatorPage() {
                               {calc.isFeatured ? "Remove from public calculator" : "Feature on public calculator (Pro)"}
                             </TooltipContent>
                           </Tooltip>
+                          {calc.isFeatured && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  onClick={() => featureMutation.mutate({ 
+                                    id: calc.id, 
+                                    isFeatured: true,
+                                    showOnQuickOrder: !calc.showOnQuickOrder,
+                                    featuredPrice: calc.featuredPrice || calc.suggestedPrice
+                                  })}
+                                  data-testid={`button-visibility-${calc.id}`}
+                                  className={calc.showOnQuickOrder !== false ? "text-green-600" : "text-muted-foreground"}
+                                >
+                                  {calc.showOnQuickOrder !== false ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {calc.showOnQuickOrder !== false ? "Hide from Quick Order" : "Show on Quick Order"}
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
                           <Button 
                             variant="ghost" 
                             size="sm"
@@ -704,9 +743,35 @@ export default function PricingCalculatorPage() {
                 </p>
               </div>
               
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    {showOnQuickOrder ? (
+                      <Eye className="h-4 w-4 text-primary" />
+                    ) : (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    )}
+                    <Label htmlFor="show-quick-order" className="font-medium">
+                      Show on Quick Order
+                    </Label>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {showOnQuickOrder 
+                      ? "Customers can order this item directly" 
+                      : "Item is saved but hidden from customers"}
+                  </p>
+                </div>
+                <Switch
+                  id="show-quick-order"
+                  checked={showOnQuickOrder}
+                  onCheckedChange={setShowOnQuickOrder}
+                  data-testid="switch-show-on-quick-order"
+                />
+              </div>
+              
               <p className="text-sm text-muted-foreground">
                 The item will use its current name, description, and suggested price. 
-                Customers will see this on your public calculator page.
+                {showOnQuickOrder && " Customers will see this on your public calculator page."}
               </p>
             </div>
           )}
@@ -719,7 +784,8 @@ export default function PricingCalculatorPage() {
               onClick={() => itemToFeature && featureMutation.mutate({ 
                 id: itemToFeature.id, 
                 isFeatured: true,
-                featuredPrice: itemToFeature.suggestedPrice 
+                featuredPrice: itemToFeature.suggestedPrice,
+                showOnQuickOrder 
               })}
               disabled={featureMutation.isPending}
               data-testid="button-confirm-feature"

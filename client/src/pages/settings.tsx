@@ -830,7 +830,7 @@ export default function SettingsPage() {
               Quick Order Settings
             </CardTitle>
             <CardDescription>
-              Configure how Quick Order works on your public calculator
+              Control Quick Order display. You can also toggle visibility for each item in the Pricing Calculator.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -874,7 +874,7 @@ export default function SettingsPage() {
               </div>
             )}
             <p className="text-xs text-muted-foreground">
-              This only controls the display. Your plan determines how many items you can feature.
+              This sets a global limit. You can also control visibility per-item from the Pricing Calculator page using the eye icon.
             </p>
           </CardContent>
         </Card>

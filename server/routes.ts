@@ -1184,7 +1184,8 @@ export async function registerRoutes(
         featuredDescription, 
         featuredPrice,
         featuredStartDate,
-        featuredEndDate
+        featuredEndDate,
+        showOnQuickOrder
       } = req.body;
       
       // Check featured item limit for Basic plan (10 items)
@@ -1204,6 +1205,7 @@ export async function registerRoutes(
       
       const updated = await storage.updatePricingCalculation(req.params.id, {
         isFeatured: isFeatured ?? true,
+        showOnQuickOrder: showOnQuickOrder ?? true,
         featuredLabel: featuredLabel || calculation.name,
         featuredDescription: featuredDescription || calculation.notes,
         featuredPrice: featuredPrice || calculation.suggestedPrice,
@@ -1258,19 +1260,25 @@ export async function registerRoutes(
       
       let featuredItems = await storage.getPublicFeaturedItems(req.params.slug);
       
+      // Filter to only items that have showOnQuickOrder enabled
+      featuredItems = featuredItems.filter(item => item.showOnQuickOrder !== false);
+      
       // Apply baker's display limit if set
       if (baker.quickOrderItemLimit !== null && baker.quickOrderItemLimit !== undefined) {
         featuredItems = featuredItems.slice(0, baker.quickOrderItemLimit);
       }
       
-      // Return only public-safe fields
+      // Return only public-safe fields with proper naming for client compatibility
       const publicItems = featuredItems.map(item => ({
         id: item.id,
-        name: item.featuredLabel || item.name,
-        description: item.featuredDescription || item.notes,
+        name: item.name,
         category: item.category,
-        price: item.featuredPrice || item.suggestedPrice,
-        imageUrl: item.featuredImageUrl,
+        suggestedPrice: item.suggestedPrice ? String(item.suggestedPrice) : "0.00",
+        notes: item.notes,
+        featuredLabel: item.featuredLabel,
+        featuredDescription: item.featuredDescription,
+        featuredPrice: item.featuredPrice ? String(item.featuredPrice) : (item.suggestedPrice ? String(item.suggestedPrice) : "0.00"),
+        featuredImageUrl: item.featuredImageUrl,
       }));
       res.json(publicItems);
     } catch (error) {
@@ -1361,6 +1369,9 @@ export async function registerRoutes(
         });
       }
 
+      // Check if this is a Quick Order (Fast Quote)
+      const isQuickOrder = data.calculatorPayload?.fastQuote === true;
+      
       const lead = await storage.createLead({
         bakerId: baker.id,
         customerId: customer.id,
@@ -1373,6 +1384,7 @@ export async function registerRoutes(
         calculatorPayload: data.calculatorPayload,
         estimatedTotal: data.estimatedTotal,
         status: "new",
+        source: isQuickOrder ? "quick_order" : "calculator",
       });
 
       // Send email notifications (non-blocking)

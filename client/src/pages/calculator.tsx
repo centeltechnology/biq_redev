@@ -129,6 +129,8 @@ export default function CalculatorPage() {
   const [deliveryOption, setDeliveryOption] = useState("pickup");
   const [submitted, setSubmitted] = useState(false);
   const [leadLimitReached, setLeadLimitReached] = useState(false);
+  const [submittedPrice, setSubmittedPrice] = useState<string | null>(null);
+  const [submittedItemName, setSubmittedItemName] = useState<string | null>(null);
 
   interface FeaturedItem {
     id: string;
@@ -138,7 +140,8 @@ export default function CalculatorPage() {
     notes: string | null;
     featuredLabel: string | null;
     featuredDescription: string | null;
-    featuredPrice: string | null;
+    featuredPrice: string;
+    featuredImageUrl: string | null;
   }
 
   const [selectedFeaturedItem, setSelectedFeaturedItem] = useState<FeaturedItem | null>(null);
@@ -241,6 +244,14 @@ export default function CalculatorPage() {
       return res.json();
     },
     onSuccess: () => {
+      // Store the price for the confirmation screen
+      if (fastQuoteMode && selectedFeaturedItem) {
+        setSubmittedPrice(selectedFeaturedItem.featuredPrice || selectedFeaturedItem.suggestedPrice);
+        setSubmittedItemName(selectedFeaturedItem.featuredLabel || selectedFeaturedItem.name);
+      } else {
+        setSubmittedPrice(totals.total.toFixed(2));
+        setSubmittedItemName(null);
+      }
       setSubmitted(true);
     },
     onError: (err: Error) => {
@@ -513,6 +524,11 @@ export default function CalculatorPage() {
   }
 
   if (submitted) {
+    const displayPrice = submittedPrice 
+      ? parseFloat(submittedPrice) 
+      : (totals?.total ?? 0);
+    const isQuickOrder = submittedItemName !== null;
+    
     return (
       <div className="min-h-screen bg-background">
         <header className="flex items-center justify-between gap-4 px-6 py-4 border-b">
@@ -532,15 +548,32 @@ export default function CalculatorPage() {
                 <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
               </div>
               <h1 className="text-2xl font-bold mb-3" data-testid="text-success-title">
-                Thank You!
+                {isQuickOrder ? "Order Received!" : "Thank You!"}
               </h1>
               <p className="text-muted-foreground mb-6">
-                We've received your request and will be in touch within 24 hours with your custom quote.
+                {isQuickOrder 
+                  ? "Your order has been submitted! We'll send you an invoice with payment options via email shortly."
+                  : "We've received your request and will be in touch within 24 hours with your custom quote."}
               </p>
+              {isQuickOrder && submittedItemName && (
+                <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 mb-4">
+                  <div className="flex items-center justify-center gap-2 text-primary">
+                    <Zap className="h-4 w-4" />
+                    <span className="font-medium">{submittedItemName}</span>
+                  </div>
+                </div>
+              )}
               <div className="p-4 rounded-lg bg-muted">
-                <p className="text-sm text-muted-foreground mb-1">Your estimated total</p>
-                <p className="text-3xl font-bold">{formatCurrency(totals.total)}</p>
+                <p className="text-sm text-muted-foreground mb-1">
+                  {isQuickOrder ? "Order total" : "Your estimated total"}
+                </p>
+                <p className="text-3xl font-bold">{formatCurrency(displayPrice)}</p>
               </div>
+              {isQuickOrder && (
+                <p className="text-xs text-muted-foreground mt-4">
+                  Check your email for the invoice and payment instructions.
+                </p>
+              )}
             </CardContent>
           </Card>
         </main>
@@ -728,7 +761,8 @@ interface FeaturedItemType {
   notes: string | null;
   featuredLabel: string | null;
   featuredDescription: string | null;
-  featuredPrice: string | null;
+  featuredPrice: string;
+  featuredImageUrl: string | null;
 }
 
 interface StepCategoryProps {

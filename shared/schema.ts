@@ -126,6 +126,7 @@ export const leads = pgTable("leads", {
   estimatedTotal: decimal("estimated_total", { precision: 10, scale: 2 }).notNull(),
   status: text("status").notNull().default("new"),
   notes: text("notes"),
+  source: text("source").default("calculator"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -246,6 +247,7 @@ export const pricingCalculations = pgTable("pricing_calculations", {
   notes: text("notes"),
   // Featured Items (Fast Quote) - Pro plan feature
   isFeatured: boolean("is_featured").default(false).notNull(),
+  showOnQuickOrder: boolean("show_on_quick_order").default(true).notNull(), // Control visibility on public Quick Order menu
   featuredLabel: text("featured_label"), // Display label for public calculator (e.g., "Valentine's Special!")
   featuredDescription: text("featured_description"), // Public description
   featuredPrice: decimal("featured_price", { precision: 10, scale: 2 }), // Optional override price for featured item
