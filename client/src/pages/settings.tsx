@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Copy, Check, Loader2, ExternalLink, CreditCard, Sparkles, Bell, HelpCircle } from "lucide-react";
+import { InstructionModal } from "@/components/instruction-modal";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -217,7 +218,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <DashboardLayout title="Settings">
+    <DashboardLayout title="Settings" actions={<InstructionModal page="settings" />}>
       <div className="max-w-2xl space-y-6">
         <Card>
           <CardHeader>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Loader2, Trash2, Plus } from "lucide-react";
+import { InstructionModal } from "@/components/instruction-modal";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -253,7 +254,7 @@ export default function PricingPage() {
   };
 
   return (
-    <DashboardLayout title="Calculator Pricing">
+    <DashboardLayout title="Calculator Pricing" actions={<InstructionModal page="pricing" />}>
       <div className="max-w-2xl space-y-6">
         <Card>
           <CardHeader>

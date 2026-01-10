@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ArrowLeft, Plus, Trash2, Loader2, Save, CreditCard, CheckCircle, Calendar, Send, Calculator, Search } from "lucide-react";
+import { InstructionModal } from "@/components/instruction-modal";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -565,7 +566,7 @@ export default function QuoteBuilderPage() {
   }
 
   return (
-    <DashboardLayout title={isNew ? "New Quote" : "Edit Quote"}>
+    <DashboardLayout title={isNew ? "New Quote" : "Edit Quote"} actions={<InstructionModal page="quote-builder" />}>
       <div className="space-y-6">
         <Button variant="ghost" asChild className="gap-2">
           <Link href="/quotes">

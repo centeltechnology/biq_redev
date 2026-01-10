@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Calculator, Save, Trash2, Plus, DollarSign, Clock, Package, Percent, Loader2, FileText } from "lucide-react";
+import { InstructionModal } from "@/components/instruction-modal";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -208,9 +209,12 @@ export default function PricingCalculatorPage() {
     <DashboardLayout>
       <div className="space-y-6" data-testid="pricing-calculator-page">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">Pricing Calculator</h1>
-            <p className="text-muted-foreground">Calculate cost-based pricing for your baked goods</p>
+          <div className="flex items-center gap-2">
+            <div>
+              <h1 className="text-2xl font-semibold">Pricing Calculator</h1>
+              <p className="text-muted-foreground">Calculate cost-based pricing for your baked goods</p>
+            </div>
+            <InstructionModal page="pricing-calculator" />
           </div>
           {selectedCalculation && (
             <Button variant="outline" onClick={resetForm} data-testid="button-new-calculation">
