@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, Search, Calendar, Mail, Phone, DollarSign, MoreHorizontal, FileText, Eye } from "lucide-react";
+import { Plus, Search, Calendar, Mail, Phone, DollarSign, MoreHorizontal, FileText, Eye, Zap } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,9 +29,26 @@ import {
 } from "@/components/ui/select";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/status-badge";
+import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { formatCurrency, getPayloadSummary } from "@/lib/calculator";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { LEAD_STATUSES, type Lead, type CalculatorPayload } from "@shared/schema";
+
+interface FastQuotePayload {
+  fastQuote: true;
+  featuredItemId: string;
+  featuredItemName: string;
+  featuredItemPrice: string;
+}
+
+function isFastQuoteLead(payload: unknown): payload is FastQuotePayload {
+  return payload !== null && typeof payload === 'object' && 'fastQuote' in payload && (payload as any).fastQuote === true;
+}
 
 export default function LeadsPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -148,8 +165,15 @@ interface LeadTableRowProps {
 
 function LeadTableRow({ lead, onStatusChange }: LeadTableRowProps) {
   const eventDate = lead.eventDate ? new Date(lead.eventDate).toLocaleDateString() : "-";
-  const payload = lead.calculatorPayload as CalculatorPayload | null;
-  const cakeSummary = payload ? getPayloadSummary(payload) : "-";
+  const rawPayload = lead.calculatorPayload;
+  const isFastQuote = isFastQuoteLead(rawPayload);
+  const fastQuotePayload = isFastQuote ? rawPayload : null;
+  const payload = !isFastQuote ? (rawPayload as CalculatorPayload | null) : null;
+  const cakeSummary = isFastQuote && fastQuotePayload
+    ? fastQuotePayload.featuredItemName
+    : payload 
+      ? getPayloadSummary(payload) 
+      : "-";
 
   return (
     <TableRow data-testid={`lead-row-${lead.id}`}>
@@ -158,7 +182,19 @@ function LeadTableRow({ lead, onStatusChange }: LeadTableRowProps) {
       </TableCell>
       <TableCell>
         <div>
-          <p className="font-medium">{lead.customerName}</p>
+          <div className="flex items-center gap-2">
+            <p className="font-medium">{lead.customerName}</p>
+            {isFastQuote && (
+              <Tooltip>
+                <TooltipTrigger>
+                  <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs">
+                    <Zap className="h-3 w-3" />
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>Quick Order</TooltipContent>
+              </Tooltip>
+            )}
+          </div>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
               <Mail className="h-3 w-3" />

@@ -1,6 +1,6 @@
 import { useParams, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { ArrowLeft, Calendar, Mail, Phone, Users, FileText, Loader2 } from "lucide-react";
+import { ArrowLeft, Calendar, Mail, Phone, Users, FileText, Loader2, Zap, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/status-badge";
+import { Badge } from "@/components/ui/badge";
 import { formatCurrency, calculateTotal } from "@/lib/calculator";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -57,7 +58,17 @@ export default function LeadDetailPage() {
     },
   });
 
-  const payload = lead?.calculatorPayload as CalculatorPayload | null;
+  interface FastQuotePayload {
+    fastQuote: true;
+    featuredItemId: string;
+    featuredItemName: string;
+    featuredItemPrice: string;
+  }
+
+  const rawPayload = lead?.calculatorPayload;
+  const isFastQuote = rawPayload && typeof rawPayload === 'object' && 'fastQuote' in rawPayload && rawPayload.fastQuote === true;
+  const fastQuotePayload = isFastQuote ? rawPayload as FastQuotePayload : null;
+  const payload = !isFastQuote ? rawPayload as CalculatorPayload | null : null;
   const totals = payload ? calculateTotal(payload) : null;
 
   if (isLoading) {
@@ -89,14 +100,27 @@ export default function LeadDetailPage() {
 
   const eventDate = lead.eventDate ? new Date(lead.eventDate).toLocaleDateString() : null;
 
+  const quoteLink = fastQuotePayload 
+    ? `/leads/${id}/quote?calcId=${fastQuotePayload.featuredItemId}`
+    : `/leads/${id}/quote`;
+
   return (
     <DashboardLayout
       title="Lead Details"
       actions={
         <Button asChild data-testid="button-create-quote">
-          <Link href={`/leads/${id}/quote`}>
-            <FileText className="mr-2 h-4 w-4" />
-            Create Quote
+          <Link href={quoteLink}>
+            {fastQuotePayload ? (
+              <>
+                <Zap className="mr-2 h-4 w-4" />
+                Quick Quote
+              </>
+            ) : (
+              <>
+                <FileText className="mr-2 h-4 w-4" />
+                Create Quote
+              </>
+            )}
           </Link>
         </Button>
       }
@@ -180,6 +204,34 @@ export default function LeadDetailPage() {
                     </div>
                   )}
                 </div>
+
+                {fastQuotePayload && (
+                  <div className="border-t pt-6 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
+                        <Zap className="h-3 w-3 mr-1" />
+                        Quick Order
+                      </Badge>
+                    </div>
+                    <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <Sparkles className="h-6 w-6 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium text-lg">{fastQuotePayload.featuredItemName}</h4>
+                          <p className="text-2xl font-bold text-primary mt-1">
+                            {formatCurrency(parseFloat(fastQuotePayload.featuredItemPrice))}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      This customer selected a featured item from your Quick Order options. 
+                      Click "Quick Quote" above to create a quote with this item pre-filled.
+                    </p>
+                  </div>
+                )}
 
                 {payload && (
                   <div className="border-t pt-6 space-y-4">
