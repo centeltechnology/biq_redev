@@ -152,7 +152,7 @@ const faqs = [
     questions: [
       {
         q: "What plans are available?",
-        a: "BakerIQ offers three plans: Free (5 quotes per month), Basic ($9.97/month for 25 quotes), and Pro ($29.97/month for unlimited quotes). All plans include unlimited leads - you only pay based on how many quotes you send."
+        a: "BakerIQ offers three plans: Free (5 quotes per month), Basic ($9.97/month for 25 quotes), and Pro ($29.97/month for unlimited quotes plus Fast Quote). All plans include unlimited leads - you only pay based on how many quotes you send."
       },
       {
         q: "What counts toward my quote limit?",
@@ -165,6 +165,35 @@ const faqs = [
       {
         q: "Can I cancel or downgrade my subscription?",
         a: "Yes! Click 'Manage Subscription' in Settings to access the Stripe portal. You can cancel anytime, and your paid features will remain active until the end of your billing period."
+      }
+    ]
+  },
+  {
+    category: "Fast Quote (Pro Feature)",
+    questions: [
+      {
+        q: "What is Fast Quote?",
+        a: "Fast Quote is a Pro plan feature that lets you feature your pricing calculations on your public calculator. Customers can select a featured item and submit an inquiry in just a few clicks, skipping the full cake/treat builder."
+      },
+      {
+        q: "How do I feature an item?",
+        a: "Go to Price Calculator in your dashboard and save a pricing calculation. Then click the star icon next to any saved calculation to feature it. You can unfeature it anytime by clicking the star again."
+      },
+      {
+        q: "Where do featured items appear?",
+        a: "Featured items appear at the top of your public calculator page in a special 'Quick Order' section with a lightning bolt icon. Customers can click on any featured item to start a streamlined ordering process."
+      },
+      {
+        q: "How do Fast Quote leads work?",
+        a: "When a customer orders through Fast Quote, the lead appears in your dashboard with a special lightning bolt badge. You can click 'Quick Quote' to instantly create a quote with the featured item details pre-filled."
+      },
+      {
+        q: "Can I feature as many items as I want?",
+        a: "Yes! With the Pro plan, you can feature as many pricing calculations as you want. Consider featuring your most popular or signature items to streamline ordering for repeat customers."
+      },
+      {
+        q: "Why can't I feature items?",
+        a: "Fast Quote is a Pro plan exclusive feature. If you're on the Free or Basic plan, upgrade to Pro ($29.97/month) in Settings to unlock Fast Quote along with unlimited quotes."
       }
     ]
   },

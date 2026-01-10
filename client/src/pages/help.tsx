@@ -11,7 +11,8 @@ import {
   ArrowRight,
   MessageSquare,
   Mail,
-  BookOpen
+  BookOpen,
+  Zap
 } from "lucide-react";
 
 export default function HelpPage() {
@@ -189,6 +190,37 @@ export default function HelpPage() {
               </CardContent>
             </Card>
 
+            <Card className="hover-elevate border-primary/20">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Zap className="h-10 w-10 text-primary mb-2" />
+                  <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">Pro</span>
+                </div>
+                <CardTitle>Fast Quote</CardTitle>
+                <CardDescription>Quick ordering for popular items</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium">Feature Your Best Items</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Save a pricing calculation, then click the star to feature it on your public calculator.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Streamlined Customer Experience</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Customers can select featured items and submit in 3 clicks instead of building from scratch.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Quick Quote Creation</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Fast Quote leads show a special badge. Click "Quick Quote" to create a quote with the featured item pre-filled.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
             <Card className="hover-elevate">
               <CardHeader>
                 <Settings className="h-10 w-10 text-primary mb-2" />
@@ -295,7 +327,7 @@ export default function HelpPage() {
                 <div className="space-y-2">
                   <h4 className="font-medium">Pro - $29.97/month</h4>
                   <p className="text-sm text-muted-foreground">
-                    Unlimited quotes for busy professionals. Upgrade anytime in Settings.
+                    Unlimited quotes plus Fast Quote feature for busy professionals. Upgrade anytime in Settings.
                   </p>
                 </div>
               </CardContent>

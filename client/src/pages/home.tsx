@@ -12,7 +12,8 @@ import {
   ArrowRight,
   Sparkles,
   Clock,
-  DollarSign
+  DollarSign,
+  Zap
 } from "lucide-react";
 
 export default function HomePage() {
@@ -148,6 +149,20 @@ export default function HomePage() {
                 <CardContent>
                   <p className="text-muted-foreground">
                     Track your pipeline value, conversion rates, and upcoming orders from a single dashboard.
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="hover-elevate border-primary/20">
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-10 w-10 text-primary mb-2" />
+                    <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">Pro</span>
+                  </div>
+                  <CardTitle>Fast Quote</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    Feature your popular items on the public calculator. Customers order with just a few clicks and you create quotes instantly.
                   </p>
                 </CardContent>
               </Card>
