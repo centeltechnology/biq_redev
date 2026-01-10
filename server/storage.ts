@@ -26,7 +26,7 @@ import {
   type InsertPricingCalculation,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, gte, lte, sql, or, ilike } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql, or, ilike, isNull } from "drizzle-orm";
 
 export interface IStorage {
   // Bakers
@@ -117,6 +117,8 @@ export interface IStorage {
   getPricingCalculation(id: string): Promise<PricingCalculation | undefined>;
   getPricingCalculationsByBaker(bakerId: string): Promise<PricingCalculation[]>;
   searchPricingCalculations(bakerId: string, query: string): Promise<PricingCalculation[]>;
+  getFeaturedItemsByBaker(bakerId: string): Promise<PricingCalculation[]>;
+  getPublicFeaturedItems(slug: string): Promise<PricingCalculation[]>;
   createPricingCalculation(calculation: InsertPricingCalculation): Promise<PricingCalculation>;
   updatePricingCalculation(id: string, data: Partial<InsertPricingCalculation>): Promise<PricingCalculation | undefined>;
   deletePricingCalculation(id: string): Promise<void>;
@@ -712,6 +714,36 @@ export class DatabaseStorage implements IStorage {
           ilike(pricingCalculations.name, searchPattern),
           ilike(pricingCalculations.category, searchPattern),
           ilike(pricingCalculations.notes, searchPattern)
+        )
+      ))
+      .orderBy(desc(pricingCalculations.createdAt));
+  }
+
+  async getFeaturedItemsByBaker(bakerId: string): Promise<PricingCalculation[]> {
+    return db.select().from(pricingCalculations)
+      .where(and(
+        eq(pricingCalculations.bakerId, bakerId),
+        eq(pricingCalculations.isFeatured, true)
+      ))
+      .orderBy(desc(pricingCalculations.createdAt));
+  }
+
+  async getPublicFeaturedItems(slug: string): Promise<PricingCalculation[]> {
+    const baker = await this.getBakerBySlug(slug);
+    if (!baker) return [];
+    
+    const now = new Date();
+    return db.select().from(pricingCalculations)
+      .where(and(
+        eq(pricingCalculations.bakerId, baker.id),
+        eq(pricingCalculations.isFeatured, true),
+        or(
+          isNull(pricingCalculations.featuredStartDate),
+          lte(pricingCalculations.featuredStartDate, now)
+        ),
+        or(
+          isNull(pricingCalculations.featuredEndDate),
+          gte(pricingCalculations.featuredEndDate, now)
         )
       ))
       .orderBy(desc(pricingCalculations.createdAt));

@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, integer, decimal, date, timestamp, jsonb, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, decimal, date, timestamp, jsonb, uniqueIndex, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -242,6 +242,14 @@ export const pricingCalculations = pgTable("pricing_calculations", {
   appliedToItem: text("applied_to_item"), // e.g., "8-round" for cake size or "cupcakes-standard" for treat
   appliedToCategory: text("applied_to_category"), // "size", "treat", "addon", "delivery"
   notes: text("notes"),
+  // Featured Items (Fast Quote) - Pro plan feature
+  isFeatured: boolean("is_featured").default(false).notNull(),
+  featuredLabel: text("featured_label"), // Display label for public calculator (e.g., "Valentine's Special!")
+  featuredDescription: text("featured_description"), // Public description
+  featuredPrice: decimal("featured_price", { precision: 10, scale: 2 }), // Optional override price for featured item
+  featuredImageUrl: text("featured_image_url"), // Optional image URL
+  featuredStartDate: timestamp("featured_start_date"), // When to start showing
+  featuredEndDate: timestamp("featured_end_date"), // When to stop showing
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
