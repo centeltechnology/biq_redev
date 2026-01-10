@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Calculator, Save, Trash2, Plus, DollarSign, Clock, Package, Percent, Loader2, FileText, Star, StarOff, Sparkles } from "lucide-react";
+import { Calculator, Save, Trash2, Plus, DollarSign, Clock, Package, Percent, Loader2, FileText, Star, StarOff, Sparkles, Crown, Zap, CheckCircle } from "lucide-react";
 import { InstructionModal } from "@/components/instruction-modal";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
@@ -95,6 +95,7 @@ export default function PricingCalculatorPage() {
   const [selectedCalculation, setSelectedCalculation] = useState<PricingCalculation | null>(null);
   const [featureDialogOpen, setFeatureDialogOpen] = useState(false);
   const [itemToFeature, setItemToFeature] = useState<PricingCalculation | null>(null);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
 
   const form = useForm<CalculatorFormData>({
     resolver: zodResolver(calculatorSchema),
@@ -226,10 +227,7 @@ export default function PricingCalculatorPage() {
       featureMutation.mutate({ id: calc.id, isFeatured: false });
     } else {
       if (baker?.plan !== "pro") {
-        toast({
-          title: "Pro Feature",
-          description: "Fast Quote is available on the Pro plan. Upgrade to feature items on your public calculator.",
-        });
+        setShowUpgradeDialog(true);
         return;
       }
       setItemToFeature(calc);
@@ -697,6 +695,82 @@ export default function PricingCalculatorPage() {
                   Feature Item
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center justify-center mb-4">
+              <div className="p-3 rounded-full bg-primary/10">
+                <Crown className="h-8 w-8 text-primary" />
+              </div>
+            </div>
+            <DialogTitle className="text-center">
+              Upgrade to Pro for Fast Quote
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              Feature your best items on your public calculator and let customers order with just a few clicks.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-3">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-medium text-sm">Feature your pricing calculations</p>
+                  <p className="text-sm text-muted-foreground">Display your most popular items prominently</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-medium text-sm">Faster customer ordering</p>
+                  <p className="text-sm text-muted-foreground">Customers skip the builder for featured items</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-medium text-sm">Quick Quote creation</p>
+                  <p className="text-sm text-muted-foreground">Convert featured item leads to quotes instantly</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-medium text-sm">Unlimited quotes per month</p>
+                  <p className="text-sm text-muted-foreground">Pro plan includes unlimited quote sending</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="text-center pt-2">
+              <p className="text-2xl font-bold text-primary">$29.97<span className="text-sm font-normal text-muted-foreground">/month</span></p>
+            </div>
+          </div>
+          
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button 
+              className="w-full" 
+              onClick={() => {
+                setShowUpgradeDialog(false);
+                setLocation("/settings/subscription");
+              }}
+              data-testid="button-upgrade-to-pro"
+            >
+              <Crown className="h-4 w-4 mr-2" />
+              Upgrade to Pro
+            </Button>
+            <Button 
+              variant="ghost" 
+              className="w-full" 
+              onClick={() => setShowUpgradeDialog(false)}
+            >
+              Maybe Later
             </Button>
           </DialogFooter>
         </DialogContent>
