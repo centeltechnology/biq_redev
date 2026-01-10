@@ -1564,6 +1564,19 @@ function StepFastQuoteReview({ featuredItem, form }: StepFastQuoteReviewProps) {
           Final pricing will be confirmed in your custom quote
         </p>
       </div>
+
+      <div className="bg-muted/50 border rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <Mail className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-medium">What happens next?</p>
+            <p className="text-muted-foreground mt-1">
+              After you submit this order, we'll send you an invoice with payment options via email. 
+              Once payment is received, we'll confirm your order and get started!
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

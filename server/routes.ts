@@ -354,6 +354,7 @@ export async function registerRoutes(
         notifyQuoteViewed: z.number().min(0).max(1).optional(),
         notifyQuoteAccepted: z.number().min(0).max(1).optional(),
         calculatorConfig: z.any().optional(),
+        quickOrderItemLimit: z.number().min(1).max(100).optional().nullable(),
       });
 
       const data = schema.parse(req.body);
@@ -1250,7 +1251,18 @@ export async function registerRoutes(
   // Public endpoint to get featured items for a baker (Fast Quote)
   app.get("/api/public/featured-items/:slug", async (req, res) => {
     try {
-      const featuredItems = await storage.getPublicFeaturedItems(req.params.slug);
+      const baker = await storage.getBakerBySlug(req.params.slug);
+      if (!baker) {
+        return res.json([]);
+      }
+      
+      let featuredItems = await storage.getPublicFeaturedItems(req.params.slug);
+      
+      // Apply baker's display limit if set
+      if (baker.quickOrderItemLimit !== null && baker.quickOrderItemLimit !== undefined) {
+        featuredItems = featuredItems.slice(0, baker.quickOrderItemLimit);
+      }
+      
       // Return only public-safe fields
       const publicItems = featuredItems.map(item => ({
         id: item.id,

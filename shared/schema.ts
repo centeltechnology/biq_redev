@@ -39,6 +39,8 @@ export const bakers = pgTable("bakers", {
   notifyQuoteAccepted: integer("notify_quote_accepted").notNull().default(1),
   // Onboarding tour status: "pending", "completed", "skipped"
   onboardingTourStatus: text("onboarding_tour_status").notNull().default("pending"),
+  // Quick Order item limit (null = unlimited)
+  quickOrderItemLimit: integer("quick_order_item_limit"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -188,8 +188,8 @@ export default function PricingCalculatorPage() {
   });
 
   const featureMutation = useMutation({
-    mutationFn: async ({ id, isFeatured }: { id: string; isFeatured: boolean }) => {
-      const res = await apiRequest("POST", `/api/pricing-calculations/${id}/feature`, { isFeatured });
+    mutationFn: async ({ id, isFeatured, featuredPrice }: { id: string; isFeatured: boolean; featuredPrice?: string }) => {
+      const res = await apiRequest("POST", `/api/pricing-calculations/${id}/feature`, { isFeatured, featuredPrice });
       return res.json();
     },
     onSuccess: (_, { isFeatured }) => {
@@ -716,7 +716,11 @@ export default function PricingCalculatorPage() {
               Cancel
             </Button>
             <Button 
-              onClick={() => itemToFeature && featureMutation.mutate({ id: itemToFeature.id, isFeatured: true })}
+              onClick={() => itemToFeature && featureMutation.mutate({ 
+                id: itemToFeature.id, 
+                isFeatured: true,
+                featuredPrice: itemToFeature.suggestedPrice 
+              })}
               disabled={featureMutation.isPending}
               data-testid="button-confirm-feature"
             >

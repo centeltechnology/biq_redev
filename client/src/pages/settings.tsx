@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Copy, Check, Loader2, ExternalLink, CreditCard, Sparkles, Bell, HelpCircle } from "lucide-react";
+import { Copy, Check, Loader2, ExternalLink, CreditCard, Sparkles, Bell, HelpCircle, Zap } from "lucide-react";
 import { InstructionModal } from "@/components/instruction-modal";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -11,6 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Form,
   FormControl,
@@ -199,6 +201,17 @@ export default function SettingsPage() {
     },
   });
 
+  const updateQuickOrderLimitMutation = useMutation({
+    mutationFn: async (data: { limit: number | null }) => {
+      const res = await apiRequest("PATCH", "/api/bakers/me", { quickOrderItemLimit: data.limit });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
+      toast({ title: "Quick Order settings updated" });
+    },
+  });
+
   const restartTourMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("PATCH", "/api/baker/onboarding-tour", { status: "pending" });
@@ -283,9 +296,15 @@ export default function SettingsPage() {
           <CardContent className="space-y-4">
             {subscription?.plan === "pro" ? (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-sm">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <span>Unlimited quotes per month</span>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                    <span>Unlimited quotes per month</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-primary shrink-0" />
+                    <span>Unlimited Quick Order items</span>
+                  </div>
                 </div>
                 <Button 
                   variant="outline" 
@@ -298,9 +317,15 @@ export default function SettingsPage() {
               </div>
             ) : subscription?.plan === "basic" ? (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-sm">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <span>25 quotes per month</span>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                    <span>25 quotes per month</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-primary shrink-0" />
+                    <span>Up to 10 Quick Order items</span>
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <Button 
@@ -330,6 +355,7 @@ export default function SettingsPage() {
                     <h4 className="font-medium">Basic - $9.97/month</h4>
                     <ul className="text-sm text-muted-foreground mt-2 space-y-1">
                       <li>25 quotes per month</li>
+                      <li>Up to 10 Quick Order items</li>
                       <li>Unlimited leads</li>
                       <li>Cancel anytime</li>
                     </ul>
@@ -350,6 +376,7 @@ export default function SettingsPage() {
                     </h4>
                     <ul className="text-sm text-muted-foreground mt-2 space-y-1">
                       <li>Unlimited quotes</li>
+                      <li>Unlimited Quick Order items</li>
                       <li>Unlimited leads</li>
                       <li>Cancel anytime</li>
                     </ul>
@@ -793,6 +820,62 @@ export default function SettingsPage() {
                 data-testid="switch-notify-quote-accepted"
               />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5" />
+              Quick Order Settings
+            </CardTitle>
+            <CardDescription>
+              Configure how Quick Order works on your public calculator
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Item Display Limit</p>
+                <p className="text-sm text-muted-foreground">
+                  Control how many Quick Order items are shown to customers
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={baker?.quickOrderItemLimit === null || baker?.quickOrderItemLimit === undefined}
+                  onCheckedChange={(checked) => {
+                    updateQuickOrderLimitMutation.mutate({ limit: checked ? null : 8 });
+                  }}
+                  disabled={updateQuickOrderLimitMutation.isPending}
+                  data-testid="switch-quick-order-unlimited"
+                />
+                <span className="text-sm text-muted-foreground">Unlimited</span>
+              </div>
+            </div>
+            {baker?.quickOrderItemLimit !== null && baker?.quickOrderItemLimit !== undefined && (
+              <div className="flex items-center gap-4 pl-4 border-l-2 border-muted">
+                <Label htmlFor="quick-order-limit" className="text-sm">Show up to:</Label>
+                <Select
+                  value={String(baker.quickOrderItemLimit)}
+                  onValueChange={(value) => {
+                    updateQuickOrderLimitMutation.mutate({ limit: parseInt(value) });
+                  }}
+                >
+                  <SelectTrigger className="w-24" data-testid="select-quick-order-limit">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[4, 6, 8, 10, 12, 15, 20].map((num) => (
+                      <SelectItem key={num} value={String(num)}>{num} items</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              This only controls the display. Your plan determines how many items you can feature.
+            </p>
           </CardContent>
         </Card>
 
