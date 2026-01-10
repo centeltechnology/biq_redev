@@ -640,9 +640,11 @@ const ONBOARDING_EMAILS: OnboardingEmailData[] = [
         <li><strong>Delivery fees</strong> - Standard, rush, and setup service pricing</li>
       </ul>
       <p style="margin-top: 20px;">Customers will see estimates based on YOUR prices when they use your calculator.</p>
+      <h3 style="color: #E91E63; margin-top: 24px;">Need help calculating prices?</h3>
+      <p>Use our <strong>Price Calculator</strong> tool to figure out how much to charge based on your material costs, labor time, and desired profit margin. Find it in your dashboard sidebar!</p>
     `,
     ctaText: "Set Your Prices",
-    ctaUrl: "/calculator-pricing",
+    ctaUrl: "/pricing",
   },
   {
     day: 2,

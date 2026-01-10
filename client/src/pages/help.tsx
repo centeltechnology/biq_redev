@@ -163,6 +163,34 @@ export default function HelpPage() {
 
             <Card className="hover-elevate">
               <CardHeader>
+                <Calculator className="h-10 w-10 text-primary mb-2" />
+                <CardTitle>Price Calculator</CardTitle>
+                <CardDescription>Calculate cost-based pricing</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium">Cost-Based Pricing</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Enter your material costs, labor hours, hourly rate, and overhead to calculate suggested prices.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Save Calculations</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Save your calculations for reference when setting prices in Calculator Pricing.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Profit Margins</h4>
+                  <p className="text-sm text-muted-foreground">
+                    See your profit margin for each item to ensure your pricing covers costs and supports growth.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate">
+              <CardHeader>
                 <Settings className="h-10 w-10 text-primary mb-2" />
                 <CardTitle>Calculator Pricing</CardTitle>
                 <CardDescription>Customize your prices</CardDescription>

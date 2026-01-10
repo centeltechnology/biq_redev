@@ -72,6 +72,18 @@ const faqs = [
     category: "Pricing & Payments",
     questions: [
       {
+        q: "How do I figure out what to charge for my baked goods?",
+        a: "Use the Price Calculator in your dashboard. Enter your material costs, estimated labor time, hourly rate, and overhead percentage to get a suggested price. You can save calculations for reference and use them to set your public calculator prices."
+      },
+      {
+        q: "What is the Price Calculator?",
+        a: "The Price Calculator is an internal tool to help you determine fair prices. It calculates: Material Cost + (Labor Hours x Hourly Rate) + Overhead = Suggested Price. It also shows your profit margin so you can make informed pricing decisions."
+      },
+      {
+        q: "What hourly rate should I use?",
+        a: "Most home bakers charge between $20-35 per hour. Consider your skill level, local market rates, and the complexity of your work. The Price Calculator tool shows tips to help you decide."
+      },
+      {
         q: "How do I set up addons like dipped strawberries?",
         a: "Go to Calculator Pricing, scroll to the Addons section. You can set prices for pre-configured addons. Some addons like Dipped Strawberries have a flat price, while others like Full Sweets Table are priced per attendee."
       },

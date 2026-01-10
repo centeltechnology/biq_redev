@@ -23,6 +23,13 @@ const tourSteps: Step[] = [
     placement: "right",
   },
   {
+    target: '[data-testid="nav-price calculator"]',
+    content: "Need help figuring out what to charge? Use this tool to calculate prices based on your costs and desired profit.",
+    title: "Price Calculator",
+    disableBeacon: true,
+    placement: "right",
+  },
+  {
     target: '[data-testid="nav-leads"]',
     content: "When customers use your calculator and submit inquiries, they'll appear here as new leads.",
     title: "Manage Leads",
