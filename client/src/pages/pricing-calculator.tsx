@@ -3,8 +3,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Calculator, Save, Trash2, Plus, DollarSign, Clock, Package, Percent, Loader2, FileText } from "lucide-react";
+import { Calculator, Save, Trash2, Plus, DollarSign, Clock, Package, Percent, Loader2, FileText, Star, StarOff, Sparkles } from "lucide-react";
 import { InstructionModal } from "@/components/instruction-modal";
+import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,20 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -75,8 +90,11 @@ const CATEGORIES = [
 
 export default function PricingCalculatorPage() {
   const { toast } = useToast();
+  const { baker } = useAuth();
   const [, setLocation] = useLocation();
   const [selectedCalculation, setSelectedCalculation] = useState<PricingCalculation | null>(null);
+  const [featureDialogOpen, setFeatureDialogOpen] = useState(false);
+  const [itemToFeature, setItemToFeature] = useState<PricingCalculation | null>(null);
 
   const form = useForm<CalculatorFormData>({
     resolver: zodResolver(calculatorSchema),
@@ -167,6 +185,57 @@ export default function PricingCalculatorPage() {
       });
     },
   });
+
+  const featureMutation = useMutation({
+    mutationFn: async ({ id, isFeatured }: { id: string; isFeatured: boolean }) => {
+      const res = await apiRequest("POST", `/api/pricing-calculations/${id}/feature`, { isFeatured });
+      return res.json();
+    },
+    onSuccess: (_, { isFeatured }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/pricing-calculations"] });
+      toast({
+        title: isFeatured ? "Item featured" : "Item unfeatured",
+        description: isFeatured 
+          ? "This item will now appear on your public calculator."
+          : "This item has been removed from your public calculator.",
+      });
+      setFeatureDialogOpen(false);
+      setItemToFeature(null);
+    },
+    onError: (error: any) => {
+      const errorData = error?.message ? JSON.parse(error.message) : {};
+      if (errorData.requiresUpgrade) {
+        toast({
+          title: "Pro Feature",
+          description: "Fast Quote is available on the Pro plan. Upgrade to feature items on your public calculator.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to update featured status.",
+          variant: "destructive",
+        });
+      }
+      setFeatureDialogOpen(false);
+    },
+  });
+
+  const handleFeatureClick = (calc: PricingCalculation) => {
+    if (calc.isFeatured) {
+      featureMutation.mutate({ id: calc.id, isFeatured: false });
+    } else {
+      if (baker?.plan !== "pro") {
+        toast({
+          title: "Pro Feature",
+          description: "Fast Quote is available on the Pro plan. Upgrade to feature items on your public calculator.",
+        });
+        return;
+      }
+      setItemToFeature(calc);
+      setFeatureDialogOpen(true);
+    }
+  };
 
   const resetForm = () => {
     setSelectedCalculation(null);
@@ -511,7 +580,17 @@ export default function PricingCalculatorPage() {
                       className={selectedCalculation?.id === calc.id ? "bg-muted/50" : ""}
                       data-testid={`row-calculation-${calc.id}`}
                     >
-                      <TableCell className="font-medium">{calc.name}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {calc.name}
+                          {calc.isFeatured && (
+                            <Badge variant="secondary" className="text-xs">
+                              <Sparkles className="h-3 w-3 mr-1" />
+                              Featured
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="capitalize">
                         {CATEGORIES.find(c => c.value === calc.category)?.label || calc.category}
                       </TableCell>
@@ -522,6 +601,22 @@ export default function PricingCalculatorPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => handleFeatureClick(calc)}
+                                data-testid={`button-feature-${calc.id}`}
+                                className={calc.isFeatured ? "text-primary" : "text-muted-foreground"}
+                              >
+                                {calc.isFeatured ? <Star className="h-4 w-4 fill-current" /> : <StarOff className="h-4 w-4" />}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {calc.isFeatured ? "Remove from public calculator" : "Feature on public calculator (Pro)"}
+                            </TooltipContent>
+                          </Tooltip>
                           <Button 
                             variant="ghost" 
                             size="sm"
@@ -549,6 +644,63 @@ export default function PricingCalculatorPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={featureDialogOpen} onOpenChange={setFeatureDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Feature on Public Calculator
+            </DialogTitle>
+            <DialogDescription>
+              This item will appear on your public calculator for customers to select directly. 
+              They can submit an inquiry and you can send them a quote instantly.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {itemToFeature && (
+            <div className="space-y-4">
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <p className="font-medium">{itemToFeature.name}</p>
+                <p className="text-sm text-muted-foreground capitalize">
+                  {CATEGORIES.find(c => c.value === itemToFeature.category)?.label || itemToFeature.category}
+                </p>
+                <p className="text-lg font-semibold mt-2">
+                  {formatCurrency(parseFloat(itemToFeature.suggestedPrice))}
+                </p>
+              </div>
+              
+              <p className="text-sm text-muted-foreground">
+                The item will use its current name, description, and suggested price. 
+                Customers will see this on your public calculator page.
+              </p>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFeatureDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => itemToFeature && featureMutation.mutate({ id: itemToFeature.id, isFeatured: true })}
+              disabled={featureMutation.isPending}
+              data-testid="button-confirm-feature"
+            >
+              {featureMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Featuring...
+                </>
+              ) : (
+                <>
+                  <Star className="h-4 w-4 mr-2" />
+                  Feature Item
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
