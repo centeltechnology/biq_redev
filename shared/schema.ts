@@ -37,6 +37,8 @@ export const bakers = pgTable("bakers", {
   notifyNewLead: integer("notify_new_lead").notNull().default(1),
   notifyQuoteViewed: integer("notify_quote_viewed").notNull().default(1),
   notifyQuoteAccepted: integer("notify_quote_accepted").notNull().default(1),
+  // Onboarding tour status: "pending", "completed", "skipped"
+  onboardingTourStatus: text("onboarding_tour_status").notNull().default("pending"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
