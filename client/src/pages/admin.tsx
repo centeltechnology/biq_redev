@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Shield, CheckCircle, XCircle } from "lucide-react";
+import { Users, Shield, CheckCircle, XCircle, Crown, CreditCard } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -31,6 +31,20 @@ export default function AdminDashboard() {
     },
     onError: () => {
       toast({ title: "Failed to update role", variant: "destructive" });
+    },
+  });
+
+  const updatePlanMutation = useMutation({
+    mutationFn: async ({ id, plan }: { id: string; plan: string }) => {
+      return apiRequest("PATCH", `/api/admin/bakers/${id}`, { plan });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/bakers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      toast({ title: "Plan updated successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update plan", variant: "destructive" });
     },
   });
 
@@ -92,6 +106,7 @@ export default function AdminDashboard() {
                   <TableHead>Email</TableHead>
                   <TableHead>Slug</TableHead>
                   <TableHead>Verified</TableHead>
+                  <TableHead>Plan</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Joined</TableHead>
                 </TableRow>
@@ -112,6 +127,31 @@ export default function AdminDashboard() {
                       ) : (
                         <XCircle className="h-4 w-4 text-muted-foreground" />
                       )}
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={baker.plan || "free"}
+                        onValueChange={(value) => updatePlanMutation.mutate({ id: baker.id, plan: value })}
+                        disabled={updatePlanMutation.isPending}
+                      >
+                        <SelectTrigger className="w-28" data-testid={`select-plan-${baker.id}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="free">
+                            <span className="flex items-center gap-1">Free</span>
+                          </SelectItem>
+                          <SelectItem value="basic">
+                            <span className="flex items-center gap-1">Basic</span>
+                          </SelectItem>
+                          <SelectItem value="pro">
+                            <span className="flex items-center gap-1">
+                              <Crown className="h-3 w-3 text-primary" />
+                              Pro
+                            </span>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                     <TableCell>
                       <Select

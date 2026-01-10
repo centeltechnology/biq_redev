@@ -1574,6 +1574,7 @@ export async function registerRoutes(
         role: z.enum(["baker", "super_admin"]).optional(),
         businessName: z.string().optional(),
         email: z.string().email().optional(),
+        plan: z.enum(["free", "basic", "pro"]).optional(),
       });
       const data = schema.parse(req.body);
       
