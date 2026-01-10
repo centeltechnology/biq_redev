@@ -26,7 +26,7 @@ import {
   type InsertPricingCalculation,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql, or, ilike } from "drizzle-orm";
 
 export interface IStorage {
   // Bakers
@@ -116,6 +116,7 @@ export interface IStorage {
   // Pricing Calculations
   getPricingCalculation(id: string): Promise<PricingCalculation | undefined>;
   getPricingCalculationsByBaker(bakerId: string): Promise<PricingCalculation[]>;
+  searchPricingCalculations(bakerId: string, query: string): Promise<PricingCalculation[]>;
   createPricingCalculation(calculation: InsertPricingCalculation): Promise<PricingCalculation>;
   updatePricingCalculation(id: string, data: Partial<InsertPricingCalculation>): Promise<PricingCalculation | undefined>;
   deletePricingCalculation(id: string): Promise<void>;
@@ -699,6 +700,20 @@ export class DatabaseStorage implements IStorage {
   async getPricingCalculationsByBaker(bakerId: string): Promise<PricingCalculation[]> {
     return db.select().from(pricingCalculations)
       .where(eq(pricingCalculations.bakerId, bakerId))
+      .orderBy(desc(pricingCalculations.createdAt));
+  }
+
+  async searchPricingCalculations(bakerId: string, query: string): Promise<PricingCalculation[]> {
+    const searchPattern = `%${query.toLowerCase()}%`;
+    return db.select().from(pricingCalculations)
+      .where(and(
+        eq(pricingCalculations.bakerId, bakerId),
+        or(
+          ilike(pricingCalculations.name, searchPattern),
+          ilike(pricingCalculations.category, searchPattern),
+          ilike(pricingCalculations.notes, searchPattern)
+        )
+      ))
       .orderBy(desc(pricingCalculations.createdAt));
   }
 

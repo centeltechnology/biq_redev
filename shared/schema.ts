@@ -186,6 +186,8 @@ export const quoteItems = pgTable("quote_items", {
   totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
   category: text("category").notNull().default("other"),
   sortOrder: integer("sort_order").notNull().default(0),
+  pricingCalculationId: varchar("pricing_calculation_id"),
+  pricingSnapshot: jsonb("pricing_snapshot"),
 });
 
 export const quoteItemsRelations = relations(quoteItems, ({ one }) => ({

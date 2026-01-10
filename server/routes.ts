@@ -1054,6 +1054,19 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/pricing-calculations/search", requireAuth, async (req, res) => {
+    try {
+      const query = (req.query.q as string) || "";
+      const calculations = query.trim() 
+        ? await storage.searchPricingCalculations(req.session.bakerId!, query)
+        : await storage.getPricingCalculationsByBaker(req.session.bakerId!);
+      res.json(calculations);
+    } catch (error) {
+      console.error("Error searching pricing calculations:", error);
+      res.status(500).json({ message: "Failed to search pricing calculations" });
+    }
+  });
+
   app.get("/api/pricing-calculations/:id", requireAuth, async (req, res) => {
     try {
       const calculation = await storage.getPricingCalculation(req.params.id);
