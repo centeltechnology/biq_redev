@@ -8,6 +8,7 @@ import {
   passwordResetTokens,
   emailVerificationTokens,
   bakerOnboardingEmails,
+  pricingCalculations,
   type Baker,
   type InsertBaker,
   type Customer,
@@ -21,6 +22,8 @@ import {
   type Order,
   type InsertOrder,
   type BakerOnboardingEmail,
+  type PricingCalculation,
+  type InsertPricingCalculation,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
@@ -109,6 +112,13 @@ export interface IStorage {
   hasOnboardingEmailBeenSent(bakerId: string, emailDay: number): Promise<boolean>;
   recordOnboardingEmail(bakerId: string, emailDay: number, status: string, error?: string): Promise<void>;
   getBakersForOnboardingEmails(targetDay: number): Promise<Baker[]>;
+
+  // Pricing Calculations
+  getPricingCalculation(id: string): Promise<PricingCalculation | undefined>;
+  getPricingCalculationsByBaker(bakerId: string): Promise<PricingCalculation[]>;
+  createPricingCalculation(calculation: InsertPricingCalculation): Promise<PricingCalculation>;
+  updatePricingCalculation(id: string, data: Partial<InsertPricingCalculation>): Promise<PricingCalculation | undefined>;
+  deletePricingCalculation(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -678,6 +688,35 @@ export class DatabaseStorage implements IStorage {
       )
     );
     return !!result;
+  }
+
+  // Pricing Calculations
+  async getPricingCalculation(id: string): Promise<PricingCalculation | undefined> {
+    const [calculation] = await db.select().from(pricingCalculations).where(eq(pricingCalculations.id, id));
+    return calculation || undefined;
+  }
+
+  async getPricingCalculationsByBaker(bakerId: string): Promise<PricingCalculation[]> {
+    return db.select().from(pricingCalculations)
+      .where(eq(pricingCalculations.bakerId, bakerId))
+      .orderBy(desc(pricingCalculations.createdAt));
+  }
+
+  async createPricingCalculation(calculation: InsertPricingCalculation): Promise<PricingCalculation> {
+    const [created] = await db.insert(pricingCalculations).values(calculation).returning();
+    return created;
+  }
+
+  async updatePricingCalculation(id: string, data: Partial<InsertPricingCalculation>): Promise<PricingCalculation | undefined> {
+    const [updated] = await db.update(pricingCalculations)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(pricingCalculations.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deletePricingCalculation(id: string): Promise<void> {
+    await db.delete(pricingCalculations).where(eq(pricingCalculations.id, id));
   }
 }
 

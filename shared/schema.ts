@@ -226,6 +226,31 @@ export const ordersRelations = relations(orders, ({ one }) => ({
   }),
 }));
 
+// Pricing Calculations table - for bakers to calculate and track their cost-based pricing
+export const pricingCalculations = pgTable("pricing_calculations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  bakerId: varchar("baker_id").notNull().references(() => bakers.id),
+  name: text("name").notNull(),
+  category: text("category").notNull(), // "cake", "treat", "addon", "delivery"
+  materialCost: decimal("material_cost", { precision: 10, scale: 2 }).notNull(),
+  laborHours: decimal("labor_hours", { precision: 5, scale: 2 }).notNull(),
+  hourlyRate: decimal("hourly_rate", { precision: 10, scale: 2 }).notNull(),
+  overheadPercent: decimal("overhead_percent", { precision: 5, scale: 2 }).notNull().default("15"),
+  suggestedPrice: decimal("suggested_price", { precision: 10, scale: 2 }).notNull(),
+  appliedToItem: text("applied_to_item"), // e.g., "8-round" for cake size or "cupcakes-standard" for treat
+  appliedToCategory: text("applied_to_category"), // "size", "treat", "addon", "delivery"
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const pricingCalculationsRelations = relations(pricingCalculations, ({ one }) => ({
+  baker: one(bakers, {
+    fields: [pricingCalculations.bakerId],
+    references: [bakers.id],
+  }),
+}));
+
 // Insert Schemas
 export const insertBakerSchema = createInsertSchema(bakers).omit({
   id: true,
@@ -257,6 +282,12 @@ export const insertOrderSchema = createInsertSchema(orders).omit({
   createdAt: true,
 });
 
+export const insertPricingCalculationSchema = createInsertSchema(pricingCalculations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type Baker = typeof bakers.$inferSelect;
 export type InsertBaker = z.infer<typeof insertBakerSchema>;
@@ -270,6 +301,8 @@ export type QuoteItem = typeof quoteItems.$inferSelect;
 export type InsertQuoteItem = z.infer<typeof insertQuoteItemSchema>;
 export type Order = typeof orders.$inferSelect;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
+export type PricingCalculation = typeof pricingCalculations.$inferSelect;
+export type InsertPricingCalculation = z.infer<typeof insertPricingCalculationSchema>;
 
 // Calculator Configuration Types
 export interface CalculatorConfig {
