@@ -1156,7 +1156,7 @@ export async function registerRoutes(
     }
   });
 
-  // Feature/Unfeature a pricing calculation (Pro plan only)
+  // Feature/Unfeature a pricing calculation (Basic/Pro plans)
   app.post("/api/pricing-calculations/:id/feature", requireAuth, async (req, res) => {
     try {
       const baker = await storage.getBaker(req.session.bakerId!);
@@ -1164,10 +1164,10 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Unauthorized" });
       }
       
-      // Check if baker is on Pro plan
-      if (baker.plan !== "pro") {
+      // Check if baker is on a paid plan (Basic or Pro)
+      if (!baker.plan || baker.plan === "free") {
         return res.status(403).json({ 
-          message: "Fast Quote is a Pro plan feature. Upgrade to feature items on your public calculator.",
+          message: "Fast Quote is available on paid plans. Upgrade to Basic or Pro to feature items on your public calculator.",
           requiresUpgrade: true
         });
       }
@@ -1185,6 +1185,21 @@ export async function registerRoutes(
         featuredStartDate,
         featuredEndDate
       } = req.body;
+      
+      // Check featured item limit for Basic plan (10 items)
+      if (baker.plan === "basic" && (isFeatured ?? true)) {
+        const featuredItems = await storage.getFeaturedItemsByBaker(baker.id);
+        // Don't count the current item if it's already featured
+        const currentFeaturedCount = featuredItems.filter(item => item.id !== calculation.id).length;
+        if (currentFeaturedCount >= 10) {
+          return res.status(403).json({ 
+            message: "You've reached the 10 featured item limit on the Basic plan. Upgrade to Pro for unlimited featured items.",
+            limitReached: true,
+            currentCount: currentFeaturedCount,
+            limit: 10
+          });
+        }
+      }
       
       const updated = await storage.updatePricingCalculation(req.params.id, {
         isFeatured: isFeatured ?? true,

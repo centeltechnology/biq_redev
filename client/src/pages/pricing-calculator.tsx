@@ -207,8 +207,14 @@ export default function PricingCalculatorPage() {
       const errorData = error?.message ? JSON.parse(error.message) : {};
       if (errorData.requiresUpgrade) {
         toast({
-          title: "Pro Feature",
-          description: "Fast Quote is available on the Pro plan. Upgrade to feature items on your public calculator.",
+          title: "Upgrade Required",
+          description: "Fast Quote is available on Basic and Pro plans. Upgrade to feature items on your public calculator.",
+          variant: "destructive",
+        });
+      } else if (errorData.limitReached) {
+        toast({
+          title: "Featured Item Limit Reached",
+          description: "You've reached the 10 featured item limit on the Basic plan. Upgrade to Pro for unlimited featured items.",
           variant: "destructive",
         });
       } else {
@@ -222,12 +228,26 @@ export default function PricingCalculatorPage() {
     },
   });
 
+  const featuredCount = useMemo(() => {
+    return savedCalculations.filter(c => c.isFeatured).length;
+  }, [savedCalculations]);
+
   const handleFeatureClick = (calc: PricingCalculation) => {
     if (calc.isFeatured) {
       featureMutation.mutate({ id: calc.id, isFeatured: false });
     } else {
-      if (baker?.plan !== "pro") {
+      // Free plan cannot feature any items
+      if (!baker?.plan || baker.plan === "free") {
         setShowUpgradeDialog(true);
+        return;
+      }
+      // Basic plan has a 10 item limit
+      if (baker.plan === "basic" && featuredCount >= 10) {
+        toast({
+          title: "Featured Item Limit Reached",
+          description: "You've reached the 10 featured item limit on the Basic plan. Upgrade to Pro for unlimited featured items.",
+          variant: "destructive",
+        });
         return;
       }
       setItemToFeature(calc);
@@ -543,10 +563,26 @@ export default function PricingCalculatorPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Saved Calculations</CardTitle>
-            <CardDescription>
-              Reference your past calculations to maintain consistent pricing
-            </CardDescription>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <CardTitle>Saved Calculations</CardTitle>
+                <CardDescription>
+                  Reference your past calculations to maintain consistent pricing
+                </CardDescription>
+              </div>
+              {baker?.plan === "basic" && featuredCount > 0 && (
+                <Badge variant="outline" className="shrink-0">
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  {featuredCount}/10 Featured
+                </Badge>
+              )}
+              {baker?.plan === "pro" && featuredCount > 0 && (
+                <Badge variant="outline" className="shrink-0 border-primary/30 text-primary">
+                  <Crown className="h-3 w-3 mr-1" />
+                  {featuredCount} Featured
+                </Badge>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -705,11 +741,11 @@ export default function PricingCalculatorPage() {
           <DialogHeader>
             <div className="flex items-center justify-center mb-4">
               <div className="p-3 rounded-full bg-primary/10">
-                <Crown className="h-8 w-8 text-primary" />
+                <Zap className="h-8 w-8 text-primary" />
               </div>
             </div>
             <DialogTitle className="text-center">
-              Upgrade to Pro for Fast Quote
+              Unlock Fast Quote
             </DialogTitle>
             <DialogDescription className="text-center">
               Feature your best items on your public calculator and let customers order with just a few clicks.
@@ -739,17 +775,26 @@ export default function PricingCalculatorPage() {
                   <p className="text-sm text-muted-foreground">Convert featured item leads to quotes instantly</p>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-medium text-sm">Unlimited quotes per month</p>
-                  <p className="text-sm text-muted-foreground">Pro plan includes unlimited quote sending</p>
-                </div>
-              </div>
             </div>
             
-            <div className="text-center pt-2">
-              <p className="text-2xl font-bold text-primary">$29.97<span className="text-sm font-normal text-muted-foreground">/month</span></p>
+            <div className="grid gap-3 pt-2">
+              <div className="border rounded-lg p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">Basic Plan</span>
+                  <span className="text-primary font-bold">$9.97<span className="text-sm font-normal text-muted-foreground">/mo</span></span>
+                </div>
+                <p className="text-sm text-muted-foreground">Up to 10 featured items + 25 quotes/month</p>
+              </div>
+              <div className="border border-primary rounded-lg p-4 space-y-2 bg-primary/5">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium flex items-center gap-1">
+                    <Crown className="h-4 w-4 text-primary" />
+                    Pro Plan
+                  </span>
+                  <span className="text-primary font-bold">$29.97<span className="text-sm font-normal text-muted-foreground">/mo</span></span>
+                </div>
+                <p className="text-sm text-muted-foreground">Unlimited featured items + unlimited quotes</p>
+              </div>
             </div>
           </div>
           
@@ -760,10 +805,9 @@ export default function PricingCalculatorPage() {
                 setShowUpgradeDialog(false);
                 setLocation("/settings/subscription");
               }}
-              data-testid="button-upgrade-to-pro"
+              data-testid="button-upgrade-to-paid"
             >
-              <Crown className="h-4 w-4 mr-2" />
-              Upgrade to Pro
+              View Plans
             </Button>
             <Button 
               variant="ghost" 

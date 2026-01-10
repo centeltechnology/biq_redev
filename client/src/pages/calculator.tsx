@@ -738,11 +738,12 @@ interface StepCategoryProps {
 }
 
 function StepCategory({ onSelect, featuredItems = [], onSelectFeaturedItem }: StepCategoryProps) {
-  const formatCurrency = (value: string) => {
+  const formatCurrency = (value: string | null) => {
+    const num = parseFloat(value || "0") || 0;
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
-    }).format(parseFloat(value));
+    }).format(num);
   };
 
   const getCategoryLabel = (category: string) => {
@@ -1556,7 +1557,7 @@ function StepFastQuoteReview({ featuredItem, form }: StepFastQuoteReviewProps) {
         <div className="flex items-center justify-between text-lg font-semibold">
           <span>Estimated Total</span>
           <span className="text-primary">
-            {formatCurrency(parseFloat(featuredItem.featuredPrice || featuredItem.suggestedPrice))}
+            {formatCurrency(parseFloat(featuredItem.featuredPrice || featuredItem.suggestedPrice) || 0)}
           </span>
         </div>
         <p className="text-xs text-muted-foreground mt-1">

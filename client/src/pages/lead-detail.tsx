@@ -221,7 +221,7 @@ export default function LeadDetailPage() {
                         <div className="flex-1">
                           <h4 className="font-medium text-lg">{fastQuotePayload.featuredItemName}</h4>
                           <p className="text-2xl font-bold text-primary mt-1">
-                            {formatCurrency(parseFloat(fastQuotePayload.featuredItemPrice))}
+                            {formatCurrency(parseFloat(fastQuotePayload.featuredItemPrice) || 0)}
                           </p>
                         </div>
                       </div>
