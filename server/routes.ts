@@ -1156,6 +1156,63 @@ export async function registerRoutes(
     }
   });
 
+  // Feature/Unfeature a pricing calculation (Pro plan only)
+  app.post("/api/pricing-calculations/:id/feature", requireAuth, async (req, res) => {
+    try {
+      const baker = await storage.getBaker(req.session.bakerId!);
+      if (!baker) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Check if baker is on Pro plan
+      if (baker.plan !== "pro") {
+        return res.status(403).json({ 
+          message: "Fast Quote is a Pro plan feature. Upgrade to feature items on your public calculator.",
+          requiresUpgrade: true
+        });
+      }
+      
+      const calculation = await storage.getPricingCalculation(req.params.id);
+      if (!calculation || calculation.bakerId !== req.session.bakerId) {
+        return res.status(404).json({ message: "Calculation not found" });
+      }
+      
+      const { 
+        isFeatured, 
+        featuredLabel, 
+        featuredDescription, 
+        featuredPrice,
+        featuredStartDate,
+        featuredEndDate
+      } = req.body;
+      
+      const updated = await storage.updatePricingCalculation(req.params.id, {
+        isFeatured: isFeatured ?? true,
+        featuredLabel: featuredLabel || calculation.name,
+        featuredDescription: featuredDescription || calculation.notes,
+        featuredPrice: featuredPrice || calculation.suggestedPrice,
+        featuredStartDate: featuredStartDate ? new Date(featuredStartDate) : null,
+        featuredEndDate: featuredEndDate ? new Date(featuredEndDate) : null,
+      });
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error featuring pricing calculation:", error);
+      res.status(500).json({ message: "Failed to feature pricing calculation" });
+    }
+  });
+
+  // Get featured items for baker (authenticated)
+  app.get("/api/pricing-calculations/featured", requireAuth, async (req, res) => {
+    try {
+      const calculations = await storage.getFeaturedItemsByBaker(req.session.bakerId!);
+      res.json(calculations);
+    } catch (error) {
+      console.error("Error getting featured calculations:", error);
+      res.status(500).json({ message: "Failed to get featured calculations" });
+    }
+  });
+
   // Public Routes
   app.get("/api/public/baker/:slug", async (req, res) => {
     const baker = await storage.getBakerBySlug(req.params.slug);
@@ -1173,6 +1230,26 @@ export async function registerRoutes(
       socialTiktok: baker.socialTiktok,
       socialPinterest: baker.socialPinterest,
     });
+  });
+
+  // Public endpoint to get featured items for a baker (Fast Quote)
+  app.get("/api/public/featured-items/:slug", async (req, res) => {
+    try {
+      const featuredItems = await storage.getPublicFeaturedItems(req.params.slug);
+      // Return only public-safe fields
+      const publicItems = featuredItems.map(item => ({
+        id: item.id,
+        name: item.featuredLabel || item.name,
+        description: item.featuredDescription || item.notes,
+        category: item.category,
+        price: item.featuredPrice || item.suggestedPrice,
+        imageUrl: item.featuredImageUrl,
+      }));
+      res.json(publicItems);
+    } catch (error) {
+      console.error("Error getting featured items:", error);
+      res.status(500).json({ message: "Failed to get featured items" });
+    }
   });
 
   app.get("/api/public/quote/:id", async (req, res) => {
