@@ -21,6 +21,8 @@ import {
   MessageSquare,
   MapPin,
   CheckCircle2,
+  Sparkles,
+  Zap,
 } from "lucide-react";
 import { SiFacebook, SiInstagram, SiTiktok, SiPinterest } from "react-icons/si";
 import { Button } from "@/components/ui/button";
@@ -128,13 +130,35 @@ export default function CalculatorPage() {
   const [submitted, setSubmitted] = useState(false);
   const [leadLimitReached, setLeadLimitReached] = useState(false);
 
+  interface FeaturedItem {
+    id: string;
+    name: string;
+    category: string;
+    suggestedPrice: string;
+    notes: string | null;
+    featuredLabel: string | null;
+    featuredDescription: string | null;
+    featuredPrice: string | null;
+  }
+
+  const [selectedFeaturedItem, setSelectedFeaturedItem] = useState<FeaturedItem | null>(null);
+  const [fastQuoteMode, setFastQuoteMode] = useState(false);
+
+  const FAST_QUOTE_STEPS = ["Choose Category", "Contact Info", "Review"];
+  
   const STEPS = useMemo(() => {
+    if (fastQuoteMode && selectedFeaturedItem) return FAST_QUOTE_STEPS;
     if (!category) return ["Choose Category"];
     return category === "cake" ? CAKE_STEPS : TREAT_STEPS;
-  }, [category]);
+  }, [category, fastQuoteMode, selectedFeaturedItem]);
 
   const { data: baker, isLoading: isLoadingBaker, error } = useQuery<Baker>({
     queryKey: ["/api/public/baker", slug],
+    enabled: !!slug,
+  });
+
+  const { data: featuredItems = [] } = useQuery<FeaturedItem[]>({
+    queryKey: ["/api/public/featured-items", slug],
     enabled: !!slug,
   });
 
@@ -175,12 +199,26 @@ export default function CalculatorPage() {
 
   const submitMutation = useMutation({
     mutationFn: async (data: ContactFormData) => {
-      const submitPayload: CalculatorPayload = {
-        ...payload,
-        deliveryAddress: data.deliveryAddress,
-        specialRequests: data.specialRequests,
-      };
-      const submitTotals = calculateTotal(submitPayload, bakerConfig);
+      let submitPayload: CalculatorPayload | { fastQuote: true; featuredItemId: string; featuredItemName: string; featuredItemPrice: string };
+      let estimatedTotal: string;
+
+      if (fastQuoteMode && selectedFeaturedItem) {
+        submitPayload = {
+          fastQuote: true,
+          featuredItemId: selectedFeaturedItem.id,
+          featuredItemName: selectedFeaturedItem.featuredLabel || selectedFeaturedItem.name,
+          featuredItemPrice: selectedFeaturedItem.featuredPrice || selectedFeaturedItem.suggestedPrice,
+        };
+        estimatedTotal = selectedFeaturedItem.featuredPrice || selectedFeaturedItem.suggestedPrice;
+      } else {
+        submitPayload = {
+          ...payload,
+          deliveryAddress: data.deliveryAddress,
+          specialRequests: data.specialRequests,
+        };
+        const submitTotals = calculateTotal(submitPayload as CalculatorPayload, bakerConfig);
+        estimatedTotal = submitTotals.total.toFixed(2);
+      }
 
       const res = await apiRequest("POST", `/api/public/calculator/submit?tenant=${slug}`, {
         customerName: data.name,
@@ -190,7 +228,7 @@ export default function CalculatorPage() {
         eventDate: data.eventDate || null,
         guestCount: data.guestCount ? parseInt(data.guestCount) : null,
         calculatorPayload: submitPayload,
-        estimatedTotal: submitTotals.total.toFixed(2),
+        estimatedTotal,
       });
       if (!res.ok) {
         const errorData = await res.json();
@@ -286,7 +324,16 @@ export default function CalculatorPage() {
   };
 
   const handleCategorySelect = (selectedCategory: "cake" | "treat") => {
+    setFastQuoteMode(false);
+    setSelectedFeaturedItem(null);
     setCategory(selectedCategory);
+    setCurrentStep(1);
+  };
+
+  const handleFeaturedItemSelect = (item: FeaturedItem) => {
+    setSelectedFeaturedItem(item);
+    setFastQuoteMode(true);
+    setCategory(undefined);
     setCurrentStep(1);
   };
 
@@ -318,7 +365,13 @@ export default function CalculatorPage() {
     
     switch (stepName) {
       case "Choose Category":
-        return <StepCategory onSelect={handleCategorySelect} />;
+        return (
+          <StepCategory 
+            onSelect={handleCategorySelect} 
+            featuredItems={featuredItems}
+            onSelectFeaturedItem={handleFeaturedItemSelect}
+          />
+        );
       case "Build Your Cake":
         return (
           <StepCakeBuilder
@@ -368,6 +421,14 @@ export default function CalculatorPage() {
       case "Contact Info":
         return <StepContactInfo form={form} />;
       case "Review":
+        if (fastQuoteMode && selectedFeaturedItem) {
+          return (
+            <StepFastQuoteReview
+              featuredItem={selectedFeaturedItem}
+              form={form}
+            />
+          );
+        }
         return (
           <StepReview
             category={category}
@@ -659,16 +720,106 @@ export default function CalculatorPage() {
   );
 }
 
-interface StepCategoryProps {
-  onSelect: (category: "cake" | "treat") => void;
+interface FeaturedItemType {
+  id: string;
+  name: string;
+  category: string;
+  suggestedPrice: string;
+  notes: string | null;
+  featuredLabel: string | null;
+  featuredDescription: string | null;
+  featuredPrice: string | null;
 }
 
-function StepCategory({ onSelect }: StepCategoryProps) {
+interface StepCategoryProps {
+  onSelect: (category: "cake" | "treat") => void;
+  featuredItems?: FeaturedItemType[];
+  onSelectFeaturedItem?: (item: FeaturedItemType) => void;
+}
+
+function StepCategory({ onSelect, featuredItems = [], onSelectFeaturedItem }: StepCategoryProps) {
+  const formatCurrency = (value: string) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(parseFloat(value));
+  };
+
+  const getCategoryLabel = (category: string) => {
+    const labels: Record<string, string> = {
+      cake: "Cake",
+      cupcakes: "Cupcakes",
+      cake_pops: "Cake Pops",
+      cookies: "Cookies",
+      brownies: "Brownies",
+      dipped_strawberries: "Dipped Strawberries",
+      custom: "Custom Item",
+    };
+    return labels[category] || category;
+  };
+
   return (
-    <div className="space-y-4">
-      <p className="text-center text-muted-foreground mb-6">
-        What would you like to order today?
-      </p>
+    <div className="space-y-6">
+      {featuredItems.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 justify-center">
+            <Zap className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold">Quick Order</h3>
+          </div>
+          <p className="text-center text-muted-foreground text-sm">
+            Select a popular item for a faster quote
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {featuredItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => onSelectFeaturedItem?.(item)}
+                className="p-4 border rounded-lg text-left hover-elevate cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-primary bg-primary/5 border-primary/20"
+                data-testid={`button-featured-${item.id}`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-sm line-clamp-1">
+                      {item.featuredLabel || item.name}
+                    </h4>
+                    <p className="text-xs text-muted-foreground capitalize">
+                      {getCategoryLabel(item.category)}
+                    </p>
+                    <p className="text-primary font-semibold mt-1">
+                      {formatCurrency(item.featuredPrice || item.suggestedPrice)}
+                    </p>
+                    {item.featuredDescription && (
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        {item.featuredDescription}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+          <div className="relative py-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                or customize your order
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!featuredItems.length && (
+        <p className="text-center text-muted-foreground mb-6">
+          What would you like to order today?
+        </p>
+      )}
+      
       <div className="grid gap-4 sm:grid-cols-2">
         <button
           onClick={() => onSelect("cake")}
@@ -1315,6 +1466,104 @@ function StepContactInfo({ form }: StepContactInfoProps) {
         />
       </div>
     </Form>
+  );
+}
+
+interface StepFastQuoteReviewProps {
+  featuredItem: FeaturedItemType;
+  form: ReturnType<typeof useForm<ContactFormData>>;
+}
+
+function StepFastQuoteReview({ featuredItem, form }: StepFastQuoteReviewProps) {
+  const values = form.watch();
+  
+  const getCategoryLabel = (category: string) => {
+    const labels: Record<string, string> = {
+      cake: "Cake",
+      cupcakes: "Cupcakes",
+      cake_pops: "Cake Pops",
+      cookies: "Cookies",
+      brownies: "Brownies",
+      dipped_strawberries: "Dipped Strawberries",
+      custom: "Custom Item",
+    };
+    return labels[category] || category;
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Zap className="h-5 w-5 text-primary" />
+          <h3 className="font-semibold">Quick Order Summary</h3>
+        </div>
+        <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+          <div className="flex items-start gap-3">
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <Sparkles className="h-6 w-6 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-medium text-lg">{featuredItem.featuredLabel || featuredItem.name}</h4>
+              <p className="text-sm text-muted-foreground capitalize">{getCategoryLabel(featuredItem.category)}</p>
+              {featuredItem.featuredDescription && (
+                <p className="text-sm text-muted-foreground mt-1">{featuredItem.featuredDescription}</p>
+              )}
+              {featuredItem.notes && !featuredItem.featuredDescription && (
+                <p className="text-sm text-muted-foreground mt-1">{featuredItem.notes}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="font-semibold mb-3">Contact Information</h3>
+        <div className="space-y-2 text-sm">
+          <div className="flex gap-2">
+            <User className="h-4 w-4 text-muted-foreground mt-0.5" />
+            <span>{values.name}</span>
+          </div>
+          <div className="flex gap-2">
+            <Mail className="h-4 w-4 text-muted-foreground mt-0.5" />
+            <span>{values.email}</span>
+          </div>
+          <div className="flex gap-2">
+            <Phone className="h-4 w-4 text-muted-foreground mt-0.5" />
+            <span>{values.phone}</span>
+          </div>
+          {values.eventType && (
+            <div className="flex gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
+              <span>{values.eventType}{values.eventDate ? ` on ${values.eventDate}` : ""}</span>
+            </div>
+          )}
+          {values.deliveryAddress && (
+            <div className="flex gap-2">
+              <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+              <span>{values.deliveryAddress}</span>
+            </div>
+          )}
+          {values.specialRequests && (
+            <div className="flex gap-2">
+              <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5" />
+              <span>{values.specialRequests}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="border-t pt-4">
+        <div className="flex items-center justify-between text-lg font-semibold">
+          <span>Estimated Total</span>
+          <span className="text-primary">
+            {formatCurrency(parseFloat(featuredItem.featuredPrice || featuredItem.suggestedPrice))}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">
+          Final pricing will be confirmed in your custom quote
+        </p>
+      </div>
+    </div>
   );
 }
 
