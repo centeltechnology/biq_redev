@@ -165,8 +165,13 @@ export default function QuoteBuilderPage() {
   });
 
   const { data: preloadedCalc } = useQuery<PricingCalculation>({
-    queryKey: ["/api/pricing-calculations", calcIdFromUrl],
-    enabled: !!calcIdFromUrl,
+    queryKey: ["/api/pricing-calculations", calcIdFromUrl!],
+    queryFn: async () => {
+      const res = await fetch(`/api/pricing-calculations/${calcIdFromUrl}`);
+      if (!res.ok) throw new Error("Failed to fetch pricing calculation");
+      return res.json();
+    },
+    enabled: !!calcIdFromUrl && calcIdFromUrl.length > 0,
   });
 
   const form = useForm<QuoteFormData>({
@@ -840,23 +845,57 @@ export default function QuoteBuilderPage() {
                             {lineItems.map((item, index) => (
                               <TableRow key={item.id}>
                                 <TableCell>
-                                  <Input
-                                    value={item.name}
-                                    onChange={(e) =>
-                                      updateLineItem(index, "name", e.target.value)
-                                    }
-                                    placeholder="Item name"
-                                    className="mb-2"
-                                    data-testid={`input-item-name-${index}`}
-                                  />
-                                  <Input
-                                    value={item.description}
-                                    onChange={(e) =>
-                                      updateLineItem(index, "description", e.target.value)
-                                    }
-                                    placeholder="Description (optional)"
-                                    className="text-sm"
-                                  />
+                                  <div className="flex items-start gap-2">
+                                    <div className="flex-1">
+                                      <Input
+                                        value={item.name}
+                                        onChange={(e) =>
+                                          updateLineItem(index, "name", e.target.value)
+                                        }
+                                        placeholder="Item name"
+                                        className="mb-2"
+                                        data-testid={`input-item-name-${index}`}
+                                      />
+                                      <Input
+                                        value={item.description}
+                                        onChange={(e) =>
+                                          updateLineItem(index, "description", e.target.value)
+                                        }
+                                        placeholder="Description (optional)"
+                                        className="text-sm"
+                                      />
+                                    </div>
+                                    {item.pricingSnapshot && (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <div className="p-1 rounded bg-primary/10 text-primary cursor-help" data-testid={`cost-breakdown-${index}`}>
+                                            <Calculator className="h-4 w-4" />
+                                          </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right" className="p-3 max-w-[250px]">
+                                          <p className="font-semibold mb-2">Cost Breakdown</p>
+                                          <div className="space-y-1 text-sm">
+                                            <div className="flex justify-between gap-4">
+                                              <span className="text-muted-foreground">Materials:</span>
+                                              <span>{formatCurrency(Number(item.pricingSnapshot.materialCost))}</span>
+                                            </div>
+                                            <div className="flex justify-between gap-4">
+                                              <span className="text-muted-foreground">Labor ({item.pricingSnapshot.laborHours}h × ${Number(item.pricingSnapshot.hourlyRate).toFixed(2)}):</span>
+                                              <span>{formatCurrency(Number(item.pricingSnapshot.laborHours) * Number(item.pricingSnapshot.hourlyRate))}</span>
+                                            </div>
+                                            <div className="flex justify-between gap-4">
+                                              <span className="text-muted-foreground">Overhead ({item.pricingSnapshot.overheadPercent}%):</span>
+                                              <span className="text-muted-foreground">included</span>
+                                            </div>
+                                            <div className="flex justify-between gap-4 pt-1 border-t font-medium">
+                                              <span>Suggested:</span>
+                                              <span>{formatCurrency(Number(item.pricingSnapshot.suggestedPrice))}</span>
+                                            </div>
+                                          </div>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    )}
+                                  </div>
                                 </TableCell>
                                 <TableCell>
                                   <Input
