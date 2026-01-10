@@ -3,7 +3,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Calculator, Save, Trash2, Plus, DollarSign, Clock, Package, Percent, Loader2 } from "lucide-react";
+import { Calculator, Save, Trash2, Plus, DollarSign, Clock, Package, Percent, Loader2, FileText } from "lucide-react";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,6 +74,7 @@ const CATEGORIES = [
 
 export default function PricingCalculatorPage() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [selectedCalculation, setSelectedCalculation] = useState<PricingCalculation | null>(null);
 
   const form = useForm<CalculatorFormData>({
@@ -515,14 +517,25 @@ export default function PricingCalculatorPage() {
                         {formatCurrency(parseFloat(calc.suggestedPrice))}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => loadCalculation(calc)}
-                          data-testid={`button-load-${calc.id}`}
-                        >
-                          Load
-                        </Button>
+                        <div className="flex justify-end gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => loadCalculation(calc)}
+                            data-testid={`button-load-${calc.id}`}
+                          >
+                            Load
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => setLocation(`/quotes/new?calcId=${calc.id}`)}
+                            data-testid={`button-create-quote-${calc.id}`}
+                            title="Create quote from this calculation"
+                          >
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

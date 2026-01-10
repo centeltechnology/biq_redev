@@ -134,6 +134,9 @@ export default function QuoteBuilderPage() {
   const isNew = quoteId === "new" || isLeadRoute || !quoteId;
   const editingQuoteId = !isNew && quoteId && quoteId !== "new" ? quoteId : null;
   
+  // Check for calcId query parameter (when coming from Price Calculator)
+  const calcIdFromUrl = isNew ? new URLSearchParams(window.location.search).get("calcId") : null;
+  
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [leadPopulated, setLeadPopulated] = useState(false);
   const [customerFromLead, setCustomerFromLead] = useState<string | null>(null);
@@ -159,6 +162,11 @@ export default function QuoteBuilderPage() {
   const { data: pricingCalculations } = useQuery<PricingCalculation[]>({
     queryKey: ["/api/pricing-calculations"],
     enabled: priceCalcDialogOpen,
+  });
+
+  const { data: preloadedCalc } = useQuery<PricingCalculation>({
+    queryKey: ["/api/pricing-calculations", calcIdFromUrl],
+    enabled: !!calcIdFromUrl,
   });
 
   const form = useForm<QuoteFormData>({
@@ -348,6 +356,29 @@ export default function QuoteBuilderPage() {
       setLeadPopulated(true);
     }
   }, [lead, customers, leadPopulated, form]);
+
+  // Pre-populate from Price Calculator if calcId is provided
+  useEffect(() => {
+    if (preloadedCalc && lineItems.length === 0 && !leadId) {
+      form.setValue("title", `${preloadedCalc.name} - Quote`);
+      setLineItems([{
+        id: `calc-${preloadedCalc.id}-${Date.now()}`,
+        name: preloadedCalc.name,
+        description: preloadedCalc.notes || "",
+        quantity: 1,
+        unitPrice: Number(preloadedCalc.suggestedPrice),
+        category: preloadedCalc.category,
+        pricingCalculationId: preloadedCalc.id,
+        pricingSnapshot: {
+          materialCost: preloadedCalc.materialCost,
+          laborHours: preloadedCalc.laborHours,
+          hourlyRate: preloadedCalc.hourlyRate,
+          overheadPercent: preloadedCalc.overheadPercent,
+          suggestedPrice: preloadedCalc.suggestedPrice,
+        },
+      }]);
+    }
+  }, [preloadedCalc, lineItems.length, leadId, form]);
 
   // Mutation to create a customer from lead data
   const createCustomerMutation = useMutation({
