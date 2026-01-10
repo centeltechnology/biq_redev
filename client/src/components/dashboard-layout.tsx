@@ -5,6 +5,7 @@ import { Sparkles } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { OnboardingTour } from "@/components/onboarding-tour";
 import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,7 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children, title, actions }: DashboardLayoutProps) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, baker } = useAuth();
   const [, setLocation] = useLocation();
 
   const { data: subscription } = useQuery<SubscriptionStatus>({
@@ -82,6 +83,9 @@ export function DashboardLayout({ children, title, actions }: DashboardLayoutPro
       <div className="flex h-screen w-full">
         <AppSidebar />
         <div className="flex flex-col flex-1 min-w-0">
+          {baker?.onboardingTourStatus && (
+            <OnboardingTour tourStatus={baker.onboardingTourStatus} />
+          )}
           <header className="flex items-center justify-between gap-4 px-4 py-3 border-b bg-background sticky top-0 z-50">
             <div className="flex items-center gap-4">
               <SidebarTrigger data-testid="button-sidebar-toggle" />

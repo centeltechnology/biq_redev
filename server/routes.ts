@@ -372,6 +372,31 @@ export async function registerRoutes(
     }
   });
 
+  // Onboarding Tour Status
+  app.patch("/api/baker/onboarding-tour", requireAuth, async (req, res) => {
+    try {
+      const schema = z.object({
+        status: z.enum(["pending", "completed", "skipped"]),
+      });
+
+      const data = schema.parse(req.body);
+      const baker = await storage.updateBaker(req.session.bakerId!, {
+        onboardingTourStatus: data.status,
+      });
+
+      if (!baker) {
+        return res.status(404).json({ message: "Baker not found" });
+      }
+
+      res.json({ success: true });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      res.status(500).json({ message: "Update failed" });
+    }
+  });
+
   // Dashboard Stats
   app.get("/api/dashboard/stats", requireAuth, async (req, res) => {
     const stats = await storage.getDashboardStats(req.session.bakerId!);
