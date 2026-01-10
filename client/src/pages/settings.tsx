@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Copy, Check, Loader2, ExternalLink, CreditCard, Sparkles, Bell } from "lucide-react";
+import { Copy, Check, Loader2, ExternalLink, CreditCard, Sparkles, Bell, HelpCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -195,6 +195,17 @@ export default function SettingsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
       toast({ title: "Notification preferences updated" });
+    },
+  });
+
+  const restartTourMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("PATCH", "/api/baker/onboarding-tour", { status: "pending" });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
+      toast({ title: "Tour reset! Refresh the page to start the tour." });
     },
   });
 
@@ -780,6 +791,38 @@ export default function SettingsPage() {
                 disabled={updateNotificationsMutation.isPending}
                 data-testid="switch-notify-quote-accepted"
               />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <HelpCircle className="h-5 w-5" />
+              Help & Tour
+            </CardTitle>
+            <CardDescription>
+              Get help using BakerIQ
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Restart Onboarding Tour</p>
+                <p className="text-sm text-muted-foreground">Take a guided tour of the dashboard features</p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => restartTourMutation.mutate()}
+                disabled={restartTourMutation.isPending}
+                data-testid="button-restart-tour"
+              >
+                {restartTourMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Restart Tour"
+                )}
+              </Button>
             </div>
           </CardContent>
         </Card>

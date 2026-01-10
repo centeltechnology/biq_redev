@@ -59,6 +59,7 @@ interface OnboardingTourProps {
 export function OnboardingTour({ tourStatus }: OnboardingTourProps) {
   const [showWelcome, setShowWelcome] = useState(false);
   const [runTour, setRunTour] = useState(false);
+  const [startingTour, setStartingTour] = useState(false);
   const [, setLocation] = useLocation();
 
   const updateTourMutation = useMutation({
@@ -78,8 +79,12 @@ export function OnboardingTour({ tourStatus }: OnboardingTourProps) {
   }, [tourStatus]);
 
   const handleStartTour = () => {
+    setStartingTour(true);
     setShowWelcome(false);
-    setTimeout(() => setRunTour(true), 300);
+    setTimeout(() => {
+      setRunTour(true);
+      setStartingTour(false);
+    }, 300);
   };
 
   const handleSkipTour = () => {
@@ -101,7 +106,11 @@ export function OnboardingTour({ tourStatus }: OnboardingTourProps) {
 
   return (
     <>
-      <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
+      <Dialog open={showWelcome} onOpenChange={(open) => {
+        if (!open && !startingTour) {
+          handleSkipTour();
+        }
+      }}>
         <DialogContent className="sm:max-w-md" data-testid="dialog-welcome-tour">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
