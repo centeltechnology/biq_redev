@@ -25,6 +25,7 @@ import CalendarPage from "@/pages/calendar";
 import AdminPage from "@/pages/admin";
 import QuoteViewPage from "@/pages/quote-view";
 import VerifyEmailPage from "@/pages/verify-email";
+import PricingCalculatorPage from "@/pages/pricing-calculator";
 
 function Router() {
   return (
@@ -63,6 +64,9 @@ function Router() {
       </Route>
       <Route path="/pricing">
         <ProtectedRoute><PricingPage /></ProtectedRoute>
+      </Route>
+      <Route path="/pricing-calculator">
+        <ProtectedRoute><PricingCalculatorPage /></ProtectedRoute>
       </Route>
       <Route path="/settings">
         <ProtectedRoute><SettingsPage /></ProtectedRoute>

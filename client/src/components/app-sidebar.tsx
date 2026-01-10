@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Users, FileText, ClipboardList, Settings, LogOut, Cake, CalendarDays, DollarSign, Shield } from "lucide-react";
+import { Home, Users, FileText, ClipboardList, Settings, LogOut, Cake, CalendarDays, DollarSign, Shield, Calculator } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -21,6 +21,7 @@ const menuItems = [
   { title: "Calendar", url: "/calendar", icon: CalendarDays },
   { title: "Customers", url: "/customers", icon: Users },
   { title: "Pricing", url: "/pricing", icon: DollarSign },
+  { title: "Price Calculator", url: "/pricing-calculator", icon: Calculator },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 

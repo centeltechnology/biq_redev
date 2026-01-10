@@ -1043,6 +1043,106 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  // Pricing Calculator Routes
+  app.get("/api/pricing-calculations", requireAuth, async (req, res) => {
+    try {
+      const calculations = await storage.getPricingCalculationsByBaker(req.session.bakerId!);
+      res.json(calculations);
+    } catch (error) {
+      console.error("Error fetching pricing calculations:", error);
+      res.status(500).json({ message: "Failed to fetch pricing calculations" });
+    }
+  });
+
+  app.get("/api/pricing-calculations/:id", requireAuth, async (req, res) => {
+    try {
+      const calculation = await storage.getPricingCalculation(req.params.id);
+      if (!calculation || calculation.bakerId !== req.session.bakerId) {
+        return res.status(404).json({ message: "Calculation not found" });
+      }
+      res.json(calculation);
+    } catch (error) {
+      console.error("Error fetching pricing calculation:", error);
+      res.status(500).json({ message: "Failed to fetch pricing calculation" });
+    }
+  });
+
+  app.post("/api/pricing-calculations", requireAuth, async (req, res) => {
+    try {
+      const schema = z.object({
+        name: z.string().min(1),
+        category: z.string().min(1),
+        materialCost: z.string(),
+        laborHours: z.string(),
+        hourlyRate: z.string(),
+        overheadPercent: z.string(),
+        suggestedPrice: z.string(),
+        appliedToItem: z.string().optional().nullable(),
+        appliedToCategory: z.string().optional().nullable(),
+        notes: z.string().optional().nullable(),
+      });
+
+      const data = schema.parse(req.body);
+      const calculation = await storage.createPricingCalculation({
+        bakerId: req.session.bakerId!,
+        ...data,
+      });
+      res.json(calculation);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      console.error("Error creating pricing calculation:", error);
+      res.status(500).json({ message: "Failed to create pricing calculation" });
+    }
+  });
+
+  app.patch("/api/pricing-calculations/:id", requireAuth, async (req, res) => {
+    try {
+      const existing = await storage.getPricingCalculation(req.params.id);
+      if (!existing || existing.bakerId !== req.session.bakerId) {
+        return res.status(404).json({ message: "Calculation not found" });
+      }
+
+      const schema = z.object({
+        name: z.string().min(1).optional(),
+        category: z.string().min(1).optional(),
+        materialCost: z.string().optional(),
+        laborHours: z.string().optional(),
+        hourlyRate: z.string().optional(),
+        overheadPercent: z.string().optional(),
+        suggestedPrice: z.string().optional(),
+        appliedToItem: z.string().optional().nullable(),
+        appliedToCategory: z.string().optional().nullable(),
+        notes: z.string().optional().nullable(),
+      });
+
+      const data = schema.parse(req.body);
+      const calculation = await storage.updatePricingCalculation(req.params.id, data);
+      res.json(calculation);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      console.error("Error updating pricing calculation:", error);
+      res.status(500).json({ message: "Failed to update pricing calculation" });
+    }
+  });
+
+  app.delete("/api/pricing-calculations/:id", requireAuth, async (req, res) => {
+    try {
+      const calculation = await storage.getPricingCalculation(req.params.id);
+      if (!calculation || calculation.bakerId !== req.session.bakerId) {
+        return res.status(404).json({ message: "Calculation not found" });
+      }
+      await storage.deletePricingCalculation(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting pricing calculation:", error);
+      res.status(500).json({ message: "Failed to delete pricing calculation" });
+    }
+  });
+
   // Public Routes
   app.get("/api/public/baker/:slug", async (req, res) => {
     const baker = await storage.getBakerBySlug(req.params.slug);
