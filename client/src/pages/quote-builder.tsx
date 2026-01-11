@@ -1051,16 +1051,48 @@ export default function QuoteBuilderPage() {
                       <span data-testid="text-quote-total">{formatCurrency(total)}</span>
                     </div>
 
-                    {baker?.depositPercentage && baker.depositPercentage > 0 && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          Deposit Required ({baker.depositPercentage}%)
-                        </span>
-                        <span className="font-medium" data-testid="text-deposit-amount">
-                          {formatCurrency(total * (baker.depositPercentage / 100))}
-                        </span>
-                      </div>
-                    )}
+                    {(() => {
+                      // Check for deposit override from preloaded pricing calculation (Quick Orders)
+                      if (preloadedCalc?.depositType === "full") {
+                        // Full price required - no deposit shown
+                        return null;
+                      } else if (preloadedCalc?.depositType === "percentage" && preloadedCalc.depositPercent) {
+                        return (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Deposit Required ({preloadedCalc.depositPercent}%)
+                            </span>
+                            <span className="font-medium" data-testid="text-deposit-amount">
+                              {formatCurrency(total * (preloadedCalc.depositPercent / 100))}
+                            </span>
+                          </div>
+                        );
+                      } else if (preloadedCalc?.depositType === "fixed" && preloadedCalc.depositAmount) {
+                        return (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Deposit Required (Fixed)
+                            </span>
+                            <span className="font-medium" data-testid="text-deposit-amount">
+                              {formatCurrency(parseFloat(preloadedCalc.depositAmount))}
+                            </span>
+                          </div>
+                        );
+                      } else if (baker?.depositPercentage && baker.depositPercentage > 0) {
+                        // Fall back to baker's default deposit percentage
+                        return (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Deposit Required ({baker.depositPercentage}%)
+                            </span>
+                            <span className="font-medium" data-testid="text-deposit-amount">
+                              {formatCurrency(total * (baker.depositPercentage / 100))}
+                            </span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
 
                     <div className="border-t pt-4 space-y-3">
                       <Button
