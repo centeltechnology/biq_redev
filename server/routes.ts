@@ -763,11 +763,15 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Customer not found" });
       }
 
-      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-        : process.env.REPLIT_DOMAINS 
-          ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
-          : "https://bakeriq.app";
+      // In production, use REPLIT_DOMAINS or custom domain; only use dev domain in development
+      const isProduction = process.env.NODE_ENV === "production";
+      const baseUrl = isProduction
+        ? (process.env.REPLIT_DOMAINS 
+            ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
+            : "https://bakeriq.app")
+        : (process.env.REPLIT_DEV_DOMAIN 
+            ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+            : "https://bakeriq.app");
       
       await sendQuoteNotification(
         customer.email,
