@@ -537,6 +537,78 @@ If you didn't request a password reset, you can safely ignore this email.
   });
 }
 
+export async function sendAdminPasswordReset(
+  email: string,
+  tempPassword: string,
+  businessName: string,
+  baseUrl: string
+): Promise<boolean> {
+  const loginUrl = `${baseUrl}/login`;
+  
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #E91E63, #F06292); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px; }
+    .password-box { background: #fff; border: 2px solid #E91E63; padding: 15px; text-align: center; border-radius: 6px; margin: 20px 0; font-family: monospace; font-size: 18px; letter-spacing: 2px; }
+    .cta { display: inline-block; background: #E91E63; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600; }
+    .warning { background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 6px; margin: 15px 0; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Password Reset by Admin</h1>
+    </div>
+    <div class="content">
+      <p>Hi ${businessName},</p>
+      <p>A BakerIQ administrator has reset your password. Your temporary password is:</p>
+      <div class="password-box">${tempPassword}</div>
+      <div class="warning">
+        <strong>Important:</strong> Please log in and change your password immediately for security.
+      </div>
+      <p style="text-align: center;">
+        <a href="${loginUrl}" class="cta">Log In Now</a>
+      </p>
+      <p style="color: #666; font-size: 14px;">If you did not request this password reset, please contact support immediately.</p>
+    </div>
+    <div class="footer">
+      <p>This email was sent by BakerIQ</p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  const text = `
+Password Reset by Admin
+
+Hi ${businessName},
+
+A BakerIQ administrator has reset your password.
+
+Your temporary password is: ${tempPassword}
+
+IMPORTANT: Please log in and change your password immediately for security.
+
+Log in here: ${loginUrl}
+
+If you did not request this password reset, please contact support immediately.
+`;
+
+  return sendEmail({
+    to: email,
+    subject: "Your BakerIQ Password Has Been Reset",
+    html,
+    text,
+  });
+}
+
 export async function sendEmailVerification(
   email: string,
   verificationToken: string,

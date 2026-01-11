@@ -93,7 +93,6 @@ export default function AdminDashboard() {
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
   const [suspendReason, setSuspendReason] = useState("");
   const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
-  const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [activityDialogOpen, setActivityDialogOpen] = useState(false);
   const [resendEmailDialogOpen, setResendEmailDialogOpen] = useState(false);
   const [selectedEmailDay, setSelectedEmailDay] = useState<number>(0);
@@ -190,9 +189,10 @@ export default function AdminDashboard() {
       return apiRequest("POST", `/api/admin/bakers/${id}/reset-password`);
     },
     onSuccess: (data: any) => {
-      setTempPassword(data.tempPassword);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/bakers"] });
-      toast({ title: "Password reset successfully" });
+      toast({ title: data.message || "Password reset successfully" });
+      setResetPasswordDialogOpen(false);
+      setSelectedBaker(null);
     },
     onError: () => {
       toast({ title: "Failed to reset password", variant: "destructive" });
@@ -437,7 +437,6 @@ export default function AdminDashboard() {
                                 variant="ghost"
                                 onClick={() => {
                                   setSelectedBaker(baker);
-                                  setTempPassword(null);
                                   setResetPasswordDialogOpen(true);
                                 }}
                                 title="Reset Password"
@@ -848,46 +847,32 @@ export default function AdminDashboard() {
           <DialogHeader>
             <DialogTitle>Reset Password</DialogTitle>
             <DialogDescription>
-              Generate a temporary password for {selectedBaker?.businessName}.
+              Reset password for {selectedBaker?.businessName}.
             </DialogDescription>
           </DialogHeader>
-          {tempPassword ? (
-            <div className="space-y-4">
-              <div className="p-4 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                <div className="flex items-start gap-2">
-                  <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Temporary Password</p>
-                    <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                      Share this password securely with the baker. They should change it after logging in.
-                    </p>
-                  </div>
+          <div className="space-y-4">
+            <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <div className="flex items-start gap-2">
+                <Mail className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-blue-800 dark:text-blue-200">Password will be emailed</p>
+                  <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                    A temporary password will be generated and emailed directly to {selectedBaker?.email}. The baker should change it after logging in.
+                  </p>
                 </div>
               </div>
-              <div className="p-3 bg-muted rounded-lg font-mono text-center text-lg">
-                {tempPassword}
-              </div>
-              <p className="text-xs text-muted-foreground text-center">
-                This password will not be shown again.
-              </p>
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Click the button below to generate a new temporary password. The baker will need to use this to log in.
-            </p>
-          )}
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setResetPasswordDialogOpen(false)}>
-              {tempPassword ? "Close" : "Cancel"}
+              Cancel
             </Button>
-            {!tempPassword && (
-              <Button
-                onClick={() => selectedBaker && resetPasswordMutation.mutate(selectedBaker.id)}
-                disabled={resetPasswordMutation.isPending}
-              >
-                {resetPasswordMutation.isPending ? "Resetting..." : "Generate Password"}
-              </Button>
-            )}
+            <Button
+              onClick={() => selectedBaker && resetPasswordMutation.mutate(selectedBaker.id)}
+              disabled={resetPasswordMutation.isPending}
+            >
+              {resetPasswordMutation.isPending ? "Sending..." : "Reset & Email Password"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

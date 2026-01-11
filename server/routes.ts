@@ -6,7 +6,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { pool } from "./db";
 import connectPgSimple from "connect-pg-simple";
-import { sendNewLeadNotification, sendLeadConfirmationToCustomer, sendPasswordResetEmail, sendEmailVerification, sendQuoteNotification, sendOnboardingEmail, sendQuoteResponseNotification } from "./email";
+import { sendNewLeadNotification, sendLeadConfirmationToCustomer, sendPasswordResetEmail, sendEmailVerification, sendQuoteNotification, sendOnboardingEmail, sendQuoteResponseNotification, sendAdminPasswordReset } from "./email";
 import crypto from "crypto";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { db } from "./db";
@@ -1831,7 +1831,7 @@ export async function registerRoutes(
     }
   });
 
-  // Reset baker password (generates temporary password)
+  // Reset baker password (generates temporary password and emails it)
   app.post("/api/admin/bakers/:id/reset-password", requireAdmin, async (req, res) => {
     try {
       const baker = await storage.getBaker(req.params.id);
@@ -1845,10 +1845,19 @@ export async function registerRoutes(
       
       await storage.updateBaker(req.params.id, { passwordHash });
       
-      res.json({ 
-        message: "Password reset successfully",
-        tempPassword, // Admin can share this with the baker
-      });
+      // Email the temporary password to the baker
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      const emailSent = await sendAdminPasswordReset(baker.email, tempPassword, baker.businessName, baseUrl);
+      
+      if (emailSent) {
+        res.json({ 
+          message: `Password reset successfully. Temporary password has been emailed to ${baker.email}`,
+        });
+      } else {
+        res.json({ 
+          message: "Password reset but email failed to send. Please contact the baker directly.",
+        });
+      }
     } catch (error) {
       console.error("Reset password error:", error);
       res.status(500).json({ message: "Failed to reset password" });
