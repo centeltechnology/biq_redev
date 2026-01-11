@@ -156,13 +156,13 @@ export default function HomePage() {
                 <CardHeader>
                   <div className="flex items-center gap-2">
                     <Zap className="h-10 w-10 text-primary mb-2" />
-                    <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">Pro</span>
+                    <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">Basic & Pro</span>
                   </div>
                   <CardTitle>Fast Quote</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground">
-                    Feature your popular items on the public calculator. Customers order with just a few clicks and you create quotes instantly.
+                    Feature your popular items on the public calculator. Customers order in a few clicks and quotes are pre-filled with their selection. Basic: 10 items, Pro: unlimited.
                   </p>
                 </CardContent>
               </Card>

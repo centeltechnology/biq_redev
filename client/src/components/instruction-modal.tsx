@@ -48,8 +48,8 @@ const PAGE_INSTRUCTIONS: Record<PageKey, PageInstructions> = {
         content: "From the Quote Builder, use 'Add from Price Calculator' to search and add any of your saved calculations as line items, complete with cost breakdown tracking."
       },
       {
-        title: "Featured Items (Pro)",
-        content: "Pro users can feature calculations on their public calculator. Customers can select these items directly, making it easy to run specials and promotions."
+        title: "Featured Items (Basic & Pro)",
+        content: "Basic and Pro users can feature calculations on their public calculator. Customers can select these items directly for quick ordering. Basic: 10 items, Pro: unlimited. Use the eye icon to control visibility."
       }
     ],
     proTip: "Set up calculations for your most popular items to speed up your quoting process!"

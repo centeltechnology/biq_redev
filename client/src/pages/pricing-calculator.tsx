@@ -664,7 +664,7 @@ export default function PricingCalculatorPage() {
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              {calc.isFeatured ? "Remove from public calculator" : "Feature on public calculator (Pro)"}
+                              {calc.isFeatured ? "Remove from public calculator" : "Feature on public calculator"}
                             </TooltipContent>
                           </Tooltip>
                           {calc.isFeatured && (

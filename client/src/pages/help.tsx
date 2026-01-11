@@ -194,7 +194,7 @@ export default function HelpPage() {
               <CardHeader>
                 <div className="flex items-center gap-2">
                   <Zap className="h-10 w-10 text-primary mb-2" />
-                  <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">Pro</span>
+                  <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">Basic & Pro</span>
                 </div>
                 <CardTitle>Fast Quote</CardTitle>
                 <CardDescription>Quick ordering for popular items</CardDescription>
@@ -203,19 +203,19 @@ export default function HelpPage() {
                 <div className="space-y-2">
                   <h4 className="font-medium">Feature Your Best Items</h4>
                   <p className="text-sm text-muted-foreground">
-                    Save a pricing calculation, then click the star to feature it on your public calculator.
+                    Save a pricing calculation, then click the star to feature it on your public calculator. Control visibility with the eye icon.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">Streamlined Customer Experience</h4>
+                  <h4 className="font-medium">Plan Limits</h4>
                   <p className="text-sm text-muted-foreground">
-                    Customers can select featured items and submit in 3 clicks instead of building from scratch.
+                    Basic plan: up to 10 featured items. Pro plan: unlimited featured items. Free plan does not include Fast Quote.
                   </p>
                 </div>
                 <div className="space-y-2">
                   <h4 className="font-medium">Quick Quote Creation</h4>
                   <p className="text-sm text-muted-foreground">
-                    Fast Quote leads show a special badge. Click "Quick Quote" to create a quote with the featured item pre-filled.
+                    Fast Quote leads show a special badge. Click "Quick Quote" to create a quote with the item name, price, and details pre-filled.
                   </p>
                 </div>
               </CardContent>
@@ -307,6 +307,34 @@ export default function HelpPage() {
 
             <Card className="hover-elevate">
               <CardHeader>
+                <Users className="h-10 w-10 text-primary mb-2" />
+                <CardTitle>Customer Management</CardTitle>
+                <CardDescription>Organize your client relationships</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium">Customer Database</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Keep track of all your customers with contact info, notes, and order history in one place.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Auto-Create from Leads</h4>
+                  <p className="text-sm text-muted-foreground">
+                    When you create a quote from a lead, you can automatically create a customer record if one doesn't exist.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Link to Quotes & Orders</h4>
+                  <p className="text-sm text-muted-foreground">
+                    All quotes and orders are linked to customers, making it easy to see their complete history.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate">
+              <CardHeader>
                 <ArrowRight className="h-10 w-10 text-primary mb-2" />
                 <CardTitle>Subscription Plans</CardTitle>
                 <CardDescription>Choose the right plan for you</CardDescription>
@@ -321,13 +349,13 @@ export default function HelpPage() {
                 <div className="space-y-2">
                   <h4 className="font-medium">Basic - $9.97/month</h4>
                   <p className="text-sm text-muted-foreground">
-                    25 quotes per month for growing bakeries.
+                    25 quotes per month + Fast Quote with up to 10 featured items.
                   </p>
                 </div>
                 <div className="space-y-2">
                   <h4 className="font-medium">Pro - $29.97/month</h4>
                   <p className="text-sm text-muted-foreground">
-                    Unlimited quotes plus Fast Quote feature for busy professionals. Upgrade anytime in Settings.
+                    Unlimited quotes + unlimited Fast Quote featured items. Upgrade anytime in Settings.
                   </p>
                 </div>
               </CardContent>

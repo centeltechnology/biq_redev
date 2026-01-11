@@ -152,11 +152,15 @@ const faqs = [
     questions: [
       {
         q: "What plans are available?",
-        a: "BakerIQ offers three plans: Free (5 quotes per month), Basic ($9.97/month for 25 quotes), and Pro ($29.97/month for unlimited quotes plus Fast Quote). All plans include unlimited leads - you only pay based on how many quotes you send."
+        a: "BakerIQ offers three plans: Free (5 quotes per month), Basic ($9.97/month for 25 quotes + 10 featured items), and Pro ($29.97/month for unlimited quotes + unlimited featured items). All plans include unlimited leads."
       },
       {
         q: "What counts toward my quote limit?",
         a: "Only quotes you actually send to customers count toward your monthly limit. You can create unlimited draft quotes on any plan. Leads from your calculator are always unlimited."
+      },
+      {
+        q: "What's the difference between Basic and Pro?",
+        a: "Basic gives you 25 quotes per month and up to 10 featured items for Fast Quote. Pro gives you unlimited quotes and unlimited featured items. Both plans include all core features like lead management, customer tracking, and email notifications."
       },
       {
         q: "How do I upgrade my plan?",
@@ -169,31 +173,48 @@ const faqs = [
     ]
   },
   {
-    category: "Fast Quote (Pro Feature)",
+    category: "Fast Quote",
     questions: [
       {
         q: "What is Fast Quote?",
-        a: "Fast Quote is a Pro plan feature that lets you feature your pricing calculations on your public calculator. Customers can select a featured item and submit an inquiry in just a few clicks, skipping the full cake/treat builder."
+        a: "Fast Quote lets you feature your pricing calculations on your public calculator. Customers can select a featured item and submit an inquiry in just a few clicks, skipping the full cake/treat builder. Available on Basic and Pro plans."
       },
       {
         q: "How do I feature an item?",
-        a: "Go to Price Calculator in your dashboard and save a pricing calculation. Then click the star icon next to any saved calculation to feature it. You can unfeature it anytime by clicking the star again."
+        a: "Go to Price Calculator in your dashboard and save a pricing calculation. Then click the star icon next to any saved calculation to feature it. Use the eye icon to control whether it appears in Quick Order. You can unfeature it anytime by clicking the star again."
+      },
+      {
+        q: "What are the plan limits for Fast Quote?",
+        a: "Free plan: Fast Quote is not available. Basic plan ($9.97/month): Up to 10 featured items. Pro plan ($29.97/month): Unlimited featured items. The limits only apply to how many items you can feature, not how many orders you receive."
       },
       {
         q: "Where do featured items appear?",
-        a: "Featured items appear at the top of your public calculator page in a special 'Quick Order' section with a lightning bolt icon. Customers can click on any featured item to start a streamlined ordering process."
+        a: "Featured items appear at the top of your public calculator page in a special 'Quick Order' section with a lightning bolt icon. Use the eye icon in Price Calculator to control which featured items show in Quick Order."
       },
       {
         q: "How do Fast Quote leads work?",
-        a: "When a customer orders through Fast Quote, the lead appears in your dashboard with a special lightning bolt badge. You can click 'Quick Quote' to instantly create a quote with the featured item details pre-filled."
-      },
-      {
-        q: "Can I feature as many items as I want?",
-        a: "Yes! With the Pro plan, you can feature as many pricing calculations as you want. Consider featuring your most popular or signature items to streamline ordering for repeat customers."
+        a: "When a customer orders through Fast Quote, the lead appears in your dashboard with a special lightning bolt badge. You can click 'Quick Quote' to instantly create a quote with the item name, price, and details pre-filled."
       },
       {
         q: "Why can't I feature items?",
-        a: "Fast Quote is a Pro plan exclusive feature. If you're on the Free or Basic plan, upgrade to Pro ($29.97/month) in Settings to unlock Fast Quote along with unlimited quotes."
+        a: "Fast Quote requires at least the Basic plan ($9.97/month). If you're on the Free plan, upgrade in Settings to unlock Fast Quote. Basic allows 10 featured items, Pro allows unlimited."
+      }
+    ]
+  },
+  {
+    category: "Customers",
+    questions: [
+      {
+        q: "How do I manage my customers?",
+        a: "Go to Customers in your dashboard to view, add, and edit customer records. Each customer has contact info, notes, and links to their quotes and orders."
+      },
+      {
+        q: "Are customers created automatically?",
+        a: "When you create a quote from a lead, BakerIQ will try to match the customer by email. If no match is found, you can create a new customer record with one click from the quote builder."
+      },
+      {
+        q: "Can I see a customer's order history?",
+        a: "Yes! Click on any customer to view their profile, which shows all associated quotes and orders. This helps you track repeat customers and their preferences."
       }
     ]
   },
