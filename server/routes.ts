@@ -15,7 +15,7 @@ import { CAKE_SIZES, CAKE_SHAPES, CAKE_FLAVORS, FROSTING_TYPES, DECORATIONS, DEL
 
 // Quote limits per plan (monthly)
 const FREE_QUOTE_LIMIT = 5;
-const BASIC_QUOTE_LIMIT = 25;
+const BASIC_QUOTE_LIMIT = 15;
 // Pro plan has unlimited quotes
 
 const PgSession = connectPgSimple(session);
@@ -1194,12 +1194,12 @@ export async function registerRoutes(
         const featuredItems = await storage.getFeaturedItemsByBaker(baker.id);
         // Don't count the current item if it's already featured
         const currentFeaturedCount = featuredItems.filter(item => item.id !== calculation.id).length;
-        if (currentFeaturedCount >= 10) {
+        if (currentFeaturedCount >= 5) {
           return res.status(403).json({ 
-            message: "You've reached the 10 featured item limit on the Basic plan. Upgrade to Pro for unlimited featured items.",
+            message: "You've reached the 5 featured item limit on the Basic plan. Upgrade to Pro for unlimited featured items.",
             limitReached: true,
             currentCount: currentFeaturedCount,
-            limit: 10
+            limit: 5
           });
         }
       }

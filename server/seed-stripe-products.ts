@@ -5,7 +5,7 @@ async function seedProducts() {
   
   const stripe = await getUncachableStripeClient();
 
-  // Seed BakerIQ Basic product ($9.97/month - 25 quotes)
+  // Seed BakerIQ Basic product ($9.97/month - 15 quotes)
   let basicProduct;
   const existingBasic = await stripe.products.search({ 
     query: "name:'BakerIQ Basic'" 
@@ -17,9 +17,9 @@ async function seedProducts() {
   } else {
     basicProduct = await stripe.products.create({
       name: 'BakerIQ Basic',
-      description: '25 quotes per month for your bakery business',
+      description: '15 quotes per month for your bakery business',
       metadata: {
-        quoteLimit: '25',
+        quoteLimit: '15',
         plan: 'basic',
       },
     });

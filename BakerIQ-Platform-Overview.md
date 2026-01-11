@@ -62,7 +62,7 @@ BakerIQ offers a freemium model with three tiers:
 | Plan | Price | Quotes/Month | Features |
 |------|-------|--------------|----------|
 | **Free** | $0 | 5 quotes | Unlimited leads, full dashboard access |
-| **Basic** | $9.97/mo | 25 quotes | Everything in Free + more quote capacity |
+| **Basic** | $9.97/mo | 15 quotes + 5 featured items | Everything in Free + more quote capacity |
 | **Pro** | $29.97/mo | Unlimited | Full platform access with no limits |
 
 *Note: Leads are always unlimited. Quote limits only apply when sending quotes to customers.*

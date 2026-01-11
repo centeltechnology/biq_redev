@@ -56,7 +56,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Subscription Model
 - **Free Plan**: 5 quotes sent per month, unlimited leads received
-- **Basic Plan**: 25 quotes per month @ $9.97/month
+- **Basic Plan**: 15 quotes per month + 5 featured items @ $9.97/month
 - **Pro Plan**: Unlimited quotes per month @ $29.97/month
 - Stripe integration for subscription management
 - Quote limits enforced when sending quotes (drafts are free)

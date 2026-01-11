@@ -320,11 +320,11 @@ export default function SettingsPage() {
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-primary shrink-0" />
-                    <span>25 quotes per month</span>
+                    <span>15 quotes per month</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Zap className="h-4 w-4 text-primary shrink-0" />
-                    <span>Up to 10 Quick Order items</span>
+                    <span>Up to 5 Quick Order items</span>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -354,8 +354,8 @@ export default function SettingsPage() {
                   <div className="bg-muted/50 border rounded-lg p-4">
                     <h4 className="font-medium">Basic - $9.97/month</h4>
                     <ul className="text-sm text-muted-foreground mt-2 space-y-1">
-                      <li>25 quotes per month</li>
-                      <li>Up to 10 Quick Order items</li>
+                      <li>15 quotes per month</li>
+                      <li>Up to 5 Quick Order items</li>
                       <li>Unlimited leads</li>
                       <li>Cancel anytime</li>
                     </ul>

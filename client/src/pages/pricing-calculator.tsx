@@ -216,7 +216,7 @@ export default function PricingCalculatorPage() {
       } else if (errorData.limitReached) {
         toast({
           title: "Featured Item Limit Reached",
-          description: "You've reached the 10 featured item limit on the Basic plan. Upgrade to Pro for unlimited featured items.",
+          description: "You've reached the 5 featured item limit on the Basic plan. Upgrade to Pro for unlimited featured items.",
           variant: "destructive",
         });
       } else {
@@ -244,11 +244,11 @@ export default function PricingCalculatorPage() {
         setShowUpgradeDialog(true);
         return;
       }
-      // Basic plan has a 10 item limit
-      if (baker.plan === "basic" && featuredCount >= 10) {
+      // Basic plan has a 5 item limit
+      if (baker.plan === "basic" && featuredCount >= 5) {
         toast({
           title: "Featured Item Limit Reached",
-          description: "You've reached the 10 featured item limit on the Basic plan. Upgrade to Pro for unlimited featured items.",
+          description: "You've reached the 5 featured item limit on the Basic plan. Upgrade to Pro for unlimited featured items.",
           variant: "destructive",
         });
         return;
@@ -853,7 +853,7 @@ export default function PricingCalculatorPage() {
                   <span className="font-medium">Basic Plan</span>
                   <span className="text-primary font-bold">$9.97<span className="text-sm font-normal text-muted-foreground">/mo</span></span>
                 </div>
-                <p className="text-sm text-muted-foreground">Up to 10 featured items + 25 quotes/month</p>
+                <p className="text-sm text-muted-foreground">Up to 5 featured items + 15 quotes/month</p>
               </div>
               <div className="border border-primary rounded-lg p-4 space-y-2 bg-primary/5">
                 <div className="flex items-center justify-between">

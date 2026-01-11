@@ -152,7 +152,7 @@ const faqs = [
     questions: [
       {
         q: "What plans are available?",
-        a: "BakerIQ offers three plans: Free (5 quotes per month), Basic ($9.97/month for 25 quotes + 10 featured items), and Pro ($29.97/month for unlimited quotes + unlimited featured items). All plans include unlimited leads."
+        a: "BakerIQ offers three plans: Free (5 quotes per month), Basic ($9.97/month for 15 quotes + 5 featured items), and Pro ($29.97/month for unlimited quotes + unlimited featured items). All plans include unlimited leads."
       },
       {
         q: "What counts toward my quote limit?",
@@ -160,7 +160,7 @@ const faqs = [
       },
       {
         q: "What's the difference between Basic and Pro?",
-        a: "Basic gives you 25 quotes per month and up to 10 featured items for Fast Quote. Pro gives you unlimited quotes and unlimited featured items. Both plans include all core features like lead management, customer tracking, and email notifications."
+        a: "Basic gives you 15 quotes per month and up to 5 featured items for Fast Quote. Pro gives you unlimited quotes and unlimited featured items. Both plans include all core features like lead management, customer tracking, and email notifications."
       },
       {
         q: "How do I upgrade my plan?",
@@ -185,7 +185,7 @@ const faqs = [
       },
       {
         q: "What are the plan limits for Fast Quote?",
-        a: "Free plan: Fast Quote is not available. Basic plan ($9.97/month): Up to 10 featured items. Pro plan ($29.97/month): Unlimited featured items. The limits only apply to how many items you can feature, not how many orders you receive."
+        a: "Free plan: Fast Quote is not available. Basic plan ($9.97/month): Up to 5 featured items. Pro plan ($29.97/month): Unlimited featured items. The limits only apply to how many items you can feature, not how many orders you receive."
       },
       {
         q: "Where do featured items appear?",
@@ -197,7 +197,7 @@ const faqs = [
       },
       {
         q: "Why can't I feature items?",
-        a: "Fast Quote requires at least the Basic plan ($9.97/month). If you're on the Free plan, upgrade in Settings to unlock Fast Quote. Basic allows 10 featured items, Pro allows unlimited."
+        a: "Fast Quote requires at least the Basic plan ($9.97/month). If you're on the Free plan, upgrade in Settings to unlock Fast Quote. Basic allows 5 featured items, Pro allows unlimited."
       }
     ]
   },

@@ -209,7 +209,7 @@ export default function HelpPage() {
                 <div className="space-y-2">
                   <h4 className="font-medium">Plan Limits</h4>
                   <p className="text-sm text-muted-foreground">
-                    Basic plan: up to 10 featured items. Pro plan: unlimited featured items. Free plan does not include Fast Quote.
+                    Basic plan: up to 5 featured items. Pro plan: unlimited featured items. Free plan does not include Fast Quote.
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -349,7 +349,7 @@ export default function HelpPage() {
                 <div className="space-y-2">
                   <h4 className="font-medium">Basic - $9.97/month</h4>
                   <p className="text-sm text-muted-foreground">
-                    25 quotes per month + Fast Quote with up to 10 featured items.
+                    15 quotes per month + Fast Quote with up to 5 featured items.
                   </p>
                 </div>
                 <div className="space-y-2">

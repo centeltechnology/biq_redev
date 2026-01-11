@@ -911,7 +911,7 @@ const ONBOARDING_EMAILS: OnboardingEmailData[] = [
         </tr>
         <tr>
           <td style="padding: 12px; border: 1px solid #e9ecef;"><strong>Basic</strong></td>
-          <td style="padding: 12px; border: 1px solid #e9ecef;">25 quotes/month</td>
+          <td style="padding: 12px; border: 1px solid #e9ecef;">15 quotes/month</td>
           <td style="padding: 12px; border: 1px solid #e9ecef;">$9.97/mo</td>
         </tr>
         <tr style="background: #fce4ec;">
