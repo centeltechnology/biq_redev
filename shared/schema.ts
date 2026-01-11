@@ -23,6 +23,9 @@ export const bakers = pgTable("bakers", {
   paymentCashapp: text("payment_cashapp"),
   paymentVenmo: text("payment_venmo"),
   depositPercentage: integer("deposit_percentage").default(50),
+  // Default deposit type for Quick Order items: "full" = require full payment, "percentage" = use depositPercentage, "fixed" = use depositFixedAmount
+  defaultDepositType: text("default_deposit_type").notNull().default("full"),
+  depositFixedAmount: decimal("deposit_fixed_amount", { precision: 10, scale: 2 }),
   // Calculator configuration - custom pricing overrides
   calculatorConfig: jsonb("calculator_config"),
   // Email verification
@@ -261,6 +264,10 @@ export const pricingCalculations = pgTable("pricing_calculations", {
   featuredImageUrl: text("featured_image_url"), // Optional image URL
   featuredStartDate: timestamp("featured_start_date"), // When to start showing
   featuredEndDate: timestamp("featured_end_date"), // When to stop showing
+  // Deposit override for Quick Order: "full" = require full payment, "percentage" = use depositPercent, "fixed" = use depositAmount
+  depositType: text("deposit_type"), // null = use baker default
+  depositPercent: integer("deposit_percent"), // Percentage of featured price (e.g., 50)
+  depositAmount: decimal("deposit_amount", { precision: 10, scale: 2 }), // Fixed deposit amount (e.g., 50.00)
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
