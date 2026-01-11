@@ -140,6 +140,7 @@ export default function QuoteBuilderPage() {
   
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [leadPopulated, setLeadPopulated] = useState(false);
+  const [isFastQuoteLead, setIsFastQuoteLead] = useState(false);
   const [customerFromLead, setCustomerFromLead] = useState<string | null>(null);
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("cash");
@@ -213,7 +214,18 @@ export default function QuoteBuilderPage() {
   // Auto-populate from lead data
   useEffect(() => {
     if (lead && customers && !leadPopulated) {
-      const payload = lead.calculatorPayload as {
+      const rawPayload = lead.calculatorPayload;
+      
+      // Check if this is a Fast Quote lead
+      const isFastQuote = rawPayload && typeof rawPayload === 'object' && 'fastQuote' in rawPayload && rawPayload.fastQuote === true;
+      const fastQuotePayload = isFastQuote ? rawPayload as {
+        fastQuote: true;
+        featuredItemId: string;
+        featuredItemName: string;
+        featuredItemPrice: string;
+      } : null;
+      
+      const payload = !isFastQuote ? rawPayload as {
         category?: "cake" | "treat";
         tiers?: CakeTier[];
         decorations?: string[];
@@ -222,7 +234,7 @@ export default function QuoteBuilderPage() {
         deliveryOption?: string;
         deliveryAddress?: string;
         specialRequests?: string;
-      } | null;
+      } | null : null;
 
       // Try to find an existing customer by email
       let matchedCustomerId = lead.customerId || "";
@@ -240,9 +252,27 @@ export default function QuoteBuilderPage() {
         setCustomerFromLead(lead.customerName);
       }
 
+      // Generate dynamic title based on order type
+      let quoteTitle: string;
+      if (fastQuotePayload) {
+        // Use Fast Quote item name for title
+        quoteTitle = `${fastQuotePayload.featuredItemName} - ${lead.customerName}`;
+      } else if (payload?.tiers && payload.tiers.length > 0) {
+        // Use first tier info for cake orders
+        const firstTier = payload.tiers[0];
+        const size = CAKE_SIZES.find((s) => s.id === firstTier.size);
+        quoteTitle = `${lead.eventType || "Custom"} ${size?.label || ""} Cake - ${lead.customerName}`;
+      } else if (payload?.treats && payload.treats.length > 0) {
+        // Use first treat for treat orders
+        const firstTreat = TREATS.find((t) => t.id === payload.treats![0].id);
+        quoteTitle = `${firstTreat?.label || "Treats"} - ${lead.customerName}`;
+      } else {
+        quoteTitle = `${lead.eventType || "Custom Order"} - ${lead.customerName}`;
+      }
+
       // Set form fields
       form.reset({
-        title: `${lead.eventType || "Custom"} Cake - ${lead.customerName}`,
+        title: quoteTitle,
         customerId: matchedCustomerId,
         eventDate: lead.eventDate || "",
         status: "draft",
@@ -250,8 +280,23 @@ export default function QuoteBuilderPage() {
         notes: payload?.specialRequests || "",
       });
 
-      // Build line items from calculator payload
+      // Build line items from calculator payload or Fast Quote
       const items: LineItem[] = [];
+
+      // Handle Fast Quote items
+      if (fastQuotePayload) {
+        setIsFastQuoteLead(true);
+        const parsed = parseFloat(fastQuotePayload.featuredItemPrice);
+        const price = Number.isFinite(parsed) ? parsed : 0;
+        items.push({
+          id: `fast-quote-${fastQuotePayload.featuredItemId}-${Date.now()}`,
+          name: fastQuotePayload.featuredItemName,
+          description: "Quick Order item",
+          quantity: 1,
+          unitPrice: price,
+          category: "featured",
+        });
+      }
 
       // Add cake tiers
       if (payload?.tiers) {
@@ -363,9 +408,9 @@ export default function QuoteBuilderPage() {
     }
   }, [lead, customers, leadPopulated, form]);
 
-  // Pre-populate from Price Calculator if calcId is provided
+  // Pre-populate from Price Calculator if calcId is provided (skip for Fast Quote leads)
   useEffect(() => {
-    if (preloadedCalc && lineItems.length === 0 && !leadId) {
+    if (preloadedCalc && lineItems.length === 0 && !leadId && !isFastQuoteLead) {
       form.setValue("title", `${preloadedCalc.name} - Quote`);
       setLineItems([{
         id: `calc-${preloadedCalc.id}-${Date.now()}`,
@@ -384,7 +429,7 @@ export default function QuoteBuilderPage() {
         },
       }]);
     }
-  }, [preloadedCalc, lineItems.length, leadId, form]);
+  }, [preloadedCalc, lineItems.length, leadId, isFastQuoteLead, form]);
 
   // Mutation to create a customer from lead data
   const createCustomerMutation = useMutation({
