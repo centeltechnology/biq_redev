@@ -1312,7 +1312,6 @@ export async function registerRoutes(
           email: baker.email,
           phone: baker.phone,
           address: baker.address,
-          tagline: baker.tagline,
           depositPercentage: baker.depositPercentage,
           paymentZelle: baker.paymentZelle,
           paymentPaypal: baker.paymentPaypal,
@@ -1372,6 +1371,26 @@ export async function registerRoutes(
       }
 
       await storage.updateQuote(quote.id, updateData);
+
+      // If quote is accepted, create an order for the calendar and revenue tracking
+      if (action === "accept") {
+        // Check if an order already exists for this quote (idempotency)
+        const existingOrder = await storage.getOrderByQuoteId(quote.id);
+        if (!existingOrder) {
+          await storage.createOrder({
+            bakerId: quote.bakerId,
+            quoteId: quote.id,
+            customerId: quote.customerId,
+            eventDate: quote.eventDate || null,
+            title: quote.title,
+            amount: quote.total,
+            paymentMethod: "pending",
+            paymentStatus: "pending",
+            fulfillmentStatus: "booked",
+            notes: `Order created from accepted quote #${quote.quoteNumber}`,
+          });
+        }
+      }
 
       // Send notification email to baker
       const baseUrl = `${req.protocol}://${req.get("host")}`;

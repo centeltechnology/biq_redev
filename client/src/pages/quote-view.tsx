@@ -28,7 +28,6 @@ interface PublicBaker {
   email?: string | null;
   phone?: string | null;
   address?: string | null;
-  tagline?: string | null;
   depositPercentage?: number | null;
   paymentZelle?: string | null;
   paymentPaypal?: string | null;
@@ -168,7 +167,6 @@ export default function QuoteViewPage() {
       <div className="max-w-3xl mx-auto p-6 py-12 quote-view-container">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-primary mb-2">{baker.businessName}</h1>
-          {baker.tagline && <p className="text-muted-foreground">{baker.tagline}</p>}
         </div>
 
         <Card className="mb-6">

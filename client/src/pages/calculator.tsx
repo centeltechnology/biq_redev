@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useToast } from "@/hooks/use-toast";
 import {
   Cake,
   Cookie,
@@ -119,6 +120,7 @@ const TREAT_STEPS = ["Choose Category", "Select Treats", "Event Details", "Conta
 
 export default function CalculatorPage() {
   const { slug } = useParams<{ slug: string }>();
+  const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(0);
   const [category, setCategory] = useState<"cake" | "treat" | undefined>(undefined);
   const [tiers, setTiers] = useState<CakeTier[]>([createDefaultTier()]);
@@ -202,6 +204,11 @@ export default function CalculatorPage() {
 
   const submitMutation = useMutation({
     mutationFn: async (data: ContactFormData) => {
+      // Validate event date for Fast Quote
+      if (fastQuoteMode && selectedFeaturedItem && !data.eventDate) {
+        throw new Error("Please select your event date");
+      }
+
       let submitPayload: CalculatorPayload | { fastQuote: true; featuredItemId: string; featuredItemName: string; featuredItemPrice: string };
       let estimatedTotal: string;
 
@@ -256,7 +263,11 @@ export default function CalculatorPage() {
     },
     onError: (err: Error) => {
       if (err.message !== "limit_reached") {
-        console.error("Submission error:", err);
+        toast({
+          title: "Error",
+          description: err.message || "Failed to submit. Please try again.",
+          variant: "destructive",
+        });
       }
     },
   });
@@ -430,7 +441,7 @@ export default function CalculatorPage() {
           />
         );
       case "Contact Info":
-        return <StepContactInfo form={form} />;
+        return <StepContactInfo form={form} showEventDate={fastQuoteMode} />;
       case "Review":
         if (fastQuoteMode && selectedFeaturedItem) {
           return (
@@ -1403,9 +1414,10 @@ function StepEventDetails({ form, deliveryOption, onDeliveryChange }: StepEventD
 
 interface StepContactInfoProps {
   form: ReturnType<typeof useForm<ContactFormData>>;
+  showEventDate?: boolean;
 }
 
-function StepContactInfo({ form }: StepContactInfoProps) {
+function StepContactInfo({ form, showEventDate = false }: StepContactInfoProps) {
   return (
     <Form {...form}>
       <div className="space-y-4">
@@ -1476,6 +1488,31 @@ function StepContactInfo({ form }: StepContactInfoProps) {
             </FormItem>
           )}
         />
+
+        {showEventDate && (
+          <FormField
+            control={form.control}
+            name="eventDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Event Date</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      {...field}
+                      type="date"
+                      min={new Date().toISOString().split("T")[0]}
+                      className="pl-10"
+                      data-testid="input-event-date"
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <FormField
           control={form.control}
