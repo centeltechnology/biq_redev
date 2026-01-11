@@ -23,10 +23,10 @@ import {
   ChevronRight
 } from "lucide-react";
 
-import dashboardImage from "@assets/generated_images/bakeriq_dashboard_quotes_list.png";
-import quoteBuilderImage from "@assets/generated_images/bakeriq_quote_builder_form.png";
-import calendarImage from "@assets/generated_images/bakeriq_order_calendar_view.png";
-import calculatorImage from "@assets/generated_images/bakeriq_public_cake_calculator.png";
+import dashboardImage from "@assets/generated_images/abstract_dashboard_ui_mockup.png";
+import quoteBuilderImage from "@assets/generated_images/abstract_quote_form_mockup.png";
+import calendarImage from "@assets/generated_images/abstract_calendar_ui_mockup.png";
+import calculatorImage from "@assets/generated_images/abstract_calculator_ui_mockup.png";
 
 const testimonials = [
   {
