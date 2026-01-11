@@ -51,6 +51,9 @@ export const bakers = pgTable("bakers", {
   // Quote usage tracking
   quotesSentThisMonth: integer("quotes_sent_this_month").default(0).notNull(),
   quotesResetDate: timestamp("quotes_reset_date"),
+  // Profile and portfolio images
+  profilePhoto: text("profile_photo"),
+  portfolioImages: text("portfolio_images").array(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

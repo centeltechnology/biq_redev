@@ -12,6 +12,7 @@ import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClie
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { CAKE_SIZES, CAKE_SHAPES, CAKE_FLAVORS, FROSTING_TYPES, DECORATIONS, DELIVERY_OPTIONS, ADDONS } from "@shared/schema";
+import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 
 // Quote limits per plan (monthly)
 const FREE_QUOTE_LIMIT = 5;
@@ -71,6 +72,9 @@ export async function registerRoutes(
       },
     })
   );
+
+  // Register object storage routes for file uploads
+  registerObjectStorageRoutes(app);
 
   // Auth Routes
   app.post("/api/auth/register", async (req, res) => {
@@ -358,6 +362,8 @@ export async function registerRoutes(
         notifyQuoteAccepted: z.number().min(0).max(1).optional(),
         calculatorConfig: z.any().optional(),
         quickOrderItemLimit: z.number().min(1).max(100).optional().nullable(),
+        profilePhoto: z.string().optional().nullable(),
+        portfolioImages: z.array(z.string()).max(6).optional().nullable(),
       }).refine((data) => {
         // Validate fixed deposit amount when fixed type is selected
         if (data.defaultDepositType === "fixed") {

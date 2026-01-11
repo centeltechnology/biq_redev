@@ -26,6 +26,11 @@ import {
   Zap,
 } from "lucide-react";
 import { SiFacebook, SiInstagram, SiTiktok, SiPinterest } from "react-icons/si";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -151,6 +156,8 @@ export default function CalculatorPage() {
 
   const [selectedFeaturedItem, setSelectedFeaturedItem] = useState<FeaturedItem | null>(null);
   const [fastQuoteMode, setFastQuoteMode] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const FAST_QUOTE_STEPS = ["Choose Category", "Contact Info", "Review"];
   
@@ -610,9 +617,18 @@ export default function CalculatorPage() {
     <div className="min-h-screen bg-background">
       <header className="flex items-center justify-between gap-4 px-6 py-4 border-b sticky top-0 z-50 bg-background">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-9 h-9 rounded-md bg-primary">
-            <Cake className="h-5 w-5 text-primary-foreground" />
-          </div>
+          {baker.profilePhoto ? (
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={baker.profilePhoto} alt={baker.businessName} />
+              <AvatarFallback>
+                <Cake className="h-5 w-5" />
+              </AvatarFallback>
+            </Avatar>
+          ) : (
+            <div className="flex items-center justify-center w-9 h-9 rounded-md bg-primary">
+              <Cake className="h-5 w-5 text-primary-foreground" />
+            </div>
+          )}
           <div>
             <span className="font-semibold">{baker.businessName}</span>
             <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
@@ -703,7 +719,74 @@ export default function CalculatorPage() {
         </div>
       </div>
 
-      <main className="max-w-4xl mx-auto p-6 -mt-6 relative z-10">
+      {baker.portfolioImages && baker.portfolioImages.length > 0 && (
+        <div className="max-w-4xl mx-auto px-6 mt-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium text-muted-foreground">Our Work</span>
+          </div>
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+            {baker.portfolioImages.map((image, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  setLightboxIndex(index);
+                  setLightboxOpen(true);
+                }}
+                className="aspect-square overflow-hidden rounded-lg hover-elevate cursor-pointer border"
+                data-testid={`button-portfolio-${index}`}
+              >
+                <img
+                  src={image}
+                  alt={`Portfolio ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black/95 border-0">
+          {baker.portfolioImages && baker.portfolioImages.length > 0 && (
+            <div className="relative">
+              <img
+                src={baker.portfolioImages[lightboxIndex]}
+                alt={`Portfolio ${lightboxIndex + 1}`}
+                className="w-full max-h-[80vh] object-contain"
+              />
+              {baker.portfolioImages.length > 1 && (
+                <>
+                  <button
+                    onClick={() => setLightboxIndex((prev) => 
+                      prev === 0 ? (baker.portfolioImages?.length ?? 1) - 1 : prev - 1
+                    )}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
+                    data-testid="button-lightbox-prev"
+                  >
+                    <ChevronLeft className="h-6 w-6" />
+                  </button>
+                  <button
+                    onClick={() => setLightboxIndex((prev) => 
+                      prev === (baker.portfolioImages?.length ?? 1) - 1 ? 0 : prev + 1
+                    )}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
+                    data-testid="button-lightbox-next"
+                  >
+                    <ChevronRight className="h-6 w-6" />
+                  </button>
+                </>
+              )}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/70 text-sm">
+                {lightboxIndex + 1} / {baker.portfolioImages.length}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <main className={`max-w-4xl mx-auto p-6 relative z-10 ${baker.portfolioImages && baker.portfolioImages.length > 0 ? "mt-4" : "-mt-6"}`}>
         <Card className="shadow-lg">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between gap-4 mb-4">
