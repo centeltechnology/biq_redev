@@ -649,96 +649,38 @@ export default function SettingsPage() {
                 />
 
                 <div className="space-y-4 border-t pt-4">
-                  <h4 className="font-medium text-sm">Quick Order Default Payment</h4>
+                  <h4 className="font-medium text-sm">Quote Deposit Settings</h4>
                   <p className="text-sm text-muted-foreground">
-                    Default payment option for new Quick Order items
+                    Set the deposit percentage required when customers accept quotes
                   </p>
                   
                   <FormField
                     control={paymentForm.control}
-                    name="defaultDepositType"
+                    name="depositPercentage"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Default Payment Type</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-default-deposit-type">
-                              <SelectValue placeholder="Select payment type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="full">Full Price</SelectItem>
-                            <SelectItem value="percentage">Percentage Deposit</SelectItem>
-                            <SelectItem value="fixed">Fixed Deposit</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <FormLabel>Deposit Percentage</FormLabel>
+                        <FormControl>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              {...field}
+                              type="number"
+                              min={0}
+                              max={100}
+                              className="w-24"
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                              data-testid="input-deposit-percentage"
+                            />
+                            <span className="text-muted-foreground">%</span>
+                          </div>
+                        </FormControl>
                         <FormDescription>
-                          How customers pay for Quick Order items by default
+                          Percentage of quote total required as deposit (0 = no deposit required)
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
-                  {paymentForm.watch("defaultDepositType") === "percentage" && (
-                    <FormField
-                      control={paymentForm.control}
-                      name="depositPercentage"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Deposit Percentage</FormLabel>
-                          <FormControl>
-                            <div className="flex items-center gap-2">
-                              <Input
-                                {...field}
-                                type="number"
-                                min={0}
-                                max={100}
-                                className="w-24"
-                                onChange={(e) => field.onChange(Number(e.target.value))}
-                                data-testid="input-deposit-percentage"
-                              />
-                              <span className="text-muted-foreground">%</span>
-                            </div>
-                          </FormControl>
-                          <FormDescription>
-                            Percentage of total required as deposit
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-
-                  {paymentForm.watch("defaultDepositType") === "fixed" && (
-                    <FormField
-                      control={paymentForm.control}
-                      name="depositFixedAmount"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Fixed Deposit Amount</FormLabel>
-                          <FormControl>
-                            <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground">$</span>
-                              <Input
-                                {...field}
-                                type="number"
-                                min={0}
-                                step="0.01"
-                                className="w-28"
-                                placeholder="0.00"
-                                data-testid="input-deposit-fixed-amount"
-                              />
-                            </div>
-                          </FormControl>
-                          <FormDescription>
-                            Fixed amount required as deposit
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
                 </div>
 
                 <Button
