@@ -41,6 +41,13 @@ export const bakers = pgTable("bakers", {
   onboardingTourStatus: text("onboarding_tour_status").notNull().default("pending"),
   // Quick Order item limit (null = unlimited)
   quickOrderItemLimit: integer("quick_order_item_limit"),
+  // Account status
+  suspended: boolean("suspended").default(false).notNull(),
+  suspendedAt: timestamp("suspended_at"),
+  suspendedReason: text("suspended_reason"),
+  // Quote usage tracking
+  quotesSentThisMonth: integer("quotes_sent_this_month").default(0).notNull(),
+  quotesResetDate: timestamp("quotes_reset_date"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -1739,6 +1739,258 @@ export async function registerRoutes(
     res.json({ totalBakers, verifiedBakers });
   });
 
+  // Enhanced admin analytics
+  app.get("/api/admin/analytics", requireAdmin, async (req, res) => {
+    try {
+      const allBakers = await storage.getAllBakers();
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      
+      // Bakers by plan
+      const bakersByPlan = {
+        free: allBakers.filter(b => b.plan === "free").length,
+        basic: allBakers.filter(b => b.plan === "basic").length,
+        pro: allBakers.filter(b => b.plan === "pro").length,
+      };
+      
+      // Recent signups
+      const recentSignups = allBakers.filter(b => 
+        b.createdAt && new Date(b.createdAt) >= thirtyDaysAgo
+      ).length;
+      const weeklySignups = allBakers.filter(b => 
+        b.createdAt && new Date(b.createdAt) >= sevenDaysAgo
+      ).length;
+      
+      // Verified vs unverified
+      const verifiedBakers = allBakers.filter(b => b.emailVerified).length;
+      const suspendedBakers = allBakers.filter(b => b.suspended).length;
+      
+      // Get platform-wide stats from database
+      const platformStats = await storage.getAdminPlatformStats();
+      
+      res.json({
+        totalBakers: allBakers.length,
+        bakersByPlan,
+        recentSignups,
+        weeklySignups,
+        verifiedBakers,
+        suspendedBakers,
+        admins: allBakers.filter(b => b.role === "super_admin").length,
+        ...platformStats,
+      });
+    } catch (error) {
+      console.error("Admin analytics error:", error);
+      res.status(500).json({ message: "Failed to get analytics" });
+    }
+  });
+
+  // Suspend/unsuspend baker
+  app.post("/api/admin/bakers/:id/suspend", requireAdmin, async (req, res) => {
+    try {
+      const { reason } = req.body;
+      const baker = await storage.getBaker(req.params.id);
+      if (!baker) {
+        return res.status(404).json({ message: "Baker not found" });
+      }
+      if (baker.id === req.session.bakerId) {
+        return res.status(400).json({ message: "Cannot suspend your own account" });
+      }
+      
+      await storage.updateBaker(req.params.id, {
+        suspended: true,
+        suspendedAt: new Date(),
+        suspendedReason: reason || "Suspended by admin",
+      });
+      
+      res.json({ message: "Baker suspended" });
+    } catch (error) {
+      console.error("Suspend baker error:", error);
+      res.status(500).json({ message: "Failed to suspend baker" });
+    }
+  });
+
+  app.post("/api/admin/bakers/:id/unsuspend", requireAdmin, async (req, res) => {
+    try {
+      const baker = await storage.getBaker(req.params.id);
+      if (!baker) {
+        return res.status(404).json({ message: "Baker not found" });
+      }
+      
+      await storage.updateBaker(req.params.id, {
+        suspended: false,
+        suspendedAt: null,
+        suspendedReason: null,
+      });
+      
+      res.json({ message: "Baker unsuspended" });
+    } catch (error) {
+      console.error("Unsuspend baker error:", error);
+      res.status(500).json({ message: "Failed to unsuspend baker" });
+    }
+  });
+
+  // Reset baker password (generates temporary password)
+  app.post("/api/admin/bakers/:id/reset-password", requireAdmin, async (req, res) => {
+    try {
+      const baker = await storage.getBaker(req.params.id);
+      if (!baker) {
+        return res.status(404).json({ message: "Baker not found" });
+      }
+      
+      // Generate a random temporary password
+      const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase();
+      const passwordHash = await bcrypt.hash(tempPassword, 10);
+      
+      await storage.updateBaker(req.params.id, { passwordHash });
+      
+      res.json({ 
+        message: "Password reset successfully",
+        tempPassword, // Admin can share this with the baker
+      });
+    } catch (error) {
+      console.error("Reset password error:", error);
+      res.status(500).json({ message: "Failed to reset password" });
+    }
+  });
+
+  // Reset quote limit for baker
+  app.post("/api/admin/bakers/:id/reset-quote-limit", requireAdmin, async (req, res) => {
+    try {
+      const baker = await storage.getBaker(req.params.id);
+      if (!baker) {
+        return res.status(404).json({ message: "Baker not found" });
+      }
+      
+      await storage.updateBaker(req.params.id, {
+        quotesSentThisMonth: 0,
+        quotesResetDate: new Date(),
+      });
+      
+      res.json({ message: "Quote limit reset successfully" });
+    } catch (error) {
+      console.error("Reset quote limit error:", error);
+      res.status(500).json({ message: "Failed to reset quote limit" });
+    }
+  });
+
+  // Impersonation - login as another baker
+  app.post("/api/admin/bakers/:id/impersonate", requireAdmin, async (req, res) => {
+    try {
+      const baker = await storage.getBaker(req.params.id);
+      if (!baker) {
+        return res.status(404).json({ message: "Baker not found" });
+      }
+      
+      // Store original admin ID for return
+      const originalAdminId = req.session.bakerId;
+      
+      // Switch session to impersonated baker
+      req.session.bakerId = baker.id;
+      req.session.impersonatedBy = originalAdminId;
+      
+      res.json({ 
+        message: "Now impersonating " + baker.businessName,
+        baker: { ...baker, passwordHash: undefined },
+      });
+    } catch (error) {
+      console.error("Impersonation error:", error);
+      res.status(500).json({ message: "Failed to impersonate baker" });
+    }
+  });
+
+  // Stop impersonation
+  app.post("/api/admin/stop-impersonation", async (req, res) => {
+    try {
+      if (!req.session.impersonatedBy) {
+        return res.status(400).json({ message: "Not currently impersonating" });
+      }
+      
+      const originalAdminId = req.session.impersonatedBy;
+      req.session.bakerId = originalAdminId;
+      delete req.session.impersonatedBy;
+      
+      const admin = await storage.getBaker(originalAdminId);
+      res.json({ 
+        message: "Stopped impersonation",
+        baker: admin ? { ...admin, passwordHash: undefined } : null,
+      });
+    } catch (error) {
+      console.error("Stop impersonation error:", error);
+      res.status(500).json({ message: "Failed to stop impersonation" });
+    }
+  });
+
+  // Get baker activity (leads, quotes, orders)
+  app.get("/api/admin/bakers/:id/activity", requireAdmin, async (req, res) => {
+    try {
+      const baker = await storage.getBaker(req.params.id);
+      if (!baker) {
+        return res.status(404).json({ message: "Baker not found" });
+      }
+      
+      const [leads, quotes, orders, customers] = await Promise.all([
+        storage.getLeadsByBaker(req.params.id),
+        storage.getQuotesByBaker(req.params.id),
+        storage.getOrdersByBaker(req.params.id),
+        storage.getCustomersByBaker(req.params.id),
+      ]);
+      
+      res.json({
+        baker: { ...baker, passwordHash: undefined },
+        stats: {
+          totalLeads: leads.length,
+          totalQuotes: quotes.length,
+          totalOrders: orders.length,
+          totalCustomers: customers.length,
+          sentQuotes: quotes.filter(q => q.status === "sent").length,
+          acceptedQuotes: quotes.filter(q => q.status === "approved").length,
+          totalRevenue: orders.reduce((sum, o) => sum + Number(o.amount), 0),
+        },
+        recentLeads: leads.slice(0, 10),
+        recentQuotes: quotes.slice(0, 10),
+        recentOrders: orders.slice(0, 10),
+      });
+    } catch (error) {
+      console.error("Get baker activity error:", error);
+      res.status(500).json({ message: "Failed to get baker activity" });
+    }
+  });
+
+  // Get email logs
+  app.get("/api/admin/email-logs", requireAdmin, async (req, res) => {
+    try {
+      const emailLogs = await storage.getAdminEmailLogs();
+      res.json(emailLogs);
+    } catch (error) {
+      console.error("Get email logs error:", error);
+      res.status(500).json({ message: "Failed to get email logs" });
+    }
+  });
+
+  // Resend onboarding email manually
+  app.post("/api/admin/bakers/:id/resend-email", requireAdmin, async (req, res) => {
+    try {
+      const { emailDay } = req.body;
+      const baker = await storage.getBaker(req.params.id);
+      if (!baker) {
+        return res.status(404).json({ message: "Baker not found" });
+      }
+      
+      // Delete existing record to allow resend
+      await storage.deleteOnboardingEmail(req.params.id, emailDay);
+      
+      // Trigger the email send
+      const { sendOnboardingEmail } = await import("./email");
+      await sendOnboardingEmail(baker, emailDay);
+      
+      res.json({ message: `Email day ${emailDay} resent to ${baker.email}` });
+    } catch (error) {
+      console.error("Resend email error:", error);
+      res.status(500).json({ message: "Failed to resend email" });
+    }
+  });
+
   // Seed demo baker on startup
   const existingDemo = await storage.getBakerByEmail("demo@bakeriq.app");
   if (!existingDemo) {

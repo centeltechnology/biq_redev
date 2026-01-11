@@ -106,6 +106,16 @@ export interface IStorage {
 
   // Admin
   getAllBakers(): Promise<Baker[]>;
+  getAdminPlatformStats(): Promise<{
+    totalLeads: number;
+    totalQuotes: number;
+    totalOrders: number;
+    platformRevenue: number;
+    quotesThisMonth: number;
+    leadsThisMonth: number;
+  }>;
+  getAdminEmailLogs(): Promise<BakerOnboardingEmail[]>;
+  deleteOnboardingEmail(bakerId: string, emailDay: number): Promise<void>;
 
   // Onboarding Emails
   getOnboardingEmailsSent(bakerId: string): Promise<BakerOnboardingEmail[]>;
@@ -626,6 +636,53 @@ export class DatabaseStorage implements IStorage {
   // Admin
   async getAllBakers(): Promise<Baker[]> {
     return db.select().from(bakers).orderBy(desc(bakers.createdAt));
+  }
+
+  async getAdminPlatformStats(): Promise<{
+    totalLeads: number;
+    totalQuotes: number;
+    totalOrders: number;
+    platformRevenue: number;
+    quotesThisMonth: number;
+    leadsThisMonth: number;
+  }> {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    const [leadsResult] = await db.select({ count: sql<number>`count(*)::int` }).from(leads);
+    const [quotesResult] = await db.select({ count: sql<number>`count(*)::int` }).from(quotes);
+    const [ordersResult] = await db.select({ count: sql<number>`count(*)::int` }).from(orders);
+    const [revenueResult] = await db.select({ total: sql<string>`COALESCE(sum(amount), 0)` }).from(orders);
+    
+    const [quotesThisMonthResult] = await db.select({ count: sql<number>`count(*)::int` })
+      .from(quotes)
+      .where(gte(quotes.createdAt, startOfMonth));
+    
+    const [leadsThisMonthResult] = await db.select({ count: sql<number>`count(*)::int` })
+      .from(leads)
+      .where(gte(leads.createdAt, startOfMonth));
+    
+    return {
+      totalLeads: leadsResult?.count || 0,
+      totalQuotes: quotesResult?.count || 0,
+      totalOrders: ordersResult?.count || 0,
+      platformRevenue: Number(revenueResult?.total || 0),
+      quotesThisMonth: quotesThisMonthResult?.count || 0,
+      leadsThisMonth: leadsThisMonthResult?.count || 0,
+    };
+  }
+
+  async getAdminEmailLogs(): Promise<BakerOnboardingEmail[]> {
+    return db.select().from(bakerOnboardingEmails).orderBy(desc(bakerOnboardingEmails.sentAt)).limit(100);
+  }
+
+  async deleteOnboardingEmail(bakerId: string, emailDay: number): Promise<void> {
+    await db.delete(bakerOnboardingEmails).where(
+      and(
+        eq(bakerOnboardingEmails.bakerId, bakerId),
+        eq(bakerOnboardingEmails.emailDay, emailDay)
+      )
+    );
   }
 
   // Onboarding Emails
