@@ -1294,6 +1294,8 @@ export async function registerRoutes(
       socialInstagram: baker.socialInstagram,
       socialTiktok: baker.socialTiktok,
       socialPinterest: baker.socialPinterest,
+      profilePhoto: baker.profilePhoto,
+      portfolioImages: baker.portfolioImages,
     });
   });
 
