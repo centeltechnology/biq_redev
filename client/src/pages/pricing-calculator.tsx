@@ -98,6 +98,9 @@ export default function PricingCalculatorPage() {
   const [itemToFeature, setItemToFeature] = useState<PricingCalculation | null>(null);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [showOnQuickOrder, setShowOnQuickOrder] = useState(true);
+  const [depositType, setDepositType] = useState<"full" | "percentage" | "fixed">("full");
+  const [depositPercent, setDepositPercent] = useState(50);
+  const [depositAmount, setDepositAmount] = useState("");
 
   const form = useForm<CalculatorFormData>({
     resolver: zodResolver(calculatorSchema),
@@ -190,8 +193,23 @@ export default function PricingCalculatorPage() {
   });
 
   const featureMutation = useMutation({
-    mutationFn: async ({ id, isFeatured, featuredPrice, showOnQuickOrder }: { id: string; isFeatured: boolean; featuredPrice?: string; showOnQuickOrder?: boolean }) => {
-      const res = await apiRequest("POST", `/api/pricing-calculations/${id}/feature`, { isFeatured, featuredPrice, showOnQuickOrder });
+    mutationFn: async ({ id, isFeatured, featuredPrice, showOnQuickOrder, depositType, depositPercent, depositAmount }: { 
+      id: string; 
+      isFeatured: boolean; 
+      featuredPrice?: string; 
+      showOnQuickOrder?: boolean;
+      depositType?: string | null;
+      depositPercent?: number | null;
+      depositAmount?: string | null;
+    }) => {
+      const res = await apiRequest("POST", `/api/pricing-calculations/${id}/feature`, { 
+        isFeatured, 
+        featuredPrice, 
+        showOnQuickOrder,
+        depositType,
+        depositPercent,
+        depositAmount
+      });
       return res.json();
     },
     onSuccess: (_, { isFeatured }) => {
@@ -255,6 +273,20 @@ export default function PricingCalculatorPage() {
       }
       setItemToFeature(calc);
       setShowOnQuickOrder(calc.showOnQuickOrder !== false);
+      // Initialize deposit settings from existing item or defaults
+      if (calc.depositType) {
+        setDepositType(calc.depositType as "full" | "percentage" | "fixed");
+        if (calc.depositType === "percentage" && calc.depositPercent) {
+          setDepositPercent(calc.depositPercent);
+        }
+        if (calc.depositType === "fixed" && calc.depositAmount) {
+          setDepositAmount(calc.depositAmount);
+        }
+      } else {
+        setDepositType("full");
+        setDepositPercent(50);
+        setDepositAmount("");
+      }
       setFeatureDialogOpen(true);
     }
   };
@@ -768,6 +800,99 @@ export default function PricingCalculatorPage() {
                   data-testid="switch-show-on-quick-order"
                 />
               </div>
+
+              <div className="space-y-3 p-4 border rounded-lg">
+                <Label className="font-medium">Payment Option</Label>
+                <p className="text-sm text-muted-foreground">
+                  Choose how customers pay for this item
+                </p>
+                <div className="grid gap-2">
+                  <div 
+                    className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${depositType === "full" ? "border-primary bg-primary/5" : "hover:bg-muted/50"}`}
+                    onClick={() => setDepositType("full")}
+                  >
+                    <input 
+                      type="radio" 
+                      checked={depositType === "full"} 
+                      onChange={() => setDepositType("full")}
+                      className="accent-primary"
+                      data-testid="radio-deposit-full"
+                    />
+                    <div>
+                      <p className="font-medium text-sm">Full Price</p>
+                      <p className="text-xs text-muted-foreground">Customer pays the full amount</p>
+                    </div>
+                  </div>
+                  <div 
+                    className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${depositType === "percentage" ? "border-primary bg-primary/5" : "hover:bg-muted/50"}`}
+                    onClick={() => setDepositType("percentage")}
+                  >
+                    <input 
+                      type="radio" 
+                      checked={depositType === "percentage"} 
+                      onChange={() => setDepositType("percentage")}
+                      className="accent-primary"
+                      data-testid="radio-deposit-percentage"
+                    />
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">Percentage Deposit</p>
+                      <p className="text-xs text-muted-foreground">Customer pays a percentage upfront</p>
+                    </div>
+                    {depositType === "percentage" && (
+                      <div className="flex items-center gap-1">
+                        <Input 
+                          type="number" 
+                          value={depositPercent} 
+                          onChange={(e) => setDepositPercent(parseInt(e.target.value) || 0)}
+                          className="w-16 h-8 text-center"
+                          min={1}
+                          max={100}
+                          data-testid="input-deposit-percent"
+                        />
+                        <span className="text-sm text-muted-foreground">%</span>
+                      </div>
+                    )}
+                  </div>
+                  <div 
+                    className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${depositType === "fixed" ? "border-primary bg-primary/5" : "hover:bg-muted/50"}`}
+                    onClick={() => setDepositType("fixed")}
+                  >
+                    <input 
+                      type="radio" 
+                      checked={depositType === "fixed"} 
+                      onChange={() => setDepositType("fixed")}
+                      className="accent-primary"
+                      data-testid="radio-deposit-fixed"
+                    />
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">Fixed Deposit</p>
+                      <p className="text-xs text-muted-foreground">Customer pays a fixed amount upfront</p>
+                    </div>
+                    {depositType === "fixed" && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-sm text-muted-foreground">$</span>
+                        <Input 
+                          type="number" 
+                          value={depositAmount} 
+                          onChange={(e) => setDepositAmount(e.target.value)}
+                          className="w-20 h-8"
+                          min={0}
+                          placeholder="0.00"
+                          data-testid="input-deposit-amount"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {depositType !== "full" && itemToFeature && (
+                  <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                    Deposit: {depositType === "percentage" 
+                      ? `${depositPercent}% = ${formatCurrency(parseFloat(itemToFeature.suggestedPrice) * (depositPercent / 100))}`
+                      : `$${depositAmount || "0.00"}`
+                    }
+                  </div>
+                )}
+              </div>
               
               <p className="text-sm text-muted-foreground">
                 The item will use its current name, description, and suggested price. 
@@ -785,7 +910,10 @@ export default function PricingCalculatorPage() {
                 id: itemToFeature.id, 
                 isFeatured: true,
                 featuredPrice: itemToFeature.suggestedPrice,
-                showOnQuickOrder 
+                showOnQuickOrder,
+                depositType: depositType === "full" ? null : depositType,
+                depositPercent: depositType === "percentage" ? depositPercent : null,
+                depositAmount: depositType === "fixed" ? depositAmount : null
               })}
               disabled={featureMutation.isPending}
               data-testid="button-confirm-feature"

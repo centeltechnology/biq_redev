@@ -1186,7 +1186,10 @@ export async function registerRoutes(
         featuredPrice,
         featuredStartDate,
         featuredEndDate,
-        showOnQuickOrder
+        showOnQuickOrder,
+        depositType,
+        depositPercent,
+        depositAmount
       } = req.body;
       
       // Check featured item limit for Basic plan (10 items)
@@ -1212,6 +1215,9 @@ export async function registerRoutes(
         featuredPrice: featuredPrice || calculation.suggestedPrice,
         featuredStartDate: featuredStartDate ? new Date(featuredStartDate) : null,
         featuredEndDate: featuredEndDate ? new Date(featuredEndDate) : null,
+        depositType: depositType || null,
+        depositPercent: depositPercent || null,
+        depositAmount: depositAmount || null,
       });
       
       res.json(updated);
