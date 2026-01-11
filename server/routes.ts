@@ -1841,23 +1841,25 @@ export async function registerRoutes(
       
       // Generate a random temporary password
       const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase();
-      const passwordHash = await bcrypt.hash(tempPassword, 10);
       
-      await storage.updateBaker(req.params.id, { passwordHash });
-      
-      // Email the temporary password to the baker
+      // Email the temporary password to the baker FIRST
       const baseUrl = `${req.protocol}://${req.get("host")}`;
       const emailSent = await sendAdminPasswordReset(baker.email, tempPassword, baker.businessName, baseUrl);
       
-      if (emailSent) {
-        res.json({ 
-          message: `Password reset successfully. Temporary password has been emailed to ${baker.email}`,
-        });
-      } else {
-        res.json({ 
-          message: "Password reset but email failed to send. Please contact the baker directly.",
+      if (!emailSent) {
+        // Don't change the password if email fails - this prevents locking out the baker
+        return res.status(500).json({ 
+          message: "Failed to send password reset email. Password was NOT changed. Please check email configuration.",
         });
       }
+      
+      // Only update the password after email is successfully sent
+      const passwordHash = await bcrypt.hash(tempPassword, 10);
+      await storage.updateBaker(req.params.id, { passwordHash });
+      
+      res.json({ 
+        message: `Password reset successfully. Temporary password has been emailed to ${baker.email}`,
+      });
     } catch (error) {
       console.error("Reset password error:", error);
       res.status(500).json({ message: "Failed to reset password" });
