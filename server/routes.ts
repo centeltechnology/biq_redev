@@ -23,6 +23,7 @@ const PgSession = connectPgSimple(session);
 declare module "express-session" {
   interface SessionData {
     bakerId?: string;
+    impersonatedBy?: string;
   }
 }
 
@@ -1980,11 +1981,17 @@ export async function registerRoutes(
       // Delete existing record to allow resend
       await storage.deleteOnboardingEmail(req.params.id, emailDay);
       
-      // Trigger the email send
-      const { sendOnboardingEmail } = await import("./email");
-      await sendOnboardingEmail(baker, emailDay);
+      // Trigger the email send with correct parameters
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      const success = await sendOnboardingEmail(baker.email, baker.businessName, emailDay, baseUrl);
       
-      res.json({ message: `Email day ${emailDay} resent to ${baker.email}` });
+      if (success) {
+        await storage.recordOnboardingEmail(baker.id, emailDay, "sent");
+        res.json({ message: `Email day ${emailDay} resent to ${baker.email}` });
+      } else {
+        await storage.recordOnboardingEmail(baker.id, emailDay, "failed", "Email send failed");
+        res.status(500).json({ message: "Failed to send email" });
+      }
     } catch (error) {
       console.error("Resend email error:", error);
       res.status(500).json({ message: "Failed to resend email" });
