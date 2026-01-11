@@ -596,6 +596,110 @@ This link will expire in 24 hours.
   });
 }
 
+// Quote response notification (accept/decline)
+export async function sendQuoteResponseNotification(
+  bakerEmail: string,
+  bakerName: string,
+  response: {
+    customerName: string;
+    customerEmail: string;
+    quoteNumber: string;
+    quoteTitle: string;
+    total: number;
+    action: "accepted" | "declined";
+    dashboardUrl: string;
+  }
+): Promise<boolean> {
+  const actionColor = response.action === "accepted" ? "#22C55E" : "#EF4444";
+  const actionText = response.action === "accepted" ? "Accepted" : "Declined";
+  const actionEmoji = response.action === "accepted" ? "✓" : "✗";
+  
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: ${actionColor}; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px; }
+    .detail-row { display: flex; padding: 10px 0; border-bottom: 1px solid #e9ecef; }
+    .label { font-weight: 600; min-width: 120px; color: #666; }
+    .value { color: #333; }
+    .status-badge { display: inline-block; background: ${actionColor}; color: white; padding: 4px 12px; border-radius: 4px; font-weight: 600; }
+    .cta { display: inline-block; background: #E91E63; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 20px; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0;">${actionEmoji} Quote ${actionText}!</h1>
+      <p style="margin: 10px 0 0 0; opacity: 0.9;">A customer has responded to your quote</p>
+    </div>
+    <div class="content">
+      <h2>Quote Response</h2>
+      <div class="detail-row">
+        <span class="label">Customer:</span>
+        <span class="value">${response.customerName}</span>
+      </div>
+      <div class="detail-row">
+        <span class="label">Email:</span>
+        <span class="value">${response.customerEmail}</span>
+      </div>
+      <div class="detail-row">
+        <span class="label">Quote:</span>
+        <span class="value">#${response.quoteNumber} - ${response.quoteTitle}</span>
+      </div>
+      <div class="detail-row">
+        <span class="label">Total:</span>
+        <span class="value" style="font-weight: bold;">${formatCurrency(response.total)}</span>
+      </div>
+      <div class="detail-row">
+        <span class="label">Status:</span>
+        <span class="status-badge">${actionText}</span>
+      </div>
+      ${response.action === "accepted" ? `
+      <p style="margin-top: 20px; color: #22C55E; font-weight: 600;">Great news! Your customer has accepted this quote. Time to confirm the order details and collect the deposit.</p>
+      ` : `
+      <p style="margin-top: 20px; color: #666;">The customer has declined this quote. You may want to follow up to understand their needs better.</p>
+      `}
+      <p style="text-align: center;">
+        <a href="${response.dashboardUrl}" class="cta">View in Dashboard</a>
+      </p>
+    </div>
+    <div class="footer">
+      <p>This email was sent by BakerIQ</p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  const text = `
+Quote ${actionText}!
+
+Customer: ${response.customerName}
+Email: ${response.customerEmail}
+Quote: #${response.quoteNumber} - ${response.quoteTitle}
+Total: ${formatCurrency(response.total)}
+Status: ${actionText}
+
+${response.action === "accepted" 
+  ? "Great news! Your customer has accepted this quote. Time to confirm the order details and collect the deposit."
+  : "The customer has declined this quote. You may want to follow up to understand their needs better."}
+
+View in Dashboard: ${response.dashboardUrl}
+`;
+
+  return sendEmail({
+    to: bakerEmail,
+    subject: `Quote ${actionText}: ${response.customerName} - ${formatCurrency(response.total)}`,
+    html,
+    text,
+  });
+}
+
 // Onboarding email templates
 interface OnboardingEmailData {
   day: number;

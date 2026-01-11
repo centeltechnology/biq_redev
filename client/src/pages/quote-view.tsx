@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useParams } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +8,18 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { usePageTitle } from "@/hooks/use-page-title";
-import { CheckCircle, Calendar, DollarSign, FileText, Cake, Printer } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { CheckCircle, Calendar, DollarSign, FileText, Cake, Printer, XCircle, Loader2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { Quote, QuoteItem } from "@shared/schema";
 
 interface PublicBaker {
@@ -16,6 +28,7 @@ interface PublicBaker {
   email?: string | null;
   phone?: string | null;
   address?: string | null;
+  tagline?: string | null;
   depositPercentage?: number | null;
   paymentZelle?: string | null;
   paymentPaypal?: string | null;
@@ -46,8 +59,11 @@ function formatCurrency(amount: number | string): string {
 
 export default function QuoteViewPage() {
   const { id } = useParams<{ id: string }>();
+  const { toast } = useToast();
+  const [showAcceptDialog, setShowAcceptDialog] = useState(false);
+  const [showDeclineDialog, setShowDeclineDialog] = useState(false);
 
-  const { data, isLoading, error } = useQuery<PublicQuoteData>({
+  const { data, isLoading, error, refetch } = useQuery<PublicQuoteData>({
     queryKey: ["/api/public/quote", id],
     queryFn: async () => {
       const res = await fetch(`/api/public/quote/${id}`);
@@ -55,6 +71,35 @@ export default function QuoteViewPage() {
       return res.json();
     },
     enabled: !!id,
+  });
+
+  const respondMutation = useMutation({
+    mutationFn: async (action: "accept" | "decline") => {
+      const res = await fetch(`/api/public/quote/${id}/respond`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ message: "Failed to respond to quote" }));
+        throw new Error(error.message);
+      }
+      return res.json();
+    },
+    onSuccess: async (data) => {
+      await refetch();
+      toast({
+        title: data.status === "approved" ? "Quote Accepted" : "Quote Declined",
+        description: data.message,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to respond to quote",
+        variant: "destructive",
+      });
+    },
   });
 
   usePageTitle(data?.quote?.title ? `Quote: ${data.quote.title}` : "Your Quote");
@@ -327,34 +372,170 @@ export default function QuoteViewPage() {
           </Card>
         )}
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-3" />
-              <h3 className="font-semibold mb-2">Ready to Confirm?</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                To accept this quote and proceed with your order, please contact us:
-              </p>
-              <div className="space-y-1">
-                {baker.address && (
-                  <p className="text-sm text-muted-foreground">{baker.address}</p>
-                )}
-                {baker.phone && (
-                  <p className="text-sm">
-                    <span className="text-muted-foreground">Phone:</span>{" "}
-                    <a href={`tel:${baker.phone}`} className="text-primary hover:underline">{baker.phone}</a>
-                  </p>
-                )}
-                {baker.email && (
-                  <p className="text-sm">
-                    <span className="text-muted-foreground">Email:</span>{" "}
-                    <a href={`mailto:${baker.email}`} className="text-primary hover:underline">{baker.email}</a>
-                  </p>
-                )}
+        {quote.status === "sent" ? (
+          <Card className="border-primary/20">
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-3" />
+                <h3 className="font-semibold mb-2">Ready to Respond?</h3>
+                <p className="text-sm text-muted-foreground mb-6">
+                  Review the quote above and let us know if you'd like to proceed.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Button
+                    size="lg"
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={() => setShowAcceptDialog(true)}
+                    disabled={respondMutation.isPending}
+                    data-testid="button-accept-quote"
+                  >
+                    {respondMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                    )}
+                    Accept Quote
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-destructive text-destructive hover:bg-destructive/10"
+                    onClick={() => setShowDeclineDialog(true)}
+                    disabled={respondMutation.isPending}
+                    data-testid="button-decline-quote"
+                  >
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Decline Quote
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-4">
+                  Questions? Contact {baker.businessName}{baker.phone ? ` at ${baker.phone}` : ""}{baker.email ? ` or ${baker.email}` : ""}
+                </p>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ) : quote.status === "approved" ? (
+          <Card className="border-green-500/30 bg-green-50 dark:bg-green-950/20">
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-3" />
+                <h3 className="font-semibold text-green-700 dark:text-green-400 mb-2">Quote Accepted!</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Thank you for accepting this quote. {baker.businessName} will be in touch to finalize your order details.
+                </p>
+                <div className="space-y-1">
+                  {baker.phone && (
+                    <p className="text-sm">
+                      <span className="text-muted-foreground">Phone:</span>{" "}
+                      <a href={`tel:${baker.phone}`} className="text-primary hover:underline">{baker.phone}</a>
+                    </p>
+                  )}
+                  {baker.email && (
+                    <p className="text-sm">
+                      <span className="text-muted-foreground">Email:</span>{" "}
+                      <a href={`mailto:${baker.email}`} className="text-primary hover:underline">{baker.email}</a>
+                    </p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : quote.status === "rejected" ? (
+          <Card className="border-red-500/30 bg-red-50 dark:bg-red-950/20">
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <XCircle className="h-8 w-8 text-red-500 mx-auto mb-3" />
+                <h3 className="font-semibold text-red-700 dark:text-red-400 mb-2">Quote Declined</h3>
+                <p className="text-sm text-muted-foreground">
+                  This quote has been declined. If you'd like to discuss alternatives, please contact {baker.businessName}.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+                <h3 className="font-semibold mb-2">Quote Pending</h3>
+                <p className="text-sm text-muted-foreground">
+                  This quote is being prepared. You'll be able to accept or decline once it's finalized.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Accept Confirmation Dialog */}
+        <AlertDialog open={showAcceptDialog} onOpenChange={(open) => !respondMutation.isPending && setShowAcceptDialog(open)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Accept This Quote?</AlertDialogTitle>
+              <AlertDialogDescription>
+                By accepting this quote, you're confirming your interest in proceeding with this order for{" "}
+                <strong>{formatCurrency(total)}</strong>. {baker.businessName} will be notified and will reach out to confirm details and payment.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={respondMutation.isPending}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-green-600 hover:bg-green-700"
+                disabled={respondMutation.isPending}
+                onClick={async (e) => {
+                  e.preventDefault();
+                  try {
+                    await respondMutation.mutateAsync("accept");
+                    setShowAcceptDialog(false);
+                  } catch {
+                    // Error handled by onError callback
+                  }
+                }}
+                data-testid="button-confirm-accept"
+              >
+                {respondMutation.isPending ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...</>
+                ) : (
+                  "Yes, Accept Quote"
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Decline Confirmation Dialog */}
+        <AlertDialog open={showDeclineDialog} onOpenChange={(open) => !respondMutation.isPending && setShowDeclineDialog(open)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Decline This Quote?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to decline this quote? {baker.businessName} will be notified. You can always reach out to them if you change your mind.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={respondMutation.isPending}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive hover:bg-destructive/90"
+                disabled={respondMutation.isPending}
+                onClick={async (e) => {
+                  e.preventDefault();
+                  try {
+                    await respondMutation.mutateAsync("decline");
+                    setShowDeclineDialog(false);
+                  } catch {
+                    // Error handled by onError callback
+                  }
+                }}
+                data-testid="button-confirm-decline"
+              >
+                {respondMutation.isPending ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...</>
+                ) : (
+                  "Yes, Decline Quote"
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <p className="text-center text-xs text-muted-foreground mt-8">
           Powered by BakerIQ

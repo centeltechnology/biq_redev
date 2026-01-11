@@ -6,7 +6,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { pool } from "./db";
 import connectPgSimple from "connect-pg-simple";
-import { sendNewLeadNotification, sendLeadConfirmationToCustomer, sendPasswordResetEmail, sendEmailVerification, sendQuoteNotification, sendOnboardingEmail } from "./email";
+import { sendNewLeadNotification, sendLeadConfirmationToCustomer, sendPasswordResetEmail, sendEmailVerification, sendQuoteNotification, sendOnboardingEmail, sendQuoteResponseNotification } from "./email";
 import crypto from "crypto";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { db } from "./db";
@@ -1312,6 +1312,7 @@ export async function registerRoutes(
           email: baker.email,
           phone: baker.phone,
           address: baker.address,
+          tagline: baker.tagline,
           depositPercentage: baker.depositPercentage,
           paymentZelle: baker.paymentZelle,
           paymentPaypal: baker.paymentPaypal,
@@ -1328,6 +1329,76 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching public quote:", error);
       res.status(500).json({ message: "Failed to fetch quote" });
+    }
+  });
+
+  // Public endpoint for customer to accept/decline quote
+  app.patch("/api/public/quote/:id/respond", async (req, res) => {
+    try {
+      const { action } = req.body;
+      if (!action || !["accept", "decline"].includes(action)) {
+        return res.status(400).json({ message: "Invalid action. Must be 'accept' or 'decline'" });
+      }
+
+      const quote = await storage.getQuoteWithItems(req.params.id);
+      if (!quote) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+
+      // Only allow response on sent quotes
+      if (quote.status !== "sent") {
+        return res.status(400).json({ 
+          message: quote.status === "approved" || quote.status === "rejected" 
+            ? "This quote has already been responded to" 
+            : "This quote is not available for response" 
+        });
+      }
+
+      const baker = await storage.getBaker(quote.bakerId);
+      if (!baker) {
+        return res.status(404).json({ message: "Baker not found" });
+      }
+
+      const customer = await storage.getCustomer(quote.customerId);
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      // Update quote status
+      const newStatus = action === "accept" ? "approved" : "rejected";
+      const updateData: { status: string; acceptedAt?: Date } = { status: newStatus };
+      if (action === "accept") {
+        updateData.acceptedAt = new Date();
+      }
+
+      await storage.updateQuote(quote.id, updateData);
+
+      // Send notification email to baker
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      await sendQuoteResponseNotification(
+        baker.email,
+        baker.businessName,
+        {
+          customerName: customer.name,
+          customerEmail: customer.email,
+          quoteNumber: quote.quoteNumber,
+          quoteTitle: quote.title,
+          total: parseFloat(quote.total),
+          action: action === "accept" ? "accepted" : "declined",
+          dashboardUrl: `${baseUrl}/quotes/${quote.id}`,
+        }
+      );
+
+      res.json({ 
+        success: true, 
+        message: action === "accept" 
+          ? "Quote accepted! The baker has been notified." 
+          : "Quote declined. The baker has been notified.",
+        status: newStatus
+      });
+    } catch (error) {
+      console.error("Error responding to quote:", error);
+      res.status(500).json({ message: "Failed to respond to quote" });
     }
   });
 
