@@ -347,6 +347,8 @@ export async function registerRoutes(
         paymentCashapp: z.string().optional().nullable(),
         paymentVenmo: z.string().optional().nullable(),
         depositPercentage: z.number().min(0).max(100).optional().nullable(),
+        defaultDepositType: z.enum(["full", "percentage", "fixed"]).optional(),
+        depositFixedAmount: z.string().optional().nullable(),
         socialFacebook: z.string().optional().nullable(),
         socialInstagram: z.string().optional().nullable(),
         socialTiktok: z.string().optional().nullable(),
@@ -356,6 +358,16 @@ export async function registerRoutes(
         notifyQuoteAccepted: z.number().min(0).max(1).optional(),
         calculatorConfig: z.any().optional(),
         quickOrderItemLimit: z.number().min(1).max(100).optional().nullable(),
+      }).refine((data) => {
+        // Validate fixed deposit amount when fixed type is selected
+        if (data.defaultDepositType === "fixed") {
+          const amount = parseFloat(data.depositFixedAmount || "0");
+          return amount > 0;
+        }
+        return true;
+      }, {
+        message: "Fixed deposit amount must be greater than 0",
+        path: ["depositFixedAmount"],
       });
 
       const data = schema.parse(req.body);

@@ -46,6 +46,17 @@ const paymentSchema = z.object({
   paymentCashapp: z.string().optional(),
   paymentVenmo: z.string().optional(),
   depositPercentage: z.number().min(0).max(100),
+  defaultDepositType: z.enum(["full", "percentage", "fixed"]),
+  depositFixedAmount: z.string().optional(),
+}).refine((data) => {
+  if (data.defaultDepositType === "fixed") {
+    const amount = parseFloat(data.depositFixedAmount || "0");
+    return amount > 0;
+  }
+  return true;
+}, {
+  message: "Fixed deposit amount must be greater than 0",
+  path: ["depositFixedAmount"],
 });
 
 type PaymentFormData = z.infer<typeof paymentSchema>;
@@ -99,6 +110,8 @@ export default function SettingsPage() {
       paymentCashapp: "",
       paymentVenmo: "",
       depositPercentage: 50,
+      defaultDepositType: "full",
+      depositFixedAmount: "",
     },
   });
 
@@ -120,6 +133,8 @@ export default function SettingsPage() {
         paymentCashapp: baker.paymentCashapp || "",
         paymentVenmo: baker.paymentVenmo || "",
         depositPercentage: baker.depositPercentage ?? 50,
+        defaultDepositType: (baker.defaultDepositType as "full" | "percentage" | "fixed") || "full",
+        depositFixedAmount: baker.depositFixedAmount || "",
       });
     }
   }, [baker, profileForm, paymentForm]);
@@ -633,29 +648,98 @@ export default function SettingsPage() {
                   )}
                 />
 
-                <FormField
-                  control={paymentForm.control}
-                  name="depositPercentage"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Required Deposit (%)</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="number"
-                          min={0}
-                          max={100}
-                          onChange={(e) => field.onChange(Number(e.target.value))}
-                          data-testid="input-deposit-percentage"
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Percentage of total required as deposit to confirm order
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
+                <div className="space-y-4 border-t pt-4">
+                  <h4 className="font-medium text-sm">Quick Order Default Payment</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Default payment option for new Quick Order items
+                  </p>
+                  
+                  <FormField
+                    control={paymentForm.control}
+                    name="defaultDepositType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Default Payment Type</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-default-deposit-type">
+                              <SelectValue placeholder="Select payment type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="full">Full Price</SelectItem>
+                            <SelectItem value="percentage">Percentage Deposit</SelectItem>
+                            <SelectItem value="fixed">Fixed Deposit</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          How customers pay for Quick Order items by default
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {paymentForm.watch("defaultDepositType") === "percentage" && (
+                    <FormField
+                      control={paymentForm.control}
+                      name="depositPercentage"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Deposit Percentage</FormLabel>
+                          <FormControl>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                {...field}
+                                type="number"
+                                min={0}
+                                max={100}
+                                className="w-24"
+                                onChange={(e) => field.onChange(Number(e.target.value))}
+                                data-testid="input-deposit-percentage"
+                              />
+                              <span className="text-muted-foreground">%</span>
+                            </div>
+                          </FormControl>
+                          <FormDescription>
+                            Percentage of total required as deposit
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   )}
-                />
+
+                  {paymentForm.watch("defaultDepositType") === "fixed" && (
+                    <FormField
+                      control={paymentForm.control}
+                      name="depositFixedAmount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Fixed Deposit Amount</FormLabel>
+                          <FormControl>
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground">$</span>
+                              <Input
+                                {...field}
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                className="w-28"
+                                placeholder="0.00"
+                                data-testid="input-deposit-fixed-amount"
+                              />
+                            </div>
+                          </FormControl>
+                          <FormDescription>
+                            Fixed amount required as deposit
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                </div>
 
                 <Button
                   type="submit"
