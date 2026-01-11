@@ -591,8 +591,9 @@ export async function registerRoutes(
       const taxAmount = subtotal * taxRate;
       const total = subtotal + taxAmount;
 
-      // Check if status is being changed to "approved"
+      // Check if status is being changed to "approved" or "rejected"
       const isBeingApproved = data.status === "approved" && existingQuote.status !== "approved";
+      const isBeingRejected = data.status === "rejected" && existingQuote.status !== "rejected";
       
       const quote = await storage.updateQuote(req.params.id, {
         title: data.title,
@@ -610,6 +611,11 @@ export async function registerRoutes(
 
       // Auto-create order when quote is approved (if no order exists for this quote)
       if (isBeingApproved) {
+        // Auto-update linked lead status to "converted"
+        if (existingQuote.leadId) {
+          await storage.updateLead(existingQuote.leadId, { status: "converted" });
+        }
+        
         const existingOrder = await storage.getOrderByQuoteId(req.params.id);
         if (!existingOrder) {
           // Use updated values if provided, otherwise fall back to existing quote values
@@ -630,6 +636,11 @@ export async function registerRoutes(
             notes: null,
           });
         }
+      }
+
+      // Auto-update linked lead status to "lost" when quote is rejected
+      if (isBeingRejected && existingQuote.leadId) {
+        await storage.updateLead(existingQuote.leadId, { status: "lost" });
       }
 
       // Update items if provided
@@ -790,6 +801,11 @@ export async function registerRoutes(
       );
 
       await storage.updateQuote(quote.id, { status: "sent" });
+
+      // Auto-update linked lead status to "quoted"
+      if (quote.leadId) {
+        await storage.updateLead(quote.leadId, { status: "quoted" });
+      }
 
       const updatedQuote = await storage.getQuoteWithItems(quote.id);
       res.json(updatedQuote);
@@ -1403,6 +1419,12 @@ export async function registerRoutes(
       }
 
       await storage.updateQuote(quote.id, updateData);
+
+      // Auto-update linked lead status based on quote response
+      if (quote.leadId) {
+        const leadStatus = action === "accept" ? "converted" : "lost";
+        await storage.updateLead(quote.leadId, { status: leadStatus });
+      }
 
       // If quote is accepted, create an order for the calendar and revenue tracking
       if (action === "accept") {
