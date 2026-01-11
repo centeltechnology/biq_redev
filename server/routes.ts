@@ -474,14 +474,11 @@ export async function registerRoutes(
       const schema = z.object({
         title: z.string().min(1),
         customerId: z.string(),
+        leadId: z.string().optional().nullable(),
         eventDate: z.string().optional(),
         status: z.string().default("draft"),
         taxRate: z.number().default(0.08),
         notes: z.string().optional(),
-        // Deposit override fields for Quick Orders
-        depositType: z.enum(["full", "percentage", "fixed"]).optional().nullable(),
-        depositPercent: z.number().min(0).max(100).optional().nullable(),
-        depositAmount: z.string().optional().nullable(),
         items: z.array(
           z.object({
             name: z.string(),
@@ -509,6 +506,7 @@ export async function registerRoutes(
       const quote = await storage.createQuote({
         bakerId,
         customerId: data.customerId,
+        leadId: data.leadId || null,
         quoteNumber,
         title: data.title,
         eventDate: data.eventDate || null,
@@ -518,9 +516,6 @@ export async function registerRoutes(
         taxAmount: taxAmount.toFixed(2),
         total: total.toFixed(2),
         notes: data.notes || null,
-        depositType: data.depositType || null,
-        depositPercent: data.depositPercent || null,
-        depositAmount: data.depositAmount || null,
       });
 
       // Create quote items
@@ -793,9 +788,6 @@ export async function registerRoutes(
           notes: quote.notes || undefined,
           items: quote.items || [],
           depositPercentage: baker.depositPercentage || undefined,
-          depositType: quote.depositType || undefined,
-          depositPercent: quote.depositPercent || undefined,
-          depositAmount: quote.depositAmount || undefined,
           viewUrl: `${baseUrl}/q/${quote.id}`,
         }
       );

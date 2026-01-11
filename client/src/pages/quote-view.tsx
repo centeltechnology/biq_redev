@@ -136,21 +136,10 @@ export default function QuoteViewPage() {
   const taxAmount = parseFloat(quote.taxAmount);
   const total = parseFloat(quote.total);
   
-  // Calculate deposit based on quote's deposit override settings, falling back to baker defaults
+  // Calculate deposit using baker's global deposit percentage
   let depositAmount = 0;
   let depositLabel = "";
-  if (quote.depositType === "full") {
-    // Full payment required, no deposit shown (customer pays full amount)
-    depositAmount = 0;
-    depositLabel = "";
-  } else if (quote.depositType === "percentage" && quote.depositPercent) {
-    depositAmount = total * (quote.depositPercent / 100);
-    depositLabel = `(${quote.depositPercent}%)`;
-  } else if (quote.depositType === "fixed" && quote.depositAmount) {
-    depositAmount = parseFloat(quote.depositAmount);
-    depositLabel = "(Fixed)";
-  } else if (baker.depositPercentage && baker.depositPercentage > 0) {
-    // Fall back to baker default
+  if (baker.depositPercentage && baker.depositPercentage > 0) {
     depositAmount = total * (baker.depositPercentage / 100);
     depositLabel = `(${baker.depositPercentage}%)`;
   }

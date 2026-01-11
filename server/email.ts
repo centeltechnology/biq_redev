@@ -297,10 +297,7 @@ export async function sendQuoteNotification(
     eventDate?: string;
     notes?: string;
     items: QuoteItem[];
-    depositPercentage?: number; // Baker's default deposit percentage (fallback)
-    depositType?: string | null; // Quote's deposit override: "full" | "percentage" | "fixed" | null
-    depositPercent?: number | null; // Quote's custom percentage
-    depositAmount?: string | null; // Quote's fixed deposit amount
+    depositPercentage?: number; // Baker's default deposit percentage
     viewUrl: string;
   }
 ): Promise<boolean> {
@@ -312,21 +309,10 @@ export async function sendQuoteNotification(
   const deliveryItems = items.filter(i => i.category === "delivery");
   const otherItems = items.filter(i => i.category === "other" && i.name);
 
-  // Calculate deposit based on deposit override settings
+  // Calculate deposit using baker's global deposit percentage
   let depositAmount = 0;
   let depositLabel = "";
-  if (quote.depositType === "full") {
-    // Full payment required, no deposit shown
-    depositAmount = 0;
-    depositLabel = "";
-  } else if (quote.depositType === "percentage" && quote.depositPercent) {
-    depositAmount = quote.total * (quote.depositPercent / 100);
-    depositLabel = `(${quote.depositPercent}%)`;
-  } else if (quote.depositType === "fixed" && quote.depositAmount) {
-    depositAmount = parseFloat(quote.depositAmount);
-    depositLabel = "(Fixed)";
-  } else if (quote.depositPercentage && quote.depositPercentage > 0) {
-    // Fall back to baker default
+  if (quote.depositPercentage && quote.depositPercentage > 0) {
     depositAmount = quote.total * (quote.depositPercentage / 100);
     depositLabel = `(${quote.depositPercentage}%)`;
   }
