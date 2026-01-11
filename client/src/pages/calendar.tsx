@@ -57,6 +57,25 @@ const FULFILLMENT_STATUS_COLORS: Record<string, string> = {
   cancelled: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
 };
 
+const EVENT_COLORS = [
+  "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300",
+  "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+  "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+  "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
+  "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300",
+  "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+  "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300",
+];
+
+function getEventColor(orderId: string): string {
+  let hash = 0;
+  for (let i = 0; i < orderId.length; i++) {
+    hash = orderId.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return EVENT_COLORS[Math.abs(hash) % EVENT_COLORS.length];
+}
+
 function getDaysInMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate();
 }
@@ -218,7 +237,7 @@ export default function CalendarPage() {
                           {ordersByDate[day]?.map((order) => (
                             <div
                               key={order.id}
-                              className="text-xs p-1.5 rounded bg-primary/10 hover-elevate active-elevate-2 cursor-pointer truncate"
+                              className={`text-xs p-1.5 rounded hover-elevate active-elevate-2 cursor-pointer truncate ${getEventColor(order.id)}`}
                               data-testid={`order-${order.id}`}
                               onClick={() => setSelectedOrder(order)}
                             >
