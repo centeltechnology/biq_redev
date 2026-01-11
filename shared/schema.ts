@@ -166,6 +166,10 @@ export const quotes = pgTable("quotes", {
   taxAmount: decimal("tax_amount", { precision: 10, scale: 2 }).notNull(),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
   notes: text("notes"),
+  // Deposit override: "full" = require full payment (no deposit), "percentage" = use depositPercent, "fixed" = use depositAmount
+  depositType: text("deposit_type"), // null = use baker default depositPercentage
+  depositPercent: integer("deposit_percent"), // Percentage of total (e.g., 50)
+  depositAmount: decimal("deposit_amount", { precision: 10, scale: 2 }), // Fixed deposit amount (e.g., 50.00)
   acceptedAt: timestamp("accepted_at"),
   paidAt: timestamp("paid_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

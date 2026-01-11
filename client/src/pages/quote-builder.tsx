@@ -586,7 +586,14 @@ export default function QuoteBuilderPage() {
   const total = subtotal + taxAmount;
 
   const onSubmit = (data: QuoteFormData) => {
-    const payload = { ...data, items: lineItems };
+    // Include deposit override settings from preloaded pricing calculation (for Quick Orders)
+    const depositSettings = preloadedCalc ? {
+      depositType: preloadedCalc.depositType as "full" | "percentage" | "fixed" | null,
+      depositPercent: preloadedCalc.depositPercent,
+      depositAmount: preloadedCalc.depositAmount,
+    } : {};
+    
+    const payload = { ...data, items: lineItems, ...depositSettings };
     if (isNew) {
       createMutation.mutate(payload);
     } else {

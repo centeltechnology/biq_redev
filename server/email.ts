@@ -164,7 +164,7 @@ export async function sendNewLeadNotification(
       <p style="margin-top: 20px;">Log in to your BakerIQ dashboard to view full details and follow up with this lead.</p>
     </div>
     <div class="footer">
-      <p>This email was sent by BakerIQ</p>
+      <p>This email was sent by <a href="https://bakeriq.app/" style="color: #E91E63; text-decoration: none;">BakerIQ</a></p>
     </div>
   </div>
 </body>
@@ -237,7 +237,7 @@ export async function sendLeadConfirmationToCustomer(
       <p style="margin-top: 30px;">Sweet regards,<br><strong>${bakerBusinessName}</strong></p>
     </div>
     <div class="footer">
-      <p>This email was sent via BakerIQ</p>
+      <p>This email was sent via <a href="https://bakeriq.app/" style="color: #E91E63; text-decoration: none;">BakerIQ</a></p>
     </div>
   </div>
 </body>
@@ -297,7 +297,10 @@ export async function sendQuoteNotification(
     eventDate?: string;
     notes?: string;
     items: QuoteItem[];
-    depositPercentage?: number;
+    depositPercentage?: number; // Baker's default deposit percentage (fallback)
+    depositType?: string | null; // Quote's deposit override: "full" | "percentage" | "fixed" | null
+    depositPercent?: number | null; // Quote's custom percentage
+    depositAmount?: string | null; // Quote's fixed deposit amount
     viewUrl: string;
   }
 ): Promise<boolean> {
@@ -309,7 +312,24 @@ export async function sendQuoteNotification(
   const deliveryItems = items.filter(i => i.category === "delivery");
   const otherItems = items.filter(i => i.category === "other" && i.name);
 
-  const depositAmount = quote.depositPercentage ? quote.total * (quote.depositPercentage / 100) : 0;
+  // Calculate deposit based on deposit override settings
+  let depositAmount = 0;
+  let depositLabel = "";
+  if (quote.depositType === "full") {
+    // Full payment required, no deposit shown
+    depositAmount = 0;
+    depositLabel = "";
+  } else if (quote.depositType === "percentage" && quote.depositPercent) {
+    depositAmount = quote.total * (quote.depositPercent / 100);
+    depositLabel = `(${quote.depositPercent}%)`;
+  } else if (quote.depositType === "fixed" && quote.depositAmount) {
+    depositAmount = parseFloat(quote.depositAmount);
+    depositLabel = "(Fixed)";
+  } else if (quote.depositPercentage && quote.depositPercentage > 0) {
+    // Fall back to baker default
+    depositAmount = quote.total * (quote.depositPercentage / 100);
+    depositLabel = `(${quote.depositPercentage}%)`;
+  }
 
   // Determine order type for dynamic text
   const hasCake = cakeItems.length > 0;
@@ -410,9 +430,9 @@ export async function sendQuoteNotification(
             <td style="padding: 15px 0 5px 0;"><strong>Total</strong></td>
             <td style="padding: 15px 0 5px 0; text-align: right;"><strong>${formatCurrency(quote.total)}</strong></td>
           </tr>
-          ${quote.depositPercentage && quote.depositPercentage > 0 ? `
+          ${depositAmount > 0 ? `
           <tr>
-            <td style="padding: 5px 0; color: #666;">Deposit Required (${quote.depositPercentage}%)</td>
+            <td style="padding: 5px 0; color: #666;">Deposit Required ${depositLabel}</td>
             <td style="padding: 5px 0; text-align: right; font-weight: bold;">${formatCurrency(depositAmount)}</td>
           </tr>
           ` : ""}
@@ -429,7 +449,7 @@ export async function sendQuoteNotification(
       <p style="margin-top: 30px;">Sweet regards,<br><strong>${bakerBusinessName}</strong></p>
     </div>
     <div class="footer">
-      <p>This email was sent via BakerIQ</p>
+      <p>This email was sent via <a href="https://bakeriq.app/" style="color: #E91E63; text-decoration: none;">BakerIQ</a></p>
     </div>
   </div>
 </body>
@@ -455,7 +475,7 @@ ${itemsText}
 Subtotal: ${formatCurrency(quote.subtotal)}
 Tax (${(quote.taxRate * 100).toFixed(1)}%): ${formatCurrency(quote.taxAmount)}
 Total: ${formatCurrency(quote.total)}
-${quote.depositPercentage ? `Deposit Required (${quote.depositPercentage}%): ${formatCurrency(depositAmount)}` : ""}
+${depositAmount > 0 ? `Deposit Required ${depositLabel}: ${formatCurrency(depositAmount)}` : ""}
 
 ${quote.notes ? `Notes: ${quote.notes}` : ""}
 
@@ -510,7 +530,7 @@ export async function sendPasswordResetEmail(
       <p style="color: #666; font-size: 14px;">If you didn't request a password reset, you can safely ignore this email.</p>
     </div>
     <div class="footer">
-      <p>This email was sent by BakerIQ</p>
+      <p>This email was sent by <a href="https://bakeriq.app/" style="color: #E91E63; text-decoration: none;">BakerIQ</a></p>
     </div>
   </div>
 </body>
@@ -578,7 +598,7 @@ export async function sendAdminPasswordReset(
       <p style="color: #666; font-size: 14px;">If you did not request this password reset, please contact support immediately.</p>
     </div>
     <div class="footer">
-      <p>This email was sent by BakerIQ</p>
+      <p>This email was sent by <a href="https://bakeriq.app/" style="color: #E91E63; text-decoration: none;">BakerIQ</a></p>
     </div>
   </div>
 </body>
@@ -643,7 +663,7 @@ export async function sendEmailVerification(
       <p style="color: #666; font-size: 14px;">This link will expire in 24 hours.</p>
     </div>
     <div class="footer">
-      <p>This email was sent by BakerIQ</p>
+      <p>This email was sent by <a href="https://bakeriq.app/" style="color: #E91E63; text-decoration: none;">BakerIQ</a></p>
     </div>
   </div>
 </body>
@@ -741,7 +761,7 @@ export async function sendQuoteResponseNotification(
       </p>
     </div>
     <div class="footer">
-      <p>This email was sent by BakerIQ</p>
+      <p>This email was sent by <a href="https://bakeriq.app/" style="color: #E91E63; text-decoration: none;">BakerIQ</a></p>
     </div>
   </div>
 </body>

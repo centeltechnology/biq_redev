@@ -135,7 +135,25 @@ export default function QuoteViewPage() {
   const subtotal = parseFloat(quote.subtotal);
   const taxAmount = parseFloat(quote.taxAmount);
   const total = parseFloat(quote.total);
-  const depositAmount = baker.depositPercentage ? total * (baker.depositPercentage / 100) : 0;
+  
+  // Calculate deposit based on quote's deposit override settings, falling back to baker defaults
+  let depositAmount = 0;
+  let depositLabel = "";
+  if (quote.depositType === "full") {
+    // Full payment required, no deposit shown (customer pays full amount)
+    depositAmount = 0;
+    depositLabel = "";
+  } else if (quote.depositType === "percentage" && quote.depositPercent) {
+    depositAmount = total * (quote.depositPercent / 100);
+    depositLabel = `(${quote.depositPercent}%)`;
+  } else if (quote.depositType === "fixed" && quote.depositAmount) {
+    depositAmount = parseFloat(quote.depositAmount);
+    depositLabel = "(Fixed)";
+  } else if (baker.depositPercentage && baker.depositPercentage > 0) {
+    // Fall back to baker default
+    depositAmount = total * (baker.depositPercentage / 100);
+    depositLabel = `(${baker.depositPercentage}%)`;
+  }
 
   const cakeItems = quote.items.filter(i => i.category === "cake");
   const decorationItems = quote.items.filter(i => i.category === "decoration");
@@ -313,7 +331,7 @@ export default function QuoteViewPage() {
           </CardContent>
         </Card>
 
-        {baker.depositPercentage && baker.depositPercentage > 0 && (
+        {depositAmount > 0 && (
           <Card className="mb-6 border-primary/20">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg flex items-center gap-2">
@@ -324,7 +342,7 @@ export default function QuoteViewPage() {
             <CardContent>
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span>Deposit Required ({baker.depositPercentage}%)</span>
+                  <span>Deposit Required {depositLabel}</span>
                   <span className="font-bold text-primary">{formatCurrency(depositAmount)}</span>
                 </div>
                 <div className="flex justify-between text-sm text-muted-foreground">
@@ -536,7 +554,15 @@ export default function QuoteViewPage() {
         </AlertDialog>
 
         <p className="text-center text-xs text-muted-foreground mt-8">
-          Powered by BakerIQ
+          Powered by{" "}
+          <a 
+            href="https://bakeriq.app/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            BakerIQ
+          </a>
         </p>
       </div>
     </div>
