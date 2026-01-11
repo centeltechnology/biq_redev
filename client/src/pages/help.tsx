@@ -375,6 +375,12 @@ export default function HelpPage() {
                   View FAQ
                 </Button>
               </Link>
+              <a href="mailto:support@bakeriq.app">
+                <Button className="gap-2" data-testid="button-contact-support">
+                  <Mail className="h-4 w-4" />
+                  Contact Support
+                </Button>
+              </a>
             </div>
           </div>
         </div>
@@ -389,16 +395,22 @@ export default function HelpPage() {
                 <span className="font-semibold">BakerIQ</span>
               </div>
             </Link>
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-6 flex-wrap justify-center">
               <Link href="/help">
                 <span className="text-sm text-muted-foreground hover:text-foreground" data-testid="footer-link-help">Help</span>
               </Link>
               <Link href="/faq">
                 <span className="text-sm text-muted-foreground hover:text-foreground" data-testid="footer-link-faq">FAQ</span>
               </Link>
-              <Link href="/login">
-                <span className="text-sm text-muted-foreground hover:text-foreground" data-testid="footer-link-login">Log In</span>
+              <Link href="/terms">
+                <span className="text-sm text-muted-foreground hover:text-foreground" data-testid="footer-link-terms">Terms</span>
               </Link>
+              <Link href="/privacy">
+                <span className="text-sm text-muted-foreground hover:text-foreground" data-testid="footer-link-privacy">Privacy</span>
+              </Link>
+              <a href="mailto:support@bakeriq.app" className="text-sm text-muted-foreground hover:text-foreground" data-testid="footer-link-support">
+                Contact
+              </a>
             </div>
             <p className="text-sm text-muted-foreground">
               Made with love for cake bakers everywhere

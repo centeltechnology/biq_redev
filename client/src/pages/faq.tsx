@@ -317,13 +317,20 @@ export default function FAQPage() {
           <div className="mt-12 bg-muted/30 rounded-2xl p-8 text-center">
             <h2 className="text-2xl font-bold mb-2">Didn't find your answer?</h2>
             <p className="text-muted-foreground mb-6">
-              Check out our detailed Help Center for more information.
+              Check out our detailed Help Center or contact support directly.
             </p>
-            <Link href="/help">
-              <Button className="gap-2" data-testid="button-visit-help">
-                Visit Help Center
-              </Button>
-            </Link>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link href="/help">
+                <Button variant="outline" className="gap-2" data-testid="button-visit-help">
+                  Visit Help Center
+                </Button>
+              </Link>
+              <a href="mailto:support@bakeriq.app">
+                <Button className="gap-2" data-testid="button-contact-support">
+                  Contact Support
+                </Button>
+              </a>
+            </div>
           </div>
         </div>
       </main>
@@ -337,16 +344,22 @@ export default function FAQPage() {
                 <span className="font-semibold">BakerIQ</span>
               </div>
             </Link>
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-6 flex-wrap justify-center">
               <Link href="/help">
                 <span className="text-sm text-muted-foreground hover:text-foreground" data-testid="footer-link-help">Help</span>
               </Link>
               <Link href="/faq">
                 <span className="text-sm text-muted-foreground hover:text-foreground" data-testid="footer-link-faq">FAQ</span>
               </Link>
-              <Link href="/login">
-                <span className="text-sm text-muted-foreground hover:text-foreground" data-testid="footer-link-login">Log In</span>
+              <Link href="/terms">
+                <span className="text-sm text-muted-foreground hover:text-foreground" data-testid="footer-link-terms">Terms</span>
               </Link>
+              <Link href="/privacy">
+                <span className="text-sm text-muted-foreground hover:text-foreground" data-testid="footer-link-privacy">Privacy</span>
+              </Link>
+              <a href="mailto:support@bakeriq.app" className="text-sm text-muted-foreground hover:text-foreground" data-testid="footer-link-support">
+                Contact
+              </a>
             </div>
             <p className="text-sm text-muted-foreground">
               Made with love for cake bakers everywhere

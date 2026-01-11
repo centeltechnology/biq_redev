@@ -26,6 +26,8 @@ import AdminPage from "@/pages/admin";
 import QuoteViewPage from "@/pages/quote-view";
 import VerifyEmailPage from "@/pages/verify-email";
 import PricingCalculatorPage from "@/pages/pricing-calculator";
+import TermsPage from "@/pages/terms";
+import PrivacyPage from "@/pages/privacy";
 
 function Router() {
   return (
@@ -77,6 +79,8 @@ function Router() {
       <Route path="/c/:slug" component={CalculatorPage} />
       <Route path="/q/:id" component={QuoteViewPage} />
       <Route path="/verify-email" component={VerifyEmailPage} />
+      <Route path="/terms" component={TermsPage} />
+      <Route path="/privacy" component={PrivacyPage} />
       <Route component={NotFound} />
     </Switch>
   );

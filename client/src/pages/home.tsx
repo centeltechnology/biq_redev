@@ -278,16 +278,22 @@ export default function HomePage() {
               <Cake className="h-6 w-6 text-primary" />
               <span className="font-semibold">BakerIQ</span>
             </div>
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-6 flex-wrap justify-center">
               <Link href="/help">
                 <span className="text-sm text-muted-foreground hover:text-foreground" data-testid="footer-link-help">Help</span>
               </Link>
               <Link href="/faq">
                 <span className="text-sm text-muted-foreground hover:text-foreground" data-testid="footer-link-faq">FAQ</span>
               </Link>
-              <Link href="/login">
-                <span className="text-sm text-muted-foreground hover:text-foreground" data-testid="footer-link-login">Log In</span>
+              <Link href="/terms">
+                <span className="text-sm text-muted-foreground hover:text-foreground" data-testid="footer-link-terms">Terms</span>
               </Link>
+              <Link href="/privacy">
+                <span className="text-sm text-muted-foreground hover:text-foreground" data-testid="footer-link-privacy">Privacy</span>
+              </Link>
+              <a href="mailto:support@bakeriq.app" className="text-sm text-muted-foreground hover:text-foreground" data-testid="footer-link-support">
+                Contact
+              </a>
             </div>
             <p className="text-sm text-muted-foreground">
               Made with love for cake bakers everywhere

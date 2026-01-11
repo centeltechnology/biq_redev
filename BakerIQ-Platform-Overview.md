@@ -121,7 +121,9 @@ These features are being considered for future development:
 
 ## Support
 
-For questions, feedback, or support, visit our Help & FAQ section accessible from the public homepage.
+For questions, feedback, or support:
+- Visit our Help & FAQ section accessible from the public homepage
+- Email us at **support@bakeriq.app**
 
 ---
 

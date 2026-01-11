@@ -144,6 +144,17 @@ export default function SignupPage() {
                   </p>
                 )}
 
+                <p className="text-xs text-muted-foreground text-center">
+                  By creating an account, you agree to our{" "}
+                  <Link href="/terms" className="text-primary hover:underline" data-testid="link-terms">
+                    Terms of Service
+                  </Link>{" "}
+                  and{" "}
+                  <Link href="/privacy" className="text-primary hover:underline" data-testid="link-privacy">
+                    Privacy Policy
+                  </Link>
+                </p>
+
                 <Button type="submit" className="w-full" disabled={isRegistering} data-testid="button-signup">
                   {isRegistering ? (
                     <>
