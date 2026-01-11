@@ -1286,6 +1286,9 @@ export async function registerRoutes(
         featuredDescription: item.featuredDescription,
         featuredPrice: item.featuredPrice ? String(item.featuredPrice) : (item.suggestedPrice ? String(item.suggestedPrice) : "0.00"),
         featuredImageUrl: item.featuredImageUrl,
+        depositType: item.depositType,
+        depositPercent: item.depositPercent,
+        depositAmount: item.depositAmount ? String(item.depositAmount) : null,
       }));
       res.json(publicItems);
     } catch (error) {

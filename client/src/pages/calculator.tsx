@@ -144,6 +144,9 @@ export default function CalculatorPage() {
     featuredDescription: string | null;
     featuredPrice: string;
     featuredImageUrl: string | null;
+    depositType: string | null;
+    depositPercent: number | null;
+    depositAmount: string | null;
   }
 
   const [selectedFeaturedItem, setSelectedFeaturedItem] = useState<FeaturedItem | null>(null);
@@ -774,6 +777,9 @@ interface FeaturedItemType {
   featuredDescription: string | null;
   featuredPrice: string;
   featuredImageUrl: string | null;
+  depositType: string | null;
+  depositPercent: number | null;
+  depositAmount: string | null;
 }
 
 interface StepCategoryProps {
@@ -837,6 +843,15 @@ function StepCategory({ onSelect, featuredItems = [], onSelectFeaturedItem }: St
                     <p className="text-primary font-semibold mt-1">
                       {formatCurrency(item.featuredPrice || item.suggestedPrice)}
                     </p>
+                    {item.depositType && item.depositType !== "full" && (
+                      <p className="text-xs text-primary/80 mt-0.5">
+                        {item.depositType === "percentage" && item.depositPercent
+                          ? `${item.depositPercent}% deposit required`
+                          : item.depositType === "fixed" && item.depositAmount
+                          ? `${formatCurrency(item.depositAmount)} deposit required`
+                          : null}
+                      </p>
+                    )}
                     {item.featuredDescription && (
                       <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                         {item.featuredDescription}
