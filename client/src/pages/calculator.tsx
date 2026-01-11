@@ -212,7 +212,15 @@ export default function CalculatorPage() {
         throw new Error("Please select your event date");
       }
 
-      let submitPayload: CalculatorPayload | { fastQuote: true; featuredItemId: string; featuredItemName: string; featuredItemPrice: string };
+      let submitPayload: CalculatorPayload | { 
+        fastQuote: true; 
+        featuredItemId: string; 
+        featuredItemName: string; 
+        featuredItemPrice: string;
+        depositType: string | null;
+        depositPercent: number | null;
+        depositAmount: string | null;
+      };
       let estimatedTotal: string;
 
       if (fastQuoteMode && selectedFeaturedItem) {
@@ -221,6 +229,9 @@ export default function CalculatorPage() {
           featuredItemId: selectedFeaturedItem.id,
           featuredItemName: selectedFeaturedItem.featuredLabel || selectedFeaturedItem.name,
           featuredItemPrice: selectedFeaturedItem.featuredPrice || selectedFeaturedItem.suggestedPrice,
+          depositType: selectedFeaturedItem.depositType,
+          depositPercent: selectedFeaturedItem.depositPercent,
+          depositAmount: selectedFeaturedItem.depositAmount,
         };
         estimatedTotal = selectedFeaturedItem.featuredPrice || selectedFeaturedItem.suggestedPrice;
       } else {
