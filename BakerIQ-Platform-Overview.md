@@ -17,7 +17,7 @@ Whether you're a home baker just starting out or an established bakery handling 
 
 ---
 
-## Current Features
+## Features
 
 ### Public Pricing Calculator
 Each baker gets a unique public calculator URL (e.g., `/c/your-bakery-name`) that customers can use to:
@@ -31,13 +31,16 @@ Each baker gets a unique public calculator URL (e.g., `/c/your-bakery-name`) tha
 - View lead details including customer info, event date, and requested items
 - Status tracking: New, Contacted, Quoted, Converted, Lost
 - Convert leads to customers and quotes with one click
+- Automatic status updates when quotes are sent, accepted, or declined
 
 ### Quote Management
 - Create detailed quotes with itemized line items
 - Support for cakes, treats, delivery fees, and custom items
-- Professional quote presentation
+- Professional quote presentation with your business branding
 - Send quotes via email to customers
 - Track quote status: Draft, Sent, Viewed, Accepted, Declined
+- Online quote acceptance—customers can accept or decline directly from the email link
+- Automatic order creation when quotes are accepted
 
 ### Customer Management
 - Maintain a database of all your customers
@@ -45,16 +48,18 @@ Each baker gets a unique public calculator URL (e.g., `/c/your-bakery-name`) tha
 - Add notes and contact information
 - Link customers to leads and quotes
 
-### Order Calendar
+### Order Management & Calendar
 - Visual calendar view of all upcoming orders
 - See orders by day, week, or month
-- Quick overview of your schedule and workload
+- Track order status and delivery dates
+- Revenue tracking on the calendar view
 
 ### Customizable Pricing
 - **Cake Pricing**: Set base prices by size and shape, add-on pricing for decorations
 - **Treat Catalog**: Define your treat offerings with individual pricing
 - **Decorations & Add-ons**: Configure custom decorations and additional services
 - **Delivery Options**: Set delivery fees and setup charges
+- **Deposit Settings**: Configure your required deposit percentage for all quotes
 
 ### Subscription Plans
 BakerIQ offers a freemium model with three tiers:
@@ -68,98 +73,39 @@ BakerIQ offers a freemium model with three tiers:
 *Note: Leads are always unlimited. Quote limits only apply when sending quotes to customers.*
 
 ### Email Notifications
-- Automated email notifications via AWS SES
-- New lead notifications sent to bakers
-- Quote delivery to customers
-- Professional email templates with baker branding
+- Automated email notifications for new leads
+- Quote delivery to customers with your business branding
+- Order confirmation emails
+- Professional email templates
 
 ### Onboarding Experience
-- **Welcome Email Series**: 8-day automated email series introducing platform features
+- **Welcome Email Series**: Automated emails introducing platform features over your first week
 - **Interactive Tour**: Guided walkthrough of the dashboard for new users
+- **Contextual Help**: Help modals throughout the platform explaining key features
 - **Restart Tour**: Option to replay the tour anytime from Settings
-
-### Authentication & Security
-- Secure email/password authentication with bcrypt hashing
-- Session management with PostgreSQL session store
-- Password reset via email
-- Email verification for new accounts
-
-### Super Admin Dashboard
-- Platform-wide analytics and user management
-- View all bakers and their subscription status
-- System monitoring and administration tools
 
 ### Social Media Integration
 - Add social media links to your public calculator page
-- Connect Instagram, Facebook, TikTok, and more
+- Connect Instagram, Facebook, TikTok, Pinterest, and more
 - Build your brand presence alongside your pricing calculator
 
----
-
-## Future Features (Roadmap)
-
-### Payment Processing
-- **Stripe Connect Integration**: Accept deposits and payments directly through quotes
-- **Deposit Requests**: Request partial payment to secure bookings
-- **Payment Tracking**: See which quotes have been paid
-
-### AI-Powered Features
-- **Smart Pricing Suggestions**: AI recommendations based on market rates
-- **Quote Templates**: AI-generated quote text and descriptions
-- **Lead Scoring**: Automatically prioritize high-value leads
-
-### Marketplace
-- **Baker Directory**: Public listing of bakers for customers to discover
-- **Search & Filter**: Find bakers by location, specialty, and availability
-- **Reviews & Ratings**: Customer feedback and testimonials
-
-### Advanced Analytics
-- **Revenue Tracking**: See your earnings over time
-- **Conversion Metrics**: Lead-to-quote and quote-to-order conversion rates
-- **Popular Items**: Identify your best-selling products
-- **Seasonal Trends**: Understand busy periods and plan accordingly
-
-### Mobile Application
-- **iOS & Android Apps**: Manage your business on the go
-- **Push Notifications**: Instant alerts for new leads
-- **Mobile Quote Creation**: Create quotes from your phone
-
-### Enhanced Communication
-- **SMS Notifications**: Text message alerts for leads and quotes
-- **In-App Messaging**: Direct communication with customers
-- **Automated Follow-ups**: Scheduled reminders for pending quotes
-
-### Inventory & Supplies
-- **Ingredient Tracking**: Monitor your baking supplies
-- **Cost Calculation**: Understand true costs per item
-- **Reorder Alerts**: Get notified when supplies run low
-
-### Team Collaboration
-- **Multiple Users**: Add team members to your account
-- **Role Permissions**: Control who can view and edit what
-- **Task Assignment**: Delegate orders to team members
-
-### Contract & Terms
-- **Digital Contracts**: Send contracts for customer signature
-- **Terms & Conditions**: Include your policies with quotes
-- **E-Signature**: Legally binding digital signatures
-
-### Website Builder
-- **Custom Landing Pages**: Create a full website for your bakery
-- **Portfolio Gallery**: Showcase your cake creations
-- **Testimonials**: Display customer reviews
+### Settings & Customization
+- Business profile with logo and contact information
+- Tax rate configuration
+- Payment method display (Zelle, Venmo, Cash App, PayPal)
+- Deposit percentage settings
+- Dark/light theme support
 
 ---
 
-## Technical Stack
+## Possible Future Enhancements
 
-- **Frontend**: React with TypeScript, Vite, Tailwind CSS, shadcn/ui
-- **Backend**: Node.js with Express.js
-- **Database**: PostgreSQL with Drizzle ORM
-- **Authentication**: Custom email/password with bcrypt and session cookies
-- **Payments**: Stripe for subscription billing
-- **Email**: AWS SES for transactional emails
-- **Hosting**: Replit Deployments
+These features are being considered for future development:
+
+- **Payment Processing**: Accept deposits directly through quotes
+- **Advanced Analytics**: Deeper insights into conversion rates and revenue trends
+- **SMS Notifications**: Text alerts for new leads
+- **Contract & E-Signature**: Digital contracts with customer signatures
 
 ---
 
@@ -175,7 +121,7 @@ BakerIQ offers a freemium model with three tiers:
 
 ## Support
 
-For questions, feedback, or support, visit our Help & FAQ section or contact us through the platform.
+For questions, feedback, or support, visit our Help & FAQ section accessible from the public homepage.
 
 ---
 
