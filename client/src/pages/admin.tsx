@@ -32,11 +32,16 @@ import {
   Clock,
   Search,
   RotateCcw,
+  Ticket,
+  MessageSquare,
+  Archive,
+  Send,
 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import type { Baker, BakerOnboardingEmail } from "@shared/schema";
+import type { Baker, BakerOnboardingEmail, SupportTicket, TicketMessage } from "@shared/schema";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface AdminAnalytics {
   totalBakers: number;
@@ -75,6 +80,11 @@ interface EmailLogWithBaker extends BakerOnboardingEmail {
   bakerName?: string;
 }
 
+interface SupportTicketWithBaker extends SupportTicket {
+  baker: { businessName: string; email: string };
+  messages?: TicketMessage[];
+}
+
 const EMAIL_DAY_LABELS: Record<number, string> = {
   0: "Welcome Email",
   1: "Day 1: Set Up Pricing",
@@ -96,6 +106,9 @@ export default function AdminDashboard() {
   const [activityDialogOpen, setActivityDialogOpen] = useState(false);
   const [resendEmailDialogOpen, setResendEmailDialogOpen] = useState(false);
   const [selectedEmailDay, setSelectedEmailDay] = useState<number>(0);
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicketWithBaker | null>(null);
+  const [ticketReply, setTicketReply] = useState("");
+  const [ticketFilter, setTicketFilter] = useState<"all" | "open" | "in_progress" | "resolved">("open");
 
   const { data: analytics, isLoading: analyticsLoading } = useQuery<AdminAnalytics>({
     queryKey: ["/api/admin/analytics"],
@@ -103,6 +116,10 @@ export default function AdminDashboard() {
 
   const { data: bakers, isLoading: bakersLoading } = useQuery<Baker[]>({
     queryKey: ["/api/admin/bakers"],
+  });
+
+  const { data: supportTickets, isLoading: ticketsLoading } = useQuery<SupportTicketWithBaker[]>({
+    queryKey: ["/api/admin/support-tickets"],
   });
 
   const { data: emailLogs, isLoading: emailLogsLoading } = useQuery<EmailLogWithBaker[]>({
@@ -237,6 +254,47 @@ export default function AdminDashboard() {
     },
     onError: () => {
       toast({ title: "Failed to send email", variant: "destructive" });
+    },
+  });
+
+  const replyToTicketMutation = useMutation({
+    mutationFn: async ({ ticketId, content }: { ticketId: string; content: string }) => {
+      return apiRequest("POST", `/api/admin/support-tickets/${ticketId}/reply`, { content });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/support-tickets"] });
+      setTicketReply("");
+      toast({ title: "Reply sent successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to send reply", variant: "destructive" });
+    },
+  });
+
+  const updateTicketStatusMutation = useMutation({
+    mutationFn: async ({ ticketId, status }: { ticketId: string; status: string }) => {
+      return apiRequest("PATCH", `/api/admin/support-tickets/${ticketId}`, { status });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/support-tickets"] });
+      toast({ title: "Ticket status updated" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update ticket", variant: "destructive" });
+    },
+  });
+
+  const archiveTicketMutation = useMutation({
+    mutationFn: async (ticketId: string) => {
+      return apiRequest("PATCH", `/api/admin/support-tickets/${ticketId}`, { status: "archived" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/support-tickets"] });
+      setSelectedTicket(null);
+      toast({ title: "Ticket archived" });
+    },
+    onError: () => {
+      toast({ title: "Failed to archive ticket", variant: "destructive" });
     },
   });
 
@@ -672,28 +730,266 @@ export default function AdminDashboard() {
 
         {/* SUPPORT TAB */}
         <TabsContent value="support" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Manual Email Tools</CardTitle>
-              <CardDescription>Resend onboarding emails to bakers</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                Select a baker from the Accounts tab and click the activity icon to view their details and resend emails.
-              </p>
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Onboarding Email Schedule:</p>
-                <div className="grid gap-2 md:grid-cols-2">
-                  {Object.entries(EMAIL_DAY_LABELS).map(([day, label]) => (
-                    <div key={day} className="flex items-center gap-2 p-2 bg-muted rounded-lg text-sm">
-                      <Badge variant="outline">{day}</Badge>
-                      <span>{label}</span>
-                    </div>
-                  ))}
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Support Tickets */}
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Ticket className="h-5 w-5" />
+                      Support Tickets
+                    </CardTitle>
+                    <CardDescription>Manage escalated support requests from bakers</CardDescription>
+                  </div>
+                  <Select
+                    value={ticketFilter}
+                    onValueChange={(v) => setTicketFilter(v as typeof ticketFilter)}
+                  >
+                    <SelectTrigger className="w-[150px]" data-testid="select-ticket-filter">
+                      <SelectValue placeholder="Filter" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Tickets</SelectItem>
+                      <SelectItem value="open">Open</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="resolved">Resolved</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent>
+                {ticketsLoading ? (
+                  <div className="space-y-2">
+                    {[...Array(3)].map((_, i) => (
+                      <Skeleton key={i} className="h-16 w-full" />
+                    ))}
+                  </div>
+                ) : !supportTickets?.length ? (
+                  <p className="text-center py-8 text-muted-foreground">No support tickets yet</p>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {/* Ticket List */}
+                    <div className="space-y-2">
+                      {supportTickets
+                        .filter(t => ticketFilter === "all" || t.status === ticketFilter)
+                        .map((ticket) => (
+                          <div
+                            key={ticket.id}
+                            onClick={() => setSelectedTicket(ticket)}
+                            className={`p-3 border rounded-lg cursor-pointer hover-elevate ${
+                              selectedTicket?.id === ticket.id ? "border-primary bg-muted" : ""
+                            }`}
+                            data-testid={`ticket-item-${ticket.id}`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">{ticket.subject}</p>
+                                <p className="text-sm text-muted-foreground truncate">
+                                  {ticket.baker?.businessName || "Unknown Baker"}
+                                </p>
+                              </div>
+                              <div className="flex flex-col items-end gap-1">
+                                <Badge
+                                  variant={
+                                    ticket.status === "open"
+                                      ? "destructive"
+                                      : ticket.status === "in_progress"
+                                      ? "default"
+                                      : "secondary"
+                                  }
+                                >
+                                  {ticket.status.replace("_", " ")}
+                                </Badge>
+                                <Badge variant="outline" className="text-xs">
+                                  {ticket.priority}
+                                </Badge>
+                              </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {format(new Date(ticket.createdAt), "MMM d, yyyy h:mm a")}
+                            </p>
+                          </div>
+                        ))}
+                      {supportTickets.filter(t => ticketFilter === "all" || t.status === ticketFilter).length === 0 && (
+                        <p className="text-center py-4 text-muted-foreground text-sm">
+                          No tickets match the filter
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Ticket Detail */}
+                    <div className="border rounded-lg p-4">
+                      {selectedTicket ? (
+                        <div className="space-y-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <h3 className="font-semibold">{selectedTicket.subject}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                {selectedTicket.baker?.businessName} ({selectedTicket.baker?.email})
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Select
+                                value={selectedTicket.status}
+                                onValueChange={(status) => {
+                                  updateTicketStatusMutation.mutate({
+                                    ticketId: selectedTicket.id,
+                                    status,
+                                  });
+                                }}
+                              >
+                                <SelectTrigger className="w-[120px]" data-testid="select-ticket-status">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="open">Open</SelectItem>
+                                  <SelectItem value="in_progress">In Progress</SelectItem>
+                                  <SelectItem value="resolved">Resolved</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => archiveTicketMutation.mutate(selectedTicket.id)}
+                                data-testid="button-archive-ticket"
+                              >
+                                <Archive className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Messages */}
+                          <ScrollArea className="h-[300px] border rounded-md p-3">
+                            {selectedTicket.messages?.length ? (
+                              <div className="space-y-3">
+                                {selectedTicket.messages.map((msg) => (
+                                  <div
+                                    key={msg.id}
+                                    className={`p-3 rounded-lg ${
+                                      msg.senderType === "admin"
+                                        ? "bg-primary/10 ml-4"
+                                        : msg.senderType === "ai"
+                                        ? "bg-muted mr-4 border-l-2 border-blue-500"
+                                        : "bg-muted mr-4"
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <Badge variant="outline" className="text-xs">
+                                        {msg.senderType === "admin"
+                                          ? "Admin"
+                                          : msg.senderType === "ai"
+                                          ? "AI Assistant"
+                                          : "Baker"}
+                                      </Badge>
+                                      <span className="text-xs text-muted-foreground">
+                                        {format(new Date(msg.createdAt), "MMM d, h:mm a")}
+                                      </span>
+                                    </div>
+                                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-center text-muted-foreground py-8">No messages yet</p>
+                            )}
+                          </ScrollArea>
+
+                          {/* Reply Form */}
+                          <div className="flex gap-2">
+                            <Textarea
+                              placeholder="Type your reply..."
+                              value={ticketReply}
+                              onChange={(e) => setTicketReply(e.target.value)}
+                              className="flex-1"
+                              data-testid="textarea-ticket-reply"
+                            />
+                            <Button
+                              onClick={() => {
+                                if (ticketReply.trim()) {
+                                  replyToTicketMutation.mutate({
+                                    ticketId: selectedTicket.id,
+                                    content: ticketReply,
+                                  });
+                                }
+                              }}
+                              disabled={!ticketReply.trim() || replyToTicketMutation.isPending}
+                              data-testid="button-send-ticket-reply"
+                            >
+                              <Send className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-[400px] text-muted-foreground">
+                          <MessageSquare className="h-12 w-12 mb-2 opacity-50" />
+                          <p>Select a ticket to view details</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Manual Email Tools */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Manual Email Tools</CardTitle>
+                <CardDescription>Resend onboarding emails to bakers</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Select a baker from the Accounts tab and click the activity icon to view their details and resend emails.
+                </p>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Onboarding Email Schedule:</p>
+                  <div className="grid gap-2">
+                    {Object.entries(EMAIL_DAY_LABELS).map(([day, label]) => (
+                      <div key={day} className="flex items-center gap-2 p-2 bg-muted rounded-lg text-sm">
+                        <Badge variant="outline">{day}</Badge>
+                        <span>{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Quick Stats */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Ticket Stats</CardTitle>
+                <CardDescription>Support ticket overview</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <span className="text-sm">Open Tickets</span>
+                  <Badge variant="destructive">
+                    {supportTickets?.filter(t => t.status === "open").length || 0}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <span className="text-sm">In Progress</span>
+                  <Badge>
+                    {supportTickets?.filter(t => t.status === "in_progress").length || 0}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <span className="text-sm">Resolved</span>
+                  <Badge variant="secondary">
+                    {supportTickets?.filter(t => t.status === "resolved").length || 0}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <span className="text-sm">High Priority</span>
+                  <Badge variant="outline" className="text-orange-600 border-orange-600">
+                    {supportTickets?.filter(t => t.priority === "high" && t.status !== "resolved" && t.status !== "archived").length || 0}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* SYSTEM TAB */}

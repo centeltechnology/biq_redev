@@ -504,3 +504,62 @@ export const ORDER_FULFILLMENT_STATUSES = [
 ] as const;
 
 export const DEFAULT_TAX_RATE = 0.08;
+
+// Support Tickets table
+export const supportTickets = pgTable("support_tickets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  bakerId: varchar("baker_id").notNull().references(() => bakers.id),
+  subject: text("subject").notNull(),
+  status: text("status").notNull().default("open"), // "open", "in_progress", "resolved", "archived"
+  priority: text("priority").notNull().default("normal"), // "low", "normal", "high"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const supportTicketsRelations = relations(supportTickets, ({ one, many }) => ({
+  baker: one(bakers, {
+    fields: [supportTickets.bakerId],
+    references: [bakers.id],
+  }),
+  messages: many(ticketMessages),
+}));
+
+// Ticket Messages table
+export const ticketMessages = pgTable("ticket_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ticketId: varchar("ticket_id").notNull().references(() => supportTickets.id),
+  senderType: text("sender_type").notNull(), // "baker", "admin", "ai"
+  senderId: varchar("sender_id"), // bakerId for baker, null for AI, admin id for admin
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const ticketMessagesRelations = relations(ticketMessages, ({ one }) => ({
+  ticket: one(supportTickets, {
+    fields: [ticketMessages.ticketId],
+    references: [supportTickets.id],
+  }),
+}));
+
+export const insertSupportTicketSchema = createInsertSchema(supportTickets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTicketMessageSchema = createInsertSchema(ticketMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type SupportTicket = typeof supportTickets.$inferSelect;
+export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
+export type TicketMessage = typeof ticketMessages.$inferSelect;
+export type InsertTicketMessage = z.infer<typeof insertTicketMessageSchema>;
+
+export const SUPPORT_TICKET_STATUSES = [
+  { id: "open", label: "Open", color: "blue" },
+  { id: "in_progress", label: "In Progress", color: "yellow" },
+  { id: "resolved", label: "Resolved", color: "green" },
+  { id: "archived", label: "Archived", color: "gray" },
+] as const;

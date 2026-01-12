@@ -9,6 +9,8 @@ import {
   emailVerificationTokens,
   bakerOnboardingEmails,
   pricingCalculations,
+  supportTickets,
+  ticketMessages,
   type Baker,
   type InsertBaker,
   type Customer,
@@ -24,6 +26,10 @@ import {
   type BakerOnboardingEmail,
   type PricingCalculation,
   type InsertPricingCalculation,
+  type SupportTicket,
+  type InsertSupportTicket,
+  type TicketMessage,
+  type InsertTicketMessage,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql, or, ilike, isNull } from "drizzle-orm";
@@ -132,6 +138,17 @@ export interface IStorage {
   createPricingCalculation(calculation: InsertPricingCalculation): Promise<PricingCalculation>;
   updatePricingCalculation(id: string, data: Partial<InsertPricingCalculation>): Promise<PricingCalculation | undefined>;
   deletePricingCalculation(id: string): Promise<void>;
+
+  // Support Tickets
+  getSupportTicket(id: string): Promise<SupportTicket | undefined>;
+  getSupportTicketsByBaker(bakerId: string): Promise<SupportTicket[]>;
+  getAllSupportTickets(): Promise<(SupportTicket & { baker: { businessName: string; email: string }; messages: TicketMessage[] })[]>;
+  createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket>;
+  updateSupportTicket(id: string, data: Partial<InsertSupportTicket>): Promise<SupportTicket | undefined>;
+  
+  // Ticket Messages
+  getTicketMessages(ticketId: string): Promise<TicketMessage[]>;
+  createTicketMessage(message: InsertTicketMessage): Promise<TicketMessage>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -821,6 +838,74 @@ export class DatabaseStorage implements IStorage {
 
   async deletePricingCalculation(id: string): Promise<void> {
     await db.delete(pricingCalculations).where(eq(pricingCalculations.id, id));
+  }
+
+  // Support Tickets
+  async getSupportTicket(id: string): Promise<SupportTicket | undefined> {
+    const [ticket] = await db.select().from(supportTickets).where(eq(supportTickets.id, id));
+    return ticket || undefined;
+  }
+
+  async getSupportTicketsByBaker(bakerId: string): Promise<SupportTicket[]> {
+    return db.select().from(supportTickets)
+      .where(eq(supportTickets.bakerId, bakerId))
+      .orderBy(desc(supportTickets.createdAt));
+  }
+
+  async getAllSupportTickets(): Promise<(SupportTicket & { baker: { businessName: string; email: string }; messages: TicketMessage[] })[]> {
+    const results = await db.select({
+      ticket: supportTickets,
+      baker: {
+        businessName: bakers.businessName,
+        email: bakers.email,
+      }
+    })
+      .from(supportTickets)
+      .leftJoin(bakers, eq(supportTickets.bakerId, bakers.id))
+      .where(sql`${supportTickets.status} != 'archived'`)
+      .orderBy(desc(supportTickets.createdAt));
+    
+    // Fetch messages for each ticket
+    const ticketsWithMessages = await Promise.all(
+      results.map(async r => {
+        const messages = await this.getTicketMessages(r.ticket.id);
+        return {
+          ...r.ticket,
+          baker: {
+            businessName: r.baker?.businessName || 'Unknown',
+            email: r.baker?.email || '',
+          },
+          messages,
+        };
+      })
+    );
+    
+    return ticketsWithMessages;
+  }
+
+  async createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket> {
+    const [created] = await db.insert(supportTickets).values(ticket).returning();
+    return created;
+  }
+
+  async updateSupportTicket(id: string, data: Partial<InsertSupportTicket>): Promise<SupportTicket | undefined> {
+    const [updated] = await db.update(supportTickets)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(supportTickets.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  // Ticket Messages
+  async getTicketMessages(ticketId: string): Promise<TicketMessage[]> {
+    return db.select().from(ticketMessages)
+      .where(eq(ticketMessages.ticketId, ticketId))
+      .orderBy(ticketMessages.createdAt);
+  }
+
+  async createTicketMessage(message: InsertTicketMessage): Promise<TicketMessage> {
+    const [created] = await db.insert(ticketMessages).values(message).returning();
+    return created;
   }
 }
 

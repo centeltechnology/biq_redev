@@ -6,6 +6,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { OnboardingTour } from "@/components/onboarding-tour";
+import { SupportChat } from "@/components/support-chat";
 import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -126,6 +127,7 @@ export function DashboardLayout({ children, title, actions }: DashboardLayoutPro
           <main className="flex-1 overflow-auto p-6">
             {children}
           </main>
+          <SupportChat />
         </div>
       </div>
     </SidebarProvider>

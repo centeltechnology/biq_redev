@@ -13,6 +13,74 @@ import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { CAKE_SIZES, CAKE_SHAPES, CAKE_FLAVORS, FROSTING_TYPES, DECORATIONS, DELIVERY_OPTIONS, ADDONS } from "@shared/schema";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
+import OpenAI from "openai";
+
+// OpenAI client for support chat
+const openai = new OpenAI({
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+});
+
+// Knowledge base from FAQ/Help content for AI support
+const SUPPORT_KNOWLEDGE_BASE = `
+BakerIQ is a lead capture and quote management tool for custom cake bakers.
+
+GETTING STARTED:
+- When you sign up, your unique public calculator is created automatically at /c/your-bakery-slug
+- Configure pricing in "Calculator Pricing" in your dashboard
+- Share your calculator URL on your website, social media, or with customers
+
+PRICING:
+- Set prices for cake sizes in Calculator Pricing - these form the base of estimates
+- Add price adjustments for premium flavors and specialty frostings
+- Configure decoration prices and addon pricing
+- Use the Price Calculator tool to calculate suggested prices based on costs
+
+LEADS:
+- When customers complete your calculator and submit info, a lead is created automatically
+- You receive email notification and customer gets confirmation email
+- Track leads through stages: New, Contacted, Quoted, Won, or Lost
+- Click "Create Quote" on any lead to start a quote with details pre-filled
+
+QUOTES:
+- Add line items for tiers, decorations, delivery, and custom items
+- Track quote status: Draft, Sent, Accepted, Declined, or Expired
+- Convert accepted quotes to orders for calendar tracking
+- Only sent quotes count toward monthly limits (drafts are free)
+
+ORDERS & CALENDAR:
+- Orders appear on the calendar organized by date
+- Search by customer name, title, or event type
+- Track total amount, deposit paid, and balance due
+
+FAST QUOTE (Basic & Pro plans):
+- Feature popular items on your public calculator
+- Customers order in a few clicks with pre-filled quotes
+- Basic plan: up to 5 featured items, Pro: unlimited
+
+SUBSCRIPTION PLANS:
+- Free: 5 quotes per month, unlimited leads
+- Basic ($9.97/month): 15 quotes + 5 featured items
+- Pro ($29.97/month): unlimited quotes + unlimited featured items
+- Upgrade anytime in Settings
+
+PAYMENT METHODS:
+- Configure accepted payment methods (Zelle, PayPal, CashApp, Venmo)
+- Set default deposit percentage
+- Add custom payment options in Settings
+
+EMAIL NOTIFICATIONS:
+- New lead alerts when customers submit inquiries
+- Customer confirmation emails with estimates
+- Quote notifications when you send quotes
+
+COMMON ISSUES:
+- If prices don't update, refresh browser or clear cache after saving
+- Check spam folder for missing emails
+- Make sure orders have event dates to appear on calendar
+- Cancelled orders are hidden from calendar view
+`;
+
 
 // Quote limits per plan (monthly)
 const FREE_QUOTE_LIMIT = 5;
@@ -2076,6 +2144,238 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Resend email error:", error);
       res.status(500).json({ message: "Failed to resend email" });
+    }
+  });
+
+  // Support Chat Routes
+  app.post("/api/support/chat", requireAuth, async (req, res) => {
+    try {
+      const bakerId = req.session.bakerId!;
+      const { message, conversationHistory } = req.body;
+      
+      if (!message || typeof message !== "string") {
+        return res.status(400).json({ message: "Message is required" });
+      }
+
+      const baker = await storage.getBaker(bakerId);
+      
+      // Build messages for context
+      const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
+        {
+          role: "system",
+          content: `You are a friendly and helpful support assistant for BakerIQ, a lead capture and quote management platform for custom cake bakers. 
+
+Your job is to help bakers with questions about using the platform. Use the following knowledge base to answer questions:
+
+${SUPPORT_KNOWLEDGE_BASE}
+
+Guidelines:
+- Be friendly, concise, and helpful
+- If you can answer the question from the knowledge base, do so
+- If the question is too complex, involves account issues, billing problems, or technical bugs, respond with: "I'd recommend reaching out to our support team for this. Would you like me to create a support ticket so an admin can help you?"
+- If the user says yes to creating a ticket, respond with exactly: "[CREATE_TICKET]" followed by a brief summary of their issue
+- Don't make up features or information not in the knowledge base
+- The baker's business name is: ${baker?.businessName || 'Unknown'}`,
+        },
+      ];
+
+      // Add conversation history
+      if (Array.isArray(conversationHistory)) {
+        for (const msg of conversationHistory.slice(-10)) {
+          if (msg.role === "user" || msg.role === "assistant") {
+            messages.push({ role: msg.role, content: msg.content });
+          }
+        }
+      }
+
+      // Add current message
+      messages.push({ role: "user", content: message });
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages,
+        max_tokens: 500,
+        temperature: 0.7,
+      });
+
+      const aiResponse = completion.choices[0]?.message?.content || "I'm sorry, I couldn't process that. Please try again.";
+
+      res.json({ response: aiResponse });
+    } catch (error) {
+      console.error("Support chat error:", error);
+      res.status(500).json({ message: "Failed to get response" });
+    }
+  });
+
+  // Create support ticket (escalation)
+  app.post("/api/support/tickets", requireAuth, async (req, res) => {
+    try {
+      const bakerId = req.session.bakerId!;
+      const { subject, initialMessage } = req.body;
+
+      if (!subject || !initialMessage) {
+        return res.status(400).json({ message: "Subject and message are required" });
+      }
+
+      const ticket = await storage.createSupportTicket({
+        bakerId,
+        subject,
+        status: "open",
+        priority: "normal",
+      });
+
+      await storage.createTicketMessage({
+        ticketId: ticket.id,
+        senderType: "baker",
+        senderId: bakerId,
+        content: initialMessage,
+      });
+
+      res.status(201).json(ticket);
+    } catch (error) {
+      console.error("Create ticket error:", error);
+      res.status(500).json({ message: "Failed to create ticket" });
+    }
+  });
+
+  // Get baker's tickets
+  app.get("/api/support/tickets", requireAuth, async (req, res) => {
+    try {
+      const bakerId = req.session.bakerId!;
+      const tickets = await storage.getSupportTicketsByBaker(bakerId);
+      res.json(tickets);
+    } catch (error) {
+      console.error("Get tickets error:", error);
+      res.status(500).json({ message: "Failed to get tickets" });
+    }
+  });
+
+  // Get ticket with messages
+  app.get("/api/support/tickets/:id", requireAuth, async (req, res) => {
+    try {
+      const bakerId = req.session.bakerId!;
+      const ticket = await storage.getSupportTicket(req.params.id);
+      
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+
+      // Check ownership (unless admin)
+      const baker = await storage.getBaker(bakerId);
+      if (ticket.bakerId !== bakerId && baker?.role !== "super_admin") {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+
+      const messages = await storage.getTicketMessages(ticket.id);
+      res.json({ ...ticket, messages });
+    } catch (error) {
+      console.error("Get ticket error:", error);
+      res.status(500).json({ message: "Failed to get ticket" });
+    }
+  });
+
+  // Add message to ticket (baker)
+  app.post("/api/support/tickets/:id/messages", requireAuth, async (req, res) => {
+    try {
+      const bakerId = req.session.bakerId!;
+      const ticket = await storage.getSupportTicket(req.params.id);
+      
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+
+      const baker = await storage.getBaker(bakerId);
+      const isAdmin = baker?.role === "super_admin";
+      
+      // Check ownership (unless admin)
+      if (ticket.bakerId !== bakerId && !isAdmin) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+
+      const { content } = req.body;
+      if (!content) {
+        return res.status(400).json({ message: "Content is required" });
+      }
+
+      const message = await storage.createTicketMessage({
+        ticketId: ticket.id,
+        senderType: isAdmin ? "admin" : "baker",
+        senderId: bakerId,
+        content,
+      });
+
+      // Update ticket status if admin responds
+      if (isAdmin && ticket.status === "open") {
+        await storage.updateSupportTicket(ticket.id, { status: "in_progress" });
+      }
+
+      res.status(201).json(message);
+    } catch (error) {
+      console.error("Add message error:", error);
+      res.status(500).json({ message: "Failed to add message" });
+    }
+  });
+
+  // Admin: Get all support tickets
+  app.get("/api/admin/support-tickets", requireAdmin, async (req, res) => {
+    try {
+      const tickets = await storage.getAllSupportTickets();
+      res.json(tickets);
+    } catch (error) {
+      console.error("Get all tickets error:", error);
+      res.status(500).json({ message: "Failed to get tickets" });
+    }
+  });
+
+  // Admin: Update ticket status
+  app.patch("/api/admin/support-tickets/:id", requireAdmin, async (req, res) => {
+    try {
+      const { status, priority } = req.body;
+      const ticket = await storage.updateSupportTicket(req.params.id, { status, priority });
+      
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+
+      res.json(ticket);
+    } catch (error) {
+      console.error("Update ticket error:", error);
+      res.status(500).json({ message: "Failed to update ticket" });
+    }
+  });
+
+  // Admin: Reply to support ticket
+  app.post("/api/admin/support-tickets/:id/reply", requireAdmin, async (req, res) => {
+    try {
+      const ticketId = req.params.id;
+      const { content } = req.body;
+      
+      if (!content?.trim()) {
+        return res.status(400).json({ message: "Content is required" });
+      }
+
+      const ticket = await storage.getSupportTicket(ticketId);
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+
+      const adminId = req.session.bakerId;
+      const ticketMessage = await storage.createTicketMessage({
+        ticketId,
+        senderType: "admin",
+        senderId: adminId,
+        content: content,
+      });
+
+      // Update ticket status to in_progress if it was open
+      if (ticket.status === "open") {
+        await storage.updateSupportTicket(ticketId, { status: "in_progress" });
+      }
+
+      res.status(201).json(ticketMessage);
+    } catch (error) {
+      console.error("Admin reply error:", error);
+      res.status(500).json({ message: "Failed to send reply" });
     }
   });
 
