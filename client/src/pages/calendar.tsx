@@ -28,7 +28,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { formatCurrency } from "@/lib/calculator";
+import { useFormatCurrency } from "@/hooks/use-baker-currency";
 import type { Order } from "@shared/schema";
 
 interface OrderWithDetails extends Order {
@@ -86,6 +86,7 @@ function getFirstDayOfMonth(year: number, month: number): number {
 
 export default function CalendarPage() {
   const [, setLocation] = useLocation();
+  const formatCurrency = useFormatCurrency();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<OrderWithDetails | null>(null);
@@ -404,6 +405,7 @@ export default function CalendarPage() {
 }
 
 function OrderRow({ order }: { order: OrderWithDetails }) {
+  const formatCurrency = useFormatCurrency();
   const eventDate = order.eventDate ? new Date(order.eventDate) : null;
   const formattedDate = eventDate?.toLocaleDateString("en-US", {
     weekday: "short",

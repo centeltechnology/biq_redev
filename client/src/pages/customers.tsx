@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/accordion";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { calculateTotal, createDefaultTier, formatCurrency as formatCalcCurrency } from "@/lib/calculator";
+import { calculateTotal, createDefaultTier } from "@/lib/calculator";
 import {
   CAKE_SIZES,
   CAKE_SHAPES,
@@ -66,7 +66,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { formatCurrency } from "@/lib/calculator";
+import { useFormatCurrency } from "@/hooks/use-baker-currency";
 import type { Customer, Quote } from "@shared/schema";
 
 const customerSchema = z.object({
@@ -98,6 +98,7 @@ export default function CustomersPage() {
   const [dialogStep, setDialogStep] = useState(1);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const formatCurrency = useFormatCurrency();
   const searchParams = useSearch();
 
   const [tiers, setTiers] = useState<CakeTier[]>([createDefaultTier()]);
@@ -516,6 +517,7 @@ function CustomerTableRow({
   isExpanded: boolean;
   onToggle: () => void;
 }) {
+  const formatCurrency = useFormatCurrency();
   const quoteCount = customer.quotes?.length || 0;
   const lastActivity = customer.quotes?.[0]?.createdAt
     ? new Date(customer.quotes[0].createdAt).toLocaleDateString()

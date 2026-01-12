@@ -16,7 +16,8 @@ import {
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency, calculateTotal } from "@/lib/calculator";
+import { calculateTotal } from "@/lib/calculator";
+import { useFormatCurrency } from "@/hooks/use-baker-currency";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -37,6 +38,7 @@ import { useState } from "react";
 export default function LeadDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
+  const formatCurrency = useFormatCurrency();
   const [notes, setNotes] = useState("");
   const [hasNotesChanged, setHasNotesChanged] = useState(false);
 

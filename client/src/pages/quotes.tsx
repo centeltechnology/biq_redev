@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/status-badge";
-import { formatCurrency } from "@/lib/calculator";
+import { useFormatCurrency } from "@/hooks/use-baker-currency";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { QUOTE_STATUSES, type Quote } from "@shared/schema";
@@ -53,6 +53,7 @@ export default function QuotesPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [deleteQuoteId, setDeleteQuoteId] = useState<string | null>(null);
   const { toast } = useToast();
+  const formatCurrency = useFormatCurrency();
 
   const { data: quotes, isLoading } = useQuery<QuoteWithCustomer[]>({
     queryKey: ["/api/quotes"],
@@ -208,6 +209,7 @@ interface QuoteTableRowProps {
 }
 
 function QuoteTableRow({ quote, onDuplicate, onDelete }: QuoteTableRowProps) {
+  const formatCurrency = useFormatCurrency();
   const eventDate = quote.eventDate
     ? new Date(quote.eventDate).toLocaleDateString()
     : "-";

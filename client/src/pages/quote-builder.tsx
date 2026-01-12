@@ -46,7 +46,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { formatCurrency, calculateTierPrice } from "@/lib/calculator";
+import { calculateTierPrice } from "@/lib/calculator";
+import { useFormatCurrency } from "@/hooks/use-baker-currency";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -122,6 +123,7 @@ export default function QuoteBuilderPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { baker } = useAuth();
+  const formatCurrency = useFormatCurrency();
   
   // Detect if we're on quote edit route (/quotes/:id)
   const [isQuoteRoute, quoteRouteParams] = useRoute("/quotes/:id");

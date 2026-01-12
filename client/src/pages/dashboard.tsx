@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/status-badge";
-import { formatCurrency } from "@/lib/calculator";
+import { useFormatCurrency } from "@/hooks/use-baker-currency";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import type { Lead, Quote, Order } from "@shared/schema";
@@ -39,6 +39,7 @@ interface OrderStats {
 
 export default function DashboardPage() {
   const { baker } = useAuth();
+  const formatCurrency = useFormatCurrency();
   
   const { data: stats, isLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
@@ -371,6 +372,7 @@ interface RevenueCardProps {
 }
 
 function RevenueCard({ title, subtitle, value, count, icon: Icon, isLoading }: RevenueCardProps) {
+  const formatCurrency = useFormatCurrency();
   return (
     <Card>
       <CardContent className="p-6">
@@ -400,6 +402,7 @@ function RevenueCard({ title, subtitle, value, count, icon: Icon, isLoading }: R
 }
 
 function LeadRow({ lead }: { lead: Lead }) {
+  const formatCurrency = useFormatCurrency();
   const eventDate = lead.eventDate ? new Date(lead.eventDate).toLocaleDateString() : null;
 
   return (

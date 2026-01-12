@@ -65,6 +65,7 @@ import {
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useFormatCurrency } from "@/hooks/use-baker-currency";
 import type { PricingCalculation } from "@shared/schema";
 
 const calculatorSchema = z.object({
@@ -93,6 +94,7 @@ export default function PricingCalculatorPage() {
   const { toast } = useToast();
   const { baker } = useAuth();
   const [, setLocation] = useLocation();
+  const formatCurrency = useFormatCurrency();
   const [selectedCalculation, setSelectedCalculation] = useState<PricingCalculation | null>(null);
   const [featureDialogOpen, setFeatureDialogOpen] = useState(false);
   const [itemToFeature, setItemToFeature] = useState<PricingCalculation | null>(null);
@@ -319,13 +321,6 @@ export default function PricingCalculatorPage() {
 
   const onSubmit = (data: CalculatorFormData) => {
     saveMutation.mutate(data);
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(value);
   };
 
   return (

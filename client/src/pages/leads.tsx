@@ -35,7 +35,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { formatCurrency, getPayloadSummary } from "@/lib/calculator";
+import { getPayloadSummary } from "@/lib/calculator";
+import { useFormatCurrency } from "@/hooks/use-baker-currency";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { LEAD_STATUSES, type Lead, type CalculatorPayload } from "@shared/schema";
 
@@ -164,6 +165,7 @@ interface LeadTableRowProps {
 }
 
 function LeadTableRow({ lead, onStatusChange }: LeadTableRowProps) {
+  const formatCurrency = useFormatCurrency();
   const eventDate = lead.eventDate ? new Date(lead.eventDate).toLocaleDateString() : "-";
   const rawPayload = lead.calculatorPayload;
   const isFastQuote = isFastQuoteLead(rawPayload);
