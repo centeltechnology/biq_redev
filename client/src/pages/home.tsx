@@ -23,10 +23,9 @@ import {
   ChevronRight
 } from "lucide-react";
 
-import dashboardImage from "@assets/generated_images/abstract_dashboard_ui_mockup.png";
-import quoteBuilderImage from "@assets/generated_images/abstract_quote_form_mockup.png";
-import calendarImage from "@assets/generated_images/abstract_calendar_ui_mockup.png";
-import calculatorImage from "@assets/generated_images/abstract_calculator_ui_mockup.png";
+import sliderImage1 from "@assets/img-1_1768182819883.png";
+import sliderImage2 from "@assets/img-2_1768182819883.png";
+import sliderImage3 from "@assets/img-3_1768182819883.png";
 
 const testimonials = [
   {
@@ -53,10 +52,9 @@ const testimonials = [
 ];
 
 const previewScreens = [
-  { image: dashboardImage, title: "Dashboard & Quotes", description: "See all your quotes, leads, and customers in one organized view" },
-  { image: quoteBuilderImage, title: "Quote Builder", description: "Create detailed quotes with custom line items and automatic calculations" },
-  { image: calendarImage, title: "Order Calendar", description: "View upcoming orders with revenue tracking and easy search" },
-  { image: calculatorImage, title: "Public Calculator", description: "Your customers use this to build their dream cake and get instant pricing" }
+  { image: sliderImage1, title: "Quote Builder & Calendar", description: "Create quotes, view your calendar, and track business insights all in one place" },
+  { image: sliderImage2, title: "Manage Leads & Quotes", description: "Track inquiries, send professional quotes, and monitor your dashboard" },
+  { image: sliderImage3, title: "Lead & Order Management", description: "Centralize your cake orders and manage leads with easy status tracking" }
 ];
 
 export default function HomePage() {
@@ -124,7 +122,7 @@ export default function HomePage() {
             <div className="mt-16 max-w-5xl mx-auto">
               <div className="relative rounded-xl overflow-hidden shadow-2xl border bg-card">
                 <img 
-                  src={dashboardImage} 
+                  src={sliderImage1} 
                   alt="BakerIQ Dashboard showing quote management interface" 
                   className="w-full h-auto"
                   data-testid="img-dashboard-preview"
