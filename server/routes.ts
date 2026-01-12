@@ -364,6 +364,11 @@ export async function registerRoutes(
         quickOrderItemLimit: z.number().min(1).max(100).optional().nullable(),
         profilePhoto: z.string().optional().nullable(),
         portfolioImages: z.array(z.string()).max(6).optional().nullable(),
+        customPaymentOptions: z.array(z.object({
+          id: z.string(),
+          name: z.string().min(1),
+          details: z.string().min(1),
+        })).optional().nullable(),
       }).refine((data) => {
         // Validate fixed deposit amount when fixed type is selected
         if (data.defaultDepositType === "fixed") {
@@ -1296,6 +1301,12 @@ export async function registerRoutes(
       socialPinterest: baker.socialPinterest,
       profilePhoto: baker.profilePhoto,
       portfolioImages: baker.portfolioImages,
+      currency: baker.currency,
+      customPaymentOptions: baker.customPaymentOptions,
+      paymentZelle: baker.paymentZelle,
+      paymentPaypal: baker.paymentPaypal,
+      paymentCashapp: baker.paymentCashapp,
+      paymentVenmo: baker.paymentVenmo,
     });
   });
 
@@ -1369,6 +1380,8 @@ export async function registerRoutes(
           paymentPaypal: baker.paymentPaypal,
           paymentVenmo: baker.paymentVenmo,
           paymentCashapp: baker.paymentCashapp,
+          customPaymentOptions: baker.customPaymentOptions,
+          currency: baker.currency,
         },
         customer: {
           id: customer.id,

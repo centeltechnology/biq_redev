@@ -22,7 +22,10 @@ export const bakers = pgTable("bakers", {
   paymentPaypal: text("payment_paypal"),
   paymentCashapp: text("payment_cashapp"),
   paymentVenmo: text("payment_venmo"),
+  customPaymentOptions: jsonb("custom_payment_options").$type<Array<{id: string; name: string; details: string}>>(),
   depositPercentage: integer("deposit_percentage").default(50),
+  // Currency for all monetary displays (ISO 4217 code)
+  currency: text("currency").notNull().default("USD"),
   // Default deposit type for Quick Order items: "full" = require full payment, "percentage" = use depositPercentage, "fixed" = use depositFixedAmount
   defaultDepositType: text("default_deposit_type").notNull().default("full"),
   depositFixedAmount: decimal("deposit_fixed_amount", { precision: 10, scale: 2 }),

@@ -21,6 +21,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { Quote, QuoteItem } from "@shared/schema";
+import { formatCurrency } from "@/lib/calculator";
 
 interface PublicBaker {
   id: string;
@@ -33,6 +34,8 @@ interface PublicBaker {
   paymentPaypal?: string | null;
   paymentVenmo?: string | null;
   paymentCashapp?: string | null;
+  customPaymentOptions?: { id: string; name: string; details: string }[] | null;
+  currency?: string | null;
 }
 
 interface PublicCustomer {
@@ -46,14 +49,6 @@ interface PublicQuoteData {
   quote: Quote & { items: QuoteItem[] };
   baker: PublicBaker;
   customer: PublicCustomer;
-}
-
-function formatCurrency(amount: number | string): string {
-  const num = typeof amount === "string" ? parseFloat(amount) : amount;
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(num);
 }
 
 export default function QuoteViewPage() {
@@ -144,6 +139,12 @@ export default function QuoteViewPage() {
     depositLabel = `(${baker.depositPercentage}%)`;
   }
 
+  // Helper function to format currency with baker's currency
+  const fmt = (amount: number | string) => {
+    const num = typeof amount === "string" ? parseFloat(amount) : amount;
+    return formatCurrency(num, baker.currency || "USD");
+  };
+
   const cakeItems = quote.items.filter(i => i.category === "cake");
   const decorationItems = quote.items.filter(i => i.category === "decoration");
   const addonItems = quote.items.filter(i => i.category === "addon");
@@ -225,7 +226,7 @@ export default function QuoteViewPage() {
                         <p className="font-medium">{item.name}</p>
                         {item.description && <p className="text-muted-foreground text-xs">{item.description}</p>}
                       </div>
-                      <p className="font-medium">{formatCurrency(item.totalPrice)}</p>
+                      <p className="font-medium">{fmt(item.totalPrice)}</p>
                     </div>
                   ))}
                 </div>
@@ -239,7 +240,7 @@ export default function QuoteViewPage() {
                   {decorationItems.map((item) => (
                     <div key={item.id} className="flex justify-between text-sm">
                       <p>{item.name}</p>
-                      <p className="font-medium">{formatCurrency(item.totalPrice)}</p>
+                      <p className="font-medium">{fmt(item.totalPrice)}</p>
                     </div>
                   ))}
                 </div>
@@ -256,7 +257,7 @@ export default function QuoteViewPage() {
                         <p>{item.name}</p>
                         {item.description && <p className="text-muted-foreground text-xs">{item.description}</p>}
                       </div>
-                      <p className="font-medium">{formatCurrency(item.totalPrice)}</p>
+                      <p className="font-medium">{fmt(item.totalPrice)}</p>
                     </div>
                   ))}
                 </div>
@@ -270,7 +271,7 @@ export default function QuoteViewPage() {
                   {deliveryItems.map((item) => (
                     <div key={item.id} className="flex justify-between text-sm">
                       <p>{item.name}</p>
-                      <p className="font-medium">{formatCurrency(item.totalPrice)}</p>
+                      <p className="font-medium">{fmt(item.totalPrice)}</p>
                     </div>
                   ))}
                 </div>
@@ -287,7 +288,7 @@ export default function QuoteViewPage() {
                         <p>{item.name}</p>
                         {item.description && <p className="text-muted-foreground text-xs">{item.description}</p>}
                       </div>
-                      <p className="font-medium">{formatCurrency(item.totalPrice)}</p>
+                      <p className="font-medium">{fmt(item.totalPrice)}</p>
                     </div>
                   ))}
                 </div>
@@ -299,15 +300,15 @@ export default function QuoteViewPage() {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span>{formatCurrency(subtotal)}</span>
+                <span>{fmt(subtotal)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Tax ({(parseFloat(quote.taxRate) * 100).toFixed(1)}%)</span>
-                <span>{formatCurrency(taxAmount)}</span>
+                <span>{fmt(taxAmount)}</span>
               </div>
               <div className="flex justify-between font-bold text-lg pt-2 border-t">
                 <span>Total</span>
-                <span className="text-primary">{formatCurrency(total)}</span>
+                <span className="text-primary">{fmt(total)}</span>
               </div>
             </div>
 
@@ -332,16 +333,16 @@ export default function QuoteViewPage() {
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span>Deposit Required {depositLabel}</span>
-                  <span className="font-bold text-primary">{formatCurrency(depositAmount)}</span>
+                  <span className="font-bold text-primary">{fmt(depositAmount)}</span>
                 </div>
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>Balance Due</span>
-                  <span>{formatCurrency(total - depositAmount)}</span>
+                  <span>{fmt(total - depositAmount)}</span>
                 </div>
                 <Separator />
                 <div className="text-sm">
                   <p className="font-medium mb-2">Payment Methods:</p>
-                  {(baker.paymentZelle || baker.paymentPaypal || baker.paymentVenmo || baker.paymentCashapp) ? (
+                  {(baker.paymentZelle || baker.paymentPaypal || baker.paymentVenmo || baker.paymentCashapp || (baker.customPaymentOptions && baker.customPaymentOptions.length > 0)) ? (
                     <div className="space-y-2">
                       {baker.paymentZelle && (
                         <div className="flex items-center gap-2">
@@ -367,6 +368,12 @@ export default function QuoteViewPage() {
                           <span>{baker.paymentCashapp}</span>
                         </div>
                       )}
+                      {baker.customPaymentOptions && baker.customPaymentOptions.map((option) => (
+                        <div key={option.id} className="flex items-center gap-2">
+                          <Badge variant="secondary">{option.name}</Badge>
+                          <span>{option.details}</span>
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <span className="text-muted-foreground">Contact baker for payment options</span>
@@ -478,7 +485,7 @@ export default function QuoteViewPage() {
               <AlertDialogTitle>Accept This Quote?</AlertDialogTitle>
               <AlertDialogDescription>
                 By accepting this quote, you're confirming your interest in proceeding with this order for{" "}
-                <strong>{formatCurrency(total)}</strong>. {baker.businessName} will be notified and will reach out to confirm details and payment.
+                <strong>{fmt(total)}</strong>. {baker.businessName} will be notified and will reach out to confirm details and payment.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

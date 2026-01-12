@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Copy, Check, Loader2, ExternalLink, CreditCard, Sparkles, Bell, HelpCircle, Zap, Camera, Upload, X, Image as ImageIcon } from "lucide-react";
+import { Copy, Check, Loader2, ExternalLink, CreditCard, Sparkles, Bell, HelpCircle, Zap, Camera, Upload, X, Image as ImageIcon, Plus, Trash2, Globe } from "lucide-react";
 import { useUpload } from "@/hooks/use-upload";
 import { InstructionModal } from "@/components/instruction-modal";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,9 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { AVAILABLE_CURRENCIES } from "@/lib/calculator";
+
+type CustomPaymentOption = { id: string; name: string; details: string };
 
 const profileSchema = z.object({
   businessName: z.string().min(2, "Business name must be at least 2 characters"),
@@ -83,6 +86,10 @@ export default function SettingsPage() {
   const [portfolioImages, setPortfolioImages] = useState<string[]>([]);
   const [uploadingProfile, setUploadingProfile] = useState(false);
   const [uploadingPortfolio, setUploadingPortfolio] = useState(false);
+  const [currency, setCurrency] = useState("USD");
+  const [customPaymentOptions, setCustomPaymentOptions] = useState<CustomPaymentOption[]>([]);
+  const [newPaymentName, setNewPaymentName] = useState("");
+  const [newPaymentDetails, setNewPaymentDetails] = useState("");
   const profileInputRef = useRef<HTMLInputElement>(null);
   const portfolioInputRef = useRef<HTMLInputElement>(null);
   const { uploadFile } = useUpload({});
@@ -146,6 +153,8 @@ export default function SettingsPage() {
       });
       setProfilePhoto(baker.profilePhoto || null);
       setPortfolioImages((baker.portfolioImages || []).slice(0, 6));
+      setCurrency(baker.currency || "USD");
+      setCustomPaymentOptions((baker.customPaymentOptions as CustomPaymentOption[]) || []);
     }
   }, [baker, profileForm, paymentForm]);
 
@@ -162,7 +171,7 @@ export default function SettingsPage() {
 
   const updatePaymentMutation = useMutation({
     mutationFn: async (data: PaymentFormData) => {
-      const res = await apiRequest("PATCH", "/api/bakers/me", data);
+      const res = await apiRequest("PATCH", "/api/bakers/me", { ...data, customPaymentOptions });
       return res.json();
     },
     onSuccess: () => {
@@ -170,6 +179,41 @@ export default function SettingsPage() {
       toast({ title: "Payment options updated successfully" });
     },
   });
+
+  const updateCurrencyMutation = useMutation({
+    mutationFn: async (newCurrency: string) => {
+      const res = await apiRequest("PATCH", "/api/bakers/me", { currency: newCurrency });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
+      toast({ title: "Currency updated successfully" });
+    },
+  });
+
+  const handleCurrencyChange = (newCurrency: string) => {
+    setCurrency(newCurrency);
+    updateCurrencyMutation.mutate(newCurrency);
+  };
+
+  const addCustomPaymentOption = () => {
+    if (!newPaymentName.trim() || !newPaymentDetails.trim()) {
+      toast({ title: "Please enter both name and details", variant: "destructive" });
+      return;
+    }
+    const newOption: CustomPaymentOption = {
+      id: crypto.randomUUID(),
+      name: newPaymentName.trim(),
+      details: newPaymentDetails.trim(),
+    };
+    setCustomPaymentOptions([...customPaymentOptions, newOption]);
+    setNewPaymentName("");
+    setNewPaymentDetails("");
+  };
+
+  const removeCustomPaymentOption = (id: string) => {
+    setCustomPaymentOptions(customPaymentOptions.filter(opt => opt.id !== id));
+  };
 
   const updatePasswordMutation = useMutation({
     mutationFn: async (data: PasswordFormData) => {
@@ -794,6 +838,46 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5" />
+              Currency & Region
+            </CardTitle>
+            <CardDescription>
+              Choose the currency for all prices in your quotes and calculator
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="currency">Currency</Label>
+                <Select value={currency} onValueChange={handleCurrencyChange}>
+                  <SelectTrigger className="w-full mt-1.5" data-testid="select-currency">
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AVAILABLE_CURRENCIES.map((curr) => (
+                      <SelectItem key={curr.code} value={curr.code} data-testid={`currency-option-${curr.code}`}>
+                        {curr.code} - {curr.name} ({curr.symbol})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground mt-1.5">
+                  This currency will be used for all prices displayed to your customers
+                </p>
+              </div>
+              {updateCurrencyMutation.isPending && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Saving...
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Payment Options</CardTitle>
             <CardDescription>
               Add your payment details to display on quotes
@@ -878,6 +962,66 @@ export default function SettingsPage() {
                     </FormItem>
                   )}
                 />
+
+                <div className="space-y-4 border-t pt-4">
+                  <h4 className="font-medium text-sm">Custom Payment Methods</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Add additional payment options for your region (e.g., OXXO, SPEI, bank transfer)
+                  </p>
+                  
+                  {customPaymentOptions.length > 0 && (
+                    <div className="space-y-2">
+                      {customPaymentOptions.map((option) => (
+                        <div 
+                          key={option.id} 
+                          className="flex items-center justify-between gap-2 p-3 bg-muted rounded-md"
+                          data-testid={`custom-payment-${option.id}`}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm">{option.name}</p>
+                            <p className="text-sm text-muted-foreground truncate">{option.details}</p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeCustomPaymentOption(option.id)}
+                            data-testid={`button-remove-custom-payment-${option.id}`}
+                          >
+                            <Trash2 className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <div className="flex flex-col gap-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        placeholder="Payment name (e.g., OXXO)"
+                        value={newPaymentName}
+                        onChange={(e) => setNewPaymentName(e.target.value)}
+                        data-testid="input-custom-payment-name"
+                      />
+                      <Input
+                        placeholder="Details (reference # or link)"
+                        value={newPaymentDetails}
+                        onChange={(e) => setNewPaymentDetails(e.target.value)}
+                        data-testid="input-custom-payment-details"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={addCustomPaymentOption}
+                      className="w-fit"
+                      data-testid="button-add-custom-payment"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Payment Method
+                    </Button>
+                  </div>
+                </div>
 
                 <div className="space-y-4 border-t pt-4">
                   <h4 className="font-medium text-sm">Quote Deposit Settings</h4>

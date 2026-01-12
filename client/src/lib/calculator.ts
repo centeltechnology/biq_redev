@@ -150,12 +150,103 @@ export function calculateTotal(payload: CalculatorPayload, config?: CalculatorCo
   };
 }
 
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("en-US", {
+// Currency code to locale mapping for better formatting
+const CURRENCY_LOCALES: Record<string, string> = {
+  USD: "en-US",
+  MXN: "es-MX",
+  EUR: "de-DE",
+  GBP: "en-GB",
+  CAD: "en-CA",
+  AUD: "en-AU",
+  BRL: "pt-BR",
+  COP: "es-CO",
+  ARS: "es-AR",
+  CLP: "es-CL",
+  PEN: "es-PE",
+  INR: "en-IN",
+  JPY: "ja-JP",
+  CNY: "zh-CN",
+  KRW: "ko-KR",
+  PHP: "en-PH",
+  THB: "th-TH",
+  VND: "vi-VN",
+  IDR: "id-ID",
+  MYR: "ms-MY",
+  SGD: "en-SG",
+  NZD: "en-NZ",
+  ZAR: "en-ZA",
+  NGN: "en-NG",
+  KES: "en-KE",
+  GHS: "en-GH",
+  EGP: "ar-EG",
+  AED: "ar-AE",
+  SAR: "ar-SA",
+  ILS: "he-IL",
+  TRY: "tr-TR",
+  PLN: "pl-PL",
+  SEK: "sv-SE",
+  NOK: "nb-NO",
+  DKK: "da-DK",
+  CHF: "de-CH",
+  RUB: "ru-RU",
+  UAH: "uk-UA",
+  CZK: "cs-CZ",
+  HUF: "hu-HU",
+  RON: "ro-RO",
+};
+
+export function formatCurrency(amount: number, currency: string = "USD"): string {
+  const locale = CURRENCY_LOCALES[currency] || "en-US";
+  return new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: "USD",
+    currency: currency,
   }).format(amount);
 }
+
+// Available currencies for the settings dropdown
+export const AVAILABLE_CURRENCIES = [
+  { code: "USD", name: "US Dollar", symbol: "$" },
+  { code: "MXN", name: "Mexican Peso", symbol: "$" },
+  { code: "EUR", name: "Euro", symbol: "€" },
+  { code: "GBP", name: "British Pound", symbol: "£" },
+  { code: "CAD", name: "Canadian Dollar", symbol: "$" },
+  { code: "AUD", name: "Australian Dollar", symbol: "$" },
+  { code: "BRL", name: "Brazilian Real", symbol: "R$" },
+  { code: "COP", name: "Colombian Peso", symbol: "$" },
+  { code: "ARS", name: "Argentine Peso", symbol: "$" },
+  { code: "CLP", name: "Chilean Peso", symbol: "$" },
+  { code: "PEN", name: "Peruvian Sol", symbol: "S/" },
+  { code: "INR", name: "Indian Rupee", symbol: "₹" },
+  { code: "JPY", name: "Japanese Yen", symbol: "¥" },
+  { code: "CNY", name: "Chinese Yuan", symbol: "¥" },
+  { code: "KRW", name: "South Korean Won", symbol: "₩" },
+  { code: "PHP", name: "Philippine Peso", symbol: "₱" },
+  { code: "THB", name: "Thai Baht", symbol: "฿" },
+  { code: "VND", name: "Vietnamese Dong", symbol: "₫" },
+  { code: "IDR", name: "Indonesian Rupiah", symbol: "Rp" },
+  { code: "MYR", name: "Malaysian Ringgit", symbol: "RM" },
+  { code: "SGD", name: "Singapore Dollar", symbol: "$" },
+  { code: "NZD", name: "New Zealand Dollar", symbol: "$" },
+  { code: "ZAR", name: "South African Rand", symbol: "R" },
+  { code: "NGN", name: "Nigerian Naira", symbol: "₦" },
+  { code: "KES", name: "Kenyan Shilling", symbol: "KSh" },
+  { code: "GHS", name: "Ghanaian Cedi", symbol: "₵" },
+  { code: "EGP", name: "Egyptian Pound", symbol: "E£" },
+  { code: "AED", name: "UAE Dirham", symbol: "د.إ" },
+  { code: "SAR", name: "Saudi Riyal", symbol: "﷼" },
+  { code: "ILS", name: "Israeli Shekel", symbol: "₪" },
+  { code: "TRY", name: "Turkish Lira", symbol: "₺" },
+  { code: "PLN", name: "Polish Zloty", symbol: "zł" },
+  { code: "SEK", name: "Swedish Krona", symbol: "kr" },
+  { code: "NOK", name: "Norwegian Krone", symbol: "kr" },
+  { code: "DKK", name: "Danish Krone", symbol: "kr" },
+  { code: "CHF", name: "Swiss Franc", symbol: "CHF" },
+  { code: "RUB", name: "Russian Ruble", symbol: "₽" },
+  { code: "UAH", name: "Ukrainian Hryvnia", symbol: "₴" },
+  { code: "CZK", name: "Czech Koruna", symbol: "Kč" },
+  { code: "HUF", name: "Hungarian Forint", symbol: "Ft" },
+  { code: "RON", name: "Romanian Leu", symbol: "lei" },
+];
 
 export function getTierSummary(tier: CakeTier): string {
   const size = CAKE_SIZES.find((s) => s.id === tier.size);

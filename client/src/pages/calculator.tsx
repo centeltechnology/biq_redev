@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, createContext, useContext } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -87,6 +87,16 @@ import {
   type Baker,
 } from "@shared/schema";
 import heroImage from "@assets/generated_images/elegant_wedding_cake_hero.png";
+
+const CurrencyContext = createContext<string>("USD");
+
+function useFormattedCurrency() {
+  const currency = useContext(CurrencyContext);
+  return (amount: number | string) => {
+    const num = typeof amount === "string" ? parseFloat(amount) || 0 : amount;
+    return formatCurrency(num, currency);
+  };
+}
 
 const contactSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -192,6 +202,7 @@ export default function CalculatorPage() {
   });
 
   const bakerConfig = baker?.calculatorConfig as CalculatorConfig | undefined;
+  const bakerCurrency = baker?.currency || "USD";
 
   const payload: CalculatorPayload = useMemo(() => {
     if (category === "treat") {
@@ -599,7 +610,7 @@ export default function CalculatorPage() {
                 <p className="text-sm text-muted-foreground mb-1">
                   {isQuickOrder ? "Order total" : "Your estimated total"}
                 </p>
-                <p className="text-3xl font-bold">{formatCurrency(displayPrice)}</p>
+                <p className="text-3xl font-bold">{formatCurrency(displayPrice, bakerCurrency)}</p>
               </div>
               {isQuickOrder && (
                 <p className="text-xs text-muted-foreground mt-4">
@@ -614,6 +625,7 @@ export default function CalculatorPage() {
   }
 
   return (
+    <CurrencyContext.Provider value={bakerCurrency}>
     <div className="min-h-screen bg-background">
       <header className="flex items-center justify-between gap-4 px-6 py-4 border-b sticky top-0 z-50 bg-background">
         <div className="flex items-center gap-3">
@@ -800,7 +812,7 @@ export default function CalculatorPage() {
                 <div className="text-right">
                   <p className="text-sm text-muted-foreground">Estimated Total</p>
                   <p className="text-2xl font-bold" data-testid="text-running-total">
-                    {formatCurrency(totals.total)}
+                    {formatCurrency(totals.total, bakerCurrency)}
                   </p>
                 </div>
               )}
@@ -858,6 +870,7 @@ export default function CalculatorPage() {
         </p>
       </main>
     </div>
+    </CurrencyContext.Provider>
   );
 }
 
@@ -883,13 +896,7 @@ interface StepCategoryProps {
 }
 
 function StepCategory({ onSelect, featuredItems = [], onSelectFeaturedItem }: StepCategoryProps) {
-  const formatCurrency = (value: string | null) => {
-    const num = parseFloat(value || "0") || 0;
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(num);
-  };
+  const fmt = useFormattedCurrency();
 
   const getCategoryLabel = (category: string) => {
     const labels: Record<string, string> = {
@@ -935,14 +942,14 @@ function StepCategory({ onSelect, featuredItems = [], onSelectFeaturedItem }: St
                       {getCategoryLabel(item.category)}
                     </p>
                     <p className="text-primary font-semibold mt-1">
-                      {formatCurrency(item.featuredPrice || item.suggestedPrice)}
+                      {fmt(item.featuredPrice || item.suggestedPrice)}
                     </p>
                     {item.depositType && item.depositType !== "full" && (
                       <p className="text-xs text-primary/80 mt-0.5">
                         {item.depositType === "percentage" && item.depositPercent
                           ? `${item.depositPercent}% deposit required`
                           : item.depositType === "fixed" && item.depositAmount
-                          ? `${formatCurrency(item.depositAmount)} deposit required`
+                          ? `${fmt(item.depositAmount)} deposit required`
                           : null}
                       </p>
                     )}
@@ -1015,6 +1022,7 @@ interface StepTreatsProps {
 }
 
 function StepTreats({ selected, onUpdateQuantity, config }: StepTreatsProps) {
+  const fmt = useFormattedCurrency();
   const getTreatQuantity = (id: string) => {
     return selected.find(t => t.id === id)?.quantity || 0;
   };
@@ -1056,7 +1064,7 @@ function StepTreats({ selected, onUpdateQuantity, config }: StepTreatsProps) {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="font-medium text-right min-w-[70px]">
-                    {formatCurrency(treat.unitPrice)}
+                    {fmt(treat.unitPrice)}
                   </span>
                   <div className="flex items-center gap-2">
                     <Button
@@ -1085,7 +1093,7 @@ function StepTreats({ selected, onUpdateQuantity, config }: StepTreatsProps) {
               {isSelected && (
                 <div className="mt-2 pt-2 border-t flex justify-end">
                   <span className="text-sm text-muted-foreground">
-                    Subtotal: <span className="font-medium text-foreground">{formatCurrency(treat.unitPrice * quantity)}</span>
+                    Subtotal: <span className="font-medium text-foreground">{fmt(treat.unitPrice * quantity)}</span>
                   </span>
                 </div>
               )}
@@ -1099,7 +1107,7 @@ function StepTreats({ selected, onUpdateQuantity, config }: StepTreatsProps) {
           <div className="flex items-center justify-between">
             <span className="font-medium">Selected Treats Total</span>
             <span className="font-bold text-lg">
-              {formatCurrency(calculateTreatsPrice(selected, config))}
+              {fmt(calculateTreatsPrice(selected, config))}
             </span>
           </div>
         </div>
@@ -1119,6 +1127,7 @@ interface StepCakeBuilderProps {
 }
 
 function StepCakeBuilder({ tiers, onUpdateTier, onAddTier, onRemoveTier, config, openAccordion, onAccordionChange }: StepCakeBuilderProps) {
+  const fmt = useFormattedCurrency();
   return (
     <div className="space-y-4">
       <Accordion type="single" collapsible value={openAccordion} onValueChange={onAccordionChange} className="space-y-4">
@@ -1129,7 +1138,7 @@ function StepCakeBuilder({ tiers, onUpdateTier, onAddTier, onRemoveTier, config,
                 <span className="font-medium">Tier {index + 1}</span>
                 <div className="flex items-center gap-3">
                   <span className="text-sm text-muted-foreground">
-                    {CAKE_SIZES.find((s) => s.id === tier.size)?.label} - {formatCurrency(calculateTierPrice(tier, config))}
+                    {CAKE_SIZES.find((s) => s.id === tier.size)?.label} - {fmt(calculateTierPrice(tier, config))}
                   </span>
                   {tiers.length > 1 && (
                     <Button
@@ -1165,7 +1174,7 @@ function StepCakeBuilder({ tiers, onUpdateTier, onAddTier, onRemoveTier, config,
                         <p className="font-medium">{size.label}</p>
                         <p className="text-xs text-muted-foreground">{size.servings} servings</p>
                       </div>
-                      <span className="text-sm font-medium">{formatCurrency(size.basePrice)}</span>
+                      <span className="text-sm font-medium">{fmt(size.basePrice)}</span>
                     </Label>
                   ))}
                 </RadioGroup>
@@ -1186,7 +1195,7 @@ function StepCakeBuilder({ tiers, onUpdateTier, onAddTier, onRemoveTier, config,
                       <RadioGroupItem value={shape.id} data-testid={`radio-shape-${shape.id}-${index}`} />
                       <span className="flex-1">{shape.label}</span>
                       {shape.priceModifier > 0 && (
-                        <span className="text-xs text-muted-foreground">+{formatCurrency(shape.priceModifier)}</span>
+                        <span className="text-xs text-muted-foreground">+{fmt(shape.priceModifier)}</span>
                       )}
                     </Label>
                   ))}
@@ -1208,7 +1217,7 @@ function StepCakeBuilder({ tiers, onUpdateTier, onAddTier, onRemoveTier, config,
                       <RadioGroupItem value={flavor.id} data-testid={`radio-flavor-${flavor.id}-${index}`} />
                       <span className="flex-1">{flavor.label}</span>
                       {flavor.priceModifier > 0 && (
-                        <span className="text-xs text-muted-foreground">+{formatCurrency(flavor.priceModifier)}</span>
+                        <span className="text-xs text-muted-foreground">+{fmt(flavor.priceModifier)}</span>
                       )}
                     </Label>
                   ))}
@@ -1230,7 +1239,7 @@ function StepCakeBuilder({ tiers, onUpdateTier, onAddTier, onRemoveTier, config,
                       <RadioGroupItem value={frosting.id} data-testid={`radio-frosting-${frosting.id}-${index}`} />
                       <span className="flex-1">{frosting.label}</span>
                       {frosting.priceModifier > 0 && (
-                        <span className="text-xs text-muted-foreground">+{formatCurrency(frosting.priceModifier)}</span>
+                        <span className="text-xs text-muted-foreground">+{fmt(frosting.priceModifier)}</span>
                       )}
                     </Label>
                   ))}
@@ -1260,6 +1269,7 @@ interface StepDecorationsProps {
 }
 
 function StepDecorations({ selected, onToggle }: StepDecorationsProps) {
+  const fmt = useFormattedCurrency();
   return (
     <div className="space-y-4">
       <p className="text-muted-foreground mb-4">
@@ -1279,7 +1289,7 @@ function StepDecorations({ selected, onToggle }: StepDecorationsProps) {
               data-testid={`checkbox-decoration-${dec.id}`}
             />
             <span className="flex-1">{dec.label}</span>
-            <span className="font-medium">{formatCurrency(dec.price)}</span>
+            <span className="font-medium">{fmt(dec.price)}</span>
           </Label>
         ))}
       </div>
@@ -1297,6 +1307,7 @@ interface StepAddonsProps {
 }
 
 function StepAddons({ selected, onToggle, onUpdateAttendees, onUpdateQuantity, guestCount, config }: StepAddonsProps) {
+  const fmt = useFormattedCurrency();
   return (
     <div className="space-y-4">
       <p className="text-muted-foreground mb-4">
@@ -1328,7 +1339,7 @@ function StepAddons({ selected, onToggle, onUpdateAttendees, onUpdateQuantity, g
                   <div className="flex items-center justify-between gap-4">
                     <span className="font-medium">{addon.label}</span>
                     <span className="font-medium">
-                      {formatCurrency(addon.price)}
+                      {fmt(addon.price)}
                       {isPerAttendee && <span className="text-muted-foreground font-normal">/person</span>}
                     </span>
                   </div>
@@ -1382,7 +1393,7 @@ function StepAddons({ selected, onToggle, onUpdateAttendees, onUpdateQuantity, g
                     </div>
                   </div>
                   <p className="text-sm text-right mt-2">
-                    Subtotal: <span className="font-medium">{formatCurrency(addon.price * (selectedAddon?.attendees || minAttendees || 20))}</span>
+                    Subtotal: <span className="font-medium">{fmt(addon.price * (selectedAddon?.attendees || minAttendees || 20))}</span>
                   </p>
                 </div>
               )}
@@ -1401,6 +1412,7 @@ interface StepEventDetailsProps {
 }
 
 function StepEventDetails({ form, deliveryOption, onDeliveryChange }: StepEventDetailsProps) {
+  const fmt = useFormattedCurrency();
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2">
@@ -1486,7 +1498,7 @@ function StepEventDetails({ form, deliveryOption, onDeliveryChange }: StepEventD
               <RadioGroupItem value={option.id} data-testid={`radio-delivery-${option.id}`} />
               <span className="flex-1">{option.label}</span>
               <span className="font-medium">
-                {option.price > 0 ? formatCurrency(option.price) : "Free"}
+                {option.price > 0 ? fmt(option.price) : "Free"}
               </span>
             </Label>
           ))}
@@ -1656,6 +1668,7 @@ interface StepFastQuoteReviewProps {
 }
 
 function StepFastQuoteReview({ featuredItem, form }: StepFastQuoteReviewProps) {
+  const fmt = useFormattedCurrency();
   const values = form.watch();
   
   const getCategoryLabel = (category: string) => {
@@ -1737,7 +1750,7 @@ function StepFastQuoteReview({ featuredItem, form }: StepFastQuoteReviewProps) {
         <div className="flex items-center justify-between text-lg font-semibold">
           <span>Estimated Total</span>
           <span className="text-primary">
-            {formatCurrency(parseFloat(featuredItem.featuredPrice || featuredItem.suggestedPrice) || 0)}
+            {fmt(parseFloat(featuredItem.featuredPrice || featuredItem.suggestedPrice) || 0)}
           </span>
         </div>
         <p className="text-xs text-muted-foreground mt-1">
@@ -1774,6 +1787,7 @@ interface StepReviewProps {
 }
 
 function StepReview({ category, tiers, decorations, addons, treats, deliveryOption, totals, form, config }: StepReviewProps) {
+  const fmt = useFormattedCurrency();
   const values = form.watch();
   
   const defaultTreats = TREATS.map(t => ({ ...t, enabled: true as boolean | undefined }));
@@ -1813,7 +1827,7 @@ function StepReview({ category, tiers, decorations, addons, treats, deliveryOpti
                         {shape?.label}, {flavor?.label}, {frosting?.label}
                       </p>
                     </div>
-                    <span className="font-medium">{formatCurrency(price)}</span>
+                    <span className="font-medium">{fmt(price)}</span>
                   </div>
                 );
               })}
@@ -1829,7 +1843,7 @@ function StepReview({ category, tiers, decorations, addons, treats, deliveryOpti
                   return (
                     <div key={id} className="flex items-center justify-between">
                       <span>{dec?.label}</span>
-                      <span className="font-medium">{formatCurrency(dec?.price || 0)}</span>
+                      <span className="font-medium">{fmt(dec?.price || 0)}</span>
                     </div>
                   );
                 })}
@@ -1857,7 +1871,7 @@ function StepReview({ category, tiers, decorations, addons, treats, deliveryOpti
                           </span>
                         )}
                       </span>
-                      <span className="font-medium">{formatCurrency(price)}</span>
+                      <span className="font-medium">{fmt(price)}</span>
                     </div>
                   );
                 })}
@@ -1882,7 +1896,7 @@ function StepReview({ category, tiers, decorations, addons, treats, deliveryOpti
                       {treatInfo?.description} × {treat.quantity}
                     </p>
                   </div>
-                  <span className="font-medium">{formatCurrency(price)}</span>
+                  <span className="font-medium">{fmt(price)}</span>
                 </div>
               );
             })}
@@ -1895,7 +1909,7 @@ function StepReview({ category, tiers, decorations, addons, treats, deliveryOpti
         <div className="flex items-center justify-between">
           <span>{DELIVERY_OPTIONS.find((d) => d.id === deliveryOption)?.label}</span>
           <span className="font-medium">
-            {totals.deliveryTotal > 0 ? formatCurrency(totals.deliveryTotal) : "Free"}
+            {totals.deliveryTotal > 0 ? fmt(totals.deliveryTotal) : "Free"}
           </span>
         </div>
       </div>
@@ -1903,15 +1917,15 @@ function StepReview({ category, tiers, decorations, addons, treats, deliveryOpti
       <div className="border-t pt-4 space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">Subtotal</span>
-          <span>{formatCurrency(totals.subtotal)}</span>
+          <span>{fmt(totals.subtotal)}</span>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">Tax (8%)</span>
-          <span>{formatCurrency(totals.tax)}</span>
+          <span>{fmt(totals.tax)}</span>
         </div>
         <div className="flex items-center justify-between text-lg font-bold pt-2 border-t">
           <span>Estimated Total</span>
-          <span data-testid="text-final-total">{formatCurrency(totals.total)}</span>
+          <span data-testid="text-final-total">{fmt(totals.total)}</span>
         </div>
       </div>
 
