@@ -57,6 +57,13 @@ const tourSteps: Step[] = [
     disableBeacon: true,
     placement: "right",
   },
+  {
+    target: '[data-testid="button-support-chat"]',
+    content: "Need help? Click this button anytime to chat with our AI assistant or create a support ticket!",
+    title: "Get Support",
+    disableBeacon: true,
+    placement: "left",
+  },
 ];
 
 interface OnboardingTourProps {
@@ -137,6 +144,7 @@ export function OnboardingTour({ tourStatus }: OnboardingTourProps) {
                 <li>• Where to find new customer leads</li>
                 <li>• How to create and send quotes</li>
                 <li>• How to track your orders</li>
+                <li>• How to get help when you need it</li>
               </ul>
             </div>
           </div>
