@@ -26,7 +26,7 @@ const allowlist = [
   "passport-local",
   "pg",
   "stripe",
-  "stripe-replit-sync",
+  // stripe-replit-sync removed - uses import.meta.url which breaks in CJS bundle
   "uuid",
   "ws",
   "xlsx",
