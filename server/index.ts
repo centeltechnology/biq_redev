@@ -16,7 +16,7 @@ declare module "http" {
   }
 }
 
-// Initialize Stripe on startup
+// Initialize Stripe (called after server starts)
 async function initStripe() {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
@@ -28,7 +28,13 @@ async function initStripe() {
     console.log("Initializing Stripe schema...");
     await runMigrations({ databaseUrl, schema: "stripe" });
     console.log("Stripe schema ready");
+  } catch (error) {
+    console.error("Failed to initialize Stripe schema:", error);
+    // Continue without Stripe - don't crash the app
+    return;
+  }
 
+  try {
     const stripeSync = await getStripeSync();
 
     console.log("Setting up managed webhook...");
@@ -48,12 +54,10 @@ async function initStripe() {
       .then(() => console.log("Stripe data synced"))
       .catch((err: any) => console.error("Error syncing Stripe data:", err));
   } catch (error) {
-    console.error("Failed to initialize Stripe:", error);
+    console.error("Failed to initialize Stripe sync:", error);
+    // Continue without Stripe sync - don't crash the app
   }
 }
-
-// Initialize Stripe
-initStripe();
 
 // Register Stripe webhook route BEFORE express.json()
 app.post(
@@ -162,6 +166,11 @@ app.use((req, res, next) => {
     },
     () => {
       log(`serving on port ${port}`);
+      
+      // Initialize Stripe AFTER server is listening (non-blocking)
+      initStripe().catch(err => {
+        console.error("Stripe initialization error (non-fatal):", err);
+      });
       
       // Start onboarding email scheduler
       const baseUrl = process.env.REPLIT_DOMAINS
