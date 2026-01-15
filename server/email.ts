@@ -17,13 +17,29 @@ const sesClient = new SESClient({
   },
 });
 
-const FROM_EMAIL = process.env.AWS_SES_FROM_EMAIL || "noreply@bakeriq.app";
+// Platform emails (to bakers): "BakerIQ"
+const PLATFORM_FROM_EMAIL = process.env.AWS_SES_PLATFORM_EMAIL || process.env.AWS_SES_FROM_EMAIL || "noreply@bakeriq.app";
+const PLATFORM_FROM_NAME = "BakerIQ";
+
+// Customer-facing emails: "Your Baker at [Business Name]"
+const CUSTOMER_FROM_EMAIL = process.env.AWS_SES_CUSTOMER_EMAIL || process.env.AWS_SES_FROM_EMAIL || "noreply@bakeriq.app";
+
+export type EmailSenderType = "platform" | "customer";
 
 interface SendEmailParams {
   to: string;
   subject: string;
   html: string;
   text?: string;
+  senderType?: EmailSenderType;
+  businessName?: string; // Required for customer emails
+}
+
+function formatSender(senderType: EmailSenderType, businessName?: string): string {
+  if (senderType === "customer" && businessName) {
+    return `"Your Baker at ${businessName}" <${CUSTOMER_FROM_EMAIL}>`;
+  }
+  return `"${PLATFORM_FROM_NAME}" <${PLATFORM_FROM_EMAIL}>`;
 }
 
 export async function sendEmail({
@@ -31,6 +47,8 @@ export async function sendEmail({
   subject,
   html,
   text,
+  senderType = "platform",
+  businessName,
 }: SendEmailParams): Promise<boolean> {
   if (
     !process.env.AWS_ACCESS_KEY_ID ||
@@ -41,9 +59,11 @@ export async function sendEmail({
     return false;
   }
 
+  const source = formatSender(senderType, businessName);
+
   try {
     const command = new SendEmailCommand({
-      Source: FROM_EMAIL,
+      Source: source,
       Destination: {
         ToAddresses: [to],
       },
@@ -68,7 +88,7 @@ export async function sendEmail({
     });
 
     await sesClient.send(command);
-    console.log(`Email sent successfully to ${to}`);
+    console.log(`Email sent successfully to ${to} from ${source}`);
     return true;
   } catch (error) {
     console.error("Failed to send email:", error);
@@ -268,6 +288,8 @@ ${bakerBusinessName}
     subject: `Your ${subjectType} Inquiry - ${bakerBusinessName}`,
     html,
     text,
+    senderType: "customer",
+    businessName: bakerBusinessName,
   });
 }
 
@@ -478,6 +500,8 @@ ${bakerBusinessName}
     subject: `Your Quote from ${bakerBusinessName} - ${formatCurrency(quote.total)}`,
     html,
     text,
+    senderType: "customer",
+    businessName: bakerBusinessName,
   });
 }
 
