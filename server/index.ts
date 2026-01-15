@@ -41,10 +41,14 @@ async function initStripe() {
     const replitDomains = process.env.REPLIT_DOMAINS;
     if (replitDomains) {
       const webhookBaseUrl = `https://${replitDomains.split(",")[0]}`;
-      const { webhook } = await stripeSync.findOrCreateManagedWebhook(
+      const result = await stripeSync.findOrCreateManagedWebhook(
         `${webhookBaseUrl}/api/stripe/webhook`
       );
-      console.log(`Webhook configured: ${webhook.url}`);
+      if (result?.webhook?.url) {
+        console.log(`Webhook configured: ${result.webhook.url}`);
+      } else {
+        console.log("Webhook setup completed (no URL returned)");
+      }
     } else {
       console.log("REPLIT_DOMAINS not set, skipping webhook setup");
     }
