@@ -50,13 +50,25 @@ export async function sendEmail({
   senderType = "platform",
   businessName,
 }: SendEmailParams): Promise<boolean> {
-  if (
-    !process.env.AWS_ACCESS_KEY_ID ||
-    !process.env.AWS_SECRET_ACCESS_KEY ||
-    !process.env.AWS_SES_FROM_EMAIL
-  ) {
+  // Check for AWS credentials
+  if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
     console.log("AWS SES credentials not configured, skipping email send");
     return false;
+  }
+  
+  // Check for at least one valid sender email configuration
+  const hasFromEmail = process.env.AWS_SES_FROM_EMAIL;
+  const hasPlatformEmail = process.env.AWS_SES_PLATFORM_EMAIL;
+  const hasCustomerEmail = process.env.AWS_SES_CUSTOMER_EMAIL;
+  
+  if (!hasFromEmail && !hasPlatformEmail && !hasCustomerEmail) {
+    console.log("No AWS SES sender email configured, skipping email send");
+    return false;
+  }
+  
+  // Warn if customer email is requested but businessName is missing
+  if (senderType === "customer" && !businessName) {
+    console.warn("Customer email requested without businessName, falling back to platform sender");
   }
 
   const source = formatSender(senderType, businessName);

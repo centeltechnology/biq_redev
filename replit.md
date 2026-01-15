@@ -90,3 +90,10 @@ Preferred communication style: Simple, everyday language.
 - `DATABASE_URL`: PostgreSQL connection string
 - `SESSION_SECRET`: Secret for session encryption (optional in dev, defaults to dev key)
 - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SES_REGION`: For email sending via AWS SES
+- `AWS_SES_FROM_EMAIL`: Default sender email (fallback for all email types)
+- `AWS_SES_PLATFORM_EMAIL`: Sender email for platform emails to bakers (uses "BakerIQ" sender name)
+- `AWS_SES_CUSTOMER_EMAIL`: Sender email for customer-facing emails (uses "Your Baker at [Business Name]" sender name)
+
+### Email Sender Types
+- **Platform emails**: Onboarding, password reset, admin notifications sent from "BakerIQ"
+- **Customer emails**: Quotes, lead confirmations sent from "Your Baker at [Business Name]"
