@@ -58,7 +58,7 @@ async function buildAll() {
       "process.env.NODE_ENV": '"production"',
     },
     minify: true,
-    external: externals,
+    external: [...externals, "p-limit", "p-retry"],
     logLevel: "info",
   });
 }
