@@ -96,6 +96,151 @@ const EMAIL_DAY_LABELS: Record<number, string> = {
   7: "Day 7: Success Tips",
 };
 
+const SEGMENT_LABELS: Record<string, { label: string; description: string }> = {
+  new_but_inactive: { label: "New but Inactive", description: "Signed up >7 days ago, no key actions" },
+  configured_not_shared: { label: "Configured not Shared", description: "Calculator configured but link not shared" },
+  leads_no_quotes: { label: "Leads no Quotes", description: "Has leads but no quotes created" },
+  quotes_no_orders: { label: "Quotes no Orders", description: "Quotes sent but no orders" },
+  active_power_user: { label: "Active Power User", description: "Consistent weekly actions" },
+  at_risk: { label: "At Risk", description: "Previously active, no activity in 14 days" },
+};
+
+function RetentionEmailAdmin() {
+  const { toast } = useToast();
+
+  const { data: stats, isLoading: statsLoading } = useQuery<{
+    totalSent: number;
+    sentLast7Days: number;
+    sentLast30Days: number;
+    openRate: number;
+    clickRate: number;
+    bySegment: Record<string, { sent: number; opened: number; clicked: number }>;
+  }>({
+    queryKey: ["/api/admin/retention/stats"],
+  });
+
+  const { data: segments, isLoading: segmentsLoading } = useQuery<Record<string, number>>({
+    queryKey: ["/api/admin/retention/segments"],
+  });
+
+  const runSchedulerMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/admin/retention/run");
+      return response.json();
+    },
+    onSuccess: (data: { processed: number; sent: number; failed: number; skipped: number }) => {
+      toast({
+        title: "Retention emails sent",
+        description: `Processed ${data.processed} users: ${data.sent} sent, ${data.failed} failed, ${data.skipped} skipped`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/retention/stats"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to run retention scheduler",
+        variant: "destructive",
+      });
+    },
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-lg">Retention Emails</CardTitle>
+            <CardDescription>Weekly activation and retention email program</CardDescription>
+          </div>
+          <Button
+            onClick={() => runSchedulerMutation.mutate()}
+            disabled={runSchedulerMutation.isPending}
+            size="sm"
+            data-testid="button-run-retention"
+          >
+            {runSchedulerMutation.isPending ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Running...
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4 mr-2" />
+                Run Now
+              </>
+            )}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-4">
+          <div className="p-4 bg-muted rounded-lg">
+            <div className="text-2xl font-bold">{statsLoading ? "..." : stats?.totalSent || 0}</div>
+            <div className="text-sm text-muted-foreground">Total Sent</div>
+          </div>
+          <div className="p-4 bg-muted rounded-lg">
+            <div className="text-2xl font-bold">{statsLoading ? "..." : stats?.sentLast7Days || 0}</div>
+            <div className="text-sm text-muted-foreground">Last 7 Days</div>
+          </div>
+          <div className="p-4 bg-muted rounded-lg">
+            <div className="text-2xl font-bold">{statsLoading ? "..." : `${stats?.openRate?.toFixed(1) || 0}%`}</div>
+            <div className="text-sm text-muted-foreground">Open Rate</div>
+          </div>
+          <div className="p-4 bg-muted rounded-lg">
+            <div className="text-2xl font-bold">{statsLoading ? "..." : `${stats?.clickRate?.toFixed(1) || 0}%`}</div>
+            <div className="text-sm text-muted-foreground">Click Rate</div>
+          </div>
+        </div>
+
+        <div>
+          <h4 className="text-sm font-medium mb-3">User Segments</h4>
+          <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+            {segmentsLoading ? (
+              <Skeleton className="h-16 w-full col-span-full" />
+            ) : (
+              Object.entries(SEGMENT_LABELS).map(([key, { label, description }]) => (
+                <div key={key} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <div className="text-sm font-medium">{label}</div>
+                    <div className="text-xs text-muted-foreground">{description}</div>
+                  </div>
+                  <Badge variant="secondary">{segments?.[key] || 0}</Badge>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {stats?.bySegment && Object.keys(stats.bySegment).length > 0 && (
+          <div>
+            <h4 className="text-sm font-medium mb-3">Performance by Segment</h4>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Segment</TableHead>
+                  <TableHead className="text-right">Sent</TableHead>
+                  <TableHead className="text-right">Opened</TableHead>
+                  <TableHead className="text-right">Clicked</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Object.entries(stats.bySegment).map(([segment, data]) => (
+                  <TableRow key={segment}>
+                    <TableCell>{SEGMENT_LABELS[segment]?.label || segment}</TableCell>
+                    <TableCell className="text-right">{data.sent}</TableCell>
+                    <TableCell className="text-right">{data.opened}</TableCell>
+                    <TableCell className="text-right">{data.clicked}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function AdminDashboard() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
@@ -1099,6 +1244,8 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           </div>
+
+          <RetentionEmailAdmin />
         </TabsContent>
       </Tabs>
 

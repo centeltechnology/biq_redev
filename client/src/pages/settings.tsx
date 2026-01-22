@@ -375,11 +375,23 @@ export default function SettingsPage() {
     await updatePhotosMutation.mutateAsync({ portfolioImages: newPortfolioImages });
   };
 
-  const copyCalculatorUrl = () => {
+  const copyCalculatorUrl = async () => {
     navigator.clipboard.writeText(calculatorUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     toast({ title: "Link copied to clipboard" });
+    
+    // Track event for retention segmentation
+    try {
+      await fetch("/api/track-event", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ eventType: "quick_quote_link_copied" }),
+      });
+    } catch {
+      // Silent fail - tracking is not critical
+    }
   };
 
   return (

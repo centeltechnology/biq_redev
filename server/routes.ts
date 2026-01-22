@@ -11,9 +11,10 @@ import crypto from "crypto";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
-import { CAKE_SIZES, CAKE_SHAPES, CAKE_FLAVORS, FROSTING_TYPES, DECORATIONS, DELIVERY_OPTIONS, ADDONS } from "@shared/schema";
+import { CAKE_SIZES, CAKE_SHAPES, CAKE_FLAVORS, FROSTING_TYPES, DECORATIONS, DELIVERY_OPTIONS, ADDONS, USER_ACTIVITY_EVENT_TYPES, type UserActivityEventType } from "@shared/schema";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import OpenAI from "openai";
+import { trackEvent } from "./event-tracking";
 
 // OpenAI client for support chat
 const openai = new OpenAI({
@@ -233,6 +234,10 @@ export async function registerRoutes(
       }
 
       req.session.bakerId = baker.id;
+      
+      // Track login event
+      trackEvent(baker.id, "login");
+      
       res.json({ baker: { ...baker, passwordHash: undefined } });
     } catch (error: any) {
       if (error instanceof z.ZodError) {
@@ -398,6 +403,25 @@ export async function registerRoutes(
     }
   });
 
+  // Frontend event tracking
+  app.post("/api/track-event", requireAuth, async (req, res) => {
+    try {
+      const schema = z.object({
+        eventType: z.enum(USER_ACTIVITY_EVENT_TYPES as unknown as [string, ...string[]]),
+        eventData: z.record(z.unknown()).optional(),
+      });
+
+      const data = schema.parse(req.body);
+      await trackEvent(req.session.bakerId!, data.eventType as UserActivityEventType, data.eventData);
+      res.json({ success: true });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      res.status(500).json({ message: "Event tracking failed" });
+    }
+  });
+
   // Baker Profile
   app.get("/api/bakers/me", requireAuth, async (req, res) => {
     const baker = await storage.getBaker(req.session.bakerId!);
@@ -454,6 +478,11 @@ export async function registerRoutes(
 
       if (!baker) {
         return res.status(404).json({ message: "Baker not found" });
+      }
+
+      // Track calculator config update (quick quote configured)
+      if (data.calculatorConfig) {
+        trackEvent(req.session.bakerId!, "quick_quote_configured");
       }
 
       res.json({ ...baker, passwordHash: undefined });
@@ -524,6 +553,11 @@ export async function registerRoutes(
 
       const data = schema.parse(req.body);
       const lead = await storage.updateLead(req.params.id, data);
+
+      // Track lead status update
+      if (data.status) {
+        trackEvent(req.session.bakerId!, "lead_status_updated", { leadId: req.params.id, newStatus: data.status });
+      }
 
       res.json(lead);
     } catch (error: any) {
@@ -613,6 +647,10 @@ export async function registerRoutes(
       }
 
       const quoteWithItems = await storage.getQuoteWithItems(quote.id);
+      
+      // Track quote creation
+      trackEvent(bakerId, "quote_created", { quoteId: quote.id, customerId: data.customerId });
+      
       res.json(quoteWithItems);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
@@ -877,6 +915,9 @@ export async function registerRoutes(
 
       await storage.updateQuote(quote.id, { status: "sent" });
 
+      // Track quote sent
+      trackEvent(bakerId, "quote_sent", { quoteId: quote.id, customerId: quote.customerId });
+
       // Auto-update linked lead status to "quoted"
       if (quote.leadId) {
         await storage.updateLead(quote.leadId, { status: "quoted" });
@@ -1109,6 +1150,9 @@ export async function registerRoutes(
         notes: data.notes || null,
       });
 
+      // Track order scheduled
+      trackEvent(req.session.bakerId!, "order_scheduled", { orderId: order.id, quoteId: data.quoteId });
+
       res.json(order);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
@@ -1215,6 +1259,10 @@ export async function registerRoutes(
         bakerId: req.session.bakerId!,
         ...data,
       });
+      
+      // Track pricing item added
+      trackEvent(req.session.bakerId!, "pricing_item_added", { calculationId: calculation.id, category: data.category });
+      
       res.json(calculation);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
@@ -1247,6 +1295,10 @@ export async function registerRoutes(
 
       const data = schema.parse(req.body);
       const calculation = await storage.updatePricingCalculation(req.params.id, data);
+      
+      // Track pricing item updated
+      trackEvent(req.session.bakerId!, "pricing_item_updated", { calculationId: req.params.id });
+      
       res.json(calculation);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
@@ -1332,6 +1384,11 @@ export async function registerRoutes(
         depositPercent: depositPercent || null,
         depositAmount: depositAmount || null,
       });
+      
+      // Track featured item added/updated
+      if (isFeatured) {
+        trackEvent(req.session.bakerId!, "featured_item_added", { calculationId: req.params.id });
+      }
       
       res.json(updated);
     } catch (error) {
@@ -1531,6 +1588,12 @@ export async function registerRoutes(
         }
       }
 
+      // Track quote accepted/declined
+      trackEvent(quote.bakerId, action === "accept" ? "quote_accepted" : "quote_declined", { 
+        quoteId: quote.id, 
+        customerId: quote.customerId 
+      });
+
       // Send notification email to baker
       const baseUrl = `${req.protocol}://${req.get("host")}`;
       await sendQuoteResponseNotification(
@@ -1615,6 +1678,9 @@ export async function registerRoutes(
         status: "new",
         source: isQuickOrder ? "quick_order" : "calculator",
       });
+
+      // Track lead created
+      trackEvent(baker.id, "lead_created", { leadId: lead.id, source: isQuickOrder ? "quick_order" : "calculator" });
 
       // Send email notifications (non-blocking)
       const estimatedTotal = parseFloat(data.estimatedTotal);
@@ -2378,6 +2444,73 @@ Guidelines:
       res.status(500).json({ message: "Failed to send reply" });
     }
   });
+
+  // ============================================
+  // RETENTION EMAIL ADMIN ROUTES
+  // ============================================
+  
+  app.get("/api/admin/retention/templates", requireAdmin, async (req, res) => {
+    try {
+      const { getRetentionTemplates } = await import("./retention-admin");
+      const templates = await getRetentionTemplates();
+      res.json(templates);
+    } catch (error) {
+      console.error("Error getting retention templates:", error);
+      res.status(500).json({ message: "Failed to get templates" });
+    }
+  });
+
+  app.patch("/api/admin/retention/templates/:id", requireAdmin, async (req, res) => {
+    try {
+      const { updateRetentionTemplate } = await import("./retention-admin");
+      const template = await updateRetentionTemplate(req.params.id, req.body);
+      res.json(template);
+    } catch (error) {
+      console.error("Error updating retention template:", error);
+      res.status(500).json({ message: "Failed to update template" });
+    }
+  });
+
+  app.get("/api/admin/retention/stats", requireAdmin, async (req, res) => {
+    try {
+      const { getRetentionEmailStats } = await import("./retention-scheduler");
+      const stats = await getRetentionEmailStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error getting retention stats:", error);
+      res.status(500).json({ message: "Failed to get stats" });
+    }
+  });
+
+  app.get("/api/admin/retention/segments", requireAdmin, async (req, res) => {
+    try {
+      const { getSegmentDistribution } = await import("./segmentation");
+      const distribution = await getSegmentDistribution();
+      res.json(distribution);
+    } catch (error) {
+      console.error("Error getting segment distribution:", error);
+      res.status(500).json({ message: "Failed to get segments" });
+    }
+  });
+
+  app.post("/api/admin/retention/run", requireAdmin, async (req, res) => {
+    try {
+      const { runRetentionEmailScheduler } = await import("./retention-scheduler");
+      const result = await runRetentionEmailScheduler();
+      res.json(result);
+    } catch (error) {
+      console.error("Error running retention scheduler:", error);
+      res.status(500).json({ message: "Failed to run scheduler" });
+    }
+  });
+
+  // Seed retention email templates on startup
+  try {
+    const { seedRetentionTemplates } = await import("./seed-retention-templates");
+    await seedRetentionTemplates();
+  } catch (error) {
+    console.error("Failed to seed retention templates:", error);
+  }
 
   // Seed demo baker on startup
   const existingDemo = await storage.getBakerByEmail("demo@bakeriq.app");

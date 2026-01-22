@@ -1080,3 +1080,47 @@ This email was sent by BakerIQ to help you get started.
     text,
   });
 }
+
+export async function sendRetentionEmail(
+  bakerEmail: string,
+  subject: string,
+  bodyHtml: string,
+  bodyText: string
+): Promise<boolean> {
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #E91E63, #F06292); color: white; padding: 24px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px; }
+    .cta { display: inline-block; background: #E91E63; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0; font-size: 24px;">BakerIQ</h1>
+    </div>
+    <div class="content">
+      ${bodyHtml}
+    </div>
+    <div class="footer">
+      <p>You're receiving this because you have a BakerIQ account.</p>
+      <p style="margin-top: 8px;"><a href="https://bakeriq.app/settings" style="color: #666;">Manage email preferences</a></p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  return sendEmail({
+    to: bakerEmail,
+    subject,
+    html,
+    text: bodyText,
+  });
+}

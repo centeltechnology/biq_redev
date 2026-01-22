@@ -6,6 +6,7 @@ import { runMigrations } from "stripe-replit-sync";
 import { getStripeSync } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
 import { startOnboardingScheduler } from "./onboarding-scheduler";
+import { startRetentionScheduler } from "./retention-scheduler";
 
 const app = express();
 const httpServer = createServer(app);
@@ -181,6 +182,9 @@ app.use((req, res, next) => {
         ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
         : `http://localhost:${port}`;
       startOnboardingScheduler(baseUrl);
+      
+      // Start retention email scheduler (weekly)
+      startRetentionScheduler(baseUrl);
     },
   );
 })();

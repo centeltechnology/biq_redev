@@ -97,3 +97,18 @@ Preferred communication style: Simple, everyday language.
 ### Email Sender Types
 - **Platform emails**: Onboarding, password reset, admin notifications sent from "BakerIQ"
 - **Customer emails**: Quotes, lead confirmations sent from "Your Baker at [Business Name]"
+
+### Retention Email System
+Weekly activation and engagement emails for user retention:
+- **Event Tracking**: `user_activity_events` table logs key user actions (login, lead creation, quote actions, orders, pricing updates, featured items)
+- **Segmentation Engine**: `server/segmentation.ts` classifies users into 6 segments based on activity patterns:
+  - `new_but_inactive`: Signed up >7 days ago, no key actions
+  - `configured_not_shared`: Calculator configured but link not shared
+  - `leads_no_quotes`: Has leads but no quotes created
+  - `quotes_no_orders`: Quotes sent but no orders marked
+  - `active_power_user`: 3+ key actions in last 7 days
+  - `at_risk`: Previously active, no activity in 14+ days
+- **Email Templates**: `retention_email_templates` table with segment-specific templates using personalization tokens ({{first_name}}, {{business_name}}, {{quick_quote_url}}, {{dashboard_url}})
+- **Scheduler**: `server/retention-scheduler.ts` runs weekly, respects 48-hour onboarding cooldown and 7-day retention email cooldown
+- **Admin UI**: System tab in admin dashboard shows segment distribution, email stats (open/click rates), and manual trigger button
+- **Tracking**: `retention_email_sends` table tracks sends, opens, and clicks per user/template
