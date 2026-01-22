@@ -111,7 +111,7 @@ export default function HomePage() {
                     <ArrowRight className="h-5 w-5" />
                   </Button>
                 </Link>
-                <Link href="/c/sweet-dreams-bakery">
+                <Link href="/c/bakeriq-demo">
                   <Button size="lg" variant="outline" className="gap-2 text-lg" data-testid="button-demo">
                     See Demo Calculator
                   </Button>
@@ -420,7 +420,7 @@ export default function HomePage() {
                   <ArrowRight className="h-5 w-5" />
                 </Button>
               </Link>
-              <Link href="/c/sweet-dreams-bakery">
+              <Link href="/c/bakeriq-demo">
                 <Button size="lg" variant="outline" className="gap-2 text-lg bg-transparent border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10" data-testid="button-cta-demo">
                   Try Demo Calculator
                 </Button>
