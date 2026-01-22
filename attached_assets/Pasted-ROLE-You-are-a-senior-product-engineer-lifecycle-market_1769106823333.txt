@@ -1,0 +1,87 @@
+ROLE: You are a senior product engineer + lifecycle marketer implementing weekly retention emails for BakerIQ (a SaaS for bakers/treat makers). The system already has a 7-day “getting started” onboarding series. We now need weekly emails that encourage continued product usage.
+
+GOAL:
+Implement a weekly “activation + retention” email program that nudges users to complete ONE small action per week inside the app (habit building). The emails must be short, problem-based, encouraging, and not overly technical. Do NOT spam. Do NOT sell hard.
+
+CONTEXT / PRODUCT:
+BakerIQ core flow: users share a Quick Quote calculator link → customers submit inquiry → lead is created → baker sends quote → order scheduled → baker manages status.
+Core features to nudge: Quick Quote link, pricing setup/updates, lead statuses, quote creation/sending, order calendar, basic insights.
+
+REQUIREMENTS:
+1) Data-driven personalization:
+   - Segment users weekly based on their last 7/14/30 days activity.
+   - Use app events if available (or add them): 
+     - account_created
+     - quick_quote_configured
+     - quick_quote_link_copied/shared
+     - pricing_item_added/updated
+     - lead_created
+     - lead_status_updated
+     - quote_created
+     - quote_sent
+     - quote_accepted/declined
+     - order_scheduled
+     - order_completed
+     - login
+2) Segment logic (minimum viable segments):
+   - “New but inactive”: signed up >7 days ago, no key actions, low logins
+   - “Configured but not shared”: quick quote configured, but no link share events
+   - “Leads but no quotes”: leads exist, but no quotes created/sent
+   - “Quotes but no orders scheduled”: quotes sent but no orders/calendar usage
+   - “Active power users”: consistent weekly actions; send tips + light celebration
+   - “At-risk”: previously active, now no activity in last 14 days
+3) Weekly cadence:
+   - 1 email per week per user (avoid sending if they received onboarding email within last 48h)
+   - Support a “quiet hours” send window (user timezone if available; default 10am local time)
+4) Email content style:
+   - Short subject lines (<= 45 chars), friendly tone
+   - Body: 1 pain point + 1 action + 1 CTA button
+   - No guilt/shame. No heavy sales.
+   - Include plain-text fallback.
+   - Include unsubscribe link (Sendy compatible) and comply with CAN-SPAM.
+5) CTA deep links:
+   - Each segment email should drive to a single relevant screen:
+     - Configure Quick Quote
+     - Copy/share link
+     - Create a quote from a lead
+     - Review leads
+     - Add an order to calendar
+     - Review dashboard/insights
+6) Admin/editable:
+   - Email templates should be editable without code deploy (DB-backed templates or simple config)
+   - Allow A/B subjects later (design for it but MVP can be single subject)
+7) Logging + analytics:
+   - Log email sends, opens, clicks (as available via provider)
+   - Track conversion to the targeted action within 7 days
+   - Add a simple internal dashboard/report for weekly email performance by segment
+
+DELIVERABLES:
+A) Implementation plan (step-by-step) including:
+   - schema additions (tables for email_templates, email_sends, user_activity_summary, etc.)
+   - event tracking changes (where to fire events)
+   - segmentation job (cron/queue) design
+   - send job design (provider integration assumed via existing Sendy or email service)
+B) Working code implementing:
+   - data models/migrations
+   - segmentation logic
+   - template rendering w/ personalization tokens (first_name, business_name, quick_quote_url, etc.)
+   - scheduler/cron jobs
+   - send pipeline with retry + rate limiting
+C) Provide 8–12 weekly email templates to start, mapped to the segments above:
+   - For each: segment, subject, preheader, body HTML, body plain-text, CTA text, CTA link route
+   - Keep copy concise and action-oriented (one action per email)
+D) Provide test cases + seed data to validate segmentation and sending.
+E) Provide a short README section documenting how to add/modify templates and how to test.
+
+CONSTRAINTS:
+- Use existing BakerIQ tech stack patterns.
+- Do NOT create new product features. Only implement weekly email nudges, logging, and minimal admin controls for templates.
+- Avoid broken links: ensure deep links exist or fall back to a safe route.
+
+OUTPUT FORMAT:
+1) Plan
+2) Schema changes
+3) Segmentation definitions
+4) Templates (8–12)
+5) Code changes summary
+6) How to test
