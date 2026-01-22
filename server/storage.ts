@@ -144,7 +144,8 @@ export interface IStorage {
   getSupportTicketsByBaker(bakerId: string): Promise<SupportTicket[]>;
   getAllSupportTickets(): Promise<(SupportTicket & { baker: { businessName: string; email: string }; messages: TicketMessage[] })[]>;
   createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket>;
-  updateSupportTicket(id: string, data: Partial<InsertSupportTicket>): Promise<SupportTicket | undefined>;
+  updateSupportTicket(id: string, data: Partial<SupportTicket>): Promise<SupportTicket | undefined>;
+  getUnreadSupportMessageCount(bakerId: string): Promise<number>;
   
   // Ticket Messages
   getTicketMessages(ticketId: string): Promise<TicketMessage[]>;
@@ -888,12 +889,42 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async updateSupportTicket(id: string, data: Partial<InsertSupportTicket>): Promise<SupportTicket | undefined> {
+  async updateSupportTicket(id: string, data: Partial<SupportTicket>): Promise<SupportTicket | undefined> {
     const [updated] = await db.update(supportTickets)
       .set({ ...data, updatedAt: new Date() })
       .where(eq(supportTickets.id, id))
       .returning();
     return updated || undefined;
+  }
+
+  async getUnreadSupportMessageCount(bakerId: string): Promise<number> {
+    // Get all baker's tickets
+    const tickets = await db.select().from(supportTickets)
+      .where(eq(supportTickets.bakerId, bakerId));
+    
+    let unreadCount = 0;
+    
+    for (const ticket of tickets) {
+      // Get messages from admin or AI after baker's last read time
+      const messages = await db.select().from(ticketMessages)
+        .where(eq(ticketMessages.ticketId, ticket.id));
+      
+      const adminOrAiMessages = messages.filter(m => 
+        m.senderType === "admin" || m.senderType === "ai"
+      );
+      
+      if (!ticket.bakerLastReadAt) {
+        // Baker has never read - count all admin/AI messages
+        unreadCount += adminOrAiMessages.length;
+      } else {
+        // Count messages after last read
+        unreadCount += adminOrAiMessages.filter(m => 
+          new Date(m.createdAt) > new Date(ticket.bakerLastReadAt!)
+        ).length;
+      }
+    }
+    
+    return unreadCount;
   }
 
   // Ticket Messages

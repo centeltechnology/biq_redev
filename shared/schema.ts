@@ -512,6 +512,7 @@ export const supportTickets = pgTable("support_tickets", {
   subject: text("subject").notNull(),
   status: text("status").notNull().default("open"), // "open", "in_progress", "resolved", "archived"
   priority: text("priority").notNull().default("normal"), // "low", "normal", "high"
+  bakerLastReadAt: timestamp("baker_last_read_at"), // tracks when baker last read messages
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

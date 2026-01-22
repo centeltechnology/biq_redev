@@ -2316,6 +2316,36 @@ Guidelines:
     }
   });
 
+  // Get unread support message count for baker
+  app.get("/api/support/unread-count", requireAuth, async (req, res) => {
+    try {
+      const bakerId = req.session.bakerId!;
+      const count = await storage.getUnreadSupportMessageCount(bakerId);
+      res.json({ count });
+    } catch (error) {
+      console.error("Get unread count error:", error);
+      res.status(500).json({ message: "Failed to get unread count" });
+    }
+  });
+
+  // Mark ticket messages as read by baker
+  app.post("/api/support/tickets/:id/mark-read", requireAuth, async (req, res) => {
+    try {
+      const bakerId = req.session.bakerId!;
+      const ticket = await storage.getSupportTicket(req.params.id);
+      
+      if (!ticket || ticket.bakerId !== bakerId) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+
+      await storage.updateSupportTicket(ticket.id, { bakerLastReadAt: new Date() });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Mark read error:", error);
+      res.status(500).json({ message: "Failed to mark as read" });
+    }
+  });
+
   // Get ticket with messages
   app.get("/api/support/tickets/:id", requireAuth, async (req, res) => {
     try {
