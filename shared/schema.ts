@@ -563,3 +563,117 @@ export const SUPPORT_TICKET_STATUSES = [
   { id: "resolved", label: "Resolved", color: "green" },
   { id: "archived", label: "Archived", color: "gray" },
 ] as const;
+
+// ============================================
+// RETENTION EMAIL SYSTEM
+// ============================================
+
+// User activity events - tracks all user actions for segmentation
+export const userActivityEvents = pgTable("user_activity_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  bakerId: varchar("baker_id").notNull().references(() => bakers.id),
+  eventType: text("event_type").notNull(), // e.g., "login", "quick_quote_configured", "lead_created", "quote_sent"
+  eventData: jsonb("event_data"), // Optional additional data about the event
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const userActivityEventsRelations = relations(userActivityEvents, ({ one }) => ({
+  baker: one(bakers, {
+    fields: [userActivityEvents.bakerId],
+    references: [bakers.id],
+  }),
+}));
+
+// User activity event types
+export const USER_ACTIVITY_EVENT_TYPES = [
+  "login",
+  "quick_quote_configured",
+  "quick_quote_link_copied",
+  "quick_quote_link_shared",
+  "pricing_item_added",
+  "pricing_item_updated",
+  "lead_created",
+  "lead_status_updated",
+  "quote_created",
+  "quote_sent",
+  "quote_accepted",
+  "quote_declined",
+  "order_scheduled",
+  "order_completed",
+  "featured_item_added",
+  "featured_item_updated",
+] as const;
+
+export type UserActivityEventType = typeof USER_ACTIVITY_EVENT_TYPES[number];
+
+// Retention email templates - DB-backed editable templates
+export const retentionEmailTemplates = pgTable("retention_email_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  segment: text("segment").notNull(), // e.g., "new_but_inactive", "configured_not_shared"
+  name: text("name").notNull(), // Human-readable name
+  subject: text("subject").notNull(), // Email subject (max 45 chars recommended)
+  preheader: text("preheader"), // Email preheader text
+  bodyHtml: text("body_html").notNull(), // HTML body with personalization tokens
+  bodyText: text("body_text").notNull(), // Plain text fallback
+  ctaText: text("cta_text").notNull(), // Call-to-action button text
+  ctaRoute: text("cta_route").notNull(), // Deep link route (e.g., "/dashboard/pricing")
+  isActive: boolean("is_active").notNull().default(true),
+  priority: integer("priority").notNull().default(0), // Higher = sent first if multiple templates match
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertRetentionEmailTemplateSchema = createInsertSchema(retentionEmailTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type RetentionEmailTemplate = typeof retentionEmailTemplates.$inferSelect;
+export type InsertRetentionEmailTemplate = z.infer<typeof insertRetentionEmailTemplateSchema>;
+
+// Retention segments
+export const RETENTION_SEGMENTS = [
+  { id: "new_but_inactive", label: "New but Inactive", description: "Signed up >7 days ago, no key actions, low logins" },
+  { id: "configured_not_shared", label: "Configured but Not Shared", description: "Quick quote configured but no link share events" },
+  { id: "leads_no_quotes", label: "Leads but No Quotes", description: "Has leads but no quotes created/sent" },
+  { id: "quotes_no_orders", label: "Quotes but No Orders", description: "Quotes sent but no orders/calendar usage" },
+  { id: "active_power_user", label: "Active Power User", description: "Consistent weekly actions" },
+  { id: "at_risk", label: "At Risk", description: "Previously active, no activity in last 14 days" },
+] as const;
+
+export type RetentionSegment = typeof RETENTION_SEGMENTS[number]["id"];
+
+// Retention email sends - tracks sent emails for analytics
+export const retentionEmailSends = pgTable("retention_email_sends", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  bakerId: varchar("baker_id").notNull().references(() => bakers.id),
+  templateId: varchar("template_id").notNull().references(() => retentionEmailTemplates.id),
+  segment: text("segment").notNull(), // Segment at time of send
+  status: text("status").notNull().default("sent"), // "sent", "failed", "bounced"
+  error: text("error"), // Error message if failed
+  openedAt: timestamp("opened_at"), // When email was opened (via tracking pixel)
+  clickedAt: timestamp("clicked_at"), // When CTA was clicked
+  convertedAt: timestamp("converted_at"), // When target action was completed within 7 days
+  conversionEventType: text("conversion_event_type"), // The event that counted as conversion
+  sentAt: timestamp("sent_at").defaultNow().notNull(),
+});
+
+export const retentionEmailSendsRelations = relations(retentionEmailSends, ({ one }) => ({
+  baker: one(bakers, {
+    fields: [retentionEmailSends.bakerId],
+    references: [bakers.id],
+  }),
+  template: one(retentionEmailTemplates, {
+    fields: [retentionEmailSends.templateId],
+    references: [retentionEmailTemplates.id],
+  }),
+}));
+
+export const insertRetentionEmailSendSchema = createInsertSchema(retentionEmailSends).omit({
+  id: true,
+  sentAt: true,
+});
+
+export type RetentionEmailSend = typeof retentionEmailSends.$inferSelect;
+export type InsertRetentionEmailSend = z.infer<typeof insertRetentionEmailSendSchema>;
