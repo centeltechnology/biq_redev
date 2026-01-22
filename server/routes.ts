@@ -2534,6 +2534,69 @@ Guidelines:
     }
   });
 
+  // Serve calculator pages with dynamic meta tags for social sharing
+  app.get("/c/:slug", async (req, res, next) => {
+    const slug = req.params.slug;
+    
+    try {
+      const baker = await storage.getBakerBySlug(slug);
+      
+      if (!baker) {
+        return next(); // Let Vite handle 404
+      }
+      
+      // Read the index.html template
+      const fs = await import("fs/promises");
+      const path = await import("path");
+      const templatePath = path.resolve(import.meta.dirname, "..", "client", "index.html");
+      let html = await fs.readFile(templatePath, "utf-8");
+      
+      // Create dynamic meta content
+      const businessName = baker.businessName || "Custom Baker";
+      const title = `Get a Quote from ${businessName} | BakerIQ`;
+      const description = `Get a quick price estimate for custom cakes and treats from ${businessName}. Fast, easy, and no obligation.`;
+      
+      // Replace default meta tags with dynamic ones
+      html = html.replace(
+        /<title>.*?<\/title>/,
+        `<title>${title}</title>`
+      );
+      html = html.replace(
+        /<meta name="description" content=".*?" \/>/,
+        `<meta name="description" content="${description}" />`
+      );
+      html = html.replace(
+        /<meta property="og:title" content=".*?" \/>/,
+        `<meta property="og:title" content="${title}" />`
+      );
+      html = html.replace(
+        /<meta property="og:description" content=".*?" \/>/,
+        `<meta property="og:description" content="${description}" />`
+      );
+      html = html.replace(
+        /<meta property="og:image" content=".*?" \/>/,
+        `<meta property="og:image" content="/calc-social.png" />`
+      );
+      html = html.replace(
+        /<meta name="twitter:title" content=".*?" \/>/,
+        `<meta name="twitter:title" content="${title}" />`
+      );
+      html = html.replace(
+        /<meta name="twitter:description" content=".*?" \/>/,
+        `<meta name="twitter:description" content="${description}" />`
+      );
+      html = html.replace(
+        /<meta name="twitter:image" content=".*?" \/>/,
+        `<meta name="twitter:image" content="/calc-social.png" />`
+      );
+      
+      res.status(200).set({ "Content-Type": "text/html" }).send(html);
+    } catch (error) {
+      console.error("Calculator meta tags error:", error);
+      next(); // Fall back to Vite
+    }
+  });
+
   // Seed retention email templates on startup
   try {
     const { seedRetentionTemplates } = await import("./seed-retention-templates");
