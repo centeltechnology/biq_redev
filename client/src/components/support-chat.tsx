@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -7,6 +7,12 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { MessageCircle, Send, X, Loader2, Ticket, CheckCircle } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+
+interface SupportTicket {
+  id: string;
+  subject: string;
+  status: string;
+}
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -82,6 +88,25 @@ export function SupportChat() {
       });
     },
   });
+
+  // Fetch existing tickets to mark as read
+  const { data: existingTickets } = useQuery<SupportTicket[]>({
+    queryKey: ["/api/support/tickets"],
+    enabled: isOpen,
+  });
+
+  // Mark all tickets as read when chat opens
+  useEffect(() => {
+    if (isOpen && existingTickets?.length) {
+      // Mark all tickets as read in parallel
+      const markPromises = existingTickets.map(ticket =>
+        apiRequest("POST", `/api/support/tickets/${ticket.id}/mark-read`).catch(() => {})
+      );
+      Promise.all(markPromises).then(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/support/unread-count"] });
+      });
+    }
+  }, [isOpen, existingTickets]);
 
   useEffect(() => {
     if (scrollRef.current) {

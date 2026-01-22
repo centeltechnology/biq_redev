@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Users, 
@@ -1139,65 +1139,7 @@ export default function AdminDashboard() {
 
         {/* SYSTEM TAB */}
         <TabsContent value="system" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Email Delivery Log</CardTitle>
-              <CardDescription>Recent onboarding email activity</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {emailLogsLoading ? (
-                <div className="space-y-2">
-                  {[...Array(5)].map((_, i) => (
-                    <Skeleton key={i} className="h-10 w-full" />
-                  ))}
-                </div>
-              ) : !emailLogs?.length ? (
-                <p className="text-center py-8 text-muted-foreground">No email logs yet</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Baker ID</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Sent At</TableHead>
-                        <TableHead>Error</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {emailLogs.map((log) => (
-                        <TableRow key={log.id}>
-                          <TableCell className="font-mono text-xs">{log.bakerId.slice(0, 8)}...</TableCell>
-                          <TableCell>{EMAIL_DAY_LABELS[log.emailDay] || `Day ${log.emailDay}`}</TableCell>
-                          <TableCell>
-                            {log.status === "sent" ? (
-                              <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400">
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Sent
-                              </Badge>
-                            ) : (
-                              <Badge variant="destructive">
-                                <AlertTriangle className="h-3 w-3 mr-1" />
-                                Failed
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {log.sentAt ? format(new Date(log.sentAt), "MMM d, yyyy h:mm a") : "—"}
-                          </TableCell>
-                          <TableCell className="text-sm text-red-600 max-w-[200px] truncate">
-                            {log.error || "—"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
+          {/* Stats and Status - moved above log for visibility */}
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader>
@@ -1246,6 +1188,125 @@ export default function AdminDashboard() {
           </div>
 
           <RetentionEmailAdmin />
+
+          {/* Email Log - Limited to 10 entries */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg">Email Delivery Log</CardTitle>
+                  <CardDescription>Recent onboarding email activity (last 10)</CardDescription>
+                </div>
+                {emailLogs && emailLogs.length > 10 && (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" data-testid="button-view-all-logs">
+                        View All ({emailLogs.length})
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
+                      <DialogHeader>
+                        <DialogTitle>All Email Delivery Logs</DialogTitle>
+                        <DialogDescription>Complete onboarding email history</DialogDescription>
+                      </DialogHeader>
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Baker ID</TableHead>
+                              <TableHead>Email</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Sent At</TableHead>
+                              <TableHead>Error</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {emailLogs.map((log) => (
+                              <TableRow key={log.id}>
+                                <TableCell className="font-mono text-xs">{log.bakerId.slice(0, 8)}...</TableCell>
+                                <TableCell>{EMAIL_DAY_LABELS[log.emailDay] || `Day ${log.emailDay}`}</TableCell>
+                                <TableCell>
+                                  {log.status === "sent" ? (
+                                    <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400">
+                                      <CheckCircle className="h-3 w-3 mr-1" />
+                                      Sent
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="destructive">
+                                      <AlertTriangle className="h-3 w-3 mr-1" />
+                                      Failed
+                                    </Badge>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-sm text-muted-foreground">
+                                  {log.sentAt ? format(new Date(log.sentAt), "MMM d, yyyy h:mm a") : "—"}
+                                </TableCell>
+                                <TableCell className="text-sm text-red-600 max-w-[200px] truncate">
+                                  {log.error || "—"}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {emailLogsLoading ? (
+                <div className="space-y-2">
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-10 w-full" />
+                  ))}
+                </div>
+              ) : !emailLogs?.length ? (
+                <p className="text-center py-8 text-muted-foreground">No email logs yet</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Baker ID</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Sent At</TableHead>
+                        <TableHead>Error</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {emailLogs.slice(0, 10).map((log) => (
+                        <TableRow key={log.id}>
+                          <TableCell className="font-mono text-xs">{log.bakerId.slice(0, 8)}...</TableCell>
+                          <TableCell>{EMAIL_DAY_LABELS[log.emailDay] || `Day ${log.emailDay}`}</TableCell>
+                          <TableCell>
+                            {log.status === "sent" ? (
+                              <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Sent
+                              </Badge>
+                            ) : (
+                              <Badge variant="destructive">
+                                <AlertTriangle className="h-3 w-3 mr-1" />
+                                Failed
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {log.sentAt ? format(new Date(log.sentAt), "MMM d, yyyy h:mm a") : "—"}
+                          </TableCell>
+                          <TableCell className="text-sm text-red-600 max-w-[200px] truncate">
+                            {log.error || "—"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 

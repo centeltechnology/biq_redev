@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Bell } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -33,6 +33,12 @@ export function DashboardLayout({ children, title, actions }: DashboardLayoutPro
   const { data: subscription } = useQuery<SubscriptionStatus>({
     queryKey: ["/api/subscription/status"],
     enabled: isAuthenticated,
+  });
+
+  const { data: unreadCount } = useQuery<{ count: number }>({
+    queryKey: ["/api/support/unread-count"],
+    enabled: isAuthenticated,
+    refetchInterval: 30000, // Check every 30 seconds
   });
 
   const upgradeMutation = useMutation({
@@ -121,6 +127,25 @@ export function DashboardLayout({ children, title, actions }: DashboardLayoutPro
                 )
               )}
               {actions}
+              {/* Notification bell for unread support messages */}
+              {(unreadCount?.count ?? 0) > 0 && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative"
+                  onClick={() => {
+                    // Find and open the support chat
+                    const supportBtn = document.querySelector('[data-testid="button-support-chat"]');
+                    if (supportBtn) (supportBtn as HTMLButtonElement).click();
+                  }}
+                  data-testid="button-notification-bell"
+                >
+                  <Bell className="h-4 w-4" />
+                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center">
+                    {(unreadCount?.count ?? 0) > 9 ? "9+" : unreadCount?.count}
+                  </span>
+                </Button>
+              )}
               <ThemeToggle />
             </div>
           </header>
