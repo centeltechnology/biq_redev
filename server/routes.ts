@@ -2536,6 +2536,32 @@ Guidelines:
 
   // Serve calculator pages with dynamic meta tags for social sharing
   app.get("/c/:slug", async (req, res, next) => {
+    const userAgent = req.headers["user-agent"] || "";
+    
+    // Only serve static HTML with meta tags to social crawlers
+    // Normal browsers should get the full Vite-transformed SPA
+    const socialCrawlers = [
+      "facebookexternalhit",
+      "Facebot",
+      "Twitterbot",
+      "LinkedInBot",
+      "WhatsApp",
+      "Slackbot",
+      "Discordbot",
+      "TelegramBot",
+      "Pinterest",
+      "Googlebot",
+      "bingbot",
+    ];
+    
+    const isCrawler = socialCrawlers.some(crawler => 
+      userAgent.toLowerCase().includes(crawler.toLowerCase())
+    );
+    
+    if (!isCrawler) {
+      return next(); // Let Vite handle normal browsers
+    }
+    
     const slug = req.params.slug;
     
     try {
@@ -2545,16 +2571,25 @@ Guidelines:
         return next(); // Let Vite handle 404
       }
       
+      // HTML escape function to prevent injection
+      const escapeHtml = (str: string) => 
+        str.replace(/&/g, "&amp;")
+           .replace(/</g, "&lt;")
+           .replace(/>/g, "&gt;")
+           .replace(/"/g, "&quot;")
+           .replace(/'/g, "&#39;");
+      
       // Read the index.html template
       const fs = await import("fs/promises");
       const path = await import("path");
       const templatePath = path.resolve(import.meta.dirname, "..", "client", "index.html");
       let html = await fs.readFile(templatePath, "utf-8");
       
-      // Create dynamic meta content
-      const businessName = baker.businessName || "Custom Baker";
+      // Create dynamic meta content with escaping
+      const businessName = escapeHtml(baker.businessName || "Custom Baker");
       const title = `Get a Quote from ${businessName} | BakerIQ`;
       const description = `Get a quick price estimate for custom cakes and treats from ${businessName}. Fast, easy, and no obligation.`;
+      const pageUrl = `${req.protocol}://${req.get("host")}/c/${slug}`;
       
       // Replace default meta tags with dynamic ones
       html = html.replace(
@@ -2564,6 +2599,10 @@ Guidelines:
       html = html.replace(
         /<meta name="description" content=".*?" \/>/,
         `<meta name="description" content="${description}" />`
+      );
+      html = html.replace(
+        /<meta property="og:type" content=".*?" \/>/,
+        `<meta property="og:type" content="website" />\n    <meta property="og:url" content="${pageUrl}" />`
       );
       html = html.replace(
         /<meta property="og:title" content=".*?" \/>/,
@@ -2576,6 +2615,10 @@ Guidelines:
       html = html.replace(
         /<meta property="og:image" content=".*?" \/>/,
         `<meta property="og:image" content="/calc-social.png" />`
+      );
+      html = html.replace(
+        /<meta name="twitter:card" content=".*?" \/>/,
+        `<meta name="twitter:card" content="summary_large_image" />\n    <meta name="twitter:url" content="${pageUrl}" />`
       );
       html = html.replace(
         /<meta name="twitter:title" content=".*?" \/>/,
