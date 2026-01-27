@@ -37,6 +37,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -583,7 +584,7 @@ export default function QuoteBuilderPage() {
     (sum, item) => sum + item.quantity * item.unitPrice,
     0
   );
-  const taxRate = form.watch("taxRate") || DEFAULT_TAX_RATE;
+  const taxRate = form.watch("taxRate") ?? 0;
   const taxAmount = subtotal * taxRate;
   const total = subtotal + taxAmount;
 
@@ -754,7 +755,22 @@ export default function QuoteBuilderPage() {
                         name="taxRate"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Tax Rate (%)</FormLabel>
+                            <div className="flex items-center justify-between">
+                              <FormLabel>Tax Rate (%)</FormLabel>
+                              <div className="flex items-center gap-2">
+                                <Label htmlFor="tax-toggle" className="text-sm text-muted-foreground">
+                                  {field.value > 0 ? "On" : "Off"}
+                                </Label>
+                                <Switch
+                                  id="tax-toggle"
+                                  checked={field.value > 0}
+                                  onCheckedChange={(checked) => {
+                                    field.onChange(checked ? DEFAULT_TAX_RATE : 0);
+                                  }}
+                                  data-testid="switch-tax-toggle"
+                                />
+                              </div>
+                            </div>
                             <FormControl>
                               <Input
                                 type="number"
@@ -762,7 +778,8 @@ export default function QuoteBuilderPage() {
                                 min="0"
                                 max="100"
                                 placeholder="0"
-                                value={Math.round(field.value * 10000) / 100}
+                                disabled={field.value === 0}
+                                value={field.value > 0 ? Math.round(field.value * 10000) / 100 : ""}
                                 onChange={(e) => {
                                   const val = parseFloat(e.target.value);
                                   field.onChange(isNaN(val) ? 0 : val / 100);
