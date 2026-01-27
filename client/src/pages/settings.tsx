@@ -161,33 +161,57 @@ export default function SettingsPage() {
   const updateProfileMutation = useMutation({
     mutationFn: async (data: ProfileFormData) => {
       const res = await apiRequest("PATCH", "/api/bakers/me", data);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to update profile");
+      }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
       toast({ title: "Profile updated successfully" });
     },
+    onError: (error: Error) => {
+      console.error("Profile update error:", error);
+      toast({ title: "Failed to update profile", description: error.message, variant: "destructive" });
+    },
   });
 
   const updatePaymentMutation = useMutation({
     mutationFn: async (data: PaymentFormData) => {
       const res = await apiRequest("PATCH", "/api/bakers/me", { ...data, customPaymentOptions });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to update payment options");
+      }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
       toast({ title: "Payment options updated successfully" });
     },
+    onError: (error: Error) => {
+      console.error("Payment options update error:", error);
+      toast({ title: "Failed to update payment options", description: error.message, variant: "destructive" });
+    },
   });
 
   const updateCurrencyMutation = useMutation({
     mutationFn: async (newCurrency: string) => {
       const res = await apiRequest("PATCH", "/api/bakers/me", { currency: newCurrency });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to update currency");
+      }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
       toast({ title: "Currency updated successfully" });
+    },
+    onError: (error: Error) => {
+      console.error("Currency update error:", error);
+      toast({ title: "Failed to update currency", description: error.message, variant: "destructive" });
     },
   });
 
