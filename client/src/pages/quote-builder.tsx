@@ -758,13 +758,15 @@ export default function QuoteBuilderPage() {
                             <FormControl>
                               <Input
                                 type="number"
-                                step="0.01"
+                                step="0.1"
                                 min="0"
                                 max="100"
-                                value={(field.value * 100).toFixed(2)}
-                                onChange={(e) =>
-                                  field.onChange(parseFloat(e.target.value) / 100 || 0)
-                                }
+                                placeholder="0"
+                                value={Math.round(field.value * 10000) / 100}
+                                onChange={(e) => {
+                                  const val = parseFloat(e.target.value);
+                                  field.onChange(isNaN(val) ? 0 : val / 100);
+                                }}
                                 data-testid="input-tax-rate"
                               />
                             </FormControl>
