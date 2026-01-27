@@ -1501,6 +1501,8 @@ export async function registerRoutes(
           phone: baker.phone,
           address: baker.address,
           depositPercentage: baker.depositPercentage,
+          defaultDepositType: baker.defaultDepositType,
+          depositFixedAmount: baker.depositFixedAmount,
           paymentZelle: baker.paymentZelle,
           paymentPaypal: baker.paymentPaypal,
           paymentVenmo: baker.paymentVenmo,

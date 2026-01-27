@@ -1070,13 +1070,17 @@ export default function QuoteBuilderPage() {
                       <span data-testid="text-quote-total">{formatCurrency(total)}</span>
                     </div>
 
-                    {baker?.depositPercentage && baker.depositPercentage > 0 && (
+                    {baker?.defaultDepositType && baker.defaultDepositType !== "full" && (
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">
-                          Deposit Required ({baker.depositPercentage}%)
+                          Deposit Required
+                          {baker.defaultDepositType === "percentage" && ` (${baker.depositPercentage}%)`}
                         </span>
                         <span className="font-medium" data-testid="text-deposit-amount">
-                          {formatCurrency(total * (baker.depositPercentage / 100))}
+                          {baker.defaultDepositType === "percentage" 
+                            ? formatCurrency(total * ((baker.depositPercentage || 50) / 100))
+                            : formatCurrency(parseFloat(baker.depositFixedAmount || "0"))
+                          }
                         </span>
                       </div>
                     )}

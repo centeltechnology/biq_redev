@@ -30,6 +30,8 @@ interface PublicBaker {
   phone?: string | null;
   address?: string | null;
   depositPercentage?: number | null;
+  defaultDepositType?: string | null;
+  depositFixedAmount?: string | null;
   paymentZelle?: string | null;
   paymentPaypal?: string | null;
   paymentVenmo?: string | null;
@@ -131,12 +133,17 @@ export default function QuoteViewPage() {
   const taxAmount = parseFloat(quote.taxAmount);
   const total = parseFloat(quote.total);
   
-  // Calculate deposit using baker's global deposit percentage
+  // Calculate deposit using baker's deposit settings
   let depositAmount = 0;
   let depositLabel = "";
-  if (baker.depositPercentage && baker.depositPercentage > 0) {
-    depositAmount = total * (baker.depositPercentage / 100);
-    depositLabel = `(${baker.depositPercentage}%)`;
+  if (baker.defaultDepositType && baker.defaultDepositType !== "full") {
+    if (baker.defaultDepositType === "percentage" && baker.depositPercentage) {
+      depositAmount = total * (baker.depositPercentage / 100);
+      depositLabel = `(${baker.depositPercentage}%)`;
+    } else if (baker.defaultDepositType === "fixed" && baker.depositFixedAmount) {
+      depositAmount = parseFloat(baker.depositFixedAmount);
+      depositLabel = "";
+    }
   }
 
   // Helper function to format currency with baker's currency
