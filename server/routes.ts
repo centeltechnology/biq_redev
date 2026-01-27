@@ -487,10 +487,11 @@ export async function registerRoutes(
 
       res.json({ ...baker, passwordHash: undefined });
     } catch (error: any) {
+      console.error("Baker update error:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: error.errors[0].message });
       }
-      res.status(500).json({ message: "Update failed" });
+      res.status(500).json({ message: error.message || "Update failed" });
     }
   });
 
