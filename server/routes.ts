@@ -474,7 +474,14 @@ export async function registerRoutes(
       });
 
       const data = schema.parse(req.body);
-      const baker = await storage.updateBaker(req.session.bakerId!, data);
+      
+      // Convert empty strings to null for numeric fields
+      const sanitizedData = {
+        ...data,
+        depositFixedAmount: data.depositFixedAmount === "" ? null : data.depositFixedAmount,
+      };
+      
+      const baker = await storage.updateBaker(req.session.bakerId!, sanitizedData);
 
       if (!baker) {
         return res.status(404).json({ message: "Baker not found" });
