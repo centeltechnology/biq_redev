@@ -1,4 +1,4 @@
-import { Link, Redirect } from "wouter";
+import { Link, Redirect, useSearch } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -19,6 +19,9 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const { login, isLoggingIn, loginError, isAuthenticated, isLoading } = useAuth();
+  const searchString = useSearch();
+  const searchParams = new URLSearchParams(searchString);
+  const redirectTo = searchParams.get("redirect") || "/dashboard";
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -41,7 +44,7 @@ export default function LoginPage() {
   }
 
   if (isAuthenticated) {
-    return <Redirect to="/dashboard" />;
+    return <Redirect to={redirectTo} />;
   }
 
   return (

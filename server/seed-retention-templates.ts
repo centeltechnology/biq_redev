@@ -219,6 +219,37 @@ Get support: {{dashboard_url}}/support`,
     isActive: true,
     priority: 0,
   },
+  {
+    segment: "new_but_inactive",
+    name: "Survey Invitation - Free Pro Month",
+    subject: "Quick question + free Pro upgrade",
+    preheader: "Take 2 mins, get a free month of Pro",
+    bodyHtml: `
+      <p>Hi {{first_name}},</p>
+      <p>We noticed you signed up for BakerIQ but haven't had a chance to fully set things up yet. We'd love to understand what's getting in the way.</p>
+      <p><strong>Take 2 minutes to answer 4 quick questions, and we'll give you a free month of Pro</strong> - no strings attached.</p>
+      <p>Your feedback helps us make BakerIQ better for bakers like you.</p>
+      <p style="text-align: center; margin: 24px 0;">
+        <a href="{{dashboard_url}}/feedback" class="cta" style="display: inline-block; background: #E91E63; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">Take Survey & Get Free Pro</a>
+      </p>
+      <p style="color: #666; font-size: 14px;">Pro includes unlimited quotes, featured items, and more.</p>
+    `,
+    bodyText: `Hi {{first_name}},
+
+We noticed you signed up for BakerIQ but haven't had a chance to fully set things up yet. We'd love to understand what's getting in the way.
+
+Take 2 minutes to answer 4 quick questions, and we'll give you a free month of Pro - no strings attached.
+
+Your feedback helps us make BakerIQ better for bakers like you.
+
+Take the survey: {{dashboard_url}}/feedback
+
+Pro includes unlimited quotes, featured items, and more.`,
+    ctaText: "Take Survey & Get Free Pro",
+    ctaRoute: "/feedback",
+    isActive: true,
+    priority: 2,
+  },
 ];
 
 export async function seedRetentionTemplates(): Promise<void> {

@@ -88,6 +88,15 @@ const FREE_QUOTE_LIMIT = 5;
 const BASIC_QUOTE_LIMIT = 15;
 // Pro plan has unlimited quotes
 
+// Helper to get effective plan (checks survey trial)
+function getEffectivePlan(baker: { plan: string; surveyTrialEndDate?: Date | null }): string {
+  // Check if survey trial is active
+  if (baker.surveyTrialEndDate && new Date(baker.surveyTrialEndDate) > new Date()) {
+    return "pro"; // Survey trial gives Pro access
+  }
+  return baker.plan || "free";
+}
+
 const PgSession = connectPgSimple(session);
 
 declare module "express-session" {
@@ -856,8 +865,8 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Baker not found" });
       }
 
-      // Check quote limit for the baker's plan
-      const plan = baker.plan || "free";
+      // Check quote limit for the baker's plan (including survey trial)
+      const plan = getEffectivePlan(baker);
       let quoteLimit: number | null = FREE_QUOTE_LIMIT;
       if (plan === "basic") {
         quoteLimit = BASIC_QUOTE_LIMIT;
@@ -1366,7 +1375,8 @@ export async function registerRoutes(
       } = req.body;
       
       // Check featured item limit for Basic plan (10 items)
-      if (baker.plan === "basic" && (isFeatured ?? true)) {
+      const effectivePlan = getEffectivePlan(baker);
+      if (effectivePlan === "basic" && (isFeatured ?? true)) {
         const featuredItems = await storage.getFeaturedItemsByBaker(baker.id);
         // Don't count the current item if it's already featured
         const currentFeaturedCount = featuredItems.filter(item => item.id !== calculation.id).length;
@@ -1739,7 +1749,7 @@ export async function registerRoutes(
     }
 
     const monthlyQuoteCount = await storage.getMonthlyQuoteCount(baker.id);
-    const plan = baker.plan || "free";
+    const plan = getEffectivePlan(baker);
     
     // Determine quote limit based on plan
     let quoteLimit: number | null = FREE_QUOTE_LIMIT;
@@ -2647,6 +2657,72 @@ Guidelines:
     } catch (error) {
       console.error("Calculator meta tags error:", error);
       next(); // Fall back to Vite
+    }
+  });
+
+  // Survey submission endpoint
+  app.post("/api/survey/submit", requireAuth, async (req, res) => {
+    try {
+      const bakerId = req.session.bakerId!;
+      
+      // Check if already submitted
+      const existing = await storage.getSurveyResponseByBaker(bakerId);
+      if (existing) {
+        return res.status(400).json({ message: "You've already completed the survey" });
+      }
+
+      const schema = z.object({
+        signupReason: z.string().min(1),
+        setupBlocker: z.string().min(1),
+        mostValuableFeature: z.string().min(1),
+        businessStage: z.string().min(1),
+        additionalFeedback: z.string().optional(),
+      });
+
+      const data = schema.parse(req.body);
+
+      // Create survey response
+      const response = await storage.createSurveyResponse({
+        bakerId,
+        signupReason: data.signupReason,
+        setupBlocker: data.setupBlocker,
+        mostValuableFeature: data.mostValuableFeature,
+        businessStage: data.businessStage,
+        additionalFeedback: data.additionalFeedback || null,
+        trialGranted: true,
+      });
+
+      // Grant 30 days of Pro trial
+      const trialEndDate = new Date();
+      trialEndDate.setDate(trialEndDate.getDate() + 30);
+      
+      await storage.updateBaker(bakerId, {
+        surveyTrialEndDate: trialEndDate,
+      });
+
+      res.json({ success: true, trialEndDate });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      console.error("Error submitting survey:", error);
+      res.status(500).json({ message: "Failed to submit survey" });
+    }
+  });
+
+  // Get survey responses (admin only)
+  app.get("/api/admin/survey-responses", requireAuth, async (req, res) => {
+    try {
+      const baker = await storage.getBaker(req.session.bakerId!);
+      if (!baker || baker.role !== "super_admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const responses = await storage.getAllSurveyResponses();
+      res.json(responses);
+    } catch (error) {
+      console.error("Error fetching survey responses:", error);
+      res.status(500).json({ message: "Failed to fetch survey responses" });
     }
   });
 

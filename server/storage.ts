@@ -11,6 +11,7 @@ import {
   pricingCalculations,
   supportTickets,
   ticketMessages,
+  surveyResponses,
   type Baker,
   type InsertBaker,
   type Customer,
@@ -30,6 +31,8 @@ import {
   type InsertSupportTicket,
   type TicketMessage,
   type InsertTicketMessage,
+  type SurveyResponse,
+  type InsertSurveyResponse,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql, or, ilike, isNull } from "drizzle-orm";
@@ -150,6 +153,11 @@ export interface IStorage {
   // Ticket Messages
   getTicketMessages(ticketId: string): Promise<TicketMessage[]>;
   createTicketMessage(message: InsertTicketMessage): Promise<TicketMessage>;
+
+  // Survey Responses
+  getSurveyResponseByBaker(bakerId: string): Promise<SurveyResponse | undefined>;
+  createSurveyResponse(response: InsertSurveyResponse): Promise<SurveyResponse>;
+  getAllSurveyResponses(): Promise<(SurveyResponse & { baker: { businessName: string; email: string } })[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -937,6 +945,32 @@ export class DatabaseStorage implements IStorage {
   async createTicketMessage(message: InsertTicketMessage): Promise<TicketMessage> {
     const [created] = await db.insert(ticketMessages).values(message).returning();
     return created;
+  }
+
+  // Survey Responses
+  async getSurveyResponseByBaker(bakerId: string): Promise<SurveyResponse | undefined> {
+    const [response] = await db.select().from(surveyResponses).where(eq(surveyResponses.bakerId, bakerId));
+    return response || undefined;
+  }
+
+  async createSurveyResponse(response: InsertSurveyResponse): Promise<SurveyResponse> {
+    const [created] = await db.insert(surveyResponses).values(response).returning();
+    return created;
+  }
+
+  async getAllSurveyResponses(): Promise<(SurveyResponse & { baker: { businessName: string; email: string } })[]> {
+    const responses = await db.select().from(surveyResponses).orderBy(desc(surveyResponses.submittedAt));
+    const result = [];
+    for (const response of responses) {
+      const baker = await this.getBaker(response.bakerId);
+      if (baker) {
+        result.push({
+          ...response,
+          baker: { businessName: baker.businessName, email: baker.email }
+        });
+      }
+    }
+    return result;
   }
 }
 
