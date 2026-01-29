@@ -57,6 +57,8 @@ export const bakers = pgTable("bakers", {
   // Profile and portfolio images
   profilePhoto: text("profile_photo"),
   portfolioImages: text("portfolio_images").array(),
+  // Survey trial - free Pro access for completing feedback survey
+  surveyTrialEndDate: timestamp("survey_trial_end_date"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -678,3 +680,34 @@ export const insertRetentionEmailSendSchema = createInsertSchema(retentionEmailS
 
 export type RetentionEmailSend = typeof retentionEmailSends.$inferSelect;
 export type InsertRetentionEmailSend = z.infer<typeof insertRetentionEmailSendSchema>;
+
+// Survey responses - tracks feedback survey submissions
+export const surveyResponses = pgTable("survey_responses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  bakerId: varchar("baker_id").notNull().references(() => bakers.id),
+  // Multiple choice questions
+  signupReason: text("signup_reason"), // Why did you sign up?
+  setupBlocker: text("setup_blocker"), // What stopped you from setting up?
+  mostValuableFeature: text("most_valuable_feature"), // Which feature interests you most?
+  businessStage: text("business_stage"), // Where is your business at?
+  // Open-ended feedback
+  additionalFeedback: text("additional_feedback"),
+  // Metadata
+  trialGranted: boolean("trial_granted").default(false).notNull(),
+  submittedAt: timestamp("submitted_at").defaultNow().notNull(),
+});
+
+export const surveyResponsesRelations = relations(surveyResponses, ({ one }) => ({
+  baker: one(bakers, {
+    fields: [surveyResponses.bakerId],
+    references: [bakers.id],
+  }),
+}));
+
+export const insertSurveyResponseSchema = createInsertSchema(surveyResponses).omit({
+  id: true,
+  submittedAt: true,
+});
+
+export type SurveyResponse = typeof surveyResponses.$inferSelect;
+export type InsertSurveyResponse = z.infer<typeof insertSurveyResponseSchema>;
