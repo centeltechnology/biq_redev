@@ -32,29 +32,26 @@ const testimonials = [
     name: "Sarah Mitchell",
     business: "Sweet Creations Bakery",
     location: "Austin, TX",
-    quote: "BakerIQ cut my quote time in half. I used to spend hours on back-and-forth emails. Now customers get instant estimates and I focus on what I love - baking!",
-    metric: "2x more leads captured"
+    quote: "I was so tired of the 'how much?' DMs with no details. Now I just send my calculator link and they fill everything out themselves. So much easier!"
   },
   {
     name: "Maria Rodriguez",
     business: "Cake Dreams Studio",
     location: "Miami, FL",
-    quote: "The public calculator is a game-changer. Customers can see my pricing upfront, which means the leads I get are serious buyers ready to order.",
-    metric: "40% higher conversion rate"
+    quote: "Having my prices right there on the calculator means customers know what to expect. The inquiries I get now are way more realistic and ready to order."
   },
   {
     name: "Jennifer Chen",
     business: "Artisan Cake Co.",
     location: "Seattle, WA",
-    quote: "I went from juggling spreadsheets and notes to having everything in one place. The calendar view alone saves me from double-booking weekends.",
-    metric: "Zero missed orders"
+    quote: "I used to have orders scribbled on sticky notes everywhere. Now everything's in one place and I can actually see my whole month at a glance."
   }
 ];
 
 const previewScreens = [
   { image: sliderImage1, title: "Quote Builder & Calendar", description: "Create quotes, view your calendar, and track business insights all in one place" },
   { image: sliderImage2, title: "Manage Leads & Quotes", description: "Track inquiries, send professional quotes, and monitor your dashboard" },
-  { image: sliderImage3, title: "Lead & Order Management", description: "Centralize your cake orders and manage leads with easy status tracking" }
+  { image: sliderImage3, title: "Lead & Order Management", description: "Centralize your orders and manage leads with easy status tracking" }
 ];
 
 export default function HomePage() {
@@ -95,27 +92,30 @@ export default function HomePage() {
             <div className="max-w-3xl mx-auto text-center">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6">
                 <Sparkles className="h-4 w-4" />
-                <span className="text-sm font-medium">Made for custom cake bakers</span>
+                <span className="text-sm font-medium">Made for cake & treat makers</span>
               </div>
               <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
-                Turn cake inquiries into{" "}
+                Turn sweet treat inquiries into{" "}
                 <span className="text-primary">paying customers</span>
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-                BakerIQ helps custom cake bakers capture leads, manage quotes, and grow their business with a beautiful public pricing calculator.
+                BakerIQ helps bakers capture leads, manage quotes, and grow their business with a beautiful public pricing calculator for cakes, cupcakes, cookies, and more.
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link href="/signup">
-                  <Button size="lg" className="gap-2 text-lg px-8" data-testid="button-get-started">
-                    Start Free Today
-                    <ArrowRight className="h-5 w-5" />
-                  </Button>
-                </Link>
-                <Link href="/c/bakeriq-demo">
-                  <Button size="lg" variant="outline" className="gap-2 text-lg" data-testid="button-demo">
-                    See Demo Calculator
-                  </Button>
-                </Link>
+              <div className="flex flex-col items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <Link href="/signup">
+                    <Button size="lg" className="gap-2 text-lg px-8" data-testid="button-get-started">
+                      Start Free Today
+                      <ArrowRight className="h-5 w-5" />
+                    </Button>
+                  </Link>
+                  <Link href="/c/bakeriq-demo">
+                    <Button size="lg" variant="outline" className="gap-2 text-lg" data-testid="button-demo">
+                      See Demo Calculator
+                    </Button>
+                  </Link>
+                </div>
+                <span className="text-sm text-muted-foreground">No credit card required</span>
               </div>
             </div>
 
@@ -130,7 +130,7 @@ export default function HomePage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-6 flex items-end justify-between">
                   <div className="text-white">
-                    <p className="text-lg font-semibold">Your command center for cake orders</p>
+                    <p className="text-lg font-semibold">Your command center for sweet treat orders</p>
                     <p className="text-sm opacity-80">Manage quotes, leads, and customers all in one place</p>
                   </div>
                   <Dialog>
@@ -155,7 +155,7 @@ export default function HomePage() {
                             variant="ghost" 
                             size="icon" 
                             onClick={prevPreview}
-                            className="h-10 w-10 rounded-full bg-background/80 hover:bg-background ml-2"
+                            className="rounded-full bg-background/80 ml-2"
                             data-testid="button-preview-prev"
                           >
                             <ChevronLeft className="h-5 w-5" />
@@ -166,7 +166,7 @@ export default function HomePage() {
                             variant="ghost" 
                             size="icon" 
                             onClick={nextPreview}
-                            className="h-10 w-10 rounded-full bg-background/80 hover:bg-background mr-2"
+                            className="rounded-full bg-background/80 mr-2"
                             data-testid="button-preview-next"
                           >
                             <ChevronRight className="h-5 w-5" />
@@ -210,7 +210,7 @@ export default function HomePage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground">
-                    Let customers design their dream cake and get instant price estimates. Your unique calculator URL captures leads automatically.
+                    Let customers build their dream order and get instant price estimates. Your unique calculator URL captures leads automatically.
                   </p>
                 </CardContent>
               </Card>
@@ -295,7 +295,7 @@ export default function HomePage() {
                   Stop losing leads to complicated quote requests
                 </h2>
                 <p className="text-lg text-muted-foreground mb-8">
-                  Most cake bakers lose 50% of inquiries because their quote process is too slow or confusing. BakerIQ changes that.
+                  Most bakers lose potential orders because their quote process is too slow or confusing. BakerIQ changes that.
                 </p>
                 <ul className="space-y-4">
                   <li className="flex items-start gap-3">
@@ -367,10 +367,10 @@ export default function HomePage() {
           <div className="container max-w-7xl mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Loved by cake bakers everywhere
+                Loved by bakers everywhere
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                See how BakerIQ is helping custom cake bakers grow their businesses
+                See how BakerIQ is helping treat makers grow their businesses
               </p>
             </div>
             <div className="grid md:grid-cols-3 gap-6">
@@ -383,19 +383,12 @@ export default function HomePage() {
                       ))}
                     </div>
                     <p className="text-muted-foreground mb-6 italic">"{testimonial.quote}"</p>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold">{testimonial.name}</p>
-                        <p className="text-sm text-muted-foreground">{testimonial.business}</p>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-                          <MapPin className="h-3 w-3" />
-                          {testimonial.location}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
-                          {testimonial.metric}
-                        </span>
+                    <div>
+                      <p className="font-semibold">{testimonial.name}</p>
+                      <p className="text-sm text-muted-foreground">{testimonial.business}</p>
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                        <MapPin className="h-3 w-3" />
+                        {testimonial.location}
                       </div>
                     </div>
                   </CardContent>
@@ -408,10 +401,10 @@ export default function HomePage() {
         <section className="py-16 md:py-24 bg-primary text-primary-foreground">
           <div className="container max-w-4xl mx-auto px-4 text-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-6">
-              Ready to grow your bakery business?
+              Ready to grow your baking business?
             </h2>
             <p className="text-lg opacity-90 mb-8 max-w-2xl mx-auto">
-              Join hundreds of custom cake bakers who use BakerIQ to capture more leads and create beautiful quotes.
+              Join bakers who use BakerIQ to capture more leads and create beautiful quotes.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href="/signup">
@@ -421,7 +414,7 @@ export default function HomePage() {
                 </Button>
               </Link>
               <Link href="/c/bakeriq-demo">
-                <Button size="lg" variant="outline" className="gap-2 text-lg bg-transparent border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10" data-testid="button-cta-demo">
+                <Button size="lg" variant="outline" className="gap-2 text-lg bg-transparent border-primary-foreground/30 text-primary-foreground" data-testid="button-cta-demo">
                   Try Demo Calculator
                 </Button>
               </Link>
@@ -455,7 +448,7 @@ export default function HomePage() {
               </a>
             </div>
             <p className="text-sm text-muted-foreground">
-              Made with love for cake bakers everywhere
+              Made with love for bakers everywhere
             </p>
           </div>
         </div>
