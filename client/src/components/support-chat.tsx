@@ -8,10 +8,20 @@ import { MessageCircle, Send, X, Loader2, Ticket, CheckCircle } from "lucide-rea
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+interface TicketMessage {
+  id: string;
+  ticketId: string;
+  senderType: "baker" | "admin" | "ai";
+  senderId: string | null;
+  content: string;
+  createdAt: string;
+}
+
 interface SupportTicket {
   id: string;
   subject: string;
   status: string;
+  messages?: TicketMessage[];
 }
 
 interface ChatMessage {
@@ -29,6 +39,7 @@ export function SupportChat() {
   ]);
   const [inputValue, setInputValue] = useState("");
   const [ticketCreated, setTicketCreated] = useState(false);
+  const [ticketMessagesLoaded, setTicketMessagesLoaded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -94,6 +105,58 @@ export function SupportChat() {
     queryKey: ["/api/support/tickets"],
     enabled: isOpen,
   });
+
+  // Load ticket messages when chat opens
+  useEffect(() => {
+    const loadTicketMessages = async () => {
+      if (!isOpen || !existingTickets?.length || ticketMessagesLoaded) return;
+      
+      try {
+        // Load messages from all open/in_progress tickets
+        const activeTickets = existingTickets.filter(t => t.status === "open" || t.status === "in_progress");
+        
+        if (activeTickets.length === 0) return;
+        
+        const ticketMessages: ChatMessage[] = [];
+        
+        for (const ticket of activeTickets) {
+          const response = await apiRequest("GET", `/api/support/tickets/${ticket.id}`);
+          const ticketWithMessages = await response.json() as SupportTicket;
+          
+          if (ticketWithMessages.messages?.length) {
+            // Add a separator for this ticket
+            ticketMessages.push({
+              role: "assistant",
+              content: `--- Previous conversation: ${ticket.subject} ---`,
+            });
+            
+            // Add each message from the ticket
+            for (const msg of ticketWithMessages.messages) {
+              ticketMessages.push({
+                role: msg.senderType === "baker" ? "user" : "assistant",
+                content: msg.senderType === "admin" ? `[Support Team] ${msg.content}` : msg.content,
+              });
+            }
+          }
+        }
+        
+        if (ticketMessages.length > 0) {
+          setMessages(prev => {
+            // Keep the initial greeting, add ticket messages
+            const greeting = prev[0];
+            return [greeting, ...ticketMessages];
+          });
+          setTicketCreated(true);
+        }
+        
+        setTicketMessagesLoaded(true);
+      } catch (error) {
+        console.error("Failed to load ticket messages:", error);
+      }
+    };
+    
+    loadTicketMessages();
+  }, [isOpen, existingTickets, ticketMessagesLoaded]);
 
   // Mark all tickets as read when chat opens
   useEffect(() => {

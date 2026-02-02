@@ -100,10 +100,10 @@ function useFormattedCurrency() {
 
 const contactSchema = z.object({
   name: z.string().min(2, "Name is required"),
-  email: z.string().email("Please enter a valid email"),
+  email: z.string().min(1, "Email is required").email("Please enter a valid email"),
   phone: z.string().min(10, "Please enter a valid phone number"),
   eventType: z.string().optional(),
-  eventDate: z.string().optional(),
+  eventDate: z.string().min(1, "Event date is required"),
   guestCount: z.string().optional(),
   deliveryAddress: z.string().optional(),
   specialRequests: z.string().optional(),

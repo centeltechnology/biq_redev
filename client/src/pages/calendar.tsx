@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -29,6 +29,8 @@ import {
 } from "@/components/ui/dialog";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useFormatCurrency } from "@/hooks/use-baker-currency";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { Order } from "@shared/schema";
 
 interface OrderWithDetails extends Order {
@@ -87,6 +89,7 @@ function getFirstDayOfMonth(year: number, month: number): number {
 export default function CalendarPage() {
   const [, setLocation] = useLocation();
   const formatCurrency = useFormatCurrency();
+  const { toast } = useToast();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<OrderWithDetails | null>(null);
@@ -95,6 +98,21 @@ export default function CalendarPage() {
 
   const { data: orders, isLoading } = useQuery<OrderWithDetails[]>({
     queryKey: [`/api/orders?month=${currentMonth + 1}&year=${currentYear}`],
+  });
+
+  const updatePaymentMutation = useMutation({
+    mutationFn: async ({ orderId, paymentStatus }: { orderId: string; paymentStatus: string }) => {
+      const res = await apiRequest("PATCH", `/api/orders/${orderId}`, { paymentStatus });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/orders?month=${currentMonth + 1}&year=${currentYear}`] });
+      setSelectedOrder(prev => prev ? { ...prev, paymentStatus: data.paymentStatus } : null);
+      toast({ title: `Payment marked as ${data.paymentStatus}` });
+    },
+    onError: () => {
+      toast({ title: "Failed to update payment status", variant: "destructive" });
+    },
   });
 
   const filteredOrders = orders?.filter((order) => {
@@ -377,27 +395,60 @@ export default function CalendarPage() {
               </div>
             </div>
           )}
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              onClick={() => setSelectedOrder(null)}
-              data-testid="button-close-order-modal"
-            >
-              Close
-            </Button>
-            <Button
-              onClick={() => {
-                if (selectedOrder) {
-                  setSelectedOrder(null);
-                  setLocation(`/quotes/${selectedOrder.quoteId}`);
-                }
-              }}
-              data-testid="button-view-quote"
-            >
-              View Quote
-              <ExternalLink className="ml-2 h-4 w-4" />
-            </Button>
-          </DialogFooter>
+          {selectedOrder && (
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              {selectedOrder.paymentStatus !== "paid" && (
+                <Button
+                  variant="default"
+                  onClick={() => {
+                    updatePaymentMutation.mutate({ 
+                      orderId: selectedOrder.id, 
+                      paymentStatus: "paid" 
+                    });
+                  }}
+                  disabled={updatePaymentMutation.isPending}
+                  data-testid="button-mark-paid"
+                >
+                  <DollarSign className="mr-2 h-4 w-4" />
+                  Mark as Paid
+                </Button>
+              )}
+              {selectedOrder.paymentStatus === "paid" && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    updatePaymentMutation.mutate({ 
+                      orderId: selectedOrder.id, 
+                      paymentStatus: "pending" 
+                    });
+                  }}
+                  disabled={updatePaymentMutation.isPending}
+                  data-testid="button-mark-pending"
+                >
+                  Mark as Pending
+                </Button>
+              )}
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedOrder(null)}
+                  data-testid="button-close-order-modal"
+                >
+                  Close
+                </Button>
+                <Button
+                  onClick={() => {
+                    setSelectedOrder(null);
+                    setLocation(`/quotes/${selectedOrder.quoteId}`);
+                  }}
+                  data-testid="button-view-quote"
+                >
+                  View Quote
+                  <ExternalLink className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
     </DashboardLayout>
