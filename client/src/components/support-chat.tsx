@@ -76,6 +76,31 @@ export function SupportChat() {
     },
   });
 
+  // Mutation to send message directly to ticket (for human support, not AI)
+  const sendTicketMessageMutation = useMutation({
+    mutationFn: async ({ ticketId, content }: { ticketId: string; content: string }) => {
+      const response = await apiRequest("POST", `/api/support/tickets/${ticketId}/messages`, {
+        content,
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // Add the new message ID to prevent duplicate from polling
+      if (data?.id) {
+        loadedMessageIdsRef.current.add(data.id);
+      }
+      // Invalidate to refresh ticket data
+      queryClient.invalidateQueries({ queryKey: ["/api/support/tickets"] });
+    },
+    onError: () => {
+      toast({
+        title: "Failed to send message",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const createTicketMutation = useMutation({
     mutationFn: async ({ subject, message }: { subject: string; message: string }) => {
       const response = await apiRequest("POST", "/api/support/tickets", {
@@ -109,7 +134,7 @@ export function SupportChat() {
   });
 
   // Fetch existing tickets to mark as read - poll every 5 seconds when chat is open
-  const { data: existingTickets } = useQuery<SupportTicket[]>({
+  const { data: existingTickets, isLoading: ticketsLoading } = useQuery<SupportTicket[]>({
     queryKey: ["/api/support/tickets"],
     enabled: isOpen,
     refetchInterval: isOpen ? 5000 : false,
@@ -230,13 +255,24 @@ export function SupportChat() {
     }
   }, [messages]);
 
+  // Get the first active ticket for routing messages
+  const activeTicket = existingTickets?.find(t => t.status === "open" || t.status === "in_progress");
+
   const handleSend = () => {
-    if (!inputValue.trim() || chatMutation.isPending) return;
+    const isPending = chatMutation.isPending || sendTicketMessageMutation.isPending;
+    if (!inputValue.trim() || isPending) return;
     
     const userMessage = inputValue.trim();
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
     setInputValue("");
-    chatMutation.mutate(userMessage);
+    
+    // If there's an active ticket, send message directly to ticket (for admin to see)
+    // Otherwise, chat with AI first
+    if (activeTicket) {
+      sendTicketMessageMutation.mutate({ ticketId: activeTicket.id, content: userMessage });
+    } else {
+      chatMutation.mutate(userMessage);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -325,13 +361,13 @@ export function SupportChat() {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              disabled={chatMutation.isPending}
+              disabled={chatMutation.isPending || sendTicketMessageMutation.isPending}
               data-testid="input-support-message"
             />
             <Button
               size="icon"
               onClick={handleSend}
-              disabled={!inputValue.trim() || chatMutation.isPending}
+              disabled={!inputValue.trim() || chatMutation.isPending || sendTicketMessageMutation.isPending || ticketsLoading}
               data-testid="button-send-message"
             >
               <Send className="h-4 w-4" />
