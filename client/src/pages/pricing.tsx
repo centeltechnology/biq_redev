@@ -419,9 +419,9 @@ export default function PricingPage() {
                     />
                     <div className="flex items-center gap-1">
                       <Input
-                        type="number"
-                        min={0}
-                        className="w-16"
+                        type="text"
+                        className="w-20"
+                        placeholder="e.g. 10-12"
                         value={size.servings}
                         onChange={(e) => updateSize(size.id, { servings: e.target.value })}
                         data-testid={`input-size-servings-${size.id}`}

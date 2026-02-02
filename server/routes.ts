@@ -2432,6 +2432,29 @@ Guidelines:
     }
   });
 
+  // Baker: Close own ticket
+  app.patch("/api/support/tickets/:id/close", requireAuth, async (req, res) => {
+    try {
+      const bakerId = req.session.bakerId!;
+      const ticket = await storage.getSupportTicket(req.params.id);
+      
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+
+      // Only the ticket owner can close it
+      if (ticket.bakerId !== bakerId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+
+      const updated = await storage.updateSupportTicket(req.params.id, { status: "closed" });
+      res.json(updated);
+    } catch (error) {
+      console.error("Close ticket error:", error);
+      res.status(500).json({ message: "Failed to close ticket" });
+    }
+  });
+
   // Admin: Get all support tickets
   app.get("/api/admin/support-tickets", requireAdmin, async (req, res) => {
     try {

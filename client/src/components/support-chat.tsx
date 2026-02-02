@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { MessageCircle, Send, X, Loader2, Ticket, CheckCircle } from "lucide-react";
+import { MessageCircle, Send, X, Loader2, Ticket, CheckCircle, XCircle } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -128,6 +128,36 @@ export function SupportChat() {
       toast({
         title: "Failed to create ticket",
         description: "Please try again or email support@bakeriq.app",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation to close ticket (baker can mark resolved)
+  const closeTicketMutation = useMutation({
+    mutationFn: async (ticketId: string) => {
+      const response = await apiRequest("PATCH", `/api/support/tickets/${ticketId}/close`);
+      return response.json();
+    },
+    onSuccess: () => {
+      setTicketCreated(false);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "Your support ticket has been closed. Feel free to ask more questions anytime!",
+        },
+      ]);
+      queryClient.invalidateQueries({ queryKey: ["/api/support/tickets"] });
+      toast({
+        title: "Ticket closed",
+        description: "Thanks for using support!",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Failed to close ticket",
+        description: "Please try again.",
         variant: "destructive",
       });
     },
@@ -336,7 +366,25 @@ export function SupportChat() {
         </ScrollArea>
 
         <div className="p-4 border-t space-y-3">
-          {ticketCreated ? (
+          {activeTicket ? (
+            <div className="flex items-center justify-between gap-2 text-sm text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400 p-3 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Ticket className="h-4 w-4" />
+                <span>Ticket #{activeTicket.id.slice(0, 8)} - {activeTicket.status === "in_progress" ? "In Progress" : "Open"}</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => closeTicketMutation.mutate(activeTicket.id)}
+                disabled={closeTicketMutation.isPending}
+                data-testid="button-close-ticket"
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <XCircle className="h-4 w-4 mr-1" />
+                {closeTicketMutation.isPending ? "Closing..." : "Close"}
+              </Button>
+            </div>
+          ) : ticketCreated ? (
             <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400 p-3 rounded-lg">
               <CheckCircle className="h-4 w-4" />
               <span>Support ticket submitted!</span>
