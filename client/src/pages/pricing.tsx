@@ -80,9 +80,9 @@ export default function PricingPage() {
     const current = getAllSizes();
     const newSize = {
       id: generateId("size"),
-      label: "",
-      servings: "0",
-      basePrice: 0,
+      label: "New Size",
+      servings: "12-16",
+      basePrice: 50,
       enabled: true
     };
     setPricingConfig({ ...pricingConfig, sizes: [...current, newSize] });
