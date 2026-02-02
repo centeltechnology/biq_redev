@@ -1397,6 +1397,54 @@ function StepAddons({ selected, onToggle, onUpdateAttendees, onUpdateQuantity, g
                   </p>
                 </div>
               )}
+
+              {isSelected && !isPerAttendee && (
+                <div className="mt-3 pt-3 border-t">
+                  <div className="flex items-center justify-between gap-4">
+                    <Label className="text-sm">Quantity</Label>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          const currentQty = selectedAddon?.quantity || 1;
+                          if (currentQty > 1) {
+                            onUpdateQuantity(addon.id, currentQty - 1);
+                          }
+                        }}
+                        data-testid={`button-addon-qty-minus-${addon.id}`}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <Input
+                        type="number"
+                        value={selectedAddon?.quantity || 1}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 1;
+                          onUpdateQuantity(addon.id, Math.max(1, value));
+                        }}
+                        className="w-20 text-center"
+                        min={1}
+                        data-testid={`input-addon-qty-${addon.id}`}
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          const currentQty = selectedAddon?.quantity || 1;
+                          onUpdateQuantity(addon.id, currentQty + 1);
+                        }}
+                        data-testid={`button-addon-qty-plus-${addon.id}`}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="text-sm text-right mt-2">
+                    Subtotal: <span className="font-medium">{fmt(addon.price * (selectedAddon?.quantity || 1))}</span>
+                  </p>
+                </div>
+              )}
             </div>
           );
         })}
@@ -1858,9 +1906,10 @@ function StepReview({ category, tiers, decorations, addons, treats, deliveryOpti
                 {addons.map((addon) => {
                   const addonInfo = ADDONS.find((a) => a.id === addon.id);
                   const isPerAttendee = addonInfo?.pricingType === "per-attendee";
+                  const qty = addon.quantity || 1;
                   const price = isPerAttendee
                     ? (addonInfo?.price || 0) * (addon.attendees || 0)
-                    : addonInfo?.price || 0;
+                    : (addonInfo?.price || 0) * qty;
                   return (
                     <div key={addon.id} className="flex items-center justify-between">
                       <span>
@@ -1868,6 +1917,11 @@ function StepReview({ category, tiers, decorations, addons, treats, deliveryOpti
                         {isPerAttendee && addon.attendees && (
                           <span className="text-muted-foreground text-sm ml-1">
                             ({addon.attendees} guests)
+                          </span>
+                        )}
+                        {!isPerAttendee && qty > 1 && (
+                          <span className="text-muted-foreground text-sm ml-1">
+                            (x{qty})
                           </span>
                         )}
                       </span>

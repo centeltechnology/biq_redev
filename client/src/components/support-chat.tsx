@@ -100,22 +100,27 @@ export function SupportChat() {
     },
   });
 
-  // Fetch existing tickets to mark as read
+  // Fetch existing tickets to mark as read - poll every 5 seconds when chat is open
   const { data: existingTickets } = useQuery<SupportTicket[]>({
     queryKey: ["/api/support/tickets"],
     enabled: isOpen,
+    refetchInterval: isOpen ? 5000 : false,
   });
 
-  // Load ticket messages when chat opens
+  // Track which ticket message IDs we've already added to chat
+  const loadedMessageIdsRef = useRef<Set<string>>(new Set());
+
+  // Load ticket messages on initial open (one-time)
   useEffect(() => {
-    const loadTicketMessages = async () => {
+    const loadInitialMessages = async () => {
       if (!isOpen || !existingTickets?.length || ticketMessagesLoaded) return;
       
       try {
-        // Load messages from all open/in_progress tickets
         const activeTickets = existingTickets.filter(t => t.status === "open" || t.status === "in_progress");
-        
-        if (activeTickets.length === 0) return;
+        if (activeTickets.length === 0) {
+          setTicketMessagesLoaded(true);
+          return;
+        }
         
         const ticketMessages: ChatMessage[] = [];
         
@@ -124,14 +129,13 @@ export function SupportChat() {
           const ticketWithMessages = await response.json() as SupportTicket;
           
           if (ticketWithMessages.messages?.length) {
-            // Add a separator for this ticket
             ticketMessages.push({
               role: "assistant",
               content: `--- Previous conversation: ${ticket.subject} ---`,
             });
             
-            // Add each message from the ticket
             for (const msg of ticketWithMessages.messages) {
+              loadedMessageIdsRef.current.add(msg.id);
               ticketMessages.push({
                 role: msg.senderType === "baker" ? "user" : "assistant",
                 content: msg.senderType === "admin" ? `[Support Team] ${msg.content}` : msg.content,
@@ -142,7 +146,6 @@ export function SupportChat() {
         
         if (ticketMessages.length > 0) {
           setMessages(prev => {
-            // Keep the initial greeting, add ticket messages
             const greeting = prev[0];
             return [greeting, ...ticketMessages];
           });
@@ -152,11 +155,53 @@ export function SupportChat() {
         setTicketMessagesLoaded(true);
       } catch (error) {
         console.error("Failed to load ticket messages:", error);
+        setTicketMessagesLoaded(true);
       }
     };
     
-    loadTicketMessages();
+    loadInitialMessages();
   }, [isOpen, existingTickets, ticketMessagesLoaded]);
+
+  // Poll for NEW messages only and append them (don't replace existing chat)
+  useEffect(() => {
+    if (!isOpen || !ticketMessagesLoaded || !existingTickets?.length) return;
+    
+    const checkForNewMessages = async () => {
+      try {
+        const activeTickets = existingTickets.filter(t => t.status === "open" || t.status === "in_progress");
+        
+        for (const ticket of activeTickets) {
+          const response = await apiRequest("GET", `/api/support/tickets/${ticket.id}`);
+          const ticketWithMessages = await response.json() as SupportTicket;
+          
+          if (ticketWithMessages.messages?.length) {
+            const newMessages: ChatMessage[] = [];
+            
+            for (const msg of ticketWithMessages.messages) {
+              // Only add messages we haven't seen before
+              if (!loadedMessageIdsRef.current.has(msg.id)) {
+                loadedMessageIdsRef.current.add(msg.id);
+                newMessages.push({
+                  role: msg.senderType === "baker" ? "user" : "assistant",
+                  content: msg.senderType === "admin" ? `[Support Team] ${msg.content}` : msg.content,
+                });
+              }
+            }
+            
+            // Append new messages to the end of existing chat
+            if (newMessages.length > 0) {
+              setMessages(prev => [...prev, ...newMessages]);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Failed to check for new messages:", error);
+      }
+    };
+    
+    const interval = setInterval(checkForNewMessages, 5000);
+    return () => clearInterval(interval);
+  }, [isOpen, ticketMessagesLoaded, existingTickets]);
 
   // Mark all tickets as read when chat opens
   useEffect(() => {
