@@ -265,6 +265,7 @@ export default function AdminDashboard() {
 
   const { data: supportTickets, isLoading: ticketsLoading } = useQuery<SupportTicketWithBaker[]>({
     queryKey: ["/api/admin/support-tickets"],
+    refetchInterval: 5000, // Poll every 5 seconds for new messages
   });
 
   const { data: emailLogs, isLoading: emailLogsLoading } = useQuery<EmailLogWithBaker[]>({

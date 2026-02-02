@@ -45,9 +45,17 @@ export function SupportChat() {
 
   const chatMutation = useMutation({
     mutationFn: async (message: string) => {
+      // Filter out ticket separators and clean [Support Team] prefixes for AI context
+      const cleanHistory = messages
+        .filter(m => !m.content.startsWith("---") && !m.content.startsWith("[CREATE_TICKET]"))
+        .map(m => ({
+          role: m.role,
+          content: m.content.replace(/^\[Support Team\]\s*/i, ""),
+        }));
+      
       const response = await apiRequest("POST", "/api/support/chat", {
         message,
-        conversationHistory: messages,
+        conversationHistory: cleanHistory,
       });
       return response.json();
     },
