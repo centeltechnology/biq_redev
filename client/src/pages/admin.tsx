@@ -105,6 +105,162 @@ const SEGMENT_LABELS: Record<string, { label: string; description: string }> = {
   at_risk: { label: "At Risk", description: "Previously active, no activity in 14 days" },
 };
 
+function AnnouncementEmailTab() {
+  const { toast } = useToast();
+  const [showPreview, setShowPreview] = useState(false);
+  const [confirmSend, setConfirmSend] = useState(false);
+
+  const { data: preview, isLoading: previewLoading } = useQuery<{ html: string }>({
+    queryKey: ["/api/admin/announcement/preview"],
+    enabled: showPreview,
+  });
+
+  const { data: analytics } = useQuery<AdminAnalytics>({
+    queryKey: ["/api/admin/analytics"],
+  });
+
+  const sendTestMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/announcement/test");
+      return res.json();
+    },
+    onSuccess: (data: { success: boolean; sentTo: string }) => {
+      toast({
+        title: data.success ? "Test email sent" : "Test email failed",
+        description: data.success ? `Sent to ${data.sentTo}` : "Check your AWS SES configuration",
+        variant: data.success ? "default" : "destructive",
+      });
+    },
+    onError: () => {
+      toast({ title: "Failed to send test email", variant: "destructive" });
+    },
+  });
+
+  const sendAllMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/announcement/send");
+      return res.json();
+    },
+    onSuccess: (data: { total: number; sent: number; failed: number }) => {
+      toast({
+        title: "Announcement emails sent",
+        description: `${data.sent} of ${data.total} emails delivered successfully${data.failed > 0 ? `, ${data.failed} failed` : ""}`,
+      });
+      setConfirmSend(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to send emails", variant: "destructive" });
+      setConfirmSend(false);
+    },
+  });
+
+  const totalActive = analytics ? analytics.totalBakers - (analytics.suspendedBakers || 0) : 0;
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            Feature Announcement Email
+          </CardTitle>
+          <CardDescription>
+            Send a branded email to all active bakers announcing new features, pricing updates, and Stripe payments.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="space-y-1">
+              <p className="text-sm font-medium" data-testid="text-email-recipients">
+                Recipients: {totalActive} active baker{totalActive !== 1 ? "s" : ""}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Subject: What's New at BakerIQ: Stripe Payments, More Quotes & New Features
+              </p>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                variant="outline"
+                onClick={() => setShowPreview(!showPreview)}
+                data-testid="button-toggle-preview"
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                {showPreview ? "Hide Preview" : "Preview Email"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => sendTestMutation.mutate()}
+                disabled={sendTestMutation.isPending}
+                data-testid="button-send-test"
+              >
+                {sendTestMutation.isPending ? (
+                  <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Sending...</>
+                ) : (
+                  <><Mail className="mr-2 h-4 w-4" /> Send Test to Me</>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {showPreview && (
+            <div className="border rounded-md overflow-hidden bg-white">
+              {previewLoading ? (
+                <div className="p-8 flex justify-content-center">
+                  <Skeleton className="h-96 w-full" />
+                </div>
+              ) : preview?.html ? (
+                <iframe
+                  srcDoc={preview.html}
+                  title="Email Preview"
+                  className="w-full border-0"
+                  style={{ height: "800px" }}
+                  data-testid="iframe-email-preview"
+                />
+              ) : (
+                <p className="p-8 text-center text-muted-foreground">Failed to load preview</p>
+              )}
+            </div>
+          )}
+
+          <div className="border-t pt-4">
+            {!confirmSend ? (
+              <Button
+                onClick={() => setConfirmSend(true)}
+                data-testid="button-send-all"
+              >
+                <Send className="mr-2 h-4 w-4" />
+                Send to All Bakers ({totalActive})
+              </Button>
+            ) : (
+              <div className="flex items-center gap-3 flex-wrap">
+                <p className="text-sm font-medium text-destructive">
+                  <AlertTriangle className="inline h-4 w-4 mr-1" />
+                  This will send an email to {totalActive} baker{totalActive !== 1 ? "s" : ""}. Are you sure?
+                </p>
+                <Button
+                  variant="destructive"
+                  onClick={() => sendAllMutation.mutate()}
+                  disabled={sendAllMutation.isPending}
+                  data-testid="button-confirm-send-all"
+                >
+                  {sendAllMutation.isPending ? (
+                    <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Sending...</>
+                  ) : (
+                    "Yes, Send Now"
+                  )}
+                </Button>
+                <Button variant="ghost" onClick={() => setConfirmSend(false)} data-testid="button-cancel-send">
+                  Cancel
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function RetentionEmailAdmin() {
   const { toast } = useToast();
 
@@ -502,7 +658,7 @@ export default function AdminDashboard() {
       </div>
 
       <Tabs defaultValue="accounts" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-flex">
           <TabsTrigger value="accounts" className="gap-2" data-testid="tab-accounts">
             <Users className="h-4 w-4" />
             <span className="hidden sm:inline">Accounts</span>
@@ -510,6 +666,10 @@ export default function AdminDashboard() {
           <TabsTrigger value="analytics" className="gap-2" data-testid="tab-analytics">
             <BarChart3 className="h-4 w-4" />
             <span className="hidden sm:inline">Analytics</span>
+          </TabsTrigger>
+          <TabsTrigger value="email-blast" className="gap-2" data-testid="tab-email-blast">
+            <Send className="h-4 w-4" />
+            <span className="hidden sm:inline">Email</span>
           </TabsTrigger>
           <TabsTrigger value="payments" className="gap-2" data-testid="tab-payments">
             <DollarSign className="h-4 w-4" />
@@ -919,6 +1079,11 @@ export default function AdminDashboard() {
               </Card>
             </>
           )}
+        </TabsContent>
+
+        {/* EMAIL BLAST TAB */}
+        <TabsContent value="email-blast" className="space-y-4">
+          <AnnouncementEmailTab />
         </TabsContent>
 
         {/* SUPPORT TAB */}

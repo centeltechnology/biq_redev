@@ -6,7 +6,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { pool } from "./db";
 import connectPgSimple from "connect-pg-simple";
-import { sendNewLeadNotification, sendLeadConfirmationToCustomer, sendPasswordResetEmail, sendEmailVerification, sendQuoteNotification, sendOnboardingEmail, sendQuoteResponseNotification, sendAdminPasswordReset, sendPaymentReceivedNotification } from "./email";
+import { sendNewLeadNotification, sendLeadConfirmationToCustomer, sendPasswordResetEmail, sendEmailVerification, sendQuoteNotification, sendOnboardingEmail, sendQuoteResponseNotification, sendAdminPasswordReset, sendPaymentReceivedNotification, sendAnnouncementEmail, getAnnouncementEmailHtml } from "./email";
 import crypto from "crypto";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { db } from "./db";
@@ -3158,6 +3158,56 @@ Guidelines:
     } catch (error) {
       console.error("Error running retention scheduler:", error);
       res.status(500).json({ message: "Failed to run scheduler" });
+    }
+  });
+
+  // Admin: Preview announcement email HTML
+  app.get("/api/admin/announcement/preview", requireAdmin, async (req, res) => {
+    try {
+      const html = getAnnouncementEmailHtml("{{Baker Name}}");
+      res.json({ html });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to generate preview" });
+    }
+  });
+
+  // Admin: Send announcement email to all bakers
+  app.post("/api/admin/announcement/send", requireAdmin, async (req, res) => {
+    try {
+      const allBakers = await storage.getAllBakers();
+      const activeBakers = allBakers.filter(b => !b.suspended);
+      let sent = 0;
+      let failed = 0;
+
+      for (const baker of activeBakers) {
+        try {
+          const firstName = baker.businessName.split(" ")[0];
+          const success = await sendAnnouncementEmail(baker.email, firstName);
+          if (success) sent++;
+          else failed++;
+        } catch {
+          failed++;
+        }
+      }
+
+      res.json({ total: activeBakers.length, sent, failed });
+    } catch (error) {
+      console.error("Announcement email error:", error);
+      res.status(500).json({ message: "Failed to send announcement emails" });
+    }
+  });
+
+  // Admin: Send test announcement email to admin only
+  app.post("/api/admin/announcement/test", requireAdmin, async (req, res) => {
+    try {
+      const baker = await storage.getBaker(req.session.bakerId!);
+      if (!baker) return res.status(404).json({ message: "Baker not found" });
+
+      const success = await sendAnnouncementEmail(baker.email, baker.businessName.split(" ")[0]);
+      res.json({ success, sentTo: baker.email });
+    } catch (error) {
+      console.error("Test announcement email error:", error);
+      res.status(500).json({ message: "Failed to send test email" });
     }
   });
 

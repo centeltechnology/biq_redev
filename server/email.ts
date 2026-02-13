@@ -1204,3 +1204,174 @@ export async function sendPaymentReceivedNotification(
     text,
   });
 }
+
+export function getAnnouncementEmailHtml(bakerName: string): string {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body { font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f0f0f0; }
+    .wrapper { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #E91E63, #AD1457); color: white; padding: 40px 30px; text-align: center; border-radius: 12px 12px 0 0; }
+    .header h1 { margin: 0 0 8px 0; font-size: 28px; font-weight: 700; }
+    .header p { margin: 0; opacity: 0.9; font-size: 16px; }
+    .content { background: #ffffff; padding: 32px; }
+    .greeting { font-size: 18px; margin-bottom: 16px; }
+    .intro { color: #555; margin-bottom: 28px; font-size: 15px; }
+    .section { margin-bottom: 28px; }
+    .section-title { font-size: 18px; font-weight: 700; color: #E91E63; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .section-icon { font-size: 20px; }
+    .feature-list { list-style: none; padding: 0; margin: 0; }
+    .feature-list li { padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 15px; color: #444; }
+    .feature-list li:last-child { border-bottom: none; }
+    .feature-list li strong { color: #333; }
+    .highlight-box { background: linear-gradient(135deg, #fce4ec, #f8bbd0); border-radius: 10px; padding: 24px; margin: 24px 0; }
+    .highlight-box h3 { margin: 0 0 12px 0; color: #AD1457; font-size: 17px; }
+    .highlight-box p { margin: 0; color: #6d3049; font-size: 14px; line-height: 1.6; }
+    .plan-grid { display: flex; gap: 8px; margin-top: 16px; }
+    .plan-card { flex: 1; background: white; border-radius: 8px; padding: 16px; text-align: center; }
+    .plan-card .plan-name { font-weight: 700; font-size: 14px; color: #E91E63; margin-bottom: 4px; }
+    .plan-card .plan-quotes { font-size: 22px; font-weight: 700; color: #333; }
+    .plan-card .plan-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+    .plan-card .plan-fee { font-size: 12px; color: #666; margin-top: 4px; }
+    .cta-section { text-align: center; margin: 32px 0 16px 0; }
+    .cta-button { display: inline-block; background: #E91E63; color: white; padding: 14px 36px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; }
+    .teaser { background: #f8f9fa; border-radius: 10px; padding: 20px; margin: 24px 0; border-left: 4px solid #E91E63; }
+    .teaser h3 { margin: 0 0 8px 0; font-size: 16px; color: #333; }
+    .teaser p { margin: 0; color: #666; font-size: 14px; }
+    .footer { background: #fafafa; padding: 24px 32px; border-radius: 0 0 12px 12px; text-align: center; border-top: 1px solid #f0f0f0; }
+    .footer p { margin: 4px 0; color: #999; font-size: 12px; }
+    .footer a { color: #E91E63; text-decoration: none; }
+    @media (max-width: 480px) {
+      .plan-grid { flex-direction: column; }
+      .header { padding: 30px 20px; }
+      .content { padding: 24px 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <h1>Exciting Updates from BakerIQ</h1>
+      <p>New features to help you grow your business</p>
+    </div>
+    <div class="content">
+      <p class="greeting">Hi ${bakerName},</p>
+      <p class="intro">We've been busy building new tools to help you capture more leads, close more orders, and get paid faster. Here's what's new:</p>
+
+      <div class="section">
+        <div class="section-title"><span class="section-icon">&#128179;</span> Accept Payments with Stripe</div>
+        <ul class="feature-list">
+          <li><strong>Get paid directly through quotes</strong> &mdash; Customers can pay deposits or full amounts right from the quote you send them.</li>
+          <li><strong>Stripe Connect</strong> &mdash; Connect your Stripe account in Settings and funds go straight to your bank. Setup takes just a few minutes.</li>
+          <li><strong>Automatic tracking</strong> &mdash; All payments are logged in your dashboard with no extra work on your end.</li>
+        </ul>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="section-icon">&#128200;</span> Updated Pricing &amp; Quote Limits</div>
+        <p style="color: #555; font-size: 14px; margin-bottom: 12px;">We've increased limits across the board so you can do more:</p>
+        <div class="plan-grid">
+          <div class="plan-card">
+            <div class="plan-name">Free</div>
+            <div class="plan-quotes">15</div>
+            <div class="plan-label">quotes/month</div>
+            <div class="plan-fee">7% platform fee</div>
+          </div>
+          <div class="plan-card">
+            <div class="plan-name">Basic</div>
+            <div class="plan-quotes">&infin;</div>
+            <div class="plan-label">unlimited</div>
+            <div class="plan-fee">5% platform fee</div>
+          </div>
+          <div class="plan-card">
+            <div class="plan-name">Pro</div>
+            <div class="plan-quotes">&infin;</div>
+            <div class="plan-label">unlimited</div>
+            <div class="plan-fee">3% platform fee</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="section-icon">&#10024;</span> More New Features</div>
+        <ul class="feature-list">
+          <li><strong>Custom calculator URL</strong> &mdash; Personalize your pricing calculator link (e.g., /c/your-bakery-name) from Settings.</li>
+          <li><strong>Custom header image</strong> &mdash; Upload your own banner image for your public calculator page to match your brand.</li>
+          <li><strong>Video tutorials</strong> &mdash; New help center with walkthrough videos to get you up and running faster.</li>
+          <li><strong>Improved dashboard</strong> &mdash; Quick actions, revenue tracking, and upcoming order views all in one place.</li>
+        </ul>
+      </div>
+
+      <div class="highlight-box">
+        <h3>&#128161; Tip: Share Your Calculator Link</h3>
+        <p>The fastest way to start receiving leads is to share your pricing calculator. Post it on your social media, add it to your bio, or text it to potential customers. They can get instant estimates and you'll receive every inquiry as a lead in your dashboard.</p>
+      </div>
+
+      <div class="teaser">
+        <h3>&#127873; Referral Bonus Coming Soon</h3>
+        <p>We're working on a referral program that rewards you for bringing other bakers to the platform. Stay tuned for details!</p>
+      </div>
+
+      <div class="cta-section">
+        <a href="https://bakeriq.app/login" class="cta-button">Log In to Your Dashboard</a>
+      </div>
+
+      <p style="color: #888; font-size: 13px; text-align: center; margin-top: 24px;">Thank you for being part of the BakerIQ community. We're here to help you succeed.</p>
+    </div>
+    <div class="footer">
+      <p><a href="https://bakeriq.app">BakerIQ</a> &mdash; Pricing & Quote Tool for Custom Bakers</p>
+      <p>You're receiving this because you have an account with BakerIQ.</p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+}
+
+export function getAnnouncementEmailText(bakerName: string): string {
+  return `Hi ${bakerName},
+
+We've been busy building new tools for BakerIQ. Here's what's new:
+
+ACCEPT PAYMENTS WITH STRIPE
+- Get paid directly through quotes — customers can pay deposits or full amounts
+- Connect your Stripe account in Settings (takes just a few minutes)
+- All payments are automatically tracked in your dashboard
+
+UPDATED PRICING & QUOTE LIMITS
+- Free: 15 quotes/month (7% platform fee)
+- Basic: Unlimited quotes (5% platform fee)
+- Pro: Unlimited quotes (3% platform fee)
+
+MORE NEW FEATURES
+- Custom calculator URL — personalize your pricing calculator link
+- Custom header image — upload your own banner for your calculator page
+- Video tutorials — new help center with walkthrough videos
+- Improved dashboard — quick actions, revenue tracking, upcoming orders
+
+TIP: Share your calculator link on social media to start receiving leads!
+
+COMING SOON: Referral bonus program — earn rewards for bringing other bakers to the platform.
+
+Log in to your dashboard: https://bakeriq.app/login
+
+Thank you for being part of the BakerIQ community!
+— The BakerIQ Team
+`;
+}
+
+export async function sendAnnouncementEmail(
+  to: string,
+  bakerName: string,
+): Promise<boolean> {
+  return sendEmail({
+    to,
+    subject: "What's New at BakerIQ: Stripe Payments, More Quotes & New Features",
+    html: getAnnouncementEmailHtml(bakerName),
+    text: getAnnouncementEmailText(bakerName),
+  });
+}
