@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { 
   Cake, 
   Calculator, 
@@ -81,6 +82,7 @@ export default function HomePage() {
             <Link href="/faq">
               <Button variant="ghost" data-testid="link-faq">FAQ</Button>
             </Link>
+            <ThemeToggle />
             <Link href="/login">
               <Button variant="outline" data-testid="link-login">Log In</Button>
             </Link>

@@ -13,7 +13,8 @@ import {
   Mail,
   BookOpen,
   Zap,
-  CreditCard
+  CreditCard,
+  Play
 } from "lucide-react";
 
 export default function HelpPage() {
@@ -48,6 +49,69 @@ export default function HelpPage() {
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Learn how to get the most out of BakerIQ for your bakery business.
             </p>
+          </div>
+
+          <div className="mb-12">
+            <div className="flex items-center gap-2 mb-6">
+              <Play className="h-6 w-6 text-primary" />
+              <h2 className="text-2xl font-bold">Video Tutorials</h2>
+            </div>
+            <div className="grid md:grid-cols-3 gap-6">
+              <Card data-testid="card-video-dashboard">
+                <CardHeader>
+                  <CardTitle className="text-base">Dashboard Walkthrough</CardTitle>
+                  <CardDescription>See how to navigate your dashboard and manage orders</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="aspect-video rounded-md overflow-hidden">
+                    <iframe
+                      src="https://www.youtube.com/embed/WHdEtrAWE2A"
+                      title="Dashboard Walkthrough"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full border-0"
+                      data-testid="video-dashboard-walkthrough"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card data-testid="card-video-settings">
+                <CardHeader>
+                  <CardTitle className="text-base">Settings Overview</CardTitle>
+                  <CardDescription>Learn how to configure your account and preferences</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="aspect-video rounded-md overflow-hidden">
+                    <iframe
+                      src="https://www.youtube.com/embed/dswX7yLHlN4"
+                      title="Settings Overview"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full border-0"
+                      data-testid="video-settings-overview"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card data-testid="card-video-calculator">
+                <CardHeader>
+                  <CardTitle className="text-base">Pricing Calculator</CardTitle>
+                  <CardDescription>Set up your pricing and share your calculator link</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="aspect-video rounded-md overflow-hidden">
+                    <iframe
+                      src="https://www.youtube.com/embed/EByQ4x9wCQs"
+                      title="Pricing Calculator"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full border-0"
+                      data-testid="video-pricing-calculator"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6 mb-12">
