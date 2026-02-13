@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Cake, 
   Calculator, 
@@ -17,7 +19,14 @@ import {
   Play
 } from "lucide-react";
 
+const VIDEOS = [
+  { id: "WHdEtrAWE2A", title: "Dashboard Walkthrough", description: "See how to navigate your dashboard and manage orders", testId: "dashboard" },
+  { id: "dswX7yLHlN4", title: "Settings Overview", description: "Learn how to configure your account and preferences", testId: "settings" },
+  { id: "EByQ4x9wCQs", title: "Pricing Calculator", description: "Set up your pricing and share your calculator link", testId: "calculator" },
+];
+
 export default function HelpPage() {
+  const [activeVideo, setActiveVideo] = useState<typeof VIDEOS[0] | null>(null);
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
@@ -57,61 +66,56 @@ export default function HelpPage() {
               <h2 className="text-2xl font-bold">Video Tutorials</h2>
             </div>
             <div className="grid md:grid-cols-3 gap-6">
-              <Card data-testid="card-video-dashboard">
-                <CardHeader>
-                  <CardTitle className="text-base">Dashboard Walkthrough</CardTitle>
-                  <CardDescription>See how to navigate your dashboard and manage orders</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="aspect-video rounded-md overflow-hidden">
-                    <iframe
-                      src="https://www.youtube.com/embed/WHdEtrAWE2A"
-                      title="Dashboard Walkthrough"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      className="w-full h-full border-0"
-                      data-testid="video-dashboard-walkthrough"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card data-testid="card-video-settings">
-                <CardHeader>
-                  <CardTitle className="text-base">Settings Overview</CardTitle>
-                  <CardDescription>Learn how to configure your account and preferences</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="aspect-video rounded-md overflow-hidden">
-                    <iframe
-                      src="https://www.youtube.com/embed/dswX7yLHlN4"
-                      title="Settings Overview"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      className="w-full h-full border-0"
-                      data-testid="video-settings-overview"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card data-testid="card-video-calculator">
-                <CardHeader>
-                  <CardTitle className="text-base">Pricing Calculator</CardTitle>
-                  <CardDescription>Set up your pricing and share your calculator link</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="aspect-video rounded-md overflow-hidden">
-                    <iframe
-                      src="https://www.youtube.com/embed/EByQ4x9wCQs"
-                      title="Pricing Calculator"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      className="w-full h-full border-0"
-                      data-testid="video-pricing-calculator"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+              {VIDEOS.map((video) => (
+                <Card
+                  key={video.id}
+                  className="cursor-pointer hover-elevate"
+                  onClick={() => setActiveVideo(video)}
+                  data-testid={`card-video-${video.testId}`}
+                >
+                  <CardHeader>
+                    <CardTitle className="text-base">{video.title}</CardTitle>
+                    <CardDescription>{video.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="aspect-video rounded-md overflow-hidden relative bg-muted">
+                      <img
+                        src={`https://img.youtube.com/vi/${video.id}/hqdefault.jpg`}
+                        alt={video.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                        <div className="rounded-full bg-primary p-3">
+                          <Play className="h-6 w-6 text-primary-foreground fill-primary-foreground" />
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
+
+            <Dialog open={!!activeVideo} onOpenChange={(open) => { if (!open) setActiveVideo(null); }}>
+              <DialogContent className="max-w-4xl w-[90vw] p-0 gap-0">
+                <DialogHeader className="p-4 pb-0">
+                  <DialogTitle data-testid="text-video-modal-title">{activeVideo?.title}</DialogTitle>
+                </DialogHeader>
+                <div className="p-4">
+                  <div className="aspect-video rounded-md overflow-hidden">
+                    {activeVideo && (
+                      <iframe
+                        src={`https://www.youtube.com/embed/${activeVideo.id}?autoplay=1`}
+                        title={activeVideo.title}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="w-full h-full border-0"
+                        data-testid={`video-${activeVideo.testId}-modal`}
+                      />
+                    )}
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6 mb-12">
