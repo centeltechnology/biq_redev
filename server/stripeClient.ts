@@ -1,6 +1,43 @@
 import Stripe from 'stripe';
 
-let connectionSettings: any;
+async function getCredentials() {
+  if (process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PUBLISHABLE_KEY) {
+    return {
+      publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
+      secretKey: process.env.STRIPE_SECRET_KEY,
+    };
+  }
+
+  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
+  const xReplitToken = process.env.REPL_IDENTITY
+    ? 'repl ' + process.env.REPL_IDENTITY
+    : process.env.WEB_REPL_RENEWAL
+      ? 'depl ' + process.env.WEB_REPL_RENEWAL
+      : null;
+
+  if (!xReplitToken || !hostname) {
+    throw new Error('Stripe keys not found. Set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY environment variables.');
+  }
+
+  const isProduction = process.env.REPLIT_DEPLOYMENT === '1';
+  const targetEnvironment = isProduction ? 'production' : 'development';
+
+  let conn = await fetchConnectionForEnvironment(hostname, xReplitToken, targetEnvironment);
+
+  if (!conn && isProduction) {
+    console.warn('Stripe production connection not found, falling back to development connection');
+    conn = await fetchConnectionForEnvironment(hostname, xReplitToken, 'development');
+  }
+
+  if (!conn) {
+    throw new Error(`Stripe connection not found. Set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY environment variables.`);
+  }
+
+  return {
+    publishableKey: conn.settings.publishable,
+    secretKey: conn.settings.secret,
+  };
+}
 
 async function fetchConnectionForEnvironment(hostname: string, xReplitToken: string, environment: string) {
   const url = new URL(`https://${hostname}/api/v2/connection`);
@@ -24,43 +61,11 @@ async function fetchConnectionForEnvironment(hostname: string, xReplitToken: str
   return null;
 }
 
-async function getCredentials() {
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY
-    ? 'repl ' + process.env.REPL_IDENTITY
-    : process.env.WEB_REPL_RENEWAL
-      ? 'depl ' + process.env.WEB_REPL_RENEWAL
-      : null;
-
-  if (!xReplitToken) {
-    throw new Error('X_REPLIT_TOKEN not found for repl/depl');
-  }
-
-  const isProduction = process.env.REPLIT_DEPLOYMENT === '1';
-  const targetEnvironment = isProduction ? 'production' : 'development';
-
-  connectionSettings = await fetchConnectionForEnvironment(hostname!, xReplitToken, targetEnvironment);
-
-  if (!connectionSettings && isProduction) {
-    console.warn('Stripe production connection not found, falling back to development connection');
-    connectionSettings = await fetchConnectionForEnvironment(hostname!, xReplitToken, 'development');
-  }
-
-  if (!connectionSettings) {
-    throw new Error(`Stripe connection not found for ${targetEnvironment}${isProduction ? ' or development' : ''}`);
-  }
-
-  return {
-    publishableKey: connectionSettings.settings.publishable,
-    secretKey: connectionSettings.settings.secret,
-  };
-}
-
 export async function getUncachableStripeClient() {
   const { secretKey } = await getCredentials();
 
   return new Stripe(secretKey, {
-    apiVersion: '2025-08-27.basil',
+    apiVersion: '2025-11-17.clover' as any,
   });
 }
 
