@@ -84,9 +84,8 @@ COMMON ISSUES:
 
 
 // Quote limits per plan (monthly)
-const FREE_QUOTE_LIMIT = 5;
-const BASIC_QUOTE_LIMIT = 15;
-// Pro plan has unlimited quotes
+const FREE_QUOTE_LIMIT = 15;
+// Basic and Pro plans have unlimited quotes
 
 // Platform fee percentages per plan
 const PLATFORM_FEE_FREE = 7;
@@ -881,9 +880,7 @@ export async function registerRoutes(
       // Check quote limit for the baker's plan (including survey trial)
       const plan = getEffectivePlan(baker);
       let quoteLimit: number | null = FREE_QUOTE_LIMIT;
-      if (plan === "basic") {
-        quoteLimit = BASIC_QUOTE_LIMIT;
-      } else if (plan === "pro") {
+      if (plan === "basic" || plan === "pro") {
         quoteLimit = null; // unlimited
       }
       
@@ -1767,9 +1764,7 @@ export async function registerRoutes(
     
     // Determine quote limit based on plan
     let quoteLimit: number | null = FREE_QUOTE_LIMIT;
-    if (plan === "basic") {
-      quoteLimit = BASIC_QUOTE_LIMIT;
-    } else if (plan === "pro") {
+    if (plan === "basic" || plan === "pro") {
       quoteLimit = null; // unlimited
     }
     

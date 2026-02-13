@@ -976,7 +976,7 @@ export default function PricingCalculatorPage() {
                   <span className="font-medium">Basic Plan</span>
                   <span className="text-primary font-bold">$4.99<span className="text-sm font-normal text-muted-foreground">/mo</span></span>
                 </div>
-                <p className="text-sm text-muted-foreground">Up to 5 featured items + 15 quotes/month + 5% fee</p>
+                <p className="text-sm text-muted-foreground">Up to 5 featured items + unlimited quotes + 5% fee</p>
               </div>
               <div className="border border-primary rounded-lg p-4 space-y-2 bg-primary/5">
                 <div className="flex items-center justify-between">

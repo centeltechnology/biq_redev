@@ -574,7 +574,7 @@ export default function SettingsPage() {
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-primary shrink-0" />
-                    <span>15 quotes per month</span>
+                    <span>Unlimited quotes</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Zap className="h-4 w-4 text-primary shrink-0" />
@@ -602,13 +602,13 @@ export default function SettingsPage() {
             ) : (
               <div className="space-y-4">
                 <div className="text-sm text-muted-foreground">
-                  <p>You're on the free plan with <strong>{subscription?.monthlyQuoteCount || 0}/{subscription?.quoteLimit || 5}</strong> quotes sent this month.</p>
+                  <p>You're on the free plan with <strong>{subscription?.monthlyQuoteCount || 0}/{subscription?.quoteLimit || 15}</strong> quotes sent this month.</p>
                 </div>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="bg-muted/50 border rounded-lg p-4">
                     <h4 className="font-medium">Basic - $4.99/month</h4>
                     <ul className="text-sm text-muted-foreground mt-2 space-y-1">
-                      <li>15 quotes per month</li>
+                      <li>Unlimited quotes</li>
                       <li>Up to 5 Quick Order items</li>
                       <li>5% platform fee (vs 7% free)</li>
                       <li>Cancel anytime</li>

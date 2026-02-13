@@ -477,7 +477,7 @@ export default function HomePage() {
                   <ul className="space-y-3">
                     <li className="flex items-start gap-2">
                       <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                      <span className="text-sm text-muted-foreground">5 quotes sent per month</span>
+                      <span className="text-sm text-muted-foreground">15 quotes sent per month</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
@@ -521,7 +521,7 @@ export default function HomePage() {
                   <ul className="space-y-3">
                     <li className="flex items-start gap-2">
                       <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                      <span className="text-sm text-muted-foreground">15 quotes sent per month</span>
+                      <span className="text-sm text-muted-foreground">Unlimited quotes</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />

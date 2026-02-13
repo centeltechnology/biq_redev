@@ -193,7 +193,7 @@ const faqs = [
     questions: [
       {
         q: "What plans are available?",
-        a: "BakerIQ offers three plans: Free (5 quotes/month, 7% platform fee), Basic ($4.99/month for 15 quotes + 5 featured items, 5% fee), and Pro ($9.99/month for unlimited quotes + unlimited featured items, 3% fee). All plans include unlimited leads and Stripe Connect for accepting payments."
+        a: "BakerIQ offers three plans: Free (15 quotes/month, 7% platform fee), Basic ($4.99/month for unlimited quotes + 5 featured items, 5% fee), and Pro ($9.99/month for unlimited quotes + unlimited featured items, 3% fee). All plans include unlimited leads and Stripe Connect for accepting payments."
       },
       {
         q: "What counts toward my quote limit?",
@@ -201,7 +201,7 @@ const faqs = [
       },
       {
         q: "What's the difference between Basic and Pro?",
-        a: "Basic ($4.99/mo) gives you 15 quotes per month, up to 5 featured items, and a 5% platform fee. Pro ($9.99/mo) gives you unlimited quotes, unlimited featured items, and the lowest 3% platform fee. Both plans include all core features like lead management, customer tracking, and email notifications."
+        a: "Basic ($4.99/mo) gives you unlimited quotes, up to 5 featured items, and a 5% platform fee. Pro ($9.99/mo) gives you unlimited quotes, unlimited featured items, and the lowest 3% platform fee. Both plans include all core features like lead management, customer tracking, and email notifications."
       },
       {
         q: "How do I upgrade my plan?",

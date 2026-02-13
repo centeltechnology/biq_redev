@@ -838,7 +838,7 @@ const ONBOARDING_EMAILS: OnboardingEmailData[] = [
         <li><strong>Share your calculator</strong> - Copy your unique link from Settings</li>
         <li><strong>Wait for leads</strong> - You'll get an email when customers submit inquiries</li>
       </ul>
-      <p style="margin-top: 20px;">You're on the <strong>Free plan</strong> with 5 quotes per month. Upgrade anytime for more!</p>
+      <p style="margin-top: 20px;">You're on the <strong>Free plan</strong> with 15 quotes per month. Upgrade anytime for unlimited quotes and lower fees!</p>
     `,
     ctaText: "Go to Dashboard",
     ctaUrl: "/dashboard",
@@ -948,12 +948,12 @@ const ONBOARDING_EMAILS: OnboardingEmailData[] = [
       <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
         <tr style="background: #f8f9fa;">
           <td style="padding: 12px; border: 1px solid #e9ecef;"><strong>Free</strong></td>
-          <td style="padding: 12px; border: 1px solid #e9ecef;">5 quotes/month</td>
+          <td style="padding: 12px; border: 1px solid #e9ecef;">15 quotes/month</td>
           <td style="padding: 12px; border: 1px solid #e9ecef;">$0</td>
         </tr>
         <tr>
           <td style="padding: 12px; border: 1px solid #e9ecef;"><strong>Basic</strong></td>
-          <td style="padding: 12px; border: 1px solid #e9ecef;">15 quotes/month</td>
+          <td style="padding: 12px; border: 1px solid #e9ecef;">Unlimited quotes</td>
           <td style="padding: 12px; border: 1px solid #e9ecef;">$4.99/mo</td>
         </tr>
         <tr style="background: #fce4ec;">

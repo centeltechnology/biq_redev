@@ -55,8 +55,8 @@ Preferred communication style: Simple, everyday language.
 - **Component Structure**: UI primitives in `components/ui/`, feature components at component root
 
 ### Subscription Model
-- **Free Plan**: 5 quotes sent per month, unlimited leads received, 7% platform fee
-- **Basic Plan**: 15 quotes per month + 5 featured items @ $4.99/month, 5% platform fee
+- **Free Plan**: 15 quotes sent per month, unlimited leads received, 7% platform fee
+- **Basic Plan**: Unlimited quotes + 5 featured items @ $4.99/month, 5% platform fee
 - **Pro Plan**: Unlimited quotes per month @ $9.99/month, 3% platform fee
 - Stripe integration for subscription management
 - Stripe Connect for accepting customer payments (deposits and full payments)
