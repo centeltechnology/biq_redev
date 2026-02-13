@@ -60,9 +60,9 @@ FAST QUOTE (Basic & Pro plans):
 - Basic plan: up to 5 featured items, Pro: unlimited
 
 SUBSCRIPTION PLANS:
-- Free: 5 quotes per month, unlimited leads
-- Basic ($9.97/month): 15 quotes + 5 featured items
-- Pro ($29.97/month): unlimited quotes + unlimited featured items
+- Free: 5 quotes per month, unlimited leads, 7% platform fee on payments
+- Basic ($4.99/month): 15 quotes + 5 featured items, 5% platform fee
+- Pro ($9.99/month): unlimited quotes + unlimited featured items, 3% platform fee
 - Upgrade anytime in Settings
 
 PAYMENT METHODS:
@@ -87,6 +87,19 @@ COMMON ISSUES:
 const FREE_QUOTE_LIMIT = 5;
 const BASIC_QUOTE_LIMIT = 15;
 // Pro plan has unlimited quotes
+
+// Platform fee percentages per plan
+const PLATFORM_FEE_FREE = 7;
+const PLATFORM_FEE_BASIC = 5;
+const PLATFORM_FEE_PRO = 3;
+
+function getPlatformFeePercent(plan: string): number {
+  switch (plan) {
+    case "pro": return PLATFORM_FEE_PRO;
+    case "basic": return PLATFORM_FEE_BASIC;
+    default: return PLATFORM_FEE_FREE;
+  }
+}
 
 // Helper to get effective plan (checks survey trial)
 function getEffectivePlan(baker: { plan: string; surveyTrialEndDate?: Date | null }): string {
@@ -2106,8 +2119,9 @@ export async function registerRoutes(
         return res.status(400).json({ message: "No payment amount due" });
       }
 
-      // Calculate platform fee
-      const feePercent = parseFloat(baker.platformFeePercent || "3.00");
+      // Calculate platform fee based on baker's plan
+      const effectivePlan = getEffectivePlan(baker);
+      const feePercent = getPlatformFeePercent(effectivePlan);
       const platformFee = Math.round(paymentAmount * (feePercent / 100) * 100) / 100;
 
       const baseUrl = req.headers.origin || `https://${req.headers.host}`;
@@ -2310,7 +2324,8 @@ export async function registerRoutes(
         return res.status(400).json({ message: "No amount due" });
       }
 
-      const platformFeePercent = parseFloat(baker.platformFeePercent || "3.00");
+      const effectivePlanForFee = getEffectivePlan(baker);
+      const platformFeePercent = getPlatformFeePercent(effectivePlanForFee);
       const applicationFeeAmount = Math.round(paymentAmount * (platformFeePercent / 100) * 100);
       const amountInCents = Math.round(paymentAmount * 100);
 

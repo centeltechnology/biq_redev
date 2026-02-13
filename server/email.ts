@@ -954,12 +954,12 @@ const ONBOARDING_EMAILS: OnboardingEmailData[] = [
         <tr>
           <td style="padding: 12px; border: 1px solid #e9ecef;"><strong>Basic</strong></td>
           <td style="padding: 12px; border: 1px solid #e9ecef;">15 quotes/month</td>
-          <td style="padding: 12px; border: 1px solid #e9ecef;">$9.97/mo</td>
+          <td style="padding: 12px; border: 1px solid #e9ecef;">$4.99/mo</td>
         </tr>
         <tr style="background: #fce4ec;">
           <td style="padding: 12px; border: 1px solid #e9ecef;"><strong>Pro</strong></td>
           <td style="padding: 12px; border: 1px solid #e9ecef;">Unlimited quotes</td>
-          <td style="padding: 12px; border: 1px solid #e9ecef;">$29.97/mo</td>
+          <td style="padding: 12px; border: 1px solid #e9ecef;">$9.99/mo</td>
         </tr>
       </table>
       <p><strong>Remember:</strong> Leads are always unlimited, and draft quotes don't count!</p>

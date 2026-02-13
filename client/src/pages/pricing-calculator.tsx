@@ -974,9 +974,9 @@ export default function PricingCalculatorPage() {
               <div className="border rounded-lg p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">Basic Plan</span>
-                  <span className="text-primary font-bold">$9.97<span className="text-sm font-normal text-muted-foreground">/mo</span></span>
+                  <span className="text-primary font-bold">$4.99<span className="text-sm font-normal text-muted-foreground">/mo</span></span>
                 </div>
-                <p className="text-sm text-muted-foreground">Up to 5 featured items + 15 quotes/month</p>
+                <p className="text-sm text-muted-foreground">Up to 5 featured items + 15 quotes/month + 5% fee</p>
               </div>
               <div className="border border-primary rounded-lg p-4 space-y-2 bg-primary/5">
                 <div className="flex items-center justify-between">
@@ -984,9 +984,9 @@ export default function PricingCalculatorPage() {
                     <Crown className="h-4 w-4 text-primary" />
                     Pro Plan
                   </span>
-                  <span className="text-primary font-bold">$29.97<span className="text-sm font-normal text-muted-foreground">/mo</span></span>
+                  <span className="text-primary font-bold">$9.99<span className="text-sm font-normal text-muted-foreground">/mo</span></span>
                 </div>
-                <p className="text-sm text-muted-foreground">Unlimited featured items + unlimited quotes</p>
+                <p className="text-sm text-muted-foreground">Unlimited featured items + unlimited quotes + 3% fee</p>
               </div>
             </div>
           </div>

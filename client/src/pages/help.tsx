@@ -372,19 +372,19 @@ export default function HelpPage() {
                 <div className="space-y-2">
                   <h4 className="font-medium">Free Plan</h4>
                   <p className="text-sm text-muted-foreground">
-                    5 quotes per month, unlimited leads. Perfect for getting started.
+                    5 quotes per month, unlimited leads, 7% platform fee on payments. Perfect for getting started.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">Basic - $9.97/month</h4>
+                  <h4 className="font-medium">Basic - $4.99/month</h4>
                   <p className="text-sm text-muted-foreground">
-                    15 quotes per month + Fast Quote with up to 5 featured items.
+                    15 quotes per month + Fast Quote with up to 5 featured items. Lower 5% platform fee.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">Pro - $29.97/month</h4>
+                  <h4 className="font-medium">Pro - $9.99/month</h4>
                   <p className="text-sm text-muted-foreground">
-                    Unlimited quotes + unlimited Fast Quote featured items. Upgrade anytime in Settings.
+                    Unlimited quotes + unlimited Fast Quote featured items. Lowest 3% platform fee. Upgrade anytime in Settings.
                   </p>
                 </div>
               </CardContent>

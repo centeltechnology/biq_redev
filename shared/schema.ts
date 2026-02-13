@@ -43,8 +43,8 @@ export const bakers = pgTable("bakers", {
   stripeConnectAccountId: text("stripe_connect_account_id"),
   stripeConnectOnboarded: boolean("stripe_connect_onboarded").default(false).notNull(),
   stripeConnectPayoutsEnabled: boolean("stripe_connect_payouts_enabled").default(false).notNull(),
-  // Platform fee percentage (default 3%)
-  platformFeePercent: decimal("platform_fee_percent", { precision: 5, scale: 2 }).default("3.00"),
+  // Platform fee percentage (default 7% for free plan, computed dynamically by plan)
+  platformFeePercent: decimal("platform_fee_percent", { precision: 5, scale: 2 }).default("7.00"),
   // Email notification preferences
   notifyNewLead: integer("notify_new_lead").notNull().default(1),
   notifyQuoteViewed: integer("notify_quote_viewed").notNull().default(1),

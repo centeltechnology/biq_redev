@@ -822,7 +822,7 @@ export default function AdminDashboard() {
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm">Basic ($9.97/mo)</span>
+                        <span className="text-sm">Basic ($4.99/mo)</span>
                         <span className="font-medium">{analytics?.bakersByPlan?.basic || 0}</span>
                       </div>
                       <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -836,7 +836,7 @@ export default function AdminDashboard() {
                       <div className="flex items-center justify-between">
                         <span className="text-sm flex items-center gap-1">
                           <Crown className="h-3 w-3 text-primary" />
-                          Pro ($29.97/mo)
+                          Pro ($9.99/mo)
                         </span>
                         <span className="font-medium">{analytics?.bakersByPlan?.pro || 0}</span>
                       </div>

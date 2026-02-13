@@ -606,11 +606,11 @@ export default function SettingsPage() {
                 </div>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="bg-muted/50 border rounded-lg p-4">
-                    <h4 className="font-medium">Basic - $9.97/month</h4>
+                    <h4 className="font-medium">Basic - $4.99/month</h4>
                     <ul className="text-sm text-muted-foreground mt-2 space-y-1">
                       <li>15 quotes per month</li>
                       <li>Up to 5 Quick Order items</li>
-                      <li>Unlimited leads</li>
+                      <li>5% platform fee (vs 7% free)</li>
                       <li>Cancel anytime</li>
                     </ul>
                     <Button 
@@ -626,12 +626,12 @@ export default function SettingsPage() {
                   <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
                     <h4 className="font-medium flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-primary" />
-                      Pro - $29.97/month
+                      Pro - $9.99/month
                     </h4>
                     <ul className="text-sm text-muted-foreground mt-2 space-y-1">
                       <li>Unlimited quotes</li>
                       <li>Unlimited Quick Order items</li>
-                      <li>Unlimited leads</li>
+                      <li>Lowest 3% platform fee</li>
                       <li>Cancel anytime</li>
                     </ul>
                     <Button 

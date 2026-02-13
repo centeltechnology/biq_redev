@@ -9,7 +9,7 @@ BakerIQ is a lead capture and quote management tool for custom cake bakers. The 
 - Create and track detailed quotes with line items
 - Configure custom pricing for cakes, decorations, addons, and treats
 
-The MVP focuses on simplicity: no payment processing, no AI features, no marketplace - just lead capture and quoting that works.
+The platform includes Stripe Connect for accepting customer payments directly through quotes, with tiered platform fees based on subscription plan.
 
 ### Calculator Categories
 The public calculator (/c/:slug) supports two categories:
@@ -55,10 +55,12 @@ Preferred communication style: Simple, everyday language.
 - **Component Structure**: UI primitives in `components/ui/`, feature components at component root
 
 ### Subscription Model
-- **Free Plan**: 5 quotes sent per month, unlimited leads received
-- **Basic Plan**: 15 quotes per month + 5 featured items @ $9.97/month
-- **Pro Plan**: Unlimited quotes per month @ $29.97/month
+- **Free Plan**: 5 quotes sent per month, unlimited leads received, 7% platform fee
+- **Basic Plan**: 15 quotes per month + 5 featured items @ $4.99/month, 5% platform fee
+- **Pro Plan**: Unlimited quotes per month @ $9.99/month, 3% platform fee
 - Stripe integration for subscription management
+- Stripe Connect for accepting customer payments (deposits and full payments)
+- Platform fees computed dynamically based on plan via `getPlatformFeePercent()` in routes.ts
 - Quote limits enforced when sending quotes (drafts are free)
 
 ## External Dependencies

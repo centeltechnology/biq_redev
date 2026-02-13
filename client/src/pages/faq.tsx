@@ -114,7 +114,15 @@ const faqs = [
       },
       {
         q: "Is there a fee for accepting payments?",
-        a: "BakerIQ charges a small 3% platform fee on each payment processed. Stripe also charges their standard processing fees (typically 2.9% + $0.30 per transaction). The rest goes directly to your Stripe account."
+        a: "BakerIQ charges a platform fee that varies by plan: 7% on Free, 5% on Basic, and 3% on Pro. Stripe also charges their standard processing fee (2.9% + $0.30 per transaction). Upgrading your plan lowers your total cost per transaction."
+      },
+      {
+        q: "What are the total fees on a typical order?",
+        a: "On a $300 cake order, here's what the total fees look like by plan: Free plan: $21.00 BakerIQ fee (7%) + $9.00 Stripe fee (2.9% + $0.30) = $30.00 total, you receive $270.00. Basic plan ($4.99/mo): $15.00 BakerIQ fee (5%) + $9.00 Stripe fee = $24.00 total, you receive $276.00. Pro plan ($9.99/mo): $9.00 BakerIQ fee (3%) + $9.00 Stripe fee = $18.00 total, you receive $282.00."
+      },
+      {
+        q: "How does BakerIQ compare to other platforms?",
+        a: "BakerIQ is an all-in-one tool that replaces separate subscriptions for a website builder, booking system, and invoicing software. For comparison: HoneyBook charges $19-$39/month plus 2.9% + $0.25 per transaction. 17hats charges $15-$60/month plus payment processing fees. Square charges 3.5% + $0.15 per online transaction with no quoting tools. With BakerIQ Pro at just $9.99/month and 3% platform fee, you get a public calculator, lead capture, quoting, order calendar, and payment processing — all in one place."
       },
       {
         q: "Can customers pay a deposit instead of the full amount?",
@@ -185,7 +193,7 @@ const faqs = [
     questions: [
       {
         q: "What plans are available?",
-        a: "BakerIQ offers three plans: Free (5 quotes per month), Basic ($9.97/month for 15 quotes + 5 featured items), and Pro ($29.97/month for unlimited quotes + unlimited featured items). All plans include unlimited leads."
+        a: "BakerIQ offers three plans: Free (5 quotes/month, 7% platform fee), Basic ($4.99/month for 15 quotes + 5 featured items, 5% fee), and Pro ($9.99/month for unlimited quotes + unlimited featured items, 3% fee). All plans include unlimited leads and Stripe Connect for accepting payments."
       },
       {
         q: "What counts toward my quote limit?",
@@ -193,7 +201,7 @@ const faqs = [
       },
       {
         q: "What's the difference between Basic and Pro?",
-        a: "Basic gives you 15 quotes per month and up to 5 featured items for Fast Quote. Pro gives you unlimited quotes and unlimited featured items. Both plans include all core features like lead management, customer tracking, and email notifications."
+        a: "Basic ($4.99/mo) gives you 15 quotes per month, up to 5 featured items, and a 5% platform fee. Pro ($9.99/mo) gives you unlimited quotes, unlimited featured items, and the lowest 3% platform fee. Both plans include all core features like lead management, customer tracking, and email notifications."
       },
       {
         q: "How do I upgrade my plan?",
@@ -218,7 +226,7 @@ const faqs = [
       },
       {
         q: "What are the plan limits for Fast Quote?",
-        a: "Free plan: Fast Quote is not available. Basic plan ($9.97/month): Up to 5 featured items. Pro plan ($29.97/month): Unlimited featured items. The limits only apply to how many items you can feature, not how many orders you receive."
+        a: "Free plan: Fast Quote is not available. Basic plan ($4.99/month): Up to 5 featured items. Pro plan ($9.99/month): Unlimited featured items. The limits only apply to how many items you can feature, not how many orders you receive."
       },
       {
         q: "Where do featured items appear?",
@@ -230,7 +238,7 @@ const faqs = [
       },
       {
         q: "Why can't I feature items?",
-        a: "Fast Quote requires at least the Basic plan ($9.97/month). If you're on the Free plan, upgrade in Settings to unlock Fast Quote. Basic allows 5 featured items, Pro allows unlimited."
+        a: "Fast Quote requires at least the Basic plan ($4.99/month). If you're on the Free plan, upgrade in Settings to unlock Fast Quote. Basic allows 5 featured items, Pro allows unlimited."
       }
     ]
   },

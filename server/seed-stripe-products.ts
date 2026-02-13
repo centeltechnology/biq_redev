@@ -5,7 +5,7 @@ async function seedProducts() {
   
   const stripe = await getUncachableStripeClient();
 
-  // Seed BakerIQ Basic product ($9.97/month - 15 quotes)
+  // Seed BakerIQ Basic product ($4.99/month - 15 quotes, 5% platform fee)
   let basicProduct;
   const existingBasic = await stripe.products.search({ 
     query: "name:'BakerIQ Basic'" 
@@ -17,7 +17,7 @@ async function seedProducts() {
   } else {
     basicProduct = await stripe.products.create({
       name: 'BakerIQ Basic',
-      description: '15 quotes per month for your bakery business',
+      description: '15 quotes per month, 5 featured items, 5% platform fee',
       metadata: {
         quoteLimit: '15',
         plan: 'basic',
@@ -35,7 +35,7 @@ async function seedProducts() {
   if (basicPrices.data.length === 0) {
     const basicPrice = await stripe.prices.create({
       product: basicProduct.id,
-      unit_amount: 997, // $9.97 in cents
+      unit_amount: 499, // $4.99 in cents
       currency: 'usd',
       recurring: {
         interval: 'month',
@@ -45,12 +45,12 @@ async function seedProducts() {
         plan: 'basic',
       },
     });
-    console.log('Created Basic price:', basicPrice.id, '- $9.97/month');
+    console.log('Created Basic price:', basicPrice.id, '- $4.99/month');
   } else {
     console.log('Basic price already exists:', basicPrices.data[0].id);
   }
 
-  // Seed BakerIQ Pro product ($29.97/month - unlimited quotes)
+  // Seed BakerIQ Pro product ($9.99/month - unlimited quotes, 3% platform fee)
   let proProduct;
   const existingPro = await stripe.products.search({ 
     query: "name:'BakerIQ Pro'" 
@@ -62,7 +62,7 @@ async function seedProducts() {
   } else {
     proProduct = await stripe.products.create({
       name: 'BakerIQ Pro',
-      description: 'Unlimited quotes per month for your bakery business',
+      description: 'Unlimited quotes, unlimited featured items, 3% platform fee',
       metadata: {
         quoteLimit: 'unlimited',
         plan: 'pro',
@@ -80,7 +80,7 @@ async function seedProducts() {
   if (proPrices.data.length === 0) {
     const proPrice = await stripe.prices.create({
       product: proProduct.id,
-      unit_amount: 2997, // $29.97 in cents
+      unit_amount: 999, // $9.99 in cents
       currency: 'usd',
       recurring: {
         interval: 'month',
@@ -90,7 +90,7 @@ async function seedProducts() {
         plan: 'pro',
       },
     });
-    console.log('Created Pro price:', proPrice.id, '- $29.97/month');
+    console.log('Created Pro price:', proPrice.id, '- $9.99/month');
   } else {
     console.log('Pro price already exists:', proPrices.data[0].id);
   }
