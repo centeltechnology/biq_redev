@@ -1527,6 +1527,7 @@ export async function registerRoutes(
           paymentCashapp: baker.paymentCashapp,
           customPaymentOptions: baker.customPaymentOptions,
           currency: baker.currency,
+          onlinePaymentsEnabled: !!(baker.stripeConnectAccountId && baker.stripeConnectOnboarded && baker.stripeConnectPayoutsEnabled),
         },
         customer: {
           id: customer.id,
@@ -1902,6 +1903,402 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Webhook update error:", error);
       res.status(500).json({ message: "Failed to process webhook" });
+    }
+  });
+
+  // ============================================
+  // Stripe Connect Routes
+  // ============================================
+
+  // Create or retrieve Stripe Connect account for baker
+  app.post("/api/stripe-connect/create-account", requireAuth, async (req, res) => {
+    try {
+      const baker = await storage.getBaker(req.session.bakerId!);
+      if (!baker) return res.status(404).json({ message: "Baker not found" });
+
+      const stripe = await getUncachableStripeClient();
+
+      // If baker already has a Connect account, return it
+      if (baker.stripeConnectAccountId) {
+        const account = await stripe.accounts.retrieve(baker.stripeConnectAccountId);
+        return res.json({
+          accountId: account.id,
+          onboarded: account.details_submitted,
+          payoutsEnabled: account.payouts_enabled,
+        });
+      }
+
+      // Create a new Standard Connect account
+      const account = await stripe.accounts.create({
+        type: "standard",
+        email: baker.email,
+        metadata: {
+          bakerId: baker.id,
+          businessName: baker.businessName,
+        },
+      });
+
+      await storage.updateBaker(baker.id, {
+        stripeConnectAccountId: account.id,
+      });
+
+      res.json({
+        accountId: account.id,
+        onboarded: false,
+        payoutsEnabled: false,
+      });
+    } catch (error: any) {
+      console.error("Create Connect account error:", error);
+      res.status(500).json({ message: "Failed to create Stripe Connect account" });
+    }
+  });
+
+  // Generate onboarding link for Stripe Connect
+  app.post("/api/stripe-connect/onboarding-link", requireAuth, async (req, res) => {
+    try {
+      const baker = await storage.getBaker(req.session.bakerId!);
+      if (!baker) return res.status(404).json({ message: "Baker not found" });
+
+      if (!baker.stripeConnectAccountId) {
+        return res.status(400).json({ message: "No Connect account found. Create one first." });
+      }
+
+      const stripe = await getUncachableStripeClient();
+
+      const baseUrl = req.headers.origin || `https://${req.headers.host}`;
+      const accountLink = await stripe.accountLinks.create({
+        account: baker.stripeConnectAccountId,
+        refresh_url: `${baseUrl}/settings?tab=payments&connect=refresh`,
+        return_url: `${baseUrl}/settings?tab=payments&connect=complete`,
+        type: "account_onboarding",
+      });
+
+      res.json({ url: accountLink.url });
+    } catch (error: any) {
+      console.error("Onboarding link error:", error);
+      res.status(500).json({ message: "Failed to create onboarding link" });
+    }
+  });
+
+  // Check Connect account status (after onboarding return)
+  app.get("/api/stripe-connect/status", requireAuth, async (req, res) => {
+    try {
+      const baker = await storage.getBaker(req.session.bakerId!);
+      if (!baker) return res.status(404).json({ message: "Baker not found" });
+
+      if (!baker.stripeConnectAccountId) {
+        return res.json({
+          connected: false,
+          onboarded: false,
+          payoutsEnabled: false,
+        });
+      }
+
+      const stripe = await getUncachableStripeClient();
+      const account = await stripe.accounts.retrieve(baker.stripeConnectAccountId);
+
+      // Update baker record with latest status
+      const onboarded = !!account.details_submitted;
+      const payoutsEnabled = !!account.payouts_enabled;
+
+      if (onboarded !== baker.stripeConnectOnboarded || payoutsEnabled !== baker.stripeConnectPayoutsEnabled) {
+        await storage.updateBaker(baker.id, {
+          stripeConnectOnboarded: onboarded,
+          stripeConnectPayoutsEnabled: payoutsEnabled,
+        });
+      }
+
+      res.json({
+        connected: true,
+        onboarded,
+        payoutsEnabled,
+        accountId: account.id,
+      });
+    } catch (error: any) {
+      console.error("Connect status error:", error);
+      res.status(500).json({ message: "Failed to check Connect status" });
+    }
+  });
+
+  // Create Stripe Checkout session for quote payment (customer-facing, no auth required)
+  app.post("/api/quotes/:id/payment-session", async (req, res) => {
+    try {
+      const quote = await storage.getQuote(req.params.id);
+      if (!quote) return res.status(404).json({ message: "Quote not found" });
+
+      // Only sent quotes can be paid
+      if (quote.status !== "sent" && quote.status !== "accepted") {
+        return res.status(400).json({ message: "Quote is not available for payment" });
+      }
+
+      const baker = await storage.getBaker(quote.bakerId);
+      if (!baker) return res.status(404).json({ message: "Baker not found" });
+
+      if (!baker.stripeConnectAccountId || !baker.stripeConnectOnboarded) {
+        return res.status(400).json({ message: "Baker has not set up online payments" });
+      }
+
+      const customer = await storage.getCustomer(quote.customerId);
+
+      const stripe = await getUncachableStripeClient();
+      const { paymentType } = req.body; // "deposit" or "full"
+
+      // Calculate payment amount
+      const total = parseFloat(quote.total);
+      let paymentAmount: number;
+
+      if (paymentType === "deposit") {
+        // Use quote deposit settings, fallback to baker defaults
+        const depositType = quote.depositType || baker.defaultDepositType || "percentage";
+        if (depositType === "full") {
+          paymentAmount = total;
+        } else if (depositType === "fixed" && quote.depositAmount) {
+          paymentAmount = parseFloat(quote.depositAmount);
+        } else {
+          const pct = quote.depositPercent || baker.depositPercentage || 50;
+          paymentAmount = Math.round(total * (pct / 100) * 100) / 100;
+        }
+      } else {
+        // Full payment or remaining balance
+        const alreadyPaid = parseFloat(quote.amountPaid || "0");
+        paymentAmount = total - alreadyPaid;
+      }
+
+      if (paymentAmount <= 0) {
+        return res.status(400).json({ message: "No payment amount due" });
+      }
+
+      // Calculate platform fee
+      const feePercent = parseFloat(baker.platformFeePercent || "3.00");
+      const platformFee = Math.round(paymentAmount * (feePercent / 100) * 100) / 100;
+
+      const baseUrl = req.headers.origin || `https://${req.headers.host}`;
+
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        line_items: [
+          {
+            price_data: {
+              currency: baker.currency?.toLowerCase() || "usd",
+              product_data: {
+                name: `${quote.title} - ${paymentType === "deposit" ? "Deposit" : "Payment"}`,
+                description: `Quote #${quote.quoteNumber} from ${baker.businessName}`,
+              },
+              unit_amount: Math.round(paymentAmount * 100), // cents
+            },
+            quantity: 1,
+          },
+        ],
+        payment_intent_data: {
+          application_fee_amount: Math.round(platformFee * 100), // cents
+          transfer_data: {
+            destination: baker.stripeConnectAccountId,
+          },
+        },
+        customer_email: customer?.email || undefined,
+        metadata: {
+          quoteId: quote.id,
+          bakerId: baker.id,
+          paymentType,
+          platformFee: platformFee.toString(),
+        },
+        success_url: `${baseUrl}/quote/${quote.id}/pay?status=success`,
+        cancel_url: `${baseUrl}/quote/${quote.id}/pay?status=cancelled`,
+      });
+
+      res.json({ url: session.url, sessionId: session.id });
+    } catch (error: any) {
+      console.error("Payment session error:", error);
+      res.status(500).json({ message: "Failed to create payment session" });
+    }
+  });
+
+  // Stripe Connect webhook for payment completion
+  app.post("/api/stripe-connect/webhook", async (req, res) => {
+    try {
+      const stripe = await getUncachableStripeClient();
+      const sig = req.headers["stripe-signature"];
+
+      let event;
+      if (sig && req.rawBody) {
+        const endpointSecret = process.env.STRIPE_CONNECT_WEBHOOK_SECRET;
+        if (endpointSecret) {
+          try {
+            event = stripe.webhooks.constructEvent(
+              req.rawBody as Buffer,
+              sig as string,
+              endpointSecret
+            );
+          } catch (err: any) {
+            console.error("Connect webhook signature verification failed:", err.message);
+            return res.status(400).json({ message: "Invalid signature" });
+          }
+        } else {
+          console.warn("STRIPE_CONNECT_WEBHOOK_SECRET not set, processing without verification");
+          event = req.body;
+        }
+      } else {
+        event = req.body;
+      }
+
+      if (event.type === "checkout.session.completed") {
+        const session = event.data.object;
+        const quoteId = session.metadata?.quoteId;
+        const bakerId = session.metadata?.bakerId;
+        const paymentType = session.metadata?.paymentType || "full";
+        const platformFee = session.metadata?.platformFee || "0";
+
+        if (quoteId && bakerId) {
+          const quote = await storage.getQuote(quoteId);
+          if (quote) {
+            const paidAmount = (session.amount_total || 0) / 100;
+            const previouslyPaid = parseFloat(quote.amountPaid || "0");
+            const totalPaid = previouslyPaid + paidAmount;
+            const total = parseFloat(quote.total);
+
+            const newPaymentStatus = totalPaid >= total ? "paid" : "deposit_paid";
+
+            await storage.updateQuote(quoteId, {
+              paymentStatus: newPaymentStatus,
+              stripePaymentIntentId: session.payment_intent,
+              amountPaid: totalPaid.toFixed(2),
+              ...(newPaymentStatus === "paid" ? { paidAt: new Date() } : {}),
+              ...(quote.status === "sent" ? { status: "approved", acceptedAt: new Date() } : {}),
+            });
+
+            await storage.createQuotePayment({
+              quoteId,
+              bakerId,
+              stripePaymentIntentId: session.payment_intent || session.id,
+              amount: paidAmount.toFixed(2),
+              platformFee,
+              status: "succeeded",
+              paymentType,
+            });
+          }
+        }
+      }
+
+      res.json({ received: true });
+    } catch (error) {
+      console.error("Connect webhook error:", error);
+      res.status(500).json({ message: "Webhook processing failed" });
+    }
+  });
+
+  // Stripe Connect dashboard link (for bakers to manage their payout settings)
+  app.post("/api/stripe-connect/dashboard-link", requireAuth, async (req, res) => {
+    try {
+      const baker = await storage.getBaker(req.session.bakerId!);
+      if (!baker) return res.status(404).json({ message: "Baker not found" });
+
+      if (!baker.stripeConnectAccountId) {
+        return res.status(400).json({ message: "No Connect account found" });
+      }
+
+      const stripe = await getUncachableStripeClient();
+      const loginLink = await stripe.accounts.createLoginLink(baker.stripeConnectAccountId);
+
+      res.json({ url: loginLink.url });
+    } catch (error: any) {
+      console.error("Dashboard link error:", error);
+      // If account isn't fully onboarded, login link won't work - return onboarding link instead
+      res.status(400).json({ message: "Account not fully set up. Complete onboarding first." });
+    }
+  });
+
+  // Stripe Connect - create payment session (public, customer-facing)
+  app.post("/api/stripe-connect/create-payment-session", async (req, res) => {
+    try {
+      const { quoteId, paymentType } = req.body;
+      if (!quoteId || !["deposit", "full"].includes(paymentType)) {
+        return res.status(400).json({ message: "Invalid request" });
+      }
+
+      const quote = await storage.getQuoteWithItems(quoteId);
+      if (!quote) return res.status(404).json({ message: "Quote not found" });
+
+      if (quote.status !== "approved" && quote.status !== "sent") {
+        return res.status(400).json({ message: "Quote is not available for payment" });
+      }
+      if (quote.paymentStatus === "paid") {
+        return res.status(400).json({ message: "This quote has already been paid" });
+      }
+
+      const baker = await storage.getBaker(quote.bakerId);
+      if (!baker) return res.status(404).json({ message: "Baker not found" });
+
+      if (!baker.stripeConnectAccountId || !baker.stripeConnectOnboarded) {
+        return res.status(400).json({ message: "Online payments are not available for this baker" });
+      }
+
+      const customer = await storage.getCustomer(quote.customerId);
+      if (!customer) return res.status(404).json({ message: "Customer not found" });
+
+      const total = parseFloat(quote.total);
+      const amountPaid = parseFloat(quote.amountPaid || "0");
+      let paymentAmount: number;
+
+      if (paymentType === "deposit") {
+        let depositAmt = 0;
+        if (baker.defaultDepositType === "percentage" && baker.depositPercentage) {
+          depositAmt = total * (baker.depositPercentage / 100);
+        } else if (baker.defaultDepositType === "fixed" && baker.depositFixedAmount) {
+          depositAmt = parseFloat(baker.depositFixedAmount);
+        }
+        if (depositAmt <= 0) {
+          return res.status(400).json({ message: "No deposit amount configured" });
+        }
+        paymentAmount = depositAmt;
+      } else {
+        paymentAmount = total - amountPaid;
+      }
+
+      if (paymentAmount <= 0) {
+        return res.status(400).json({ message: "No amount due" });
+      }
+
+      const platformFeePercent = parseFloat(baker.platformFeePercent || "3.00");
+      const applicationFeeAmount = Math.round(paymentAmount * (platformFeePercent / 100) * 100);
+      const amountInCents = Math.round(paymentAmount * 100);
+
+      const stripe = await getUncachableStripeClient();
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
+
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        line_items: [{
+          price_data: {
+            currency: (baker.currency || "usd").toLowerCase(),
+            product_data: {
+              name: `${quote.title} - ${paymentType === "deposit" ? "Deposit" : "Payment"}`,
+              description: `Quote #${quote.quoteNumber} from ${baker.businessName}`,
+            },
+            unit_amount: amountInCents,
+          },
+          quantity: 1,
+        }],
+        payment_intent_data: {
+          application_fee_amount: applicationFeeAmount,
+          transfer_data: {
+            destination: baker.stripeConnectAccountId,
+          },
+        },
+        customer_email: customer.email,
+        metadata: {
+          quoteId: quote.id,
+          bakerId: baker.id,
+          paymentType,
+          amount: paymentAmount.toString(),
+        },
+        success_url: `${baseUrl}/quote/${quoteId}?payment=success`,
+        cancel_url: `${baseUrl}/quote/${quoteId}?payment=cancelled`,
+      });
+
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error("Create payment session error:", error);
+      res.status(500).json({ message: error.message || "Failed to create payment session" });
     }
   });
 

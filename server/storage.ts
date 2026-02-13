@@ -12,6 +12,7 @@ import {
   supportTickets,
   ticketMessages,
   surveyResponses,
+  quotePayments,
   type Baker,
   type InsertBaker,
   type Customer,
@@ -33,6 +34,8 @@ import {
   type InsertTicketMessage,
   type SurveyResponse,
   type InsertSurveyResponse,
+  type QuotePayment,
+  type InsertQuotePayment,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql, or, ilike, isNull } from "drizzle-orm";
@@ -158,6 +161,10 @@ export interface IStorage {
   getSurveyResponseByBaker(bakerId: string): Promise<SurveyResponse | undefined>;
   createSurveyResponse(response: InsertSurveyResponse): Promise<SurveyResponse>;
   getAllSurveyResponses(): Promise<(SurveyResponse & { baker: { businessName: string; email: string } })[]>;
+
+  // Quote Payments
+  createQuotePayment(payment: InsertQuotePayment): Promise<QuotePayment>;
+  getQuotePaymentsByQuote(quoteId: string): Promise<QuotePayment[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -971,6 +978,16 @@ export class DatabaseStorage implements IStorage {
       }
     }
     return result;
+  }
+
+  // Quote Payments
+  async createQuotePayment(payment: InsertQuotePayment): Promise<QuotePayment> {
+    const [created] = await db.insert(quotePayments).values(payment).returning();
+    return created;
+  }
+
+  async getQuotePaymentsByQuote(quoteId: string): Promise<QuotePayment[]> {
+    return db.select().from(quotePayments).where(eq(quotePayments.quoteId, quoteId)).orderBy(desc(quotePayments.createdAt));
   }
 }
 

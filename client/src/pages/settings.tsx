@@ -196,6 +196,72 @@ export default function SettingsPage() {
     },
   });
 
+  // Stripe Connect
+  const { data: connectStatus, isLoading: connectLoading } = useQuery<{
+    connected: boolean;
+    onboarded: boolean;
+    payoutsEnabled: boolean;
+    accountId?: string;
+  }>({
+    queryKey: ["/api/stripe-connect/status"],
+  });
+
+  const createConnectAccountMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/stripe-connect/create-account");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/stripe-connect/status"] });
+      generateOnboardingLinkMutation.mutate();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to set up Stripe", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const generateOnboardingLinkMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/stripe-connect/onboarding-link");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.url) {
+        window.open(data.url, "_blank");
+      }
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to generate onboarding link", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const openStripeDashboardMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/stripe-connect/dashboard-link");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.url) {
+        window.open(data.url, "_blank");
+      }
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to open Stripe Dashboard", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Check for connect return
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("connect") === "complete") {
+      queryClient.invalidateQueries({ queryKey: ["/api/stripe-connect/status"] });
+      toast({ title: "Stripe account connected!", description: "You can now accept payments from customers." });
+      window.history.replaceState({}, "", "/settings");
+    } else if (params.get("connect") === "refresh") {
+      generateOnboardingLinkMutation.mutate();
+    }
+  }, []);
+
   const updateCurrencyMutation = useMutation({
     mutationFn: async (newCurrency: string) => {
       const res = await apiRequest("PATCH", "/api/bakers/me", { currency: newCurrency });
@@ -909,6 +975,73 @@ export default function SettingsPage() {
                 </div>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Online Payments</CardTitle>
+            <CardDescription>
+              Accept payments directly from customers through your quotes
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {connectLoading ? (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Checking payment status...</span>
+              </div>
+            ) : connectStatus?.onboarded && connectStatus?.payoutsEnabled ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400 p-3 rounded-md">
+                  <Check className="h-4 w-4" />
+                  <span>Stripe account connected and ready to accept payments</span>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openStripeDashboardMutation.mutate()}
+                    disabled={openStripeDashboardMutation.isPending}
+                    data-testid="button-stripe-dashboard"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-1" />
+                    {openStripeDashboardMutation.isPending ? "Opening..." : "Stripe Dashboard"}
+                  </Button>
+                </div>
+              </div>
+            ) : connectStatus?.connected ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400 p-3 rounded-md">
+                  <HelpCircle className="h-4 w-4" />
+                  <span>Stripe account created but onboarding is not complete</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => generateOnboardingLinkMutation.mutate()}
+                  disabled={generateOnboardingLinkMutation.isPending}
+                  data-testid="button-complete-stripe-onboarding"
+                >
+                  <ExternalLink className="h-4 w-4 mr-1" />
+                  {generateOnboardingLinkMutation.isPending ? "Loading..." : "Complete Stripe Setup"}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Connect your Stripe account to accept deposits and payments directly from customers when they view their quotes. A small platform fee ({baker?.platformFeePercent || "3.00"}%) applies per transaction.
+                </p>
+                <Button
+                  onClick={() => createConnectAccountMutation.mutate()}
+                  disabled={createConnectAccountMutation.isPending}
+                  data-testid="button-connect-stripe"
+                >
+                  <CreditCard className="h-4 w-4 mr-1" />
+                  {createConnectAccountMutation.isPending ? "Setting up..." : "Connect Stripe Account"}
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 

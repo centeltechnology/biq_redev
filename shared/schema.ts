@@ -39,6 +39,12 @@ export const bakers = pgTable("bakers", {
   plan: text("plan").notNull().default("free"), // "free" or "pro"
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
+  // Stripe Connect - for receiving payments from customers
+  stripeConnectAccountId: text("stripe_connect_account_id"),
+  stripeConnectOnboarded: boolean("stripe_connect_onboarded").default(false).notNull(),
+  stripeConnectPayoutsEnabled: boolean("stripe_connect_payouts_enabled").default(false).notNull(),
+  // Platform fee percentage (default 3%)
+  platformFeePercent: decimal("platform_fee_percent", { precision: 5, scale: 2 }).default("3.00"),
   // Email notification preferences
   notifyNewLead: integer("notify_new_lead").notNull().default(1),
   notifyQuoteViewed: integer("notify_quote_viewed").notNull().default(1),
@@ -180,6 +186,10 @@ export const quotes = pgTable("quotes", {
   depositAmount: decimal("deposit_amount", { precision: 10, scale: 2 }), // Fixed deposit amount (e.g., 50.00)
   acceptedAt: timestamp("accepted_at"),
   paidAt: timestamp("paid_at"),
+  // Stripe Connect payment tracking
+  paymentStatus: text("payment_status").default("unpaid"), // unpaid, deposit_paid, paid
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
+  amountPaid: decimal("amount_paid", { precision: 10, scale: 2 }).default("0"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -253,6 +263,31 @@ export const ordersRelations = relations(orders, ({ one }) => ({
   }),
 }));
 
+// Quote Payments table - tracks individual payment transactions via Stripe Connect
+export const quotePayments = pgTable("quote_payments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  quoteId: varchar("quote_id").notNull().references(() => quotes.id),
+  bakerId: varchar("baker_id").notNull().references(() => bakers.id),
+  stripePaymentIntentId: text("stripe_payment_intent_id").notNull(),
+  stripeChargeId: text("stripe_charge_id"),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  platformFee: decimal("platform_fee", { precision: 10, scale: 2 }).notNull(),
+  status: text("status").notNull().default("pending"), // pending, succeeded, failed, refunded
+  paymentType: text("payment_type").notNull().default("deposit"), // deposit, full, remaining
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const quotePaymentsRelations = relations(quotePayments, ({ one }) => ({
+  quote: one(quotes, {
+    fields: [quotePayments.quoteId],
+    references: [quotes.id],
+  }),
+  baker: one(bakers, {
+    fields: [quotePayments.bakerId],
+    references: [bakers.id],
+  }),
+}));
+
 // Pricing Calculations table - for bakers to calculate and track their cost-based pricing
 export const pricingCalculations = pgTable("pricing_calculations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -322,6 +357,11 @@ export const insertOrderSchema = createInsertSchema(orders).omit({
   createdAt: true,
 });
 
+export const insertQuotePaymentSchema = createInsertSchema(quotePayments).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertPricingCalculationSchema = createInsertSchema(pricingCalculations).omit({
   id: true,
   createdAt: true,
@@ -341,6 +381,8 @@ export type QuoteItem = typeof quoteItems.$inferSelect;
 export type InsertQuoteItem = z.infer<typeof insertQuoteItemSchema>;
 export type Order = typeof orders.$inferSelect;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
+export type QuotePayment = typeof quotePayments.$inferSelect;
+export type InsertQuotePayment = z.infer<typeof insertQuotePaymentSchema>;
 export type PricingCalculation = typeof pricingCalculations.$inferSelect;
 export type InsertPricingCalculation = z.infer<typeof insertPricingCalculationSchema>;
 

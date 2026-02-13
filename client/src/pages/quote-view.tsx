@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, Calendar, DollarSign, FileText, Cake, Printer, XCircle, Loader2 } from "lucide-react";
+import { CheckCircle, Calendar, DollarSign, FileText, Cake, Printer, XCircle, Loader2, CreditCard } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,6 +38,7 @@ interface PublicBaker {
   paymentCashapp?: string | null;
   customPaymentOptions?: { id: string; name: string; details: string }[] | null;
   currency?: string | null;
+  onlinePaymentsEnabled?: boolean;
 }
 
 interface PublicCustomer {
@@ -97,6 +98,45 @@ export default function QuoteViewPage() {
       });
     },
   });
+
+  const paymentMutation = useMutation({
+    mutationFn: async (type: "deposit" | "full") => {
+      const res = await fetch(`/api/stripe-connect/create-payment-session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quoteId: id, paymentType: type }),
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ message: "Failed to create payment session" }));
+        throw new Error(error.message);
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Payment Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("payment") === "success") {
+      toast({ title: "Payment Successful!", description: "Your payment has been received. Thank you!" });
+      window.history.replaceState({}, "", `/quote/${id}`);
+      refetch();
+    } else if (params.get("payment") === "cancelled") {
+      toast({ title: "Payment Cancelled", description: "Your payment was not completed.", variant: "destructive" });
+      window.history.replaceState({}, "", `/quote/${id}`);
+    }
+  }, []);
 
   usePageTitle(data?.quote?.title ? `Quote: ${data.quote.title}` : "Your Quote");
 
@@ -442,6 +482,57 @@ export default function QuoteViewPage() {
                 <p className="text-sm text-muted-foreground mb-4">
                   Thank you for accepting this quote. {baker.businessName} will be in touch to finalize your order details.
                 </p>
+                {baker.onlinePaymentsEnabled && quote.paymentStatus !== "paid" && (
+                  <div className="mb-4 space-y-3">
+                    <Separator />
+                    <p className="text-sm font-medium mt-3">Pay Online</p>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                      {depositAmount > 0 && quote.paymentStatus !== "deposit_paid" && (
+                        <Button
+                          onClick={() => paymentMutation.mutate("deposit")}
+                          disabled={paymentMutation.isPending}
+                          data-testid="button-pay-deposit"
+                        >
+                          {paymentMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <CreditCard className="h-4 w-4 mr-2" />
+                          )}
+                          Pay Deposit ({fmt(depositAmount)})
+                        </Button>
+                      )}
+                      <Button
+                        variant={depositAmount > 0 && quote.paymentStatus !== "deposit_paid" ? "outline" : "default"}
+                        onClick={() => paymentMutation.mutate("full")}
+                        disabled={paymentMutation.isPending}
+                        data-testid="button-pay-full"
+                      >
+                        {paymentMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <CreditCard className="h-4 w-4 mr-2" />
+                        )}
+                        {quote.paymentStatus === "deposit_paid"
+                          ? `Pay Remaining (${fmt(total - (parseFloat(quote.amountPaid || "0")))})`
+                          : `Pay Full Amount (${fmt(total)})`}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {quote.paymentStatus === "paid" && (
+                  <div className="mb-4">
+                    <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                      <CheckCircle className="h-3 w-3 mr-1" /> Paid in Full
+                    </Badge>
+                  </div>
+                )}
+                {quote.paymentStatus === "deposit_paid" && (
+                  <div className="mb-4">
+                    <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                      <CheckCircle className="h-3 w-3 mr-1" /> Deposit Paid
+                    </Badge>
+                  </div>
+                )}
                 <div className="space-y-1">
                   {baker.phone && (
                     <p className="text-sm">

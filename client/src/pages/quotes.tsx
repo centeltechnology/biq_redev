@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, Search, Calendar, MoreHorizontal, Eye, Copy, Trash2 } from "lucide-react";
+import { Plus, Search, Calendar, MoreHorizontal, Eye, Copy, Trash2, CreditCard } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/status-badge";
+import { Badge } from "@/components/ui/badge";
 import { useFormatCurrency } from "@/hooks/use-baker-currency";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -158,6 +159,7 @@ export default function QuotesPage() {
                       <TableHead className="hidden md:table-cell">Event Date</TableHead>
                       <TableHead>Total</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead className="hidden lg:table-cell">Payment</TableHead>
                       <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -230,6 +232,19 @@ function QuoteTableRow({ quote, onDuplicate, onDelete }: QuoteTableRowProps) {
       </TableCell>
       <TableCell>
         <StatusBadge status={quote.status} type="quote" />
+      </TableCell>
+      <TableCell className="hidden lg:table-cell">
+        {quote.paymentStatus === "paid" ? (
+          <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" data-testid={`payment-status-${quote.id}`}>
+            <CreditCard className="h-3 w-3 mr-1" /> Paid
+          </Badge>
+        ) : quote.paymentStatus === "deposit_paid" ? (
+          <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" data-testid={`payment-status-${quote.id}`}>
+            <CreditCard className="h-3 w-3 mr-1" /> Deposit
+          </Badge>
+        ) : (
+          <span className="text-xs text-muted-foreground" data-testid={`payment-status-${quote.id}`}>-</span>
+        )}
       </TableCell>
       <TableCell>
         <DropdownMenu>
