@@ -1,6 +1,6 @@
 import { getUncachableStripeClient } from './stripeClient';
 
-async function seedProducts() {
+export async function seedStripeProducts() {
   console.log('Seeding Stripe products...');
   
   const stripe = await getUncachableStripeClient();
@@ -98,4 +98,3 @@ async function seedProducts() {
   console.log('Stripe products seeded successfully!');
 }
 
-seedProducts().catch(console.error);

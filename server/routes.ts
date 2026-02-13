@@ -2018,6 +2018,11 @@ export async function registerRoutes(
       });
     } catch (error: any) {
       console.error("Create Connect account error:", error);
+      if (error?.type === 'StripeInvalidRequestError' && error?.message?.includes("signed up for Connect")) {
+        return res.status(400).json({ 
+          message: "Stripe Connect is not enabled on your Stripe account. Please visit https://dashboard.stripe.com/connect/overview to activate Connect, then try again." 
+        });
+      }
       res.status(500).json({ message: "Failed to create Stripe Connect account" });
     }
   });

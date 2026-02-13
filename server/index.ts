@@ -62,6 +62,14 @@ async function initStripe() {
     console.error("Failed to initialize Stripe sync:", error);
     // Continue without Stripe sync - don't crash the app
   }
+
+  try {
+    console.log("Seeding Stripe subscription products...");
+    const { seedStripeProducts } = await import('./seed-stripe-products');
+    await seedStripeProducts();
+  } catch (error) {
+    console.error("Failed to seed Stripe products:", error);
+  }
 }
 
 // Register Stripe webhook route BEFORE express.json()
