@@ -66,6 +66,13 @@ export const bakers = pgTable("bakers", {
   calculatorHeaderImage: text("calculator_header_image"),
   // Survey trial - free Pro access for completing feedback survey
   surveyTrialEndDate: timestamp("survey_trial_end_date"),
+  // Affiliate program
+  isAffiliate: boolean("is_affiliate").default(false).notNull(),
+  affiliateCode: text("affiliate_code").unique(),
+  affiliateCommissionRate: decimal("affiliate_commission_rate", { precision: 5, scale: 2 }).default("20.00"),
+  affiliateCommissionMonths: integer("affiliate_commission_months").default(3),
+  referredByAffiliateId: varchar("referred_by_affiliate_id"),
+  referredAt: timestamp("referred_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -754,3 +761,60 @@ export const insertSurveyResponseSchema = createInsertSchema(surveyResponses).om
 
 export type SurveyResponse = typeof surveyResponses.$inferSelect;
 export type InsertSurveyResponse = z.infer<typeof insertSurveyResponseSchema>;
+
+// ============================================
+// AFFILIATE PROGRAM
+// ============================================
+
+// Referral clicks - tracks when someone clicks an affiliate link
+export const referralClicks = pgTable("referral_clicks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  affiliateCode: text("affiliate_code").notNull(),
+  ipHash: text("ip_hash"),
+  referrerUrl: text("referrer_url"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Affiliate commissions - tracks commission earned on referred baker subscriptions
+export const affiliateCommissions = pgTable("affiliate_commissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  affiliateBakerId: varchar("affiliate_baker_id").notNull().references(() => bakers.id),
+  referredBakerId: varchar("referred_baker_id").notNull().references(() => bakers.id),
+  stripeInvoiceId: text("stripe_invoice_id"),
+  subscriptionAmount: decimal("subscription_amount", { precision: 10, scale: 2 }).notNull(),
+  commissionRate: decimal("commission_rate", { precision: 5, scale: 2 }).notNull(),
+  commissionAmount: decimal("commission_amount", { precision: 10, scale: 2 }).notNull(),
+  monthNumber: integer("month_number").notNull(), // 1, 2, or 3
+  status: text("status").notNull().default("pending"), // pending, approved, paid
+  paidAt: timestamp("paid_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const affiliateCommissionsRelations = relations(affiliateCommissions, ({ one }) => ({
+  affiliate: one(bakers, {
+    fields: [affiliateCommissions.affiliateBakerId],
+    references: [bakers.id],
+    relationName: "affiliateCommissions",
+  }),
+  referredBaker: one(bakers, {
+    fields: [affiliateCommissions.referredBakerId],
+    references: [bakers.id],
+    relationName: "referredCommissions",
+  }),
+}));
+
+export const insertReferralClickSchema = createInsertSchema(referralClicks).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAffiliateCommissionSchema = createInsertSchema(affiliateCommissions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type ReferralClick = typeof referralClicks.$inferSelect;
+export type InsertReferralClick = z.infer<typeof insertReferralClickSchema>;
+export type AffiliateCommission = typeof affiliateCommissions.$inferSelect;
+export type InsertAffiliateCommission = z.infer<typeof insertAffiliateCommissionSchema>;

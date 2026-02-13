@@ -1,6 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import session from "express-session";
+import cookieParser from "cookie-parser";
 import bcrypt from "bcrypt";
 import { storage } from "./storage";
 import { z } from "zod";
@@ -143,6 +144,9 @@ export async function registerRoutes(
     app.set("trust proxy", 1);
   }
 
+  // Cookie parser for affiliate referral tracking
+  app.use(cookieParser());
+
   // Session setup
   app.use(
     session({
@@ -193,11 +197,25 @@ export async function registerRoutes(
 
       const passwordHash = await bcrypt.hash(data.password, 10);
 
+      // Check for affiliate referral cookie
+      const affiliateRef = req.cookies?.bakeriq_ref;
+      let referralData: { referredByAffiliateId?: string; referredAt?: Date } = {};
+      if (affiliateRef) {
+        const affiliateBaker = await storage.getAffiliateByCode(affiliateRef);
+        if (affiliateBaker && affiliateBaker.isAffiliate) {
+          referralData = {
+            referredByAffiliateId: affiliateBaker.id,
+            referredAt: new Date(),
+          };
+        }
+      }
+
       const baker = await storage.createBaker({
         email: data.email,
         passwordHash,
         businessName: data.businessName,
         slug,
+        ...referralData,
       });
 
       // Send email verification
@@ -1966,6 +1984,46 @@ export async function registerRoutes(
           stripeSubscriptionId: subscriptionId,
           plan,
         });
+
+        // Track affiliate commission when referred baker subscribes to a paid plan
+        if ((plan === "basic" || plan === "pro") && (status === "active" || status === "trialing") && baker.referredByAffiliateId) {
+          try {
+            const invoiceId = req.body.invoiceId || null;
+            const affiliate = await storage.getBaker(baker.referredByAffiliateId);
+            if (affiliate && affiliate.isAffiliate) {
+              const existingCommissions = await storage.getCommissionsByAffiliate(affiliate.id);
+              const commissionsForThisBaker = existingCommissions.filter(c => c.referredBakerId === baker.id);
+
+              // Idempotency: skip if this invoice was already recorded
+              if (invoiceId && commissionsForThisBaker.some(c => c.stripeInvoiceId === invoiceId)) {
+                console.log(`Affiliate commission already recorded for invoice ${invoiceId}, skipping`);
+              } else {
+                const maxMonths = affiliate.affiliateCommissionMonths || 3;
+                const nextMonth = commissionsForThisBaker.length + 1;
+
+                if (nextMonth <= maxMonths) {
+                  const subscriptionAmount = plan === "basic" ? 4.99 : 9.99;
+                  const rate = parseFloat(affiliate.affiliateCommissionRate || "20");
+                  const commissionAmount = (subscriptionAmount * rate) / 100;
+
+                  await storage.createAffiliateCommission({
+                    affiliateBakerId: affiliate.id,
+                    referredBakerId: baker.id,
+                    stripeInvoiceId: invoiceId,
+                    subscriptionAmount: subscriptionAmount.toFixed(2),
+                    commissionRate: rate.toFixed(2),
+                    commissionAmount: commissionAmount.toFixed(2),
+                    monthNumber: nextMonth,
+                    status: "pending",
+                  });
+                  console.log(`Affiliate commission recorded: ${affiliate.businessName} earns $${commissionAmount.toFixed(2)} from ${baker.businessName} (month ${nextMonth}/${maxMonths})`);
+                }
+              }
+            }
+          } catch (affError) {
+            console.error("Error tracking affiliate commission:", affError);
+          }
+        }
       }
       
       res.json({ received: true });
@@ -3387,6 +3445,185 @@ Guidelines:
     } catch (error) {
       console.error("Error fetching survey responses:", error);
       res.status(500).json({ message: "Failed to fetch survey responses" });
+    }
+  });
+
+  // ============================================
+  // AFFILIATE PROGRAM ROUTES
+  // ============================================
+
+  // Track referral click and set 45-day cookie
+  app.get("/api/ref/:code", async (req, res) => {
+    try {
+      const { code } = req.params;
+      const affiliate = await storage.getAffiliateByCode(code);
+      if (!affiliate) {
+        return res.redirect("/signup");
+      }
+
+      // Hash IP for privacy
+      const ipHash = crypto.createHash("sha256").update(req.ip || "unknown").digest("hex").substring(0, 16);
+
+      await storage.createReferralClick({
+        affiliateCode: code,
+        ipHash,
+        referrerUrl: req.get("referer") || null,
+        userAgent: req.get("user-agent") || null,
+      });
+
+      // Set 45-day cookie
+      res.cookie("bakeriq_ref", code, {
+        maxAge: 45 * 24 * 60 * 60 * 1000,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+      });
+
+      res.redirect("/signup");
+    } catch (error) {
+      console.error("Referral click tracking error:", error);
+      res.redirect("/signup");
+    }
+  });
+
+  // Admin: Get all affiliates with stats
+  app.get("/api/admin/affiliates", requireAdmin, async (req, res) => {
+    try {
+      const affiliates = await storage.getAffiliates();
+      const affiliatesWithStats = await Promise.all(
+        affiliates.map(async (a) => {
+          const stats = await storage.getAffiliateStats(a.id);
+          return {
+            ...a,
+            passwordHash: undefined,
+            stats,
+          };
+        })
+      );
+      res.json(affiliatesWithStats);
+    } catch (error) {
+      console.error("Error fetching affiliates:", error);
+      res.status(500).json({ message: "Failed to fetch affiliates" });
+    }
+  });
+
+  // Admin: Enable baker as affiliate
+  app.post("/api/admin/affiliates/:bakerId/enable", requireAdmin, async (req, res) => {
+    try {
+      const { bakerId } = req.params;
+      const { commissionRate, commissionMonths } = req.body;
+
+      const baker = await storage.getBaker(bakerId);
+      if (!baker) {
+        return res.status(404).json({ message: "Baker not found" });
+      }
+
+      // Generate unique affiliate code from slug
+      let code = baker.slug;
+      const existing = await storage.getAffiliateByCode(code);
+      if (existing && existing.id !== bakerId) {
+        code = `${baker.slug}-${crypto.randomBytes(3).toString("hex")}`;
+      }
+
+      const updated = await storage.enableAffiliate(
+        bakerId,
+        code,
+        commissionRate || "20.00",
+        commissionMonths || 3
+      );
+      res.json({ ...updated, passwordHash: undefined });
+    } catch (error) {
+      console.error("Error enabling affiliate:", error);
+      res.status(500).json({ message: "Failed to enable affiliate" });
+    }
+  });
+
+  // Admin: Disable affiliate
+  app.post("/api/admin/affiliates/:bakerId/disable", requireAdmin, async (req, res) => {
+    try {
+      const updated = await storage.disableAffiliate(req.params.bakerId);
+      res.json({ ...updated, passwordHash: undefined });
+    } catch (error) {
+      console.error("Error disabling affiliate:", error);
+      res.status(500).json({ message: "Failed to disable affiliate" });
+    }
+  });
+
+  // Admin: Update affiliate settings
+  app.patch("/api/admin/affiliates/:bakerId", requireAdmin, async (req, res) => {
+    try {
+      const { commissionRate, commissionMonths } = req.body;
+      const updated = await storage.updateBaker(req.params.bakerId, {
+        affiliateCommissionRate: commissionRate,
+        affiliateCommissionMonths: commissionMonths,
+      });
+      res.json({ ...updated, passwordHash: undefined });
+    } catch (error) {
+      console.error("Error updating affiliate:", error);
+      res.status(500).json({ message: "Failed to update affiliate" });
+    }
+  });
+
+  // Admin: Get all commissions
+  app.get("/api/admin/affiliates/commissions", requireAdmin, async (req, res) => {
+    try {
+      const affiliates = await storage.getAffiliates();
+      const allCommissions = [];
+      for (const affiliate of affiliates) {
+        const commissions = await storage.getCommissionsByAffiliate(affiliate.id);
+        for (const c of commissions) {
+          allCommissions.push({
+            ...c,
+            affiliateName: affiliate.businessName,
+            affiliateCode: affiliate.affiliateCode,
+          });
+        }
+      }
+      allCommissions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      res.json(allCommissions);
+    } catch (error) {
+      console.error("Error fetching commissions:", error);
+      res.status(500).json({ message: "Failed to fetch commissions" });
+    }
+  });
+
+  // Baker: Get own affiliate stats (Referrals tab)
+  app.get("/api/affiliate/stats", requireAuth, async (req, res) => {
+    try {
+      const baker = await storage.getBaker(req.session.bakerId!);
+      if (!baker?.isAffiliate) {
+        return res.json({ isAffiliate: false });
+      }
+
+      const stats = await storage.getAffiliateStats(baker.id);
+      const referrals = await storage.getReferralsByAffiliate(baker.id);
+      const commissions = await storage.getCommissionsByAffiliate(baker.id);
+
+      res.json({
+        isAffiliate: true,
+        affiliateCode: baker.affiliateCode,
+        commissionRate: baker.affiliateCommissionRate,
+        commissionMonths: baker.affiliateCommissionMonths,
+        stats,
+        referrals: referrals.map(r => ({
+          id: r.id,
+          businessName: r.businessName,
+          plan: r.plan,
+          createdAt: r.createdAt,
+        })),
+        commissions: commissions.map(c => ({
+          id: c.id,
+          subscriptionAmount: c.subscriptionAmount,
+          commissionRate: c.commissionRate,
+          commissionAmount: c.commissionAmount,
+          monthNumber: c.monthNumber,
+          status: c.status,
+          createdAt: c.createdAt,
+        })),
+      });
+    } catch (error) {
+      console.error("Error fetching affiliate stats:", error);
+      res.status(500).json({ message: "Failed to fetch affiliate stats" });
     }
   });
 

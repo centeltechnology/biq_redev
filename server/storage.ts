@@ -13,6 +13,8 @@ import {
   ticketMessages,
   surveyResponses,
   quotePayments,
+  referralClicks,
+  affiliateCommissions,
   type Baker,
   type InsertBaker,
   type Customer,
@@ -36,6 +38,10 @@ import {
   type InsertSurveyResponse,
   type QuotePayment,
   type InsertQuotePayment,
+  type ReferralClick,
+  type InsertReferralClick,
+  type AffiliateCommission,
+  type InsertAffiliateCommission,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql, or, ilike, isNull } from "drizzle-orm";
@@ -167,6 +173,22 @@ export interface IStorage {
   getQuotePaymentsByQuote(quoteId: string): Promise<QuotePayment[]>;
   getQuotePaymentsByBaker(bakerId: string): Promise<(QuotePayment & { quoteTitle: string; quoteNumber: string; customerName: string })[]>;
   getAllQuotePayments(): Promise<(QuotePayment & { quoteTitle: string; quoteNumber: string; bakerName: string; customerName: string })[]>;
+
+  // Affiliates
+  getAffiliates(): Promise<Baker[]>;
+  getAffiliateByCode(code: string): Promise<Baker | undefined>;
+  enableAffiliate(bakerId: string, code: string, commissionRate?: string, commissionMonths?: number): Promise<Baker | undefined>;
+  disableAffiliate(bakerId: string): Promise<Baker | undefined>;
+  
+  // Referral clicks
+  createReferralClick(click: InsertReferralClick): Promise<ReferralClick>;
+  getReferralClickCount(affiliateCode: string): Promise<number>;
+  
+  // Affiliate commissions
+  createAffiliateCommission(commission: InsertAffiliateCommission): Promise<AffiliateCommission>;
+  getCommissionsByAffiliate(affiliateBakerId: string): Promise<AffiliateCommission[]>;
+  getReferralsByAffiliate(affiliateBakerId: string): Promise<Baker[]>;
+  getAffiliateStats(affiliateBakerId: string): Promise<{ totalClicks: number; totalConversions: number; totalEarnings: number; pendingEarnings: number }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1041,6 +1063,81 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(customers, eq(quotes.customerId, customers.id))
       .orderBy(desc(quotePayments.createdAt));
     return results;
+  }
+
+  // Affiliates
+  async getAffiliates(): Promise<Baker[]> {
+    return await db.select().from(bakers).where(eq(bakers.isAffiliate, true));
+  }
+
+  async getAffiliateByCode(code: string): Promise<Baker | undefined> {
+    const [baker] = await db.select().from(bakers).where(eq(bakers.affiliateCode, code));
+    return baker;
+  }
+
+  async enableAffiliate(bakerId: string, code: string, commissionRate: string = "20.00", commissionMonths: number = 3): Promise<Baker | undefined> {
+    const [updated] = await db.update(bakers).set({
+      isAffiliate: true,
+      affiliateCode: code,
+      affiliateCommissionRate: commissionRate,
+      affiliateCommissionMonths: commissionMonths,
+    }).where(eq(bakers.id, bakerId)).returning();
+    return updated;
+  }
+
+  async disableAffiliate(bakerId: string): Promise<Baker | undefined> {
+    const [updated] = await db.update(bakers).set({
+      isAffiliate: false,
+    }).where(eq(bakers.id, bakerId)).returning();
+    return updated;
+  }
+
+  // Referral clicks
+  async createReferralClick(click: InsertReferralClick): Promise<ReferralClick> {
+    const [created] = await db.insert(referralClicks).values(click).returning();
+    return created;
+  }
+
+  async getReferralClickCount(affiliateCode: string): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)::int` }).from(referralClicks).where(eq(referralClicks.affiliateCode, affiliateCode));
+    return result[0]?.count ?? 0;
+  }
+
+  // Affiliate commissions
+  async createAffiliateCommission(commission: InsertAffiliateCommission): Promise<AffiliateCommission> {
+    const [created] = await db.insert(affiliateCommissions).values(commission).returning();
+    return created;
+  }
+
+  async getCommissionsByAffiliate(affiliateBakerId: string): Promise<AffiliateCommission[]> {
+    return await db.select().from(affiliateCommissions).where(eq(affiliateCommissions.affiliateBakerId, affiliateBakerId)).orderBy(desc(affiliateCommissions.createdAt));
+  }
+
+  async getReferralsByAffiliate(affiliateBakerId: string): Promise<Baker[]> {
+    return await db.select().from(bakers).where(eq(bakers.referredByAffiliateId, affiliateBakerId)).orderBy(desc(bakers.createdAt));
+  }
+
+  async getAffiliateStats(affiliateBakerId: string): Promise<{ totalClicks: number; totalConversions: number; totalEarnings: number; pendingEarnings: number }> {
+    const baker = await this.getBaker(affiliateBakerId);
+    if (!baker?.affiliateCode) return { totalClicks: 0, totalConversions: 0, totalEarnings: 0, pendingEarnings: 0 };
+
+    const clicks = await this.getReferralClickCount(baker.affiliateCode);
+    const referrals = await this.getReferralsByAffiliate(affiliateBakerId);
+    const commissions = await this.getCommissionsByAffiliate(affiliateBakerId);
+
+    const totalEarnings = commissions
+      .filter(c => c.status === "paid" || c.status === "approved")
+      .reduce((sum, c) => sum + parseFloat(c.commissionAmount), 0);
+    const pendingEarnings = commissions
+      .filter(c => c.status === "pending")
+      .reduce((sum, c) => sum + parseFloat(c.commissionAmount), 0);
+
+    return {
+      totalClicks: clicks,
+      totalConversions: referrals.length,
+      totalEarnings,
+      pendingEarnings,
+    };
   }
 }
 

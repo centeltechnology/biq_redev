@@ -114,3 +114,12 @@ Weekly activation and engagement emails for user retention:
 - **Scheduler**: `server/retention-scheduler.ts` runs weekly, respects 48-hour onboarding cooldown and 7-day retention email cooldown
 - **Admin UI**: System tab in admin dashboard shows segment distribution, email stats (open/click rates), and manual trigger button
 - **Tracking**: `retention_email_sends` table tracks sends, opens, and clicks per user/template
+
+### Affiliate Program
+Admin-invite-only referral program for baker/treat maker influencers:
+- **Admin Management**: Affiliates tab in admin dashboard to enable/disable bakers as affiliates, set commission rate and duration
+- **Cookie Tracking**: 45-day `bakeriq_ref` cookie set when visitors click `/api/ref/:code`, attributed on signup
+- **Commission Model**: 20% of subscription revenue (default) for first 3 months (configurable per affiliate)
+- **Baker Dashboard**: Referrals page shows referral link, click stats, signups, and commission history (only visible to affiliates)
+- **Data Model**: `referral_clicks` table tracks clicks, `affiliate_commissions` table tracks earned commissions, affiliate fields on `bakers` table
+- **Commission Tracking**: Automated commission recording when referred baker's subscription payment is processed via Stripe webhook

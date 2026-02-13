@@ -36,6 +36,7 @@ import {
   MessageSquare,
   Archive,
   Send,
+  Share2,
 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -397,6 +398,179 @@ function RetentionEmailAdmin() {
   );
 }
 
+function AffiliatesTab() {
+  const { toast } = useToast();
+  const [selectedBakerId, setSelectedBakerId] = useState("");
+  const [commissionRate, setCommissionRate] = useState("20");
+  const [commissionMonths, setCommissionMonths] = useState("3");
+
+  const { data: affiliates, isLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/affiliates"],
+  });
+
+  const { data: allBakers } = useQuery<any[]>({
+    queryKey: ["/api/admin/bakers"],
+  });
+
+  const enableMutation = useMutation({
+    mutationFn: async ({ bakerId, rate, months }: { bakerId: string; rate: string; months: number }) => {
+      const res = await apiRequest("POST", `/api/admin/affiliates/${bakerId}/enable`, {
+        commissionRate: rate,
+        commissionMonths: months,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/affiliates"] });
+      toast({ title: "Affiliate enabled" });
+      setSelectedBakerId("");
+    },
+    onError: () => {
+      toast({ title: "Failed to enable affiliate", variant: "destructive" });
+    },
+  });
+
+  const disableMutation = useMutation({
+    mutationFn: async (bakerId: string) => {
+      const res = await apiRequest("POST", `/api/admin/affiliates/${bakerId}/disable`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/affiliates"] });
+      toast({ title: "Affiliate disabled" });
+    },
+  });
+
+  const nonAffiliates = allBakers?.filter(b => !b.isAffiliate) || [];
+
+  const formatUSD = (amount: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle data-testid="text-enable-affiliate-title">Enable New Affiliate</CardTitle>
+          <CardDescription>Select a baker to make them an affiliate partner</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-4 items-end">
+            <div className="flex-1 min-w-[200px]">
+              <label className="text-sm font-medium mb-1 block">Baker</label>
+              <Select value={selectedBakerId} onValueChange={setSelectedBakerId}>
+                <SelectTrigger data-testid="select-affiliate-baker">
+                  <SelectValue placeholder="Select a baker..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {nonAffiliates.map((b: any) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.businessName} ({b.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-32">
+              <label className="text-sm font-medium mb-1 block">Rate (%)</label>
+              <Input
+                type="number"
+                value={commissionRate}
+                onChange={(e) => setCommissionRate(e.target.value)}
+                data-testid="input-commission-rate"
+              />
+            </div>
+            <div className="w-32">
+              <label className="text-sm font-medium mb-1 block">Months</label>
+              <Input
+                type="number"
+                value={commissionMonths}
+                onChange={(e) => setCommissionMonths(e.target.value)}
+                data-testid="input-commission-months"
+              />
+            </div>
+            <Button
+              onClick={() => enableMutation.mutate({
+                bakerId: selectedBakerId,
+                rate: commissionRate,
+                months: parseInt(commissionMonths),
+              })}
+              disabled={!selectedBakerId || enableMutation.isPending}
+              data-testid="button-enable-affiliate"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Enable Affiliate
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle data-testid="text-affiliates-title">Affiliate Partners</CardTitle>
+          <CardDescription>{affiliates?.length || 0} affiliates</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-2">
+              {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+            </div>
+          ) : !affiliates?.length ? (
+            <p className="text-muted-foreground text-center py-8">No affiliates yet. Enable a baker as an affiliate above.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Baker</TableHead>
+                  <TableHead>Code</TableHead>
+                  <TableHead>Rate</TableHead>
+                  <TableHead>Months</TableHead>
+                  <TableHead>Clicks</TableHead>
+                  <TableHead>Signups</TableHead>
+                  <TableHead>Earnings</TableHead>
+                  <TableHead>Pending</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {affiliates.map((a: any) => (
+                  <TableRow key={a.id} data-testid={`row-affiliate-${a.id}`}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{a.businessName}</p>
+                        <p className="text-sm text-muted-foreground">{a.email}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{a.affiliateCode}</Badge>
+                    </TableCell>
+                    <TableCell>{a.affiliateCommissionRate}%</TableCell>
+                    <TableCell>{a.affiliateCommissionMonths}</TableCell>
+                    <TableCell>{a.stats?.totalClicks || 0}</TableCell>
+                    <TableCell>{a.stats?.totalConversions || 0}</TableCell>
+                    <TableCell>{formatUSD(a.stats?.totalEarnings || 0)}</TableCell>
+                    <TableCell>{formatUSD(a.stats?.pendingEarnings || 0)}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => disableMutation.mutate(a.id)}
+                        disabled={disableMutation.isPending}
+                        data-testid={`button-disable-affiliate-${a.id}`}
+                      >
+                        <Ban className="h-4 w-4 mr-1" />
+                        Disable
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
@@ -658,7 +832,7 @@ export default function AdminDashboard() {
       </div>
 
       <Tabs defaultValue="accounts" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-flex">
           <TabsTrigger value="accounts" className="gap-2" data-testid="tab-accounts">
             <Users className="h-4 w-4" />
             <span className="hidden sm:inline">Accounts</span>
@@ -682,6 +856,10 @@ export default function AdminDashboard() {
           <TabsTrigger value="system" className="gap-2" data-testid="tab-system">
             <Activity className="h-4 w-4" />
             <span className="hidden sm:inline">System</span>
+          </TabsTrigger>
+          <TabsTrigger value="affiliates" className="gap-2" data-testid="tab-affiliates">
+            <Share2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Affiliates</span>
           </TabsTrigger>
         </TabsList>
 
@@ -1767,6 +1945,11 @@ export default function AdminDashboard() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* AFFILIATES TAB */}
+        <TabsContent value="affiliates" className="space-y-4">
+          <AffiliatesTab />
         </TabsContent>
 
       </Tabs>
