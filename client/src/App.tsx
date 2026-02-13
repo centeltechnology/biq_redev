@@ -29,6 +29,7 @@ import PricingCalculatorPage from "@/pages/pricing-calculator";
 import TermsPage from "@/pages/terms";
 import PrivacyPage from "@/pages/privacy";
 import FeedbackPage from "@/pages/feedback";
+import PaymentsPage from "@/pages/payments";
 
 function Router() {
   return (
@@ -70,6 +71,9 @@ function Router() {
       </Route>
       <Route path="/pricing-calculator">
         <ProtectedRoute><PricingCalculatorPage /></ProtectedRoute>
+      </Route>
+      <Route path="/payments">
+        <ProtectedRoute><PaymentsPage /></ProtectedRoute>
       </Route>
       <Route path="/settings">
         <ProtectedRoute><SettingsPage /></ProtectedRoute>

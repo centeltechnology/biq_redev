@@ -1124,3 +1124,83 @@ export async function sendRetentionEmail(
     text: bodyText,
   });
 }
+
+export async function sendPaymentReceivedNotification(
+  bakerEmail: string,
+  bakerName: string,
+  payment: {
+    customerName: string;
+    quoteTitle: string;
+    quoteNumber: string;
+    amount: number;
+    paymentType: string;
+    totalQuoteAmount: number;
+    totalPaid: number;
+  }
+): Promise<boolean> {
+  const paymentTypeLabel = payment.paymentType === "deposit" ? "Deposit" : "Full Payment";
+  const isPaidInFull = payment.totalPaid >= payment.totalQuoteAmount;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #16a34a, #22c55e); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px; }
+    .amount { font-size: 32px; font-weight: bold; color: #16a34a; text-align: center; margin: 20px 0; }
+    .detail-row { display: flex; padding: 10px 0; border-bottom: 1px solid #e9ecef; }
+    .label { font-weight: 600; min-width: 120px; color: #666; }
+    .value { color: #333; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Payment Received!</h1>
+      <p>${paymentTypeLabel} for Quote #${payment.quoteNumber}</p>
+    </div>
+    <div class="content">
+      <div class="amount">${formatCurrency(payment.amount)}</div>
+      <div class="detail-row">
+        <span class="label">Customer:</span>
+        <span class="value">${payment.customerName}</span>
+      </div>
+      <div class="detail-row">
+        <span class="label">Quote:</span>
+        <span class="value">${payment.quoteTitle} (#${payment.quoteNumber})</span>
+      </div>
+      <div class="detail-row">
+        <span class="label">Payment Type:</span>
+        <span class="value">${paymentTypeLabel}</span>
+      </div>
+      <div class="detail-row">
+        <span class="label">Quote Total:</span>
+        <span class="value">${formatCurrency(payment.totalQuoteAmount)}</span>
+      </div>
+      <div class="detail-row">
+        <span class="label">Total Paid:</span>
+        <span class="value">${formatCurrency(payment.totalPaid)}</span>
+      </div>
+      ${isPaidInFull ? '<p style="text-align: center; color: #16a34a; font-weight: bold; margin-top: 20px;">This quote is now paid in full!</p>' : `<p style="text-align: center; color: #666; margin-top: 20px;">Remaining balance: ${formatCurrency(payment.totalQuoteAmount - payment.totalPaid)}</p>`}
+    </div>
+    <div class="footer">
+      <p>This payment was processed through BakerIQ. Funds will be deposited to your connected Stripe account.</p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  const text = `Payment Received! ${formatCurrency(payment.amount)} ${paymentTypeLabel} from ${payment.customerName} for Quote #${payment.quoteNumber} (${payment.quoteTitle}). Total paid: ${formatCurrency(payment.totalPaid)} of ${formatCurrency(payment.totalQuoteAmount)}.`;
+
+  return sendEmail({
+    to: bakerEmail,
+    subject: `Payment Received: ${formatCurrency(payment.amount)} from ${payment.customerName}`,
+    html,
+    text,
+  });
+}

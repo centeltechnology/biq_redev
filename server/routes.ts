@@ -6,7 +6,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { pool } from "./db";
 import connectPgSimple from "connect-pg-simple";
-import { sendNewLeadNotification, sendLeadConfirmationToCustomer, sendPasswordResetEmail, sendEmailVerification, sendQuoteNotification, sendOnboardingEmail, sendQuoteResponseNotification, sendAdminPasswordReset } from "./email";
+import { sendNewLeadNotification, sendLeadConfirmationToCustomer, sendPasswordResetEmail, sendEmailVerification, sendQuoteNotification, sendOnboardingEmail, sendQuoteResponseNotification, sendAdminPasswordReset, sendPaymentReceivedNotification } from "./email";
 import crypto from "crypto";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { db } from "./db";
@@ -2020,6 +2020,44 @@ export async function registerRoutes(
     }
   });
 
+  // Baker payment history and stats
+  app.get("/api/payments", requireAuth, async (req, res) => {
+    try {
+      const bakerId = req.session.bakerId!;
+      const payments = await storage.getQuotePaymentsByBaker(bakerId);
+
+      const totalReceived = payments
+        .filter(p => p.status === "succeeded")
+        .reduce((sum, p) => sum + parseFloat(p.amount), 0);
+      const totalFees = payments
+        .filter(p => p.status === "succeeded")
+        .reduce((sum, p) => sum + parseFloat(p.platformFee), 0);
+      const netEarnings = totalReceived - totalFees;
+      const totalTransactions = payments.filter(p => p.status === "succeeded").length;
+
+      const now = new Date();
+      const thisMonth = payments.filter(p => {
+        const d = new Date(p.createdAt);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && p.status === "succeeded";
+      });
+      const monthlyReceived = thisMonth.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+
+      res.json({
+        payments,
+        stats: {
+          totalReceived,
+          totalFees,
+          netEarnings,
+          totalTransactions,
+          monthlyReceived,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching payments:", error);
+      res.status(500).json({ message: "Failed to fetch payments" });
+    }
+  });
+
   // Create Stripe Checkout session for quote payment (customer-facing, no auth required)
   app.post("/api/quotes/:id/payment-session", async (req, res) => {
     try {
@@ -2175,6 +2213,20 @@ export async function registerRoutes(
               status: "succeeded",
               paymentType,
             });
+
+            const baker = await storage.getBaker(bakerId);
+            const customer = await storage.getCustomer(quote.customerId);
+            if (baker && customer) {
+              sendPaymentReceivedNotification(baker.email, baker.businessName, {
+                customerName: customer.name,
+                quoteTitle: quote.title,
+                quoteNumber: quote.quoteNumber,
+                amount: paidAmount,
+                paymentType,
+                totalQuoteAmount: total,
+                totalPaid,
+              }).catch(err => console.error("Failed to send payment notification:", err));
+            }
           }
         }
       }
@@ -2404,6 +2456,45 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Admin analytics error:", error);
       res.status(500).json({ message: "Failed to get analytics" });
+    }
+  });
+
+  // Admin payment overview
+  app.get("/api/admin/payments", requireAdmin, async (req, res) => {
+    try {
+      const allPayments = await storage.getAllQuotePayments();
+      const allBakers = await storage.getAllBakers();
+      const connectAccounts = allBakers.filter(b => b.stripeConnectAccountId);
+
+      const succeeded = allPayments.filter(p => p.status === "succeeded");
+      const totalVolume = succeeded.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+      const totalPlatformFees = succeeded.reduce((sum, p) => sum + parseFloat(p.platformFee), 0);
+
+      const now = new Date();
+      const thisMonth = succeeded.filter(p => {
+        const d = new Date(p.createdAt);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      });
+      const monthlyVolume = thisMonth.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+      const monthlyFees = thisMonth.reduce((sum, p) => sum + parseFloat(p.platformFee), 0);
+
+      res.json({
+        payments: allPayments.slice(0, 50),
+        stats: {
+          totalVolume,
+          totalPlatformFees,
+          totalTransactions: succeeded.length,
+          monthlyVolume,
+          monthlyFees,
+          monthlyTransactions: thisMonth.length,
+          connectAccountsTotal: connectAccounts.length,
+          connectAccountsOnboarded: connectAccounts.filter(b => b.stripeConnectOnboarded).length,
+          connectAccountsActive: connectAccounts.filter(b => b.stripeConnectPayoutsEnabled).length,
+        },
+      });
+    } catch (error) {
+      console.error("Admin payments error:", error);
+      res.status(500).json({ message: "Failed to fetch payment data" });
     }
   });
 

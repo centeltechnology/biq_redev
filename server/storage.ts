@@ -165,6 +165,8 @@ export interface IStorage {
   // Quote Payments
   createQuotePayment(payment: InsertQuotePayment): Promise<QuotePayment>;
   getQuotePaymentsByQuote(quoteId: string): Promise<QuotePayment[]>;
+  getQuotePaymentsByBaker(bakerId: string): Promise<(QuotePayment & { quoteTitle: string; quoteNumber: string; customerName: string })[]>;
+  getAllQuotePayments(): Promise<(QuotePayment & { quoteTitle: string; quoteNumber: string; bakerName: string; customerName: string })[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -988,6 +990,57 @@ export class DatabaseStorage implements IStorage {
 
   async getQuotePaymentsByQuote(quoteId: string): Promise<QuotePayment[]> {
     return db.select().from(quotePayments).where(eq(quotePayments.quoteId, quoteId)).orderBy(desc(quotePayments.createdAt));
+  }
+
+  async getQuotePaymentsByBaker(bakerId: string): Promise<(QuotePayment & { quoteTitle: string; quoteNumber: string; customerName: string })[]> {
+    const results = await db
+      .select({
+        id: quotePayments.id,
+        quoteId: quotePayments.quoteId,
+        bakerId: quotePayments.bakerId,
+        stripePaymentIntentId: quotePayments.stripePaymentIntentId,
+        stripeChargeId: quotePayments.stripeChargeId,
+        amount: quotePayments.amount,
+        platformFee: quotePayments.platformFee,
+        status: quotePayments.status,
+        paymentType: quotePayments.paymentType,
+        createdAt: quotePayments.createdAt,
+        quoteTitle: quotes.title,
+        quoteNumber: quotes.quoteNumber,
+        customerName: customers.name,
+      })
+      .from(quotePayments)
+      .innerJoin(quotes, eq(quotePayments.quoteId, quotes.id))
+      .innerJoin(customers, eq(quotes.customerId, customers.id))
+      .where(eq(quotePayments.bakerId, bakerId))
+      .orderBy(desc(quotePayments.createdAt));
+    return results;
+  }
+
+  async getAllQuotePayments(): Promise<(QuotePayment & { quoteTitle: string; quoteNumber: string; bakerName: string; customerName: string })[]> {
+    const results = await db
+      .select({
+        id: quotePayments.id,
+        quoteId: quotePayments.quoteId,
+        bakerId: quotePayments.bakerId,
+        stripePaymentIntentId: quotePayments.stripePaymentIntentId,
+        stripeChargeId: quotePayments.stripeChargeId,
+        amount: quotePayments.amount,
+        platformFee: quotePayments.platformFee,
+        status: quotePayments.status,
+        paymentType: quotePayments.paymentType,
+        createdAt: quotePayments.createdAt,
+        quoteTitle: quotes.title,
+        quoteNumber: quotes.quoteNumber,
+        bakerName: bakers.businessName,
+        customerName: customers.name,
+      })
+      .from(quotePayments)
+      .innerJoin(quotes, eq(quotePayments.quoteId, quotes.id))
+      .innerJoin(bakers, eq(quotePayments.bakerId, bakers.id))
+      .innerJoin(customers, eq(quotes.customerId, customers.id))
+      .orderBy(desc(quotePayments.createdAt));
+    return results;
   }
 }
 

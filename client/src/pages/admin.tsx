@@ -277,6 +277,35 @@ export default function AdminDashboard() {
     enabled: !!selectedBaker && activityDialogOpen,
   });
 
+  const { data: adminPayments, isLoading: paymentsLoading } = useQuery<{
+    payments: Array<{
+      id: string;
+      quoteId: string;
+      amount: string;
+      platformFee: string;
+      status: string;
+      paymentType: string;
+      createdAt: string;
+      quoteTitle: string;
+      quoteNumber: string;
+      bakerName: string;
+      customerName: string;
+    }>;
+    stats: {
+      totalVolume: number;
+      totalPlatformFees: number;
+      totalTransactions: number;
+      monthlyVolume: number;
+      monthlyFees: number;
+      monthlyTransactions: number;
+      connectAccountsTotal: number;
+      connectAccountsOnboarded: number;
+      connectAccountsActive: number;
+    };
+  }>({
+    queryKey: ["/api/admin/payments"],
+  });
+
   const filteredBakers = bakers?.filter((baker) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
@@ -459,7 +488,7 @@ export default function AdminDashboard() {
       </div>
 
       <Tabs defaultValue="accounts" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
           <TabsTrigger value="accounts" className="gap-2" data-testid="tab-accounts">
             <Users className="h-4 w-4" />
             <span className="hidden sm:inline">Accounts</span>
@@ -467,6 +496,10 @@ export default function AdminDashboard() {
           <TabsTrigger value="analytics" className="gap-2" data-testid="tab-analytics">
             <BarChart3 className="h-4 w-4" />
             <span className="hidden sm:inline">Analytics</span>
+          </TabsTrigger>
+          <TabsTrigger value="payments" className="gap-2" data-testid="tab-payments">
+            <DollarSign className="h-4 w-4" />
+            <span className="hidden sm:inline">Payments</span>
           </TabsTrigger>
           <TabsTrigger value="support" className="gap-2" data-testid="tab-support">
             <Mail className="h-4 w-4" />
@@ -1309,6 +1342,143 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </TabsContent>
+        {/* PAYMENTS TAB */}
+        <TabsContent value="payments" className="space-y-4">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Volume</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {paymentsLoading ? <Skeleton className="h-8 w-24" /> : (
+                  <div className="text-2xl font-bold" data-testid="text-admin-total-volume">
+                    ${(adminPayments?.stats.totalVolume || 0).toFixed(2)}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Platform Fees</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {paymentsLoading ? <Skeleton className="h-8 w-24" /> : (
+                  <div className="text-2xl font-bold text-green-600 dark:text-green-400" data-testid="text-admin-platform-fees">
+                    ${(adminPayments?.stats.totalPlatformFees || 0).toFixed(2)}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">This Month</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {paymentsLoading ? <Skeleton className="h-8 w-24" /> : (
+                  <div>
+                    <div className="text-2xl font-bold" data-testid="text-admin-monthly-volume">
+                      ${(adminPayments?.stats.monthlyVolume || 0).toFixed(2)}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {adminPayments?.stats.monthlyTransactions || 0} transactions
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Connect Accounts</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {paymentsLoading ? <Skeleton className="h-8 w-24" /> : (
+                  <div>
+                    <div className="text-2xl font-bold" data-testid="text-admin-connect-accounts">
+                      {adminPayments?.stats.connectAccountsActive || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {adminPayments?.stats.connectAccountsOnboarded || 0} onboarded / {adminPayments?.stats.connectAccountsTotal || 0} total
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Transactions</CardTitle>
+              <CardDescription>All customer payments across the platform</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              {paymentsLoading ? (
+                <div className="p-4 space-y-3">
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
+                </div>
+              ) : !adminPayments?.payments?.length ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <DollarSign className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                  <p className="font-medium">No payments recorded yet</p>
+                  <p className="text-sm">Payments will appear here when customers pay through quotes</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Baker</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Quote</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead className="text-right">Fee</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {adminPayments.payments.map((payment) => (
+                        <TableRow key={payment.id} data-testid={`admin-payment-row-${payment.id}`}>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {format(new Date(payment.createdAt), "MMM d, yyyy")}
+                          </TableCell>
+                          <TableCell className="font-medium text-sm">{payment.bakerName}</TableCell>
+                          <TableCell className="text-sm">{payment.customerName}</TableCell>
+                          <TableCell>
+                            <span className="text-xs text-muted-foreground">#{payment.quoteNumber}</span>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" className="text-xs">
+                              {payment.paymentType === "deposit" ? "Deposit" : payment.paymentType === "full" ? "Full" : payment.paymentType}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">${parseFloat(payment.amount).toFixed(2)}</TableCell>
+                          <TableCell className="text-right text-sm text-muted-foreground">${parseFloat(payment.platformFee).toFixed(2)}</TableCell>
+                          <TableCell>
+                            {payment.status === "succeeded" ? (
+                              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                                <CheckCircle className="h-3 w-3 mr-1" /> Paid
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary">{payment.status}</Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
       </Tabs>
 
       {/* SUSPEND DIALOG */}
