@@ -60,50 +60,6 @@ const previewScreens = [
   { image: sliderImage3, title: "Lead & Order Management", description: "Centralize your orders and manage leads with easy status tracking" }
 ];
 
-const competitors = [
-  {
-    name: "HoneyBook",
-    monthly: "$19 - $39/mo",
-    txFee: "2.9% + $0.25",
-    txFeeOnOrder: "$8.95",
-    totalCost: "$27.95 - $47.95",
-    hasCalculator: false,
-    hasLeads: false,
-    hasBakeryFocus: false,
-  },
-  {
-    name: "17hats",
-    monthly: "$15 - $60/mo",
-    txFee: "2.9% + $0.30",
-    txFeeOnOrder: "$9.00",
-    totalCost: "$24.00 - $69.00",
-    hasCalculator: false,
-    hasLeads: false,
-    hasBakeryFocus: false,
-  },
-  {
-    name: "Square Invoices",
-    monthly: "Free",
-    txFee: "3.3% + $0.30",
-    txFeeOnOrder: "$10.20",
-    totalCost: "$10.20",
-    hasCalculator: false,
-    hasLeads: false,
-    hasBakeryFocus: false,
-  },
-  {
-    name: "BakerIQ Pro",
-    monthly: "$9.99/mo",
-    txFee: "3% + processing",
-    txFeeOnOrder: "$18.00",
-    totalCost: "$27.99",
-    hasCalculator: true,
-    hasLeads: true,
-    hasBakeryFocus: true,
-    highlight: true,
-  },
-];
-
 export default function HomePage() {
   const [previewIndex, setPreviewIndex] = useState(0);
 
@@ -413,63 +369,87 @@ export default function HomePage() {
                 Keep more of what you earn
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Other platforms charge high monthly fees and still take a cut of every transaction. BakerIQ gives you more for less.
+                Why pay for a booking tool, an invoicing app, and a payment processor separately? BakerIQ gives you everything in one place.
               </p>
             </div>
 
-            <div className="max-w-5xl mx-auto">
-              <div className="mb-4 text-sm text-muted-foreground text-center">
-                Based on a $300 cake order
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse" data-testid="table-cost-comparison">
-                  <thead>
-                    <tr>
-                      <th className="text-left p-4 text-sm font-medium text-muted-foreground">Platform</th>
-                      <th className="text-left p-4 text-sm font-medium text-muted-foreground">Monthly Fee</th>
-                      <th className="text-left p-4 text-sm font-medium text-muted-foreground">Per-Transaction Fee</th>
-                      <th className="text-left p-4 text-sm font-medium text-muted-foreground">Fee on $300 Order</th>
-                      <th className="text-left p-4 text-sm font-medium text-muted-foreground">Total Monthly Cost*</th>
-                      <th className="text-center p-4 text-sm font-medium text-muted-foreground">Price Calculator</th>
-                      <th className="text-center p-4 text-sm font-medium text-muted-foreground">Lead Capture</th>
-                      <th className="text-center p-4 text-sm font-medium text-muted-foreground">Bakery-Focused</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {competitors.map((comp) => (
-                      <tr
-                        key={comp.name}
-                        className={comp.highlight ? "bg-primary/5" : "border-b border-border"}
-                        data-testid={`row-competitor-${comp.name.toLowerCase().replace(/\s/g, '-')}`}
-                      >
-                        <td className="p-4 font-medium">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {comp.name}
-                            {comp.highlight && <Badge variant="default" className="no-default-active-elevate text-xs">Recommended</Badge>}
-                          </div>
-                        </td>
-                        <td className="p-4 text-muted-foreground" data-testid={`text-monthly-${comp.name.toLowerCase().replace(/\s/g, '-')}`}>{comp.monthly}</td>
-                        <td className="p-4 text-muted-foreground" data-testid={`text-txfee-${comp.name.toLowerCase().replace(/\s/g, '-')}`}>{comp.txFee}</td>
-                        <td className="p-4 font-medium" data-testid={`text-orderfee-${comp.name.toLowerCase().replace(/\s/g, '-')}`}>{comp.txFeeOnOrder}</td>
-                        <td className="p-4 font-semibold" data-testid={`text-totalcost-${comp.name.toLowerCase().replace(/\s/g, '-')}`}>{comp.totalCost}</td>
-                        <td className="text-center p-4" data-testid={`indicator-calculator-${comp.name.toLowerCase().replace(/\s/g, '-')}`}>
-                          {comp.hasCalculator ? <Check className="h-5 w-5 text-primary mx-auto" /> : <X className="h-5 w-5 text-muted-foreground/40 mx-auto" />}
-                        </td>
-                        <td className="text-center p-4" data-testid={`indicator-leads-${comp.name.toLowerCase().replace(/\s/g, '-')}`}>
-                          {comp.hasLeads ? <Check className="h-5 w-5 text-primary mx-auto" /> : <X className="h-5 w-5 text-muted-foreground/40 mx-auto" />}
-                        </td>
-                        <td className="text-center p-4" data-testid={`indicator-bakery-${comp.name.toLowerCase().replace(/\s/g, '-')}`}>
-                          {comp.hasBakeryFocus ? <Check className="h-5 w-5 text-primary mx-auto" /> : <X className="h-5 w-5 text-muted-foreground/40 mx-auto" />}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="text-xs text-muted-foreground mt-4 text-center">
-                *Total monthly cost = subscription + transaction fee on one $300 order. BakerIQ fees include both platform fee (3%) and payment processing (2.9% + $0.30).
-              </p>
+            <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto items-start">
+              <Card className="bg-muted/50" data-testid="card-comparison-others">
+                <CardHeader>
+                  <CardTitle className="text-lg text-muted-foreground">Other platforms</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-2">
+                      <X className="h-5 w-5 text-muted-foreground/50 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm text-muted-foreground">$19 - $60/month subscriptions</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <X className="h-5 w-5 text-muted-foreground/50 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm text-muted-foreground">Transaction fees on every payment</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <X className="h-5 w-5 text-muted-foreground/50 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm text-muted-foreground">No public pricing calculator</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <X className="h-5 w-5 text-muted-foreground/50 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm text-muted-foreground">Not built for bakers</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <X className="h-5 w-5 text-muted-foreground/50 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm text-muted-foreground">Need separate tools for quoting, invoicing, and payments</span>
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-border">
+                    <p className="text-xs text-muted-foreground">
+                      HoneyBook, 17hats, Square, and others charge monthly fees plus processing fees and don't include cake-specific tools.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-primary/30" data-testid="card-comparison-bakeriq">
+                <CardHeader>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <CardTitle className="text-lg">BakerIQ</CardTitle>
+                    <Badge variant="default" className="no-default-active-elevate text-xs">All-in-one</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-2">
+                      <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">Start free, Pro is just $9.99/month</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">Low platform fees starting at 3%</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">Built-in pricing calculator for cakes and treats</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">Designed specifically for bakers</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">Leads, quotes, payments, and calendar in one place</span>
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-border">
+                    <div className="bg-primary/5 rounded-md p-3">
+                      <p className="text-sm font-medium" data-testid="text-comparison-example">On a $300 cake order with Pro, you keep <span className="text-primary font-bold">$282</span></p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
+            <p className="text-center mt-8 text-muted-foreground" data-testid="text-comparison-cta">
+              Why pay for 3 separate tools when BakerIQ does it all?
+            </p>
           </div>
         </section>
 
