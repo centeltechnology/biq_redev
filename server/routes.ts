@@ -3760,9 +3760,15 @@ Guidelines:
   // Baker: Get own referral stats (baker-to-baker referral program)
   app.get("/api/referral/stats", requireAuth, async (req, res) => {
     try {
-      const baker = await storage.getBaker(req.session.bakerId!);
+      let baker = await storage.getBaker(req.session.bakerId!);
       if (!baker) {
         return res.status(404).json({ message: "Baker not found" });
+      }
+
+      if (!baker.referralCode) {
+        const referralCode = crypto.randomBytes(4).toString("hex");
+        await storage.updateBaker(baker.id, { referralCode });
+        baker = { ...baker, referralCode };
       }
 
       const referrals = await storage.getBakerReferralsByReferrer(baker.id);
