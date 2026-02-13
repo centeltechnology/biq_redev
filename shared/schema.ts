@@ -850,3 +850,28 @@ export type ReferralClick = typeof referralClicks.$inferSelect;
 export type InsertReferralClick = z.infer<typeof insertReferralClickSchema>;
 export type AffiliateCommission = typeof affiliateCommissions.$inferSelect;
 export type InsertAffiliateCommission = z.infer<typeof insertAffiliateCommissionSchema>;
+
+export const affiliateRequests = pgTable("affiliate_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  socialMedia: text("social_media").notNull(),
+  followers: text("followers"),
+  niche: text("niche"),
+  message: text("message"),
+  status: text("status").notNull().default("pending"),
+  adminNotes: text("admin_notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  reviewedAt: timestamp("reviewed_at"),
+});
+
+export const insertAffiliateRequestSchema = createInsertSchema(affiliateRequests).omit({
+  id: true,
+  status: true,
+  adminNotes: true,
+  createdAt: true,
+  reviewedAt: true,
+});
+
+export type AffiliateRequest = typeof affiliateRequests.$inferSelect;
+export type InsertAffiliateRequest = z.infer<typeof insertAffiliateRequestSchema>;

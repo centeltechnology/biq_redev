@@ -3506,6 +3506,80 @@ Guidelines:
   });
 
   // ============================================
+  // AFFILIATE REQUEST ENDPOINTS (PUBLIC + ADMIN)
+  // ============================================
+
+  app.post("/api/affiliate-requests", async (req, res) => {
+    try {
+      const { name, email, socialMedia, followers, niche, message } = req.body;
+      if (!name || !email || !socialMedia) {
+        return res.status(400).json({ message: "Name, email, and social media link are required" });
+      }
+      const request = await storage.createAffiliateRequest({
+        name,
+        email,
+        socialMedia,
+        followers: followers || null,
+        niche: niche || null,
+        message: message || null,
+      });
+      res.status(201).json(request);
+    } catch (error) {
+      console.error("Error creating affiliate request:", error);
+      res.status(500).json({ message: "Failed to submit request" });
+    }
+  });
+
+  app.get("/api/admin/affiliate-requests", requireAdmin, async (req, res) => {
+    try {
+      const status = req.query.status as string | undefined;
+      const requests = await storage.getAffiliateRequests(status);
+      res.json(requests);
+    } catch (error) {
+      console.error("Error fetching affiliate requests:", error);
+      res.status(500).json({ message: "Failed to fetch requests" });
+    }
+  });
+
+  app.post("/api/admin/affiliate-requests/:id/approve", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { adminNotes } = req.body;
+      const updated = await storage.updateAffiliateRequest(id, {
+        status: "approved",
+        adminNotes: adminNotes || null,
+        reviewedAt: new Date(),
+      });
+      if (!updated) {
+        return res.status(404).json({ message: "Request not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error("Error approving affiliate request:", error);
+      res.status(500).json({ message: "Failed to approve request" });
+    }
+  });
+
+  app.post("/api/admin/affiliate-requests/:id/deny", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { adminNotes } = req.body;
+      const updated = await storage.updateAffiliateRequest(id, {
+        status: "denied",
+        adminNotes: adminNotes || null,
+        reviewedAt: new Date(),
+      });
+      if (!updated) {
+        return res.status(404).json({ message: "Request not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error("Error denying affiliate request:", error);
+      res.status(500).json({ message: "Failed to deny request" });
+    }
+  });
+
+  // ============================================
   // PRETTY AFFILIATE / REFERRAL JOIN ROUTES
   // ============================================
 

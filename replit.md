@@ -137,3 +137,5 @@ Premium referral program for influencers:
 - **Baker Dashboard**: "Affiliate Program" page shows referral link with slug editor, click stats, signups, and commission history (only visible to affiliates)
 - **Data Model**: `referral_clicks` table tracks clicks, `affiliate_commissions` table tracks earned commissions, affiliate fields on `bakers` table
 - **Commission Tracking**: Automated commission recording when referred baker's subscription payment is processed via Stripe webhook
+- **Application Page**: Public `/partners` page with program details and application form for influencers/creators to request affiliate access
+- **Application Management**: `affiliate_requests` table tracks applications; admin Affiliates tab shows pending applications with approve/deny actions

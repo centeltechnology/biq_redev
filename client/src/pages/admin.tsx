@@ -724,7 +724,149 @@ function AffiliatesTab() {
           </CardContent>
         </Card>
       )}
+
+      <AffiliateRequestsSection />
     </div>
+  );
+}
+
+function AffiliateRequestsSection() {
+  const { toast } = useToast();
+  const { data: requests, isLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/affiliate-requests"],
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("POST", `/api/admin/affiliate-requests/${id}/approve`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/affiliate-requests"] });
+      toast({ title: "Request approved" });
+    },
+  });
+
+  const denyMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("POST", `/api/admin/affiliate-requests/${id}/deny`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/affiliate-requests"] });
+      toast({ title: "Request denied" });
+    },
+  });
+
+  const pendingRequests = requests?.filter((r: any) => r.status === "pending") || [];
+  const reviewedRequests = requests?.filter((r: any) => r.status !== "pending") || [];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle data-testid="text-affiliate-requests-title">Affiliate Applications</CardTitle>
+        <CardDescription>
+          {pendingRequests.length} pending {pendingRequests.length === 1 ? "application" : "applications"}
+          {reviewedRequests.length > 0 && ` · ${reviewedRequests.length} reviewed`}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-2">
+            {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+          </div>
+        ) : !requests?.length ? (
+          <p className="text-muted-foreground text-center py-8">
+            No affiliate applications yet. Share your <span className="font-medium">/partners</span> page to receive applications.
+          </p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Applicant</TableHead>
+                <TableHead>Social Media</TableHead>
+                <TableHead>Followers</TableHead>
+                <TableHead>Niche</TableHead>
+                <TableHead>Message</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {requests.map((r: any) => (
+                <TableRow key={r.id} data-testid={`row-affiliate-request-${r.id}`}>
+                  <TableCell>
+                    <div>
+                      <p className="font-medium">{r.name}</p>
+                      <p className="text-xs text-muted-foreground">{r.email}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <a
+                      href={r.socialMedia.startsWith("http") ? r.socialMedia : `https://${r.socialMedia}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm underline"
+                      data-testid={`link-social-${r.id}`}
+                    >
+                      {r.socialMedia.replace(/^https?:\/\//, "").slice(0, 30)}
+                    </a>
+                  </TableCell>
+                  <TableCell className="text-sm">{r.followers || "—"}</TableCell>
+                  <TableCell className="text-sm">{r.niche || "—"}</TableCell>
+                  <TableCell>
+                    <p className="text-sm max-w-[200px] truncate" title={r.message || ""}>
+                      {r.message || "—"}
+                    </p>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {r.createdAt ? format(new Date(r.createdAt), "MMM d, yyyy") : ""}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={r.status === "approved" ? "default" : r.status === "denied" ? "destructive" : "secondary"}
+                      data-testid={`badge-request-status-${r.id}`}
+                    >
+                      {r.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {r.status === "pending" ? (
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="sm"
+                          onClick={() => approveMutation.mutate(r.id)}
+                          disabled={approveMutation.isPending}
+                          data-testid={`button-approve-request-${r.id}`}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => denyMutation.mutate(r.id)}
+                          disabled={denyMutation.isPending}
+                          data-testid={`button-deny-request-${r.id}`}
+                        >
+                          <XCircle className="h-4 w-4 mr-1" />
+                          Deny
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">
+                        {r.reviewedAt ? format(new Date(r.reviewedAt), "MMM d") : ""}
+                      </span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

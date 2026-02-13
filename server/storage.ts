@@ -45,6 +45,9 @@ import {
   type InsertAffiliateCommission,
   type BakerReferral,
   type InsertBakerReferral,
+  affiliateRequests,
+  type AffiliateRequest,
+  type InsertAffiliateRequest,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql, or, ilike, isNull } from "drizzle-orm";
@@ -201,6 +204,12 @@ export interface IStorage {
   getBakerReferralsByReferrer(bakerId: string): Promise<BakerReferral[]>;
   getBakerByReferralCode(code: string): Promise<Baker | undefined>;
   awardBakerReferralCredit(referralId: string, creditType: string): Promise<BakerReferral | undefined>;
+
+  // Affiliate requests
+  createAffiliateRequest(request: InsertAffiliateRequest): Promise<AffiliateRequest>;
+  getAffiliateRequests(status?: string): Promise<AffiliateRequest[]>;
+  getAffiliateRequest(id: string): Promise<AffiliateRequest | undefined>;
+  updateAffiliateRequest(id: string, updates: Partial<AffiliateRequest>): Promise<AffiliateRequest | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1189,6 +1198,28 @@ export class DatabaseStorage implements IStorage {
       creditType,
       awardedAt: new Date(),
     }).where(eq(bakerReferrals.id, referralId)).returning();
+    return updated;
+  }
+
+  async createAffiliateRequest(request: InsertAffiliateRequest): Promise<AffiliateRequest> {
+    const [created] = await db.insert(affiliateRequests).values(request).returning();
+    return created;
+  }
+
+  async getAffiliateRequests(status?: string): Promise<AffiliateRequest[]> {
+    if (status) {
+      return db.select().from(affiliateRequests).where(eq(affiliateRequests.status, status)).orderBy(desc(affiliateRequests.createdAt));
+    }
+    return db.select().from(affiliateRequests).orderBy(desc(affiliateRequests.createdAt));
+  }
+
+  async getAffiliateRequest(id: string): Promise<AffiliateRequest | undefined> {
+    const [request] = await db.select().from(affiliateRequests).where(eq(affiliateRequests.id, id));
+    return request || undefined;
+  }
+
+  async updateAffiliateRequest(id: string, updates: Partial<AffiliateRequest>): Promise<AffiliateRequest | undefined> {
+    const [updated] = await db.update(affiliateRequests).set(updates).where(eq(affiliateRequests.id, id)).returning();
     return updated;
   }
 }
