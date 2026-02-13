@@ -12,7 +12,8 @@ import {
   MessageSquare,
   Mail,
   BookOpen,
-  Zap
+  Zap,
+  CreditCard
 } from "lucide-react";
 
 export default function HelpPage() {
@@ -216,6 +217,34 @@ export default function HelpPage() {
                   <h4 className="font-medium">Quick Quote Creation</h4>
                   <p className="text-sm text-muted-foreground">
                     Fast Quote leads show a special badge. Click "Quick Quote" to create a quote with the item name, price, and details pre-filled.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate">
+              <CardHeader>
+                <CreditCard className="h-10 w-10 text-primary mb-2" />
+                <CardTitle>Accepting Payments</CardTitle>
+                <CardDescription>Get paid directly through your quotes</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium">Connect Stripe</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Go to Settings and click "Connect with Stripe" to link your Stripe account. This lets customers pay deposits or full amounts directly on your quotes.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">How Customers Pay</h4>
+                  <p className="text-sm text-muted-foreground">
+                    When you send a quote, customers see a "Pay Now" button. They can choose to pay a deposit or the full amount using a secure Stripe checkout page.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Track Your Earnings</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Visit the Payments page in your dashboard to see all transactions, total revenue, and payment status for each quote. You also get email notifications for every payment.
                   </p>
                 </div>
               </CardContent>

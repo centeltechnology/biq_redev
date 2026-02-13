@@ -93,11 +93,44 @@ const faqs = [
       },
       {
         q: "What payment methods can I accept?",
-        a: "You can configure which payment methods you accept (Zelle, PayPal, CashApp, Venmo, Cash) in Calculator Pricing. This information is shown to customers on their quotes."
+        a: "You can accept credit/debit card payments directly through your quotes by connecting Stripe in Settings. You can also configure offline payment methods (Zelle, PayPal, CashApp, Venmo, Cash) in Calculator Pricing to display on your quotes."
       },
       {
         q: "How do deposits work?",
         a: "Set your default deposit percentage in Calculator Pricing. When you create quotes and orders, the deposit amount is automatically calculated. You can track deposit status on each order."
+      }
+    ]
+  },
+  {
+    category: "Stripe Connect & Payments",
+    questions: [
+      {
+        q: "How do I accept payments from customers?",
+        a: "Go to Settings in your dashboard and click 'Connect with Stripe' to link your Stripe account. Once connected, customers will see a 'Pay Now' button on quotes you send them. They can pay a deposit or the full amount using credit/debit cards through Stripe's secure checkout."
+      },
+      {
+        q: "What is Stripe Connect?",
+        a: "Stripe Connect lets you accept payments directly into your own Stripe account. BakerIQ uses it so your customers can pay you securely online. You keep control of your funds, and payouts go straight to your bank account through Stripe."
+      },
+      {
+        q: "Is there a fee for accepting payments?",
+        a: "BakerIQ charges a small 3% platform fee on each payment processed. Stripe also charges their standard processing fees (typically 2.9% + $0.30 per transaction). The rest goes directly to your Stripe account."
+      },
+      {
+        q: "Can customers pay a deposit instead of the full amount?",
+        a: "Yes! When viewing a quote, customers can choose to pay a deposit or the full amount. The deposit percentage is based on your settings. You can track partial payments and remaining balances on the Payments page."
+      },
+      {
+        q: "How do I track payments I've received?",
+        a: "Go to the Payments page in your dashboard. You'll see your total revenue, number of transactions, and a detailed list of every payment with customer name, quote details, amount, and date. You also receive an email notification for each payment."
+      },
+      {
+        q: "Do I need a Stripe account to use BakerIQ?",
+        a: "A Stripe account is only needed if you want to accept online payments through your quotes. You can use all other BakerIQ features (calculator, leads, quotes, calendar) without Stripe. You can also continue accepting payments outside of BakerIQ through Zelle, PayPal, cash, etc."
+      },
+      {
+        q: "How do I disconnect my Stripe account?",
+        a: "You can manage your Stripe connection from the Settings page. If you need to disconnect, contact support. Note that disconnecting will remove the 'Pay Now' button from your quotes."
       }
     ]
   },

@@ -52,8 +52,15 @@ const tourSteps: Step[] = [
   },
   {
     target: '[data-testid="nav-settings"]',
-    content: "Add your business details, payment info, and social media links here.",
-    title: "Your Settings",
+    content: "Add your business details, social media links, and connect your Stripe account to accept payments directly from customers on your quotes.",
+    title: "Settings & Payments",
+    disableBeacon: true,
+    placement: "right",
+  },
+  {
+    target: '[data-testid="nav-payments"]',
+    content: "Once you connect Stripe, track all your customer payments here. See deposits, full payments, and your total earnings at a glance.",
+    title: "Payment Tracking",
     disableBeacon: true,
     placement: "right",
   },
@@ -144,6 +151,7 @@ export function OnboardingTour({ tourStatus }: OnboardingTourProps) {
                 <li>• Where to find new customer leads</li>
                 <li>• How to create and send quotes</li>
                 <li>• How to track your orders</li>
+                <li>• How to accept payments through Stripe</li>
                 <li>• How to get help when you need it</li>
               </ul>
             </div>
