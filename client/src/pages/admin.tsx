@@ -37,6 +37,7 @@ import {
   Archive,
   Send,
   Share2,
+  X,
 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -401,6 +402,8 @@ function RetentionEmailAdmin() {
 function AffiliatesTab() {
   const { toast } = useToast();
   const [selectedBakerId, setSelectedBakerId] = useState("");
+  const [selectedBakerLabel, setSelectedBakerLabel] = useState("");
+  const [bakerSearchQuery, setBakerSearchQuery] = useState("");
   const [commissionRate, setCommissionRate] = useState("20");
   const [commissionMonths, setCommissionMonths] = useState("3");
   const [affiliateSearch, setAffiliateSearch] = useState("");
@@ -427,8 +430,11 @@ function AffiliatesTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/affiliates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/bakers"] });
       toast({ title: "Affiliate enabled" });
       setSelectedBakerId("");
+      setSelectedBakerLabel("");
+      setBakerSearchQuery("");
     },
     onError: () => {
       toast({ title: "Failed to enable affiliate", variant: "destructive" });
@@ -462,6 +468,17 @@ function AffiliatesTab() {
   });
 
   const nonAffiliates = allBakers?.filter((b: any) => !b.isAffiliate) || [];
+  const filteredNonAffiliates = bakerSearchQuery.trim()
+    ? nonAffiliates.filter((b: any) => {
+        const q = bakerSearchQuery.toLowerCase();
+        return (
+          b.businessName?.toLowerCase().includes(q) ||
+          b.email?.toLowerCase().includes(q) ||
+          b.firstName?.toLowerCase().includes(q) ||
+          b.lastName?.toLowerCase().includes(q)
+        );
+      })
+    : [];
 
   const filteredAffiliates = affiliates?.filter((a: any) => {
     if (!affiliateSearch) return true;
@@ -486,52 +503,96 @@ function AffiliatesTab() {
           <CardDescription>Select a baker to make them an affiliate partner</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-4 items-end">
-            <div className="flex-1 min-w-[200px]">
-              <label className="text-sm font-medium mb-1 block">Baker</label>
-              <Select value={selectedBakerId} onValueChange={setSelectedBakerId}>
-                <SelectTrigger data-testid="select-affiliate-baker">
-                  <SelectValue placeholder="Select a baker..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {nonAffiliates.map((b: any) => (
-                    <SelectItem key={b.id} value={b.id}>
-                      {b.businessName} ({b.email})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="space-y-4">
+            <div className="relative">
+              <label className="text-sm font-medium mb-1 block">Search for a baker</label>
+              {selectedBakerId ? (
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-sm py-1 px-3">
+                    {selectedBakerLabel}
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => { setSelectedBakerId(""); setSelectedBakerLabel(""); setBakerSearchQuery(""); }}
+                    data-testid="button-clear-baker-selection"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Type a name or email to find a baker..."
+                      value={bakerSearchQuery}
+                      onChange={(e) => setBakerSearchQuery(e.target.value)}
+                      className="pl-9"
+                      data-testid="input-search-baker-for-affiliate"
+                    />
+                  </div>
+                  {bakerSearchQuery.trim() && (
+                    <div className="border rounded-md max-h-48 overflow-y-auto">
+                      {filteredNonAffiliates.length === 0 ? (
+                        <p className="p-3 text-sm text-muted-foreground">No bakers found matching "{bakerSearchQuery}"</p>
+                      ) : (
+                        filteredNonAffiliates.slice(0, 20).map((b: any) => (
+                          <button
+                            key={b.id}
+                            className="w-full text-left px-3 py-2 hover-elevate flex items-center justify-between gap-2"
+                            onClick={() => {
+                              setSelectedBakerId(b.id);
+                              setSelectedBakerLabel(`${b.businessName} (${b.email})`);
+                              setBakerSearchQuery("");
+                            }}
+                            data-testid={`button-select-baker-${b.id}`}
+                          >
+                            <div>
+                              <p className="font-medium text-sm">{b.businessName}</p>
+                              <p className="text-xs text-muted-foreground">{b.email}</p>
+                            </div>
+                            <Badge variant="outline" className="text-xs">{b.plan || "free"}</Badge>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
-            <div className="w-32">
-              <label className="text-sm font-medium mb-1 block">Rate (%)</label>
-              <Input
-                type="number"
-                value={commissionRate}
-                onChange={(e) => setCommissionRate(e.target.value)}
-                data-testid="input-commission-rate"
-              />
+            <div className="flex flex-wrap gap-4 items-end">
+              <div className="w-32">
+                <label className="text-sm font-medium mb-1 block">Rate (%)</label>
+                <Input
+                  type="number"
+                  value={commissionRate}
+                  onChange={(e) => setCommissionRate(e.target.value)}
+                  data-testid="input-commission-rate"
+                />
+              </div>
+              <div className="w-32">
+                <label className="text-sm font-medium mb-1 block">Months</label>
+                <Input
+                  type="number"
+                  value={commissionMonths}
+                  onChange={(e) => setCommissionMonths(e.target.value)}
+                  data-testid="input-commission-months"
+                />
+              </div>
+              <Button
+                onClick={() => enableMutation.mutate({
+                  bakerId: selectedBakerId,
+                  rate: commissionRate,
+                  months: parseInt(commissionMonths),
+                })}
+                disabled={!selectedBakerId || enableMutation.isPending}
+                data-testid="button-enable-affiliate"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Enable Affiliate
+              </Button>
             </div>
-            <div className="w-32">
-              <label className="text-sm font-medium mb-1 block">Months</label>
-              <Input
-                type="number"
-                value={commissionMonths}
-                onChange={(e) => setCommissionMonths(e.target.value)}
-                data-testid="input-commission-months"
-              />
-            </div>
-            <Button
-              onClick={() => enableMutation.mutate({
-                bakerId: selectedBakerId,
-                rate: commissionRate,
-                months: parseInt(commissionMonths),
-              })}
-              disabled={!selectedBakerId || enableMutation.isPending}
-              data-testid="button-enable-affiliate"
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Enable Affiliate
-            </Button>
           </div>
         </CardContent>
       </Card>

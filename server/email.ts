@@ -1312,8 +1312,8 @@ export function getAnnouncementEmailHtml(bakerName: string): string {
       </div>
 
       <div class="teaser">
-        <h3>&#127873; Referral Bonus Coming Soon</h3>
-        <p>We're working on a referral program that rewards you for bringing other bakers to the platform. Stay tuned for details!</p>
+        <h3>&#127873; Earn Free Months &mdash; Refer a Friend</h3>
+        <p>Love BakerIQ? Share it with fellow bakers and earn rewards! Every baker who signs up through your referral link and subscribes to a paid plan earns you a free month. You can stack up to 12 free months. Find your referral link on the <strong>Refer a Friend</strong> page in your dashboard.</p>
       </div>
 
       <div class="cta-section">
@@ -1355,7 +1355,7 @@ MORE NEW FEATURES
 
 TIP: Share your calculator link on social media to start receiving leads!
 
-COMING SOON: Referral bonus program — earn rewards for bringing other bakers to the platform.
+REFER A FRIEND: Love BakerIQ? Share your referral link with fellow bakers. When they sign up and subscribe, you earn a free month — stack up to 12! Find your link on the Refer a Friend page in your dashboard.
 
 Log in to your dashboard: https://bakeriq.app/login
 
