@@ -714,7 +714,7 @@ export default function CalculatorPage() {
 
       <div className="relative h-64 md:h-80 overflow-hidden">
         <img
-          src={heroImage}
+          src={baker.calculatorHeaderImage || heroImage}
           alt="Beautiful custom cake"
           className="w-full h-full object-cover"
         />

@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { ClipboardList, FileText, Users, ArrowRight, Calendar, DollarSign, TrendingUp, CalendarCheck, Sparkles, AlertTriangle, Plus, UserPlus, Mail } from "lucide-react";
+import { ClipboardList, FileText, Users, ArrowRight, Calendar, DollarSign, TrendingUp, CalendarCheck, Sparkles, AlertTriangle, Plus, UserPlus, Mail, Share2, X, Copy } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -40,6 +42,11 @@ interface OrderStats {
 export default function DashboardPage() {
   const { baker } = useAuth();
   const formatCurrency = useFormatCurrency();
+  const { toast } = useToast();
+  
+  const [bannerDismissed, setBannerDismissed] = useState(() => 
+    localStorage.getItem("bakeriq_activation_banner_dismissed") === "true"
+  );
   
   const { data: stats, isLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
@@ -78,6 +85,31 @@ export default function DashboardPage() {
 
   const showUpgradePrompt = subscription && subscription.plan === "free" && 
     subscription.quoteLimit !== null && subscription.monthlyQuoteCount >= subscription.quoteLimit - 2;
+
+  const showActivation = stats && stats.newLeadsCount === 0 && stats.totalCustomers === 0;
+
+  const handleCopyLink = async () => {
+    if (!baker?.slug) return;
+    const calculatorUrl = `${window.location.origin}/c/${baker.slug}`;
+    try {
+      await navigator.clipboard.writeText(calculatorUrl);
+      toast({
+        title: "Link copied!",
+        description: "Your calculator link has been copied to clipboard.",
+      });
+    } catch (err) {
+      toast({
+        title: "Failed to copy",
+        description: "Could not copy the link to clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDismissBanner = () => {
+    localStorage.setItem("bakeriq_activation_banner_dismissed", "true");
+    setBannerDismissed(true);
+  };
 
   return (
     <DashboardLayout title="Dashboard">
@@ -141,6 +173,29 @@ export default function DashboardPage() {
               >
                 {upgradeMutation.isPending ? "Loading..." : "Upgrade Now"}
               </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {!bannerDismissed && showActivation && (
+          <Card className="border-primary/50 bg-primary/5" data-testid="card-activation-banner">
+            <CardContent className="flex items-center justify-between gap-4 py-4">
+              <div className="flex items-center gap-3">
+                <Share2 className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="font-medium">Share your calculator link to start receiving leads</p>
+                  <p className="text-sm text-muted-foreground">Customers can use your pricing calculator to get instant estimates and submit inquiries.</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={handleCopyLink} data-testid="button-copy-calculator-link">
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy Link
+                </Button>
+                <Button variant="ghost" size="icon" onClick={handleDismissBanner} data-testid="button-dismiss-activation-banner">
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}

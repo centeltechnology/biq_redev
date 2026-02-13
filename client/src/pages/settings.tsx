@@ -217,14 +217,17 @@ export default function SettingsPage() {
   const [copied, setCopied] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [portfolioImages, setPortfolioImages] = useState<string[]>([]);
+  const [headerImage, setHeaderImage] = useState<string | null>(null);
   const [uploadingProfile, setUploadingProfile] = useState(false);
   const [uploadingPortfolio, setUploadingPortfolio] = useState(false);
+  const [uploadingHeader, setUploadingHeader] = useState(false);
   const [currency, setCurrency] = useState("USD");
   const [customPaymentOptions, setCustomPaymentOptions] = useState<CustomPaymentOption[]>([]);
   const [newPaymentName, setNewPaymentName] = useState("");
   const [newPaymentDetails, setNewPaymentDetails] = useState("");
   const profileInputRef = useRef<HTMLInputElement>(null);
   const portfolioInputRef = useRef<HTMLInputElement>(null);
+  const headerInputRef = useRef<HTMLInputElement>(null);
   const { uploadFile } = useUpload({});
 
   const profileForm = useForm<ProfileFormData>({
@@ -286,6 +289,7 @@ export default function SettingsPage() {
       });
       setProfilePhoto(baker.profilePhoto || null);
       setPortfolioImages((baker.portfolioImages || []).slice(0, 6));
+      setHeaderImage(baker.calculatorHeaderImage || null);
       setCurrency(baker.currency || "USD");
       setCustomPaymentOptions((baker.customPaymentOptions as CustomPaymentOption[]) || []);
     }
@@ -516,7 +520,7 @@ export default function SettingsPage() {
   });
 
   const updatePhotosMutation = useMutation({
-    mutationFn: async (data: { profilePhoto?: string | null; portfolioImages?: string[] | null }) => {
+    mutationFn: async (data: { profilePhoto?: string | null; portfolioImages?: string[] | null; calculatorHeaderImage?: string | null }) => {
       const res = await apiRequest("PATCH", "/api/bakers/me", data);
       return res.json();
     },
@@ -598,6 +602,36 @@ export default function SettingsPage() {
     await updatePhotosMutation.mutateAsync({ portfolioImages: newPortfolioImages });
   };
 
+  const handleHeaderImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Please select an image file", variant: "destructive" });
+      return;
+    }
+    
+    setUploadingHeader(true);
+    try {
+      const result = await uploadFile(file);
+      if (result) {
+        const newHeaderImage = result.objectPath;
+        setHeaderImage(newHeaderImage);
+        await updatePhotosMutation.mutateAsync({ calculatorHeaderImage: newHeaderImage });
+      }
+    } catch (error) {
+      toast({ title: "Failed to upload header image", variant: "destructive" });
+    } finally {
+      setUploadingHeader(false);
+      if (headerInputRef.current) headerInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveHeaderImage = async () => {
+    setHeaderImage(null);
+    await updatePhotosMutation.mutateAsync({ calculatorHeaderImage: null });
+  };
+
   const copyCalculatorUrl = async () => {
     navigator.clipboard.writeText(calculatorUrl);
     setCopied(true);
@@ -659,6 +693,64 @@ export default function SettingsPage() {
               </Button>
             </div>
             <SlugEditor currentSlug={baker?.slug || ""} />
+
+            <div className="mt-4 space-y-2">
+              <Label className="text-sm font-medium">Calculator Header Image</Label>
+              <p className="text-xs text-muted-foreground">This image appears at the top of your public calculator page and in social media previews.</p>
+              <div className="mt-2">
+                {headerImage ? (
+                  <div className="relative rounded-md overflow-hidden border">
+                    <img
+                      src={headerImage}
+                      alt="Calculator header"
+                      className="w-full h-40 object-cover"
+                      data-testid="img-header-preview"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full h-40 rounded-md border border-dashed flex flex-col items-center justify-center gap-2 text-muted-foreground bg-muted/50">
+                    <ImageIcon className="h-8 w-8" />
+                    <span className="text-xs">No header image set</span>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <input
+                  ref={headerInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleHeaderImageUpload}
+                  data-testid="input-header-upload"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => headerInputRef.current?.click()}
+                  disabled={uploadingHeader}
+                  data-testid="button-upload-header"
+                >
+                  {uploadingHeader ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Upload className="h-4 w-4 mr-2" />
+                  )}
+                  {uploadingHeader ? "Uploading..." : "Upload Image"}
+                </Button>
+                {headerImage && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRemoveHeaderImage}
+                    disabled={updatePhotosMutation.isPending}
+                    data-testid="button-remove-header"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Remove
+                  </Button>
+                )}
+              </div>
+            </div>
           </CardContent>
         </Card>
 

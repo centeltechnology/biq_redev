@@ -477,6 +477,7 @@ export async function registerRoutes(
         quickOrderItemLimit: z.number().min(1).max(100).optional().nullable(),
         profilePhoto: z.string().optional().nullable(),
         portfolioImages: z.array(z.string()).max(6).optional().nullable(),
+        calculatorHeaderImage: z.string().optional().nullable(),
         customPaymentOptions: z.array(z.object({
           id: z.string(),
           name: z.string().min(1),
@@ -1519,6 +1520,7 @@ export async function registerRoutes(
       paymentPaypal: baker.paymentPaypal,
       paymentCashapp: baker.paymentCashapp,
       paymentVenmo: baker.paymentVenmo,
+      calculatorHeaderImage: baker.calculatorHeaderImage,
     });
   });
 
@@ -2547,6 +2549,29 @@ export async function registerRoutes(
       const monthlyVolume = thisMonth.reduce((sum, p) => sum + parseFloat(p.amount), 0);
       const monthlyFees = thisMonth.reduce((sum, p) => sum + parseFloat(p.platformFee), 0);
 
+      const connectHealth = allBakers.map(b => ({
+        businessName: b.businessName,
+        email: b.email,
+        plan: b.plan || "free",
+        hasConnectAccount: !!b.stripeConnectAccountId,
+        onboarded: !!b.stripeConnectOnboarded,
+        payoutsEnabled: !!b.stripeConnectPayoutsEnabled,
+      }));
+
+      const bakerPlanMap = new Map(allBakers.map(b => [b.id, b.plan || "free"]));
+      const revenueByPlan: Record<string, { volume: number; fees: number; transactions: number; feePercent: number }> = {
+        free: { volume: 0, fees: 0, transactions: 0, feePercent: PLATFORM_FEE_FREE },
+        basic: { volume: 0, fees: 0, transactions: 0, feePercent: PLATFORM_FEE_BASIC },
+        pro: { volume: 0, fees: 0, transactions: 0, feePercent: PLATFORM_FEE_PRO },
+      };
+      for (const p of succeeded) {
+        const plan = bakerPlanMap.get(p.bakerId) || "free";
+        const bucket = revenueByPlan[plan] || revenueByPlan.free;
+        bucket.volume += parseFloat(p.amount);
+        bucket.fees += parseFloat(p.platformFee);
+        bucket.transactions += 1;
+      }
+
       res.json({
         payments: allPayments.slice(0, 50),
         stats: {
@@ -2560,6 +2585,8 @@ export async function registerRoutes(
           connectAccountsOnboarded: connectAccounts.filter(b => b.stripeConnectOnboarded).length,
           connectAccountsActive: connectAccounts.filter(b => b.stripeConnectPayoutsEnabled).length,
         },
+        connectHealth,
+        revenueByPlan,
       });
     } catch (error) {
       console.error("Admin payments error:", error);
@@ -3212,9 +3239,11 @@ Guidelines:
         /<meta property="og:description" content=".*?" \/>/,
         `<meta property="og:description" content="${description}" />`
       );
+      const ogImage = baker.calculatorHeaderImage || "/calc-social.png";
+      const fullImageUrl = ogImage.startsWith("http") ? ogImage : `${req.protocol}://${req.get("host")}${ogImage}`;
       html = html.replace(
         /<meta property="og:image" content=".*?" \/>/,
-        `<meta property="og:image" content="/calc-social.png" />`
+        `<meta property="og:image" content="${fullImageUrl}" />`
       );
       html = html.replace(
         /<meta name="twitter:card" content=".*?" \/>/,
@@ -3230,7 +3259,7 @@ Guidelines:
       );
       html = html.replace(
         /<meta name="twitter:image" content=".*?" \/>/,
-        `<meta name="twitter:image" content="/calc-social.png" />`
+        `<meta name="twitter:image" content="${fullImageUrl}" />`
       );
       
       res.status(200).set({ "Content-Type": "text/html" }).send(html);

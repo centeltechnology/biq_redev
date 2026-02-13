@@ -63,6 +63,7 @@ export const bakers = pgTable("bakers", {
   // Profile and portfolio images
   profilePhoto: text("profile_photo"),
   portfolioImages: text("portfolio_images").array(),
+  calculatorHeaderImage: text("calculator_header_image"),
   // Survey trial - free Pro access for completing feedback survey
   surveyTrialEndDate: timestamp("survey_trial_end_date"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

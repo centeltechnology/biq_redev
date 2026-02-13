@@ -302,6 +302,20 @@ export default function AdminDashboard() {
       connectAccountsOnboarded: number;
       connectAccountsActive: number;
     };
+    connectHealth: Array<{
+      businessName: string;
+      email: string;
+      plan: string;
+      hasConnectAccount: boolean;
+      onboarded: boolean;
+      payoutsEnabled: boolean;
+    }>;
+    revenueByPlan: Record<string, {
+      volume: number;
+      fees: number;
+      transactions: number;
+      feePercent: number;
+    }>;
   }>({
     queryKey: ["/api/admin/payments"],
   });
@@ -1409,6 +1423,38 @@ export default function AdminDashboard() {
             </Card>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {(["free", "basic", "pro"] as const).map((plan) => {
+              const data = adminPayments?.revenueByPlan?.[plan];
+              const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1);
+              return (
+                <Card key={plan} data-testid={`card-revenue-${plan}`}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">{planLabel} Plan</CardTitle>
+                    <CardDescription>{data?.feePercent ?? 0}% platform fee</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {paymentsLoading ? (
+                      <Skeleton className="h-16 w-full" />
+                    ) : (
+                      <>
+                        <div className="text-2xl font-bold" data-testid={`text-revenue-volume-${plan}`}>
+                          ${(data?.volume ?? 0).toFixed(2)}
+                        </div>
+                        <div className="text-sm text-green-600 dark:text-green-400 font-medium" data-testid={`text-revenue-fees-${plan}`}>
+                          ${(data?.fees ?? 0).toFixed(2)} earned
+                        </div>
+                        <div className="text-xs text-muted-foreground" data-testid={`text-revenue-txns-${plan}`}>
+                          {data?.transactions ?? 0} transactions
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
           <Card>
             <CardHeader>
               <CardTitle>Recent Transactions</CardTitle>
@@ -1467,6 +1513,85 @@ export default function AdminDashboard() {
                               </Badge>
                             ) : (
                               <Badge variant="secondary">{payment.status}</Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card data-testid="card-connect-health">
+            <CardHeader>
+              <CardTitle>Stripe Connect Health</CardTitle>
+              <CardDescription>Connect account status for all bakers</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              {paymentsLoading ? (
+                <div className="p-4 space-y-3">
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
+                </div>
+              ) : !adminPayments?.connectHealth?.length ? (
+                <div className="text-center py-8 text-muted-foreground">No bakers found</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Baker Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Plan</TableHead>
+                        <TableHead>Connect Account</TableHead>
+                        <TableHead>Onboarded</TableHead>
+                        <TableHead>Payouts Enabled</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {adminPayments.connectHealth.map((baker, index) => (
+                        <TableRow key={index} data-testid={`row-connect-health-${index}`}>
+                          <TableCell className="font-medium">{baker.businessName}</TableCell>
+                          <TableCell className="text-sm">{baker.email}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" className="text-xs capitalize" data-testid={`badge-plan-${index}`}>
+                              {baker.plan}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {baker.hasConnectAccount ? (
+                              <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400 gap-1" data-testid={`badge-connect-${index}`}>
+                                <CheckCircle className="h-3 w-3" /> Yes
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-muted-foreground gap-1" data-testid={`badge-connect-${index}`}>
+                                <XCircle className="h-3 w-3" /> No
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {baker.onboarded ? (
+                              <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400 gap-1" data-testid={`badge-onboarded-${index}`}>
+                                <CheckCircle className="h-3 w-3" /> Yes
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-muted-foreground gap-1" data-testid={`badge-onboarded-${index}`}>
+                                <XCircle className="h-3 w-3" /> No
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {baker.payoutsEnabled ? (
+                              <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400 gap-1" data-testid={`badge-payouts-${index}`}>
+                                <CheckCircle className="h-3 w-3" /> Yes
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-muted-foreground gap-1" data-testid={`badge-payouts-${index}`}>
+                                <XCircle className="h-3 w-3" /> No
+                              </Badge>
                             )}
                           </TableCell>
                         </TableRow>
