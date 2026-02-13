@@ -115,11 +115,25 @@ Weekly activation and engagement emails for user retention:
 - **Admin UI**: System tab in admin dashboard shows segment distribution, email stats (open/click rates), and manual trigger button
 - **Tracking**: `retention_email_sends` table tracks sends, opens, and clicks per user/template
 
-### Affiliate Program
-Admin-invite-only referral program for baker/treat maker influencers:
-- **Admin Management**: Affiliates tab in admin dashboard to enable/disable bakers as affiliates, set commission rate and duration
-- **Cookie Tracking**: 45-day `bakeriq_ref` cookie set when visitors click `/api/ref/:code`, attributed on signup
+### Two-Tier Referral System
+
+#### Baker Referral Program (All Bakers)
+Every baker gets a referral link to invite others:
+- **Referral Link**: Pretty URL format `/join/r/:code` with auto-generated referral code
+- **Rewards**: 
+  - Paid plan bakers: 1 free month of subscription per successful referral (up to 12 months stacked)
+  - Free plan bakers: 1 month of Quick Quote access per successful referral (up to 12 months stacked)
+- **Tracking**: `baker_referrals` table tracks referrals, credits awarded via `referralCredits` and `quickQuoteCredits` fields on bakers
+- **Baker Dashboard**: "Refer a Friend" page accessible to all bakers showing link, stats, and referred baker list
+- **Credit Awarding**: Automatic when referred baker subscribes to a paid plan (triggered in subscription webhook)
+
+#### Affiliate Program (Influencer Tier - Admin Invite Only)
+Premium referral program for influencers:
+- **Pretty Links**: `/join/:slug` format with customizable affiliate slug (editable by affiliate)
+- **Admin Management**: Affiliates tab in admin dashboard with searchable list, enable/disable affiliates, set commission rate and duration
+- **Cookie Tracking**: 45-day `bakeriq_ref` cookie set when visitors click affiliate link, attributed on signup
 - **Commission Model**: 20% of subscription revenue (default) for first 3 months (configurable per affiliate)
-- **Baker Dashboard**: Referrals page shows referral link, click stats, signups, and commission history (only visible to affiliates)
+- **Payout System**: Admin reviews pending commissions and marks them as paid via the Affiliates tab
+- **Baker Dashboard**: "Affiliate Program" page shows referral link with slug editor, click stats, signups, and commission history (only visible to affiliates)
 - **Data Model**: `referral_clicks` table tracks clicks, `affiliate_commissions` table tracks earned commissions, affiliate fields on `bakers` table
 - **Commission Tracking**: Automated commission recording when referred baker's subscription payment is processed via Stripe webhook

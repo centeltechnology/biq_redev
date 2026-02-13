@@ -66,13 +66,22 @@ export const bakers = pgTable("bakers", {
   calculatorHeaderImage: text("calculator_header_image"),
   // Survey trial - free Pro access for completing feedback survey
   surveyTrialEndDate: timestamp("survey_trial_end_date"),
-  // Affiliate program
+  // Affiliate program (influencer tier)
   isAffiliate: boolean("is_affiliate").default(false).notNull(),
   affiliateCode: text("affiliate_code").unique(),
+  affiliateSlug: text("affiliate_slug").unique(),
   affiliateCommissionRate: decimal("affiliate_commission_rate", { precision: 5, scale: 2 }).default("20.00"),
   affiliateCommissionMonths: integer("affiliate_commission_months").default(3),
+  affiliateStripeConnectId: text("affiliate_stripe_connect_id"),
+  affiliateStripeConnectOnboarded: boolean("affiliate_stripe_connect_onboarded").default(false).notNull(),
   referredByAffiliateId: varchar("referred_by_affiliate_id"),
   referredAt: timestamp("referred_at"),
+  // Baker referral program (all bakers)
+  referralCode: text("referral_code").unique(),
+  referralCredits: integer("referral_credits").default(0).notNull(),
+  quickQuoteCredits: integer("quick_quote_credits").default(0).notNull(),
+  referredByBakerId: varchar("referred_by_baker_id"),
+  bakerReferredAt: timestamp("baker_referred_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -763,7 +772,30 @@ export type SurveyResponse = typeof surveyResponses.$inferSelect;
 export type InsertSurveyResponse = z.infer<typeof insertSurveyResponseSchema>;
 
 // ============================================
-// AFFILIATE PROGRAM
+// BAKER REFERRAL PROGRAM
+// ============================================
+
+// Baker referrals - tracks when a baker refers another baker
+export const bakerReferrals = pgTable("baker_referrals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  referringBakerId: varchar("referring_baker_id").notNull().references(() => bakers.id),
+  referredBakerId: varchar("referred_baker_id").notNull().references(() => bakers.id),
+  creditAwarded: boolean("credit_awarded").default(false).notNull(),
+  creditType: text("credit_type"), // "subscription" or "quick_quote"
+  awardedAt: timestamp("awarded_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertBakerReferralSchema = createInsertSchema(bakerReferrals).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type BakerReferral = typeof bakerReferrals.$inferSelect;
+export type InsertBakerReferral = z.infer<typeof insertBakerReferralSchema>;
+
+// ============================================
+// AFFILIATE PROGRAM (INFLUENCER TIER)
 // ============================================
 
 // Referral clicks - tracks when someone clicks an affiliate link

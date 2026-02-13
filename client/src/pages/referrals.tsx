@@ -1,14 +1,16 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, MousePointerClick, UserPlus, DollarSign, Clock, Link2 } from "lucide-react";
+import { Copy, MousePointerClick, UserPlus, DollarSign, Clock, Link2, Pencil, Check, X } from "lucide-react";
 import { format } from "date-fns";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface AffiliateStats {
   totalClicks: number;
@@ -37,6 +39,7 @@ interface Commission {
 interface AffiliateData {
   isAffiliate: boolean;
   affiliateCode?: string;
+  affiliateSlug?: string;
   commissionRate?: string;
   commissionMonths?: number;
   stats?: AffiliateStats;
@@ -46,20 +49,52 @@ interface AffiliateData {
 
 export default function ReferralsPage() {
   const { toast } = useToast();
+  const [editingSlug, setEditingSlug] = useState(false);
+  const [slugValue, setSlugValue] = useState("");
 
   const { data, isLoading } = useQuery<AffiliateData>({
     queryKey: ["/api/affiliate/stats"],
   });
 
+  const slugMutation = useMutation({
+    mutationFn: async (newSlug: string) => {
+      const res = await apiRequest("PATCH", "/api/affiliate/slug", { slug: newSlug });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/affiliate/stats"] });
+      setEditingSlug(false);
+      toast({ title: "Referral link updated!" });
+    },
+    onError: (error: Error) => {
+      toast({ title: error.message || "Failed to update link", variant: "destructive" });
+    },
+  });
+
   const handleCopyLink = async () => {
-    if (!data?.affiliateCode) return;
-    const refLink = `${window.location.origin}/api/ref/${data.affiliateCode}`;
+    const slug = data?.affiliateSlug || data?.affiliateCode;
+    if (!slug) return;
+    const refLink = `${window.location.origin}/join/${slug}`;
     try {
       await navigator.clipboard.writeText(refLink);
       toast({ title: "Referral link copied!" });
     } catch {
       toast({ title: "Failed to copy link", variant: "destructive" });
     }
+  };
+
+  const handleEditSlug = () => {
+    setSlugValue(data?.affiliateSlug || data?.affiliateCode || "");
+    setEditingSlug(true);
+  };
+
+  const handleSaveSlug = () => {
+    const cleaned = slugValue.toLowerCase().replace(/[^a-z0-9-]/g, "").trim();
+    if (cleaned.length < 3 || cleaned.length > 30) {
+      toast({ title: "Link must be 3-30 characters", variant: "destructive" });
+      return;
+    }
+    slugMutation.mutate(cleaned);
   };
 
   const formatUSD = (amount: number | string) => {
@@ -69,7 +104,7 @@ export default function ReferralsPage() {
 
   if (isLoading) {
     return (
-      <DashboardLayout title="Referrals">
+      <DashboardLayout title="Affiliate Program">
         <div className="space-y-4">
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-64 w-full" />
@@ -80,13 +115,13 @@ export default function ReferralsPage() {
 
   if (!data?.isAffiliate) {
     return (
-      <DashboardLayout title="Referrals">
+      <DashboardLayout title="Affiliate Program">
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <Link2 className="h-12 w-12 text-muted-foreground mb-4" />
-            <h2 className="text-xl font-semibold mb-2" data-testid="text-not-affiliate">Referral Program</h2>
+            <h2 className="text-xl font-semibold mb-2" data-testid="text-not-affiliate">Affiliate Program</h2>
             <p className="text-muted-foreground max-w-md">
-              The referral program is invite-only. Contact the BakerIQ team if you're interested in becoming a referral partner and earning commission on referred subscriptions.
+              The affiliate program is invite-only. Contact the BakerIQ team if you're interested in becoming an affiliate partner and earning commission on referred subscriptions.
             </p>
           </CardContent>
         </Card>
@@ -95,28 +130,51 @@ export default function ReferralsPage() {
   }
 
   const stats = data.stats || { totalClicks: 0, totalConversions: 0, totalEarnings: 0, pendingEarnings: 0 };
-  const refLink = `${window.location.origin}/api/ref/${data.affiliateCode}`;
+  const displaySlug = data.affiliateSlug || data.affiliateCode;
+  const refLink = `${window.location.origin}/join/${displaySlug}`;
 
   return (
-    <DashboardLayout title="Referrals">
+    <DashboardLayout title="Affiliate Program">
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle data-testid="text-referral-link-title">Your Referral Link</CardTitle>
+            <CardTitle data-testid="text-referral-link-title">Your Affiliate Link</CardTitle>
             <CardDescription>
               Share this link with other bakers. You earn {data.commissionRate}% of their subscription for the first {data.commissionMonths} months.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex gap-2 items-center">
-              <code className="flex-1 bg-muted px-3 py-2 rounded-md text-sm truncate" data-testid="text-referral-link">
-                {refLink}
-              </code>
-              <Button onClick={handleCopyLink} data-testid="button-copy-referral-link">
-                <Copy className="h-4 w-4 mr-2" />
-                Copy
-              </Button>
-            </div>
+          <CardContent className="space-y-3">
+            {editingSlug ? (
+              <div className="flex gap-2 items-center">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">{window.location.origin}/join/</span>
+                <Input
+                  value={slugValue}
+                  onChange={(e) => setSlugValue(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+                  className="max-w-[200px]"
+                  data-testid="input-affiliate-slug"
+                  maxLength={30}
+                />
+                <Button size="icon" onClick={handleSaveSlug} disabled={slugMutation.isPending} data-testid="button-save-slug">
+                  <Check className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant="ghost" onClick={() => setEditingSlug(false)} data-testid="button-cancel-slug">
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-2 items-center">
+                <code className="flex-1 bg-muted px-3 py-2 rounded-md text-sm truncate" data-testid="text-referral-link">
+                  {refLink}
+                </code>
+                <Button size="icon" variant="ghost" onClick={handleEditSlug} data-testid="button-edit-slug">
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button onClick={handleCopyLink} data-testid="button-copy-referral-link">
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -236,7 +294,7 @@ export default function ReferralsPage() {
                       <TableCell>{formatUSD(c.subscriptionAmount)}</TableCell>
                       <TableCell>{c.commissionRate}%</TableCell>
                       <TableCell className="font-medium">{formatUSD(c.commissionAmount)}</TableCell>
-                      <TableCell>{c.monthNumber}/3</TableCell>
+                      <TableCell>{c.monthNumber}/{data.commissionMonths || 3}</TableCell>
                       <TableCell>
                         <Badge variant={c.status === "paid" ? "default" : c.status === "approved" ? "secondary" : "outline"}>
                           {c.status}

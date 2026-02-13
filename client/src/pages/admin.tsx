@@ -403,6 +403,7 @@ function AffiliatesTab() {
   const [selectedBakerId, setSelectedBakerId] = useState("");
   const [commissionRate, setCommissionRate] = useState("20");
   const [commissionMonths, setCommissionMonths] = useState("3");
+  const [affiliateSearch, setAffiliateSearch] = useState("");
 
   const { data: affiliates, isLoading } = useQuery<any[]>({
     queryKey: ["/api/admin/affiliates"],
@@ -410,6 +411,10 @@ function AffiliatesTab() {
 
   const { data: allBakers } = useQuery<any[]>({
     queryKey: ["/api/admin/bakers"],
+  });
+
+  const { data: allCommissions } = useQuery<any[]>({
+    queryKey: ["/api/admin/affiliates/commissions"],
   });
 
   const enableMutation = useMutation({
@@ -441,7 +446,35 @@ function AffiliatesTab() {
     },
   });
 
-  const nonAffiliates = allBakers?.filter(b => !b.isAffiliate) || [];
+  const payoutMutation = useMutation({
+    mutationFn: async (commissionId: string) => {
+      const res = await apiRequest("POST", `/api/admin/affiliates/commissions/${commissionId}/payout`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/affiliates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/affiliates/commissions"] });
+      toast({ title: "Commission marked as paid" });
+    },
+    onError: () => {
+      toast({ title: "Failed to process payout", variant: "destructive" });
+    },
+  });
+
+  const nonAffiliates = allBakers?.filter((b: any) => !b.isAffiliate) || [];
+
+  const filteredAffiliates = affiliates?.filter((a: any) => {
+    if (!affiliateSearch) return true;
+    const q = affiliateSearch.toLowerCase();
+    return (
+      a.businessName?.toLowerCase().includes(q) ||
+      a.email?.toLowerCase().includes(q) ||
+      a.affiliateCode?.toLowerCase().includes(q) ||
+      a.affiliateSlug?.toLowerCase().includes(q)
+    );
+  }) || [];
+
+  const pendingCommissions = allCommissions?.filter((c: any) => c.status === "pending") || [];
 
   const formatUSD = (amount: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
 
@@ -504,34 +537,46 @@ function AffiliatesTab() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle data-testid="text-affiliates-title">Affiliate Partners</CardTitle>
-          <CardDescription>{affiliates?.length || 0} affiliates</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
+          <div>
+            <CardTitle data-testid="text-affiliates-title">Affiliate Partners</CardTitle>
+            <CardDescription>{affiliates?.length || 0} affiliates</CardDescription>
+          </div>
+          <div className="w-64">
+            <Input
+              placeholder="Search affiliates..."
+              value={affiliateSearch}
+              onChange={(e) => setAffiliateSearch(e.target.value)}
+              data-testid="input-search-affiliates"
+            />
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="space-y-2">
               {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
             </div>
-          ) : !affiliates?.length ? (
-            <p className="text-muted-foreground text-center py-8">No affiliates yet. Enable a baker as an affiliate above.</p>
+          ) : !filteredAffiliates.length ? (
+            <p className="text-muted-foreground text-center py-8">
+              {affiliateSearch ? "No affiliates match your search." : "No affiliates yet. Enable a baker as an affiliate above."}
+            </p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Baker</TableHead>
-                  <TableHead>Code</TableHead>
+                  <TableHead>Link</TableHead>
                   <TableHead>Rate</TableHead>
                   <TableHead>Months</TableHead>
                   <TableHead>Clicks</TableHead>
                   <TableHead>Signups</TableHead>
-                  <TableHead>Earnings</TableHead>
+                  <TableHead>Earned</TableHead>
                   <TableHead>Pending</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {affiliates.map((a: any) => (
+                {filteredAffiliates.map((a: any) => (
                   <TableRow key={a.id} data-testid={`row-affiliate-${a.id}`}>
                     <TableCell>
                       <div>
@@ -540,7 +585,7 @@ function AffiliatesTab() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{a.affiliateCode}</Badge>
+                      <Badge variant="outline">/join/{a.affiliateSlug || a.affiliateCode}</Badge>
                     </TableCell>
                     <TableCell>{a.affiliateCommissionRate}%</TableCell>
                     <TableCell>{a.affiliateCommissionMonths}</TableCell>
@@ -567,6 +612,57 @@ function AffiliatesTab() {
           )}
         </CardContent>
       </Card>
+
+      {pendingCommissions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle data-testid="text-pending-payouts-title">Pending Payouts</CardTitle>
+            <CardDescription>{pendingCommissions.length} commission{pendingCommissions.length !== 1 ? "s" : ""} awaiting payout</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Affiliate</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Rate</TableHead>
+                  <TableHead>Month</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pendingCommissions.map((c: any) => (
+                  <TableRow key={c.id} data-testid={`row-payout-${c.id}`}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{c.affiliateName}</p>
+                        <Badge variant="outline" className="text-xs">{c.affiliateCode}</Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium">{formatUSD(parseFloat(c.commissionAmount))}</TableCell>
+                    <TableCell>{c.commissionRate}%</TableCell>
+                    <TableCell>{c.monthNumber}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {c.createdAt ? format(new Date(c.createdAt), "MMM d, yyyy") : ""}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        size="sm"
+                        onClick={() => payoutMutation.mutate(c.id)}
+                        disabled={payoutMutation.isPending}
+                        data-testid={`button-payout-${c.id}`}
+                      >
+                        Mark Paid
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

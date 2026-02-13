@@ -15,6 +15,7 @@ import {
   quotePayments,
   referralClicks,
   affiliateCommissions,
+  bakerReferrals,
   type Baker,
   type InsertBaker,
   type Customer,
@@ -42,6 +43,8 @@ import {
   type InsertReferralClick,
   type AffiliateCommission,
   type InsertAffiliateCommission,
+  type BakerReferral,
+  type InsertBakerReferral,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql, or, ilike, isNull } from "drizzle-orm";
@@ -187,8 +190,17 @@ export interface IStorage {
   // Affiliate commissions
   createAffiliateCommission(commission: InsertAffiliateCommission): Promise<AffiliateCommission>;
   getCommissionsByAffiliate(affiliateBakerId: string): Promise<AffiliateCommission[]>;
+  getAllCommissions(): Promise<AffiliateCommission[]>;
+  updateCommissionStatus(commissionId: string, status: string, paidAt?: Date): Promise<AffiliateCommission | undefined>;
   getReferralsByAffiliate(affiliateBakerId: string): Promise<Baker[]>;
   getAffiliateStats(affiliateBakerId: string): Promise<{ totalClicks: number; totalConversions: number; totalEarnings: number; pendingEarnings: number }>;
+  getAffiliateBySlug(slug: string): Promise<Baker | undefined>;
+
+  // Baker referrals
+  createBakerReferral(referral: InsertBakerReferral): Promise<BakerReferral>;
+  getBakerReferralsByReferrer(bakerId: string): Promise<BakerReferral[]>;
+  getBakerByReferralCode(code: string): Promise<Baker | undefined>;
+  awardBakerReferralCredit(referralId: string, creditType: string): Promise<BakerReferral | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1117,6 +1129,17 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(bakers).where(eq(bakers.referredByAffiliateId, affiliateBakerId)).orderBy(desc(bakers.createdAt));
   }
 
+  async getAllCommissions(): Promise<AffiliateCommission[]> {
+    return await db.select().from(affiliateCommissions).orderBy(desc(affiliateCommissions.createdAt));
+  }
+
+  async updateCommissionStatus(commissionId: string, status: string, paidAt?: Date): Promise<AffiliateCommission | undefined> {
+    const updateData: any = { status };
+    if (paidAt) updateData.paidAt = paidAt;
+    const [updated] = await db.update(affiliateCommissions).set(updateData).where(eq(affiliateCommissions.id, commissionId)).returning();
+    return updated;
+  }
+
   async getAffiliateStats(affiliateBakerId: string): Promise<{ totalClicks: number; totalConversions: number; totalEarnings: number; pendingEarnings: number }> {
     const baker = await this.getBaker(affiliateBakerId);
     if (!baker?.affiliateCode) return { totalClicks: 0, totalConversions: 0, totalEarnings: 0, pendingEarnings: 0 };
@@ -1138,6 +1161,35 @@ export class DatabaseStorage implements IStorage {
       totalEarnings,
       pendingEarnings,
     };
+  }
+
+  async getAffiliateBySlug(slug: string): Promise<Baker | undefined> {
+    const [baker] = await db.select().from(bakers).where(eq(bakers.affiliateSlug, slug));
+    return baker || undefined;
+  }
+
+  // Baker referrals
+  async createBakerReferral(referral: InsertBakerReferral): Promise<BakerReferral> {
+    const [created] = await db.insert(bakerReferrals).values(referral).returning();
+    return created;
+  }
+
+  async getBakerReferralsByReferrer(bakerId: string): Promise<BakerReferral[]> {
+    return await db.select().from(bakerReferrals).where(eq(bakerReferrals.referringBakerId, bakerId)).orderBy(desc(bakerReferrals.createdAt));
+  }
+
+  async getBakerByReferralCode(code: string): Promise<Baker | undefined> {
+    const [baker] = await db.select().from(bakers).where(eq(bakers.referralCode, code));
+    return baker || undefined;
+  }
+
+  async awardBakerReferralCredit(referralId: string, creditType: string): Promise<BakerReferral | undefined> {
+    const [updated] = await db.update(bakerReferrals).set({
+      creditAwarded: true,
+      creditType,
+      awardedAt: new Date(),
+    }).where(eq(bakerReferrals.id, referralId)).returning();
+    return updated;
   }
 }
 

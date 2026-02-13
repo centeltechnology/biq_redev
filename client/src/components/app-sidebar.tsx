@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Users, FileText, ClipboardList, Settings, LogOut, Cake, CalendarDays, DollarSign, Shield, Calculator, CreditCard, Share2 } from "lucide-react";
+import { Home, Users, FileText, ClipboardList, Settings, LogOut, Cake, CalendarDays, DollarSign, Shield, Calculator, CreditCard, Share2, Gift } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -64,12 +64,20 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                 );
               })}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={location === "/refer"}>
+                  <Link href="/refer" data-testid="nav-refer">
+                    <Gift className="h-4 w-4" />
+                    <span>Refer a Friend</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               {(baker as any)?.isAffiliate && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={location === "/referrals"}>
                     <Link href="/referrals" data-testid="nav-referrals">
                       <Share2 className="h-4 w-4" />
-                      <span>Referrals</span>
+                      <span>Affiliate Program</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

@@ -33,6 +33,7 @@ import PrivacyPage from "@/pages/privacy";
 import FeedbackPage from "@/pages/feedback";
 import PaymentsPage from "@/pages/payments";
 import ReferralsPage from "@/pages/referrals";
+import ReferPage from "@/pages/refer";
 
 function Router() {
   return (
@@ -82,6 +83,9 @@ function Router() {
       </Route>
       <Route path="/referrals">
         <ProtectedRoute><ReferralsPage /></ProtectedRoute>
+      </Route>
+      <Route path="/refer">
+        <ProtectedRoute><ReferPage /></ProtectedRoute>
       </Route>
       <Route path="/settings">
         <ProtectedRoute><SettingsPage /></ProtectedRoute>

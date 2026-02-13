@@ -210,13 +210,39 @@ export async function registerRoutes(
         }
       }
 
+      // Check for baker referral cookie (separate from affiliate)
+      const bakerRef = req.cookies?.bakeriq_baker_ref;
+      let bakerReferralData: { referredByBakerId?: string; bakerReferredAt?: Date } = {};
+      if (bakerRef) {
+        const referringBaker = await storage.getBakerByReferralCode(bakerRef);
+        if (referringBaker) {
+          bakerReferralData = {
+            referredByBakerId: referringBaker.id,
+            bakerReferredAt: new Date(),
+          };
+        }
+      }
+
       const baker = await storage.createBaker({
         email: data.email,
         passwordHash,
         businessName: data.businessName,
         slug,
         ...referralData,
+        ...bakerReferralData,
       });
+
+      // Generate unique referral code for the new baker
+      const referralCode = crypto.randomBytes(4).toString("hex");
+      await storage.updateBaker(baker.id, { referralCode });
+
+      // Create baker referral record if referred by another baker (prevent self-referral)
+      if (bakerReferralData.referredByBakerId && bakerReferralData.referredByBakerId !== baker.id) {
+        await storage.createBakerReferral({
+          referringBakerId: bakerReferralData.referredByBakerId,
+          referredBakerId: baker.id,
+        });
+      }
 
       // Send email verification
       const verifyToken = crypto.randomBytes(32).toString("hex");
@@ -2024,6 +2050,37 @@ export async function registerRoutes(
             console.error("Error tracking affiliate commission:", affError);
           }
         }
+
+        // Award baker referral credit when referred baker subscribes
+        if ((plan === "basic" || plan === "pro") && (status === "active" || status === "trialing") && baker.referredByBakerId) {
+          try {
+            const referringBaker = await storage.getBaker(baker.referredByBakerId);
+            if (referringBaker) {
+              const referrals = await storage.getBakerReferralsByReferrer(referringBaker.id);
+              const thisReferral = referrals.find(r => r.referredBakerId === baker.id && !r.creditAwarded);
+              if (thisReferral) {
+                const totalCredits = referringBaker.referralCredits + referringBaker.quickQuoteCredits;
+                if (totalCredits < 12) {
+                  if (referringBaker.plan === "basic" || referringBaker.plan === "pro") {
+                    await storage.updateBaker(referringBaker.id, {
+                      referralCredits: referringBaker.referralCredits + 1,
+                    });
+                    await storage.awardBakerReferralCredit(thisReferral.id, "subscription");
+                    console.log(`Baker referral credit awarded: ${referringBaker.businessName} gets 1 free month (subscription credit)`);
+                  } else {
+                    await storage.updateBaker(referringBaker.id, {
+                      quickQuoteCredits: referringBaker.quickQuoteCredits + 1,
+                    });
+                    await storage.awardBakerReferralCredit(thisReferral.id, "quick_quote");
+                    console.log(`Baker referral credit awarded: ${referringBaker.businessName} gets 1 month Quick Quote access`);
+                  }
+                }
+              }
+            }
+          } catch (refError) {
+            console.error("Error awarding baker referral credit:", refError);
+          }
+        }
       }
       
       res.json({ received: true });
@@ -3449,10 +3506,77 @@ Guidelines:
   });
 
   // ============================================
+  // PRETTY AFFILIATE / REFERRAL JOIN ROUTES
+  // ============================================
+
+  // GET /join/r/:code - Baker referral link
+  app.get("/join/r/:code", async (req, res) => {
+    try {
+      const { code } = req.params;
+      const referringBaker = await storage.getBakerByReferralCode(code);
+      if (!referringBaker) {
+        return res.redirect("/signup");
+      }
+
+      res.cookie("bakeriq_baker_ref", code, {
+        maxAge: 45 * 24 * 60 * 60 * 1000,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+      });
+
+      res.redirect("/signup");
+    } catch (error) {
+      console.error("Baker referral link error:", error);
+      res.redirect("/signup");
+    }
+  });
+
+  // GET /join/:slug - Affiliate/influencer referral link
+  app.get("/join/:slug", async (req, res) => {
+    try {
+      const { slug } = req.params;
+
+      // Look up affiliate by slug first, then fall back to affiliateCode
+      let affiliate = await storage.getAffiliateBySlug(slug);
+      if (!affiliate) {
+        affiliate = await storage.getAffiliateByCode(slug);
+      }
+      if (!affiliate || !affiliate.isAffiliate) {
+        return res.redirect("/signup");
+      }
+
+      const affiliateCode = affiliate.affiliateCode!;
+
+      // Hash IP for privacy
+      const ipHash = crypto.createHash("sha256").update(req.ip || "unknown").digest("hex").substring(0, 16);
+
+      await storage.createReferralClick({
+        affiliateCode,
+        ipHash,
+        referrerUrl: req.get("referer") || null,
+        userAgent: req.get("user-agent") || null,
+      });
+
+      res.cookie("bakeriq_ref", affiliateCode, {
+        maxAge: 45 * 24 * 60 * 60 * 1000,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+      });
+
+      res.redirect("/signup");
+    } catch (error) {
+      console.error("Affiliate join link error:", error);
+      res.redirect("/signup");
+    }
+  });
+
+  // ============================================
   // AFFILIATE PROGRAM ROUTES
   // ============================================
 
-  // Track referral click and set 45-day cookie
+  // Track referral click and set 45-day cookie (backward compat)
   app.get("/api/ref/:code", async (req, res) => {
     try {
       const { code } = req.params;
@@ -3531,7 +3655,11 @@ Guidelines:
         commissionRate || "20.00",
         commissionMonths || 3
       );
-      res.json({ ...updated, passwordHash: undefined });
+
+      // Also set the affiliateSlug to match the code initially
+      await storage.updateBaker(bakerId, { affiliateSlug: code });
+
+      res.json({ ...updated, passwordHash: undefined, affiliateSlug: code });
     } catch (error) {
       console.error("Error enabling affiliate:", error);
       res.status(500).json({ message: "Failed to enable affiliate" });
@@ -3587,6 +3715,126 @@ Guidelines:
     }
   });
 
+  // Admin: Mark commission as paid
+  app.post("/api/admin/affiliates/commissions/:commissionId/payout", requireAdmin, async (req, res) => {
+    try {
+      const { commissionId } = req.params;
+      const updated = await storage.updateCommissionStatus(commissionId, "paid", new Date());
+      if (!updated) {
+        return res.status(404).json({ message: "Commission not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error("Error processing payout:", error);
+      res.status(500).json({ message: "Failed to process payout" });
+    }
+  });
+
+  // Admin: Search affiliates
+  app.get("/api/admin/affiliates/search", requireAdmin, async (req, res) => {
+    try {
+      const q = ((req.query.q as string) || "").toLowerCase().trim();
+      if (!q) {
+        return res.json([]);
+      }
+      const affiliates = await storage.getAffiliates();
+      const filtered = affiliates.filter(a =>
+        a.businessName.toLowerCase().includes(q) ||
+        a.email.toLowerCase().includes(q) ||
+        (a.affiliateCode && a.affiliateCode.toLowerCase().includes(q)) ||
+        (a.affiliateSlug && a.affiliateSlug.toLowerCase().includes(q))
+      );
+      const results = await Promise.all(
+        filtered.map(async (a) => {
+          const stats = await storage.getAffiliateStats(a.id);
+          return { ...a, passwordHash: undefined, stats };
+        })
+      );
+      res.json(results);
+    } catch (error) {
+      console.error("Error searching affiliates:", error);
+      res.status(500).json({ message: "Failed to search affiliates" });
+    }
+  });
+
+  // Baker: Get own referral stats (baker-to-baker referral program)
+  app.get("/api/referral/stats", requireAuth, async (req, res) => {
+    try {
+      const baker = await storage.getBaker(req.session.bakerId!);
+      if (!baker) {
+        return res.status(404).json({ message: "Baker not found" });
+      }
+
+      const referrals = await storage.getBakerReferralsByReferrer(baker.id);
+      const referredBakers = await Promise.all(
+        referrals.map(async (r) => {
+          const referred = await storage.getBaker(r.referredBakerId);
+          return {
+            id: r.id,
+            referredBakerId: r.referredBakerId,
+            businessName: referred?.businessName || "Unknown",
+            plan: referred?.plan || "free",
+            creditAwarded: r.creditAwarded,
+            creditType: r.creditType,
+            createdAt: r.createdAt,
+          };
+        })
+      );
+
+      res.json({
+        referralCode: baker.referralCode,
+        referralCredits: baker.referralCredits,
+        quickQuoteCredits: baker.quickQuoteCredits,
+        plan: baker.plan,
+        referrals: referredBakers,
+        totalCreditsEarned: referrals.filter(r => r.creditAwarded).length,
+      });
+    } catch (error) {
+      console.error("Error fetching referral stats:", error);
+      res.status(500).json({ message: "Failed to fetch referral stats" });
+    }
+  });
+
+  // Affiliate: Update affiliate slug
+  app.patch("/api/affiliate/slug", requireAuth, async (req, res) => {
+    try {
+      const baker = await storage.getBaker(req.session.bakerId!);
+      if (!baker || !baker.isAffiliate) {
+        return res.status(403).json({ message: "Must be an affiliate to update slug" });
+      }
+
+      const schema = z.object({
+        slug: z.string()
+          .min(3, "Slug must be at least 3 characters")
+          .max(30, "Slug must be 30 characters or less")
+          .regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$/, "Only lowercase letters, numbers, and hyphens allowed")
+          .transform(s => s.toLowerCase().trim()),
+      });
+      const { slug: newSlug } = schema.parse(req.body);
+
+      // Check uniqueness against other affiliates' slugs
+      const existingAffiliate = await storage.getAffiliateBySlug(newSlug);
+      if (existingAffiliate && existingAffiliate.id !== baker.id) {
+        return res.status(409).json({ message: "This slug is already taken by another affiliate" });
+      }
+
+      // Check uniqueness against baker slugs
+      const existingBaker = await storage.getBakerBySlug(newSlug);
+      if (existingBaker && existingBaker.id !== baker.id) {
+        return res.status(409).json({ message: "This slug is already taken" });
+      }
+
+      const updated = await storage.updateBaker(baker.id, { affiliateSlug: newSlug });
+      res.json({ ...updated, passwordHash: undefined });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      console.error("Error updating affiliate slug:", error);
+      res.status(500).json({ message: "Failed to update affiliate slug" });
+    }
+  });
+
   // Baker: Get own affiliate stats (Referrals tab)
   app.get("/api/affiliate/stats", requireAuth, async (req, res) => {
     try {
@@ -3602,6 +3850,7 @@ Guidelines:
       res.json({
         isAffiliate: true,
         affiliateCode: baker.affiliateCode,
+        affiliateSlug: baker.affiliateSlug,
         commissionRate: baker.affiliateCommissionRate,
         commissionMonths: baker.affiliateCommissionMonths,
         stats,
