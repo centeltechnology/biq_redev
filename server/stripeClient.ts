@@ -1,10 +1,16 @@
 import Stripe from 'stripe';
 
+let credentialsSource: string = 'unknown';
+
 async function getCredentials() {
-  if (process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PUBLISHABLE_KEY) {
+  const envSecretKey = process.env.STRIPE_SECRET_KEY;
+  const envPublishableKey = process.env.STRIPE_PUBLISHABLE_KEY;
+
+  if (envSecretKey && envPublishableKey) {
+    credentialsSource = 'environment variables (STRIPE_SECRET_KEY / STRIPE_PUBLISHABLE_KEY)';
     return {
-      publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
-      secretKey: process.env.STRIPE_SECRET_KEY,
+      publishableKey: envPublishableKey,
+      secretKey: envSecretKey,
     };
   }
 
@@ -33,6 +39,7 @@ async function getCredentials() {
     throw new Error(`Stripe connection not found. Set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY environment variables.`);
   }
 
+  credentialsSource = `Replit connector (${targetEnvironment})`;
   return {
     publishableKey: conn.settings.publishable,
     secretKey: conn.settings.secret,
@@ -77,6 +84,24 @@ export async function getStripePublishableKey() {
 export async function getStripeSecretKey() {
   const { secretKey } = await getCredentials();
   return secretKey;
+}
+
+export async function verifyStripeAccount() {
+  try {
+    const { secretKey } = await getCredentials();
+    const stripe = new Stripe(secretKey, {
+      apiVersion: '2025-11-17.clover' as any,
+    });
+    const account = await stripe.accounts.retrieve();
+    const keyPrefix = secretKey.substring(0, 7) + '...';
+    console.log(`Stripe credentials source: ${credentialsSource}`);
+    console.log(`Stripe account: ${account.id} (${account.business_profile?.name || account.email || 'no name'})`);
+    console.log(`Stripe key prefix: ${keyPrefix}`);
+    return account.id;
+  } catch (error: any) {
+    console.error(`Stripe verification failed (source: ${credentialsSource}):`, error.message);
+    return null;
+  }
 }
 
 let stripeSync: any = null;

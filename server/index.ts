@@ -3,7 +3,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { runMigrations } from "stripe-replit-sync";
-import { getStripeSync } from "./stripeClient";
+import { getStripeSync, verifyStripeAccount } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
 import { startOnboardingScheduler } from "./onboarding-scheduler";
 import { startRetentionScheduler } from "./retention-scheduler";
@@ -31,8 +31,14 @@ async function initStripe() {
     console.log("Stripe schema ready");
   } catch (error) {
     console.error("Failed to initialize Stripe schema:", error);
-    // Continue without Stripe - don't crash the app
     return;
+  }
+
+  try {
+    console.log("Verifying Stripe account...");
+    await verifyStripeAccount();
+  } catch (error) {
+    console.error("Failed to verify Stripe account:", error);
   }
 
   try {
