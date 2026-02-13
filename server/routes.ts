@@ -523,6 +523,65 @@ export async function registerRoutes(
     }
   });
 
+  // Check slug availability
+  app.get("/api/bakers/check-slug/:slug", requireAuth, async (req, res) => {
+    try {
+      const slug = req.params.slug.toLowerCase().trim();
+      const reserved = ["admin", "api", "login", "signup", "dashboard", "settings", "help", "faq", "terms", "privacy", "c", "q"];
+      if (reserved.includes(slug)) {
+        return res.json({ available: false, reason: "This URL is reserved" });
+      }
+      if (slug.length < 3) {
+        return res.json({ available: false, reason: "Must be at least 3 characters" });
+      }
+      if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(slug) && slug.length > 1) {
+        return res.json({ available: false, reason: "Only lowercase letters, numbers, and hyphens allowed" });
+      }
+      const existing = await storage.getBakerBySlug(slug);
+      if (existing && existing.id !== req.session.bakerId) {
+        return res.json({ available: false, reason: "This URL is already taken" });
+      }
+      res.json({ available: true });
+    } catch (error) {
+      res.status(500).json({ available: false, reason: "Check failed" });
+    }
+  });
+
+  // Update baker slug
+  app.patch("/api/bakers/me/slug", requireAuth, async (req, res) => {
+    try {
+      const schema = z.object({
+        slug: z.string()
+          .min(3, "Slug must be at least 3 characters")
+          .max(50, "Slug must be 50 characters or less")
+          .regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$/, "Only lowercase letters, numbers, and hyphens allowed (cannot start/end with hyphen)")
+          .transform(s => s.toLowerCase().trim()),
+      });
+      const { slug } = schema.parse(req.body);
+
+      const reserved = ["admin", "api", "login", "signup", "dashboard", "settings", "help", "faq", "terms", "privacy", "c", "q"];
+      if (reserved.includes(slug)) {
+        return res.status(400).json({ message: "This URL is reserved" });
+      }
+
+      const existing = await storage.getBakerBySlug(slug);
+      if (existing && existing.id !== req.session.bakerId!) {
+        return res.status(409).json({ message: "This URL is already taken by another baker" });
+      }
+
+      const baker = await storage.updateBaker(req.session.bakerId!, { slug });
+      if (!baker) {
+        return res.status(404).json({ message: "Baker not found" });
+      }
+      res.json({ ...baker, passwordHash: undefined });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      res.status(500).json({ message: error.message || "Failed to update URL" });
+    }
+  });
+
   // Onboarding Tour Status
   app.patch("/api/baker/onboarding-tour", requireAuth, async (req, res) => {
     try {

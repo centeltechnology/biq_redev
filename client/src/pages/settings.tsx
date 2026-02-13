@@ -1,9 +1,9 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Copy, Check, Loader2, ExternalLink, CreditCard, Sparkles, Bell, HelpCircle, Zap, Camera, Upload, X, Image as ImageIcon, Plus, Trash2, Globe } from "lucide-react";
+import { Copy, Check, Loader2, ExternalLink, CreditCard, Sparkles, Bell, HelpCircle, Zap, Camera, Upload, X, Image as ImageIcon, Plus, Trash2, Globe, Pencil, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useUpload } from "@/hooks/use-upload";
 import { InstructionModal } from "@/components/instruction-modal";
 import { Badge } from "@/components/ui/badge";
@@ -77,6 +77,139 @@ const passwordSchema = z
   });
 
 type PasswordFormData = z.infer<typeof passwordSchema>;
+
+function SlugEditor({ currentSlug }: { currentSlug: string }) {
+  const [editing, setEditing] = useState(false);
+  const [slug, setSlug] = useState(currentSlug);
+  const [status, setStatus] = useState<"idle" | "checking" | "available" | "unavailable">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+  const { toast } = useToast();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    setSlug(currentSlug);
+  }, [currentSlug]);
+
+  const checkAvailability = useCallback((value: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (!value || value.length < 3) {
+      setStatus("unavailable");
+      setErrorMsg("Must be at least 3 characters");
+      return;
+    }
+    if (value === currentSlug) {
+      setStatus("idle");
+      setErrorMsg("");
+      return;
+    }
+
+    setStatus("checking");
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/bakers/check-slug/${encodeURIComponent(value)}`);
+        const data = await res.json();
+        if (data.available) {
+          setStatus("available");
+          setErrorMsg("");
+        } else {
+          setStatus("unavailable");
+          setErrorMsg(data.reason || "Not available");
+        }
+      } catch {
+        setStatus("unavailable");
+        setErrorMsg("Could not check availability");
+      }
+    }, 400);
+  }, [currentSlug]);
+
+  const updateSlugMutation = useMutation({
+    mutationFn: async (newSlug: string) => {
+      const res = await apiRequest("PATCH", "/api/bakers/me/slug", { slug: newSlug });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to update URL");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      toast({ title: "Calculator URL updated" });
+      setEditing(false);
+      setStatus("idle");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to update URL", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleSlugChange = (value: string) => {
+    const sanitized = value.toLowerCase().replace(/[^a-z0-9-]/g, "").replace(/-+/g, "-");
+    setSlug(sanitized);
+    checkAvailability(sanitized);
+  };
+
+  const handleSave = () => {
+    if (status === "available" && slug !== currentSlug) {
+      updateSlugMutation.mutate(slug);
+    }
+  };
+
+  const handleCancel = () => {
+    setSlug(currentSlug);
+    setEditing(false);
+    setStatus("idle");
+    setErrorMsg("");
+  };
+
+  if (!editing) {
+    return (
+      <div className="mt-3 flex items-center gap-2">
+        <span className="text-sm text-muted-foreground">Custom URL:</span>
+        <code className="text-sm font-mono bg-muted px-2 py-1 rounded">/c/{currentSlug}</code>
+        <Button variant="ghost" size="icon" onClick={() => setEditing(true)} data-testid="button-edit-slug">
+          <Pencil className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-3 space-y-2">
+      <Label className="text-sm text-muted-foreground">Customize your calculator URL</Label>
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-muted-foreground whitespace-nowrap">/c/</span>
+        <div className="relative flex-1">
+          <Input
+            value={slug}
+            onChange={(e) => handleSlugChange(e.target.value)}
+            placeholder="your-bakery-name"
+            className="font-mono text-sm pr-8"
+            data-testid="input-slug"
+          />
+          <div className="absolute right-2 top-1/2 -translate-y-1/2">
+            {status === "checking" && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+            {status === "available" && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+            {status === "unavailable" && <AlertCircle className="h-4 w-4 text-destructive" />}
+          </div>
+        </div>
+        <Button
+          size="sm"
+          onClick={handleSave}
+          disabled={status !== "available" || updateSlugMutation.isPending}
+          data-testid="button-save-slug"
+        >
+          {updateSlugMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+        </Button>
+        <Button variant="ghost" size="sm" onClick={handleCancel} data-testid="button-cancel-slug">
+          Cancel
+        </Button>
+      </div>
+      {errorMsg && <p className="text-xs text-destructive">{errorMsg}</p>}
+      {status === "available" && <p className="text-xs text-green-600">This URL is available</p>}
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   const { baker } = useAuth();
@@ -525,6 +658,7 @@ export default function SettingsPage() {
                 </a>
               </Button>
             </div>
+            <SlugEditor currentSlug={baker?.slug || ""} />
           </CardContent>
         </Card>
 
