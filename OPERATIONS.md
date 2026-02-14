@@ -15,14 +15,17 @@
 7. [Weekly Operations Checklist](#weekly-operations-checklist)
 8. [Support Playbook](#support-playbook)
 9. [Escalation Guide](#escalation-guide)
-10. [User Lifecycle](#user-lifecycle)
-11. [Key Pages & Features](#key-pages--features)
-12. [Email Systems](#email-systems)
-13. [Referral & Affiliate Programs](#referral--affiliate-programs)
-14. [Financial Tracking](#financial-tracking)
-15. [External Services & Integrations](#external-services--integrations)
-16. [Technical Architecture (For Developers)](#technical-architecture)
-17. [Troubleshooting Common Issues](#troubleshooting-common-issues)
+10. [Decision Authority Matrix (Who Decides What)](#decision-authority-matrix)
+11. [User Lifecycle](#user-lifecycle)
+12. [Key Pages & Features](#key-pages--features)
+13. [Email Systems](#email-systems)
+14. [Referral & Affiliate Programs](#referral--affiliate-programs)
+15. [Financial Tracking](#financial-tracking)
+16. [KPI Thresholds & Health Targets](#kpi-thresholds--health-targets)
+17. [External Services & Integrations](#external-services--integrations)
+18. [Technical Architecture (For Developers)](#technical-architecture)
+19. [Troubleshooting Common Issues](#troubleshooting-common-issues)
+20. [Founder Step-Back Milestones](#founder-step-back-milestones)
 
 ---
 
@@ -329,6 +332,72 @@ When a baker has a problem you can't diagnose from the admin panel:
 
 ---
 
+## Decision Authority Matrix
+
+This matrix clarifies who has the authority to make each type of decision. The goal is to keep day-to-day operations running without needing the founder, while still protecting the business on high-impact decisions.
+
+**Roles:**
+- **Support Staff**: Front-line team handling tickets and basic account questions
+- **Ops Manager**: Person overseeing daily operations, support quality, and reporting
+- **Founder**: Business owner / CEO (you want to minimize this column over time)
+- **Dev / Tech Lead**: Technical team member for code, infrastructure, and data issues
+
+### Refunds & Financial Decisions
+
+| Decision | Owner | Backup | Notes |
+|----------|-------|--------|-------|
+| Refund up to $25 | Support Staff | Ops Manager | Document reason in ticket. Max 3 per week per staff member. |
+| Refund $25 - $100 | Ops Manager | Founder | Requires ticket documentation + screenshot of payment. |
+| Refund over $100 | Founder | — | Always requires founder approval, no exceptions. |
+| Subscription credit (1 month free) | Ops Manager | Founder | Use for goodwill gestures during outages or severe bugs. Max 5 per month. |
+| Subscription credit (2+ months) | Founder | — | Rare. Only for major platform failures affecting the baker's business. |
+| Affiliate commission disputes | Ops Manager | Founder | Review click/signup data. If unclear, escalate to founder. |
+| Affiliate payout approval | Ops Manager | Founder | Verify amounts match commission records before marking paid. |
+| Pricing or plan structure changes | Founder | — | Never changed without founder sign-off. |
+
+### Account Management
+
+| Decision | Owner | Backup | Notes |
+|----------|-------|--------|-------|
+| Password reset | Support Staff | Ops Manager | Routine. Verify identity via email match. |
+| Quote limit reset (one-time) | Support Staff | Ops Manager | Allowed once per baker per month. Document reason. |
+| Quote limit reset (repeated) | Ops Manager | Founder | If a baker asks more than once, suggest upgrading. |
+| Account suspension (abuse/spam) | Ops Manager | Founder | Document evidence. Notify baker via email with reason. |
+| Account unsuspension | Ops Manager | Founder | Review original suspension reason. Verify issue is resolved. |
+| Account deletion request | Ops Manager | Founder | Confirm via email. Allow 7-day cooling-off period. |
+| Plan upgrade/downgrade (manual) | Support Staff | Ops Manager | Only when Stripe self-service isn't working. |
+
+### Affiliate & Referral Program
+
+| Decision | Owner | Backup | Notes |
+|----------|-------|--------|-------|
+| Approve affiliate application | Ops Manager | Founder | Check social following, content quality, audience relevance. |
+| Deny affiliate application | Ops Manager | Founder | Always include a reason in admin notes. |
+| Enable baker as affiliate (post-approval) | Ops Manager | Founder | Required step after approving application. |
+| Change commission rate or duration | Founder | — | Default is 20% for 3 months. Changes are strategic decisions. |
+| Disable an affiliate | Ops Manager | Founder | Only for policy violations. Document thoroughly. |
+
+### Legal, Data & Compliance
+
+| Decision | Owner | Backup | Notes |
+|----------|-------|--------|-------|
+| Data export request (GDPR, etc.) | Founder | Dev / Tech Lead | Must be handled within 30 days. Founder coordinates with dev. |
+| Legal inquiry or subpoena | Founder | — | Do not respond. Forward immediately to founder. |
+| Privacy complaint | Ops Manager | Founder | Acknowledge receipt. Escalate to founder within 24 hours. |
+| Terms of service violation | Ops Manager | Founder | Suspend account first, then escalate for review. |
+
+### Technical & Platform
+
+| Decision | Owner | Backup | Notes |
+|----------|-------|--------|-------|
+| Outage communication to users | Ops Manager drafts | Founder approves | Dev confirms root cause before sending. |
+| Emergency server restart | Dev / Tech Lead | Founder | Only if platform is completely down. |
+| Feature requests from users | Ops Manager collects | Founder prioritizes | Log in feedback system. Do not promise timelines. |
+| Email template changes | Ops Manager | Founder | Test with admin preview before sending to all users. |
+| Send announcement email blast | Ops Manager | Founder | Always send a test email first. Review content for tone. |
+
+---
+
 ## User Lifecycle
 
 Here's the journey a baker takes through the platform:
@@ -504,6 +573,71 @@ Export projections as CSV for investor decks.
 
 ---
 
+## KPI Thresholds & Health Targets
+
+Use this section to quickly assess whether the platform is healthy, needs attention, or requires immediate action. Check these during your daily and weekly reviews.
+
+> All thresholds below are labeled **Default (Adjustable)** — the founder can update them as the platform matures and benchmarks become clearer.
+
+### KPI Health Dashboard
+
+| KPI | Healthy | Watch | Critical | Where to Check |
+|-----|---------|-------|----------|----------------|
+| **Stripe Connect Adoption** (% of bakers connected) | > 40% | 25% - 40% | < 25% | Admin > Payments > Connect Health |
+| **Payment Success Rate** (% of attempted payments that succeed) | > 95% | 90% - 95% | < 90% | Stripe Dashboard > Payments |
+| **Dispute / Chargeback Rate** | < 0.5% | 0.5% - 1.0% | > 1.0% | Stripe Dashboard > Disputes |
+| **Daily Support Tickets** | < 5 | 5 - 15 | > 15 | Admin > Support tab |
+| **Weekly Support Tickets** | < 20 | 20 - 50 | > 50 | Admin > Support tab |
+| **First Response Time** (support tickets) | < 12 hours | 12 - 24 hours | > 24 hours | Manual tracking |
+| **Platform Uptime** (monthly) | > 99.5% | 99% - 99.5% | < 99% | Server monitoring / incident log |
+| **Outage Frequency** | 0-1 per month | 2-3 per month | 4+ per month | Incident log |
+| **Subscription Churn** (monthly) | < 5% | 5% - 10% | > 10% | Admin > Financials > Trends |
+| **GMV Month-over-Month Growth** | > 5% growth | Flat (0% - 5%) | Declining (negative) | Admin > Financials > Trends |
+| **Retention Email Open Rate** | > 25% | 15% - 25% | < 15% | Admin > System > Retention Stats |
+| **New Signups (weekly)** | Growing week-over-week | Flat | Declining for 3+ weeks | Admin > Analytics |
+
+### What To Do When a KPI Hits "Watch"
+
+1. **Log it** — Write down which KPI, the current value, and the date
+2. **Investigate** — Look for a root cause (is there a bug? A Stripe issue? A seasonal dip?)
+3. **Monitor daily** — Check the KPI each day for the next 5 business days
+4. **If it improves**: Note the recovery and resume normal cadence
+5. **If it stays flat or worsens**: Move to the "Critical" action steps below
+
+### What To Do When a KPI Hits "Critical"
+
+1. **Escalate to Ops Manager immediately** (or Founder if no Ops Manager yet)
+2. **Document**:
+   - Which KPI
+   - Current value vs. expected range
+   - When it first entered "Watch" territory
+   - Any suspected root cause
+3. **Take immediate action based on the KPI**:
+
+| Critical KPI | Immediate Action |
+|--------------|-----------------|
+| Stripe Connect Adoption < 25% | Review onboarding emails — are bakers being prompted to connect Stripe? Consider a targeted email campaign. |
+| Payment Success Rate < 90% | Check Stripe Dashboard for errors. If platform-wide, escalate to Dev. If one baker, help them directly. |
+| Dispute Rate > 1.0% | Stripe may restrict the account. Identify which bakers are generating disputes. Suspend repeat offenders. Escalate to Founder. |
+| Daily Tickets > 15 | Check for a platform-wide bug causing the spike. Prioritize by severity. Pull in additional support if available. |
+| First Response > 24 hours | Redistribute ticket load. If understaffed, escalate hiring need to Founder. |
+| Uptime < 99% | Escalate to Dev / Tech Lead immediately. Document all outage incidents. |
+| Churn > 10% | Review recent changes — did pricing change? Is there a competitor? Survey churned users. Report findings to Founder. |
+| GMV Declining | Check if it's seasonal or a trend. Review Stripe Connect adoption. Check if bakers are sending fewer quotes. Report to Founder. |
+| Retention Open Rate < 15% | Review email subject lines and content. Test new templates. Check if emails are landing in spam. |
+
+### Monthly KPI Summary Report
+
+At the end of each month, compile a short summary (can be a simple email or shared doc):
+- Each KPI's current value and whether it's Healthy / Watch / Critical
+- Any KPIs that changed status during the month
+- Actions taken for any Watch or Critical KPIs
+- Recommendations for the next month
+
+Send this to the Founder by the 3rd business day of the following month.
+
+---
+
 ## External Services & Integrations
 
 ### Stripe (Payments & Subscriptions)
@@ -634,6 +768,151 @@ shared/
 2. Prioritize by severity: High > Medium > Low
 3. Look for patterns — multiple bakers reporting the same issue = systemic problem
 4. If it's a bug, document and **escalate**
+
+---
+
+## Founder Step-Back Milestones
+
+This section outlines a phased plan for progressively removing the founder from day-to-day operations as BakerIQ grows. The goal: by the time the platform reaches 5,000 users, the founder should be fully strategic with no involvement in routine tasks.
+
+### Phase 0: Now (Pre-1,000 Users)
+
+**Status**: Founder involved in escalations only. Platform is largely automated.
+
+| Area | Who Handles It |
+|------|---------------|
+| Daily checklist | Founder (or first hire) |
+| Support tickets | Founder (or first hire) |
+| Affiliate reviews | Founder |
+| Refunds (any amount) | Founder |
+| Financial reviews | Founder |
+| Feature development | Founder + Dev |
+| Escalations | Founder |
+
+**Founder's focus**: Getting to product-market fit, building user base, handling everything until first hires are in place.
+
+**Reporting**: N/A (founder sees everything directly).
+
+---
+
+### Phase 1: 1,000 Users — Hire Ops Manager
+
+**What changes**: An Operations Manager takes over the daily and weekly checklists. Founder shifts to oversight.
+
+| What the Founder STOPS Doing | What Ops Manager OWNS |
+|------------------------------|----------------------|
+| Daily support ticket triage | Daily checklist (all 4 items) |
+| Routine password resets | First-line support responses |
+| Quote limit resets | Affiliate application reviews |
+| Basic Stripe Connect troubleshooting | Weekly checklist (all 4 items) |
+| Monitoring payment health daily | Refunds up to $25 |
+
+**What still goes to the Founder**:
+- Refunds over $25
+- Account suspensions (Ops recommends, Founder approves)
+- Affiliate commission disputes
+- Any "Critical" KPI escalation
+- Legal or compliance matters
+- Pricing or plan changes
+
+**Reporting cadence**: Ops Manager sends Founder a daily Slack/email summary (2-3 sentences: ticket count, any issues, anything escalated). Weekly KPI report.
+
+---
+
+### Phase 2: 2,000 Users — Founder Removed from Routine Support
+
+**What changes**: Ops Manager has full authority over routine operations. Support staff may be added. Founder only sees escalations and weekly reports.
+
+| What the Founder STOPS Doing | What Ops / Support Team OWNS |
+|------------------------------|------------------------------|
+| Reviewing individual support tickets | All support tickets (Support Staff handles, Ops Manager oversees) |
+| Approving routine refunds | Refunds up to $100 (Ops Manager authority) |
+| Account suspensions | Ops Manager can suspend/unsuspend with documentation |
+| Daily anything | Full daily + weekly operations |
+| Affiliate application reviews | Ops Manager approves/denies (standard criteria) |
+
+**What still goes to the Founder**:
+- Refunds over $100
+- Affiliate commission rate or duration changes
+- KPIs in "Critical" status for 7+ days
+- Legal, compliance, data export requests
+- Pricing changes
+- Outage communication approval (Ops drafts, Founder reviews)
+
+**Reporting cadence**: Weekly KPI email from Ops Manager (using the Monthly KPI Summary format, but weekly). Founder checks Financials tab when they want to.
+
+**Milestone marker**: The founder can leave for 2 weeks and nothing breaks. This is the target state described at the top of this document.
+
+---
+
+### Phase 3: 3,000 Users — Weekly KPI Review Only
+
+**What changes**: Founder shifts to product direction, partnerships, and growth strategy. Ops Manager runs the show.
+
+| What the Founder STOPS Doing | What Ops Team OWNS |
+|------------------------------|-------------------|
+| Weekly operational reviews | Ops Manager runs weekly review independently |
+| Affiliate payout approvals | Ops Manager handles all payouts |
+| Outage communication drafting | Ops Manager drafts and sends (Founder CC'd) |
+| Feature request prioritization | Ops Manager collects and ranks; Founder reviews monthly |
+
+**What still goes to the Founder**:
+- Strategic decisions (pricing, new features, partnerships)
+- Investor relations and financial projections
+- Legal and compliance
+- Hiring decisions
+- Critical escalations that Ops Manager can't resolve
+
+**Reporting cadence**: Weekly KPI summary (email or shared doc). Monthly financial review meeting (30 min). Quarterly business review.
+
+---
+
+### Phase 4: 5,000+ Users — Founder Fully Strategic
+
+**What changes**: Founder operates at the executive level. Monthly reviews only. Day-to-day is invisible to founder unless something breaks badly.
+
+| What the Founder STOPS Doing | What the Team OWNS |
+|------------------------------|-------------------|
+| Weekly KPI reviews | Ops Manager + Dev Lead handle weekly |
+| Reviewing any support tickets | Support team is self-sufficient |
+| Any routine operational task | Everything is delegated |
+
+**What the Founder DOES**:
+- Monthly executive review (1 hour): KPIs, revenue, growth, roadmap
+- Quarterly strategic planning
+- Partnership and business development
+- Investor relations
+- Hiring and team development
+- Product vision and roadmap (with Dev Lead)
+
+**Reporting cadence**: Monthly executive summary from Ops Manager. Quarterly business review with full financials.
+
+**Escalation boundaries** (only these reach the Founder):
+- Platform down for 1+ hour with no Dev resolution
+- Stripe account restriction or legal action
+- Chargeback rate threatening Stripe account
+- Security breach or data leak
+- Legal or regulatory inquiry
+- Revenue decline for 3+ consecutive months
+- Any decision that changes pricing, plans, or business model
+
+---
+
+### Quick Reference: Founder Involvement by Phase
+
+| Task | Phase 0 | Phase 1 | Phase 2 | Phase 3 | Phase 4 |
+|------|---------|---------|---------|---------|---------|
+| Daily support | Founder | Ops | Ops + Staff | Team | Team |
+| Refunds < $25 | Founder | Ops | Staff | Staff | Staff |
+| Refunds $25-$100 | Founder | Founder | Ops | Ops | Ops |
+| Refunds > $100 | Founder | Founder | Founder | Founder | Founder |
+| Affiliate reviews | Founder | Founder | Ops | Ops | Ops |
+| Weekly KPI review | Founder | Founder | Founder | Ops | Ops |
+| Monthly financials | Founder | Founder | Founder | Founder | Founder |
+| Pricing changes | Founder | Founder | Founder | Founder | Founder |
+| Legal / compliance | Founder | Founder | Founder | Founder | Founder |
+| Outage response | Founder | Founder | Ops + Dev | Ops + Dev | Ops + Dev |
+| Feature roadmap | Founder | Founder | Founder | Founder monthly | Founder quarterly |
 
 ---
 

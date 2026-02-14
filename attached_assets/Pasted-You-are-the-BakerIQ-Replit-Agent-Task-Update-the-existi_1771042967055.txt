@@ -1,0 +1,66 @@
+You are the BakerIQ Replit Agent.
+
+Task: Update the existing OPERATIONS.md operations manual by adding THREE new sections based on the current content and structure. Do NOT change existing sections unless necessary for consistency. Keep language non-technical and readable for an office manager/support staff. Use the same tone and formatting style already in OPERATIONS.md.
+
+IMPORTANT CONSTRAINTS:
+- Edit ONLY OPERATIONS.md (no code changes).
+- Preserve the existing table of contents format and add new entries for the new sections.
+- Add the new sections in logical places (suggested: KPI thresholds near Financial Tracking; Authority Matrix near Escalation Guide; Founder Step-Back Plan near Daily/Weekly operations or near the end).
+- Keep it practical: include clear thresholds, actions, and “who decides” rules.
+- Use defaults that can be adjusted later. If a number is uncertain, choose a reasonable default and label it “Default (Adjustable)”.
+
+NEW SECTIONS TO ADD:
+
+1) KPI Thresholds & Health Targets
+Create a section that defines “healthy / watch / critical” thresholds for key operational metrics already referenced in the manual. Include a simple table and a short “What to do if…” checklist.
+Include at minimum:
+- Stripe Connect Adoption Rate (% of bakers connected)
+- Payment Success Rate
+- Dispute/Chargeback Rate
+- Support Ticket Volume (daily/weekly) and First Response Time
+- Platform Uptime / Outage frequency
+- Subscription churn (monthly)
+- GMV trend (MoM growth/decline)
+For each KPI define:
+- Healthy range (Default)
+- Watch range (Default)
+- Critical range (Default)
+- Immediate action steps + escalation rule
+
+2) Decision Authority Matrix (Who Decides What)
+Create a section that clarifies which decisions can be made by:
+- Support Staff
+- Operations Manager
+- Founder
+- Developer/Tech Lead
+Format: a matrix/table with “Decision / Owner / Backup / Notes”.
+Include at minimum:
+- Refund approval thresholds (e.g., up to $X handled by Ops; above that Founder)
+- Subscription exceptions/credits
+- Quote limit resets policy
+- Account suspensions/unsuspensions
+- Affiliate approvals and commission disputes
+- Pricing/plan changes (always Founder)
+- Data export requests and legal/compliance requests (Founder)
+- Outage communication (Ops drafts, Founder approves, Dev confirms)
+Make sure it reduces founder dependency while still protecting the company.
+
+3) Founder Step-Back Milestones (Reducing Founder Involvement)
+Create a section that outlines milestones tied to user count (or revenue) that progressively remove the founder from day-to-day tasks. Make it a simple phased plan that aligns with the existing manual.
+Example phases (use as guidance, adjust as needed):
+- Phase 0 (Now): Founder involved in escalations only
+- Phase 1 (1,000 users): Ops Manager owns daily checklist + support oversight
+- Phase 2 (2,000 users): Founder removed from routine refunds/support; only serious escalations
+- Phase 3 (3,000 users): Weekly KPI review only; Ops runs weekly checklist; founder focuses on partnerships/product direction
+- Phase 4 (5,000 users): Monthly executive review; founder fully strategic
+For each phase include:
+- What the founder stops doing
+- What the ops/dev team owns
+- What reporting cadence is required (weekly/monthly)
+- Escalation boundaries (what still comes to founder)
+
+DELIVERABLE:
+- Updated OPERATIONS.md with updated table of contents and the three new sections inserted cleanly.
+- Keep “Last updated” note at bottom and update the month/year to the current month/year if present.
+
+After completing the update, output ONLY the final updated OPERATIONS.md content.
