@@ -1,0 +1,71 @@
+You are the BakerIQ Replit Agent.
+
+GOAL:
+Add a clean, professional FAQ section to the /partners page to reduce friction and answer common affiliate objections.
+
+IMPORTANT CONSTRAINTS:
+- Do NOT redesign the page layout.
+- Add the FAQ section BELOW “Who Is This For?” and ABOVE the application form.
+- Keep styling consistent with the rest of the page.
+- Use collapsible/accordion UI if already available. If not, use simple stacked question/answer blocks.
+- Keep tone clear, direct, and confident.
+- No hype language.
+
+SECTION TITLE:
+“Partner Program FAQ”
+
+INCLUDE THE FOLLOWING QUESTIONS & ANSWERS:
+
+1) How does the 20% commission work?
+Explain:
+- 20% of subscription revenue only
+- Applies to Basic ($4.99) and Pro ($9.99)
+- Paid for the first 3 months of each referred baker
+- Does NOT apply to transaction fees or Stripe volume
+
+2) How are referrals tracked?
+Explain:
+- Unique custom affiliate link
+- 45-day cookie window
+- Credit applies if the baker signs up within that window
+- Dashboard tracks clicks, signups, and commissions
+
+3) When and how are commissions paid?
+Explain:
+- Payout schedule (monthly if applicable — if not defined, state “monthly payouts after verification”)
+- Method (Stripe / bank transfer / etc — match current implementation)
+- Minimum payout threshold if applicable (or state “no minimum” if none)
+
+4) Who is this program for?
+Clarify:
+- Designed for educators, creators, supply shops, business coaches
+- Not intended for existing bakers trying to earn commission
+- Bakers should use in-app referral program instead
+
+5) Is there a cost to join?
+Answer:
+- No cost
+- Application required
+- Approval based on fit and audience relevance
+
+6) Can I use BakerIQ myself?
+Answer:
+- Yes, and encouraged
+- Using the platform helps partners demonstrate it authentically
+
+7) What support do partners receive?
+Answer:
+- Access to dashboard
+- Clear tracking
+- Additional resources provided upon approval (keep vague for now)
+
+FORMAT:
+- Keep each answer concise (3–5 sentences max).
+- Avoid long paragraphs.
+- No legal jargon.
+- No marketing fluff.
+
+DELIVERABLE:
+- Updated /partners page with the new FAQ section inserted.
+- List the file(s) modified.
+- Paste the full FAQ section copy for review.

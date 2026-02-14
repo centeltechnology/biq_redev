@@ -10,6 +10,12 @@ import { apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   DollarSign,
   TrendingUp,
   Users,
@@ -203,6 +209,68 @@ export default function PartnersPage() {
               </div>
             ))}
           </div>
+        </div>
+
+        <div className="mb-16 max-w-3xl mx-auto">
+          <h2 className="text-2xl font-bold text-center mb-6">Partner Program FAQ</h2>
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="commission">
+              <AccordionTrigger data-testid="faq-commission">How does the 20% commission work?</AccordionTrigger>
+              <AccordionContent>
+                <p className="text-muted-foreground">
+                  You earn 20% of subscription revenue only — that means 20% of the Basic ($4.99/mo) or Pro ($9.99/mo) plan payment. Commission applies to the first 3 months of each referred baker's subscription. It does not apply to transaction fees, Stripe payment volume, or platform fees collected from the baker's customers.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="tracking">
+              <AccordionTrigger data-testid="faq-tracking">How are referrals tracked?</AccordionTrigger>
+              <AccordionContent>
+                <p className="text-muted-foreground">
+                  You get a unique custom affiliate link that you can edit to match your brand. When someone clicks it, a 45-day cookie is set — so you get credit even if they sign up days or weeks later. Your partner dashboard tracks every click, signup, and commission in real time.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="payouts">
+              <AccordionTrigger data-testid="faq-payouts">When and how are commissions paid?</AccordionTrigger>
+              <AccordionContent>
+                <p className="text-muted-foreground">
+                  Commissions are reviewed and paid out monthly after verification. Payouts are processed via bank transfer or other agreed method. There is no minimum payout threshold — if you've earned commission, it gets paid.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="who">
+              <AccordionTrigger data-testid="faq-who">Who is this program for?</AccordionTrigger>
+              <AccordionContent>
+                <p className="text-muted-foreground">
+                  This program is designed for educators, content creators, supply shops, and business coaches who have an audience of bakers. It is not intended for existing BakerIQ bakers looking to earn commission — bakers should use the in-app referral program instead, which rewards them with free months and Quick Quote access.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="cost">
+              <AccordionTrigger data-testid="faq-cost">Is there a cost to join?</AccordionTrigger>
+              <AccordionContent>
+                <p className="text-muted-foreground">
+                  No cost at all. You apply using the form below, and we review applications based on audience fit and relevance to the baking community. There are no fees, no obligations, and no strings attached.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="use-bakeriq">
+              <AccordionTrigger data-testid="faq-use-bakeriq">Can I use BakerIQ myself?</AccordionTrigger>
+              <AccordionContent>
+                <p className="text-muted-foreground">
+                  Yes, and we encourage it. If you bake and sell, having a BakerIQ account yourself means you can demonstrate the product authentically to your audience. Nothing sells better than showing the real thing.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="support">
+              <AccordionTrigger data-testid="faq-support">What support do partners receive?</AccordionTrigger>
+              <AccordionContent>
+                <p className="text-muted-foreground">
+                  Approved partners get access to a real-time tracking dashboard with click, signup, and commission data. Additional resources and guidance are provided upon approval to help you get started.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </div>
 
         <Card className="max-w-2xl mx-auto" id="apply">
