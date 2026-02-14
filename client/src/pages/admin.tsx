@@ -38,6 +38,8 @@ import {
   Send,
   Share2,
   X,
+  Calculator,
+  Download,
 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -396,6 +398,524 @@ function RetentionEmailAdmin() {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+interface FinancialData {
+  liveMetrics: {
+    totalBakers: number;
+    bakersByPlan: { free: number; basic: number; pro: number };
+    totalGMV: number;
+    monthlyGMV: number;
+    platformFeeRevenue: number;
+    monthlyPlatformFees: number;
+    subscriptionRevenue: { monthly: number; annual: number };
+    affiliateCosts: { totalPaid: number; totalPending: number; totalAll: number };
+    netRevenue: { monthly: number; total: number };
+    arpu: number;
+    monthlyArpu: number;
+    stripeConnectAdoption: number;
+    monthlyTrends: Array<{
+      month: string;
+      gmv: number;
+      platformFees: number;
+      subscriptionRevenue: number;
+      newBakers: number;
+      totalBakers: number;
+    }>;
+  };
+}
+
+const DEFAULT_ASSUMPTIONS = {
+  freePct: 65,
+  basicPct: 22,
+  proPct: 13,
+  avgGmvPerBaker: 1800,
+  avgTransactions: 4,
+  affiliateRate: 25,
+  stripeFee: 2.9,
+};
+
+function FinancialsTab() {
+  const { data: financials, isLoading } = useQuery<FinancialData>({
+    queryKey: ["/api/admin/financials"],
+  });
+
+  const [freePct, setFreePct] = useState(DEFAULT_ASSUMPTIONS.freePct);
+  const [basicPct, setBasicPct] = useState(DEFAULT_ASSUMPTIONS.basicPct);
+  const [proPct, setProPct] = useState(DEFAULT_ASSUMPTIONS.proPct);
+  const [avgGmvPerBaker, setAvgGmvPerBaker] = useState(DEFAULT_ASSUMPTIONS.avgGmvPerBaker);
+  const [avgTransactions, setAvgTransactions] = useState(DEFAULT_ASSUMPTIONS.avgTransactions);
+  const [affiliateRate, setAffiliateRate] = useState(DEFAULT_ASSUMPTIONS.affiliateRate);
+  const [stripeFee, setStripeFee] = useState(DEFAULT_ASSUMPTIONS.stripeFee);
+
+  const resetDefaults = () => {
+    setFreePct(DEFAULT_ASSUMPTIONS.freePct);
+    setBasicPct(DEFAULT_ASSUMPTIONS.basicPct);
+    setProPct(DEFAULT_ASSUMPTIONS.proPct);
+    setAvgGmvPerBaker(DEFAULT_ASSUMPTIONS.avgGmvPerBaker);
+    setAvgTransactions(DEFAULT_ASSUMPTIONS.avgTransactions);
+    setAffiliateRate(DEFAULT_ASSUMPTIONS.affiliateRate);
+    setStripeFee(DEFAULT_ASSUMPTIONS.stripeFee);
+  };
+
+  const tierSum = freePct + basicPct + proPct;
+
+  const scenarios = [500, 1000, 10000, 50000];
+
+  const computeScenario = (totalUsers: number) => {
+    const freeUsers = Math.round(totalUsers * (freePct / 100));
+    const basicUsers = Math.round(totalUsers * (basicPct / 100));
+    const proUsers = totalUsers - freeUsers - basicUsers;
+
+    const monthlyGMV = totalUsers * avgGmvPerBaker;
+    const avgGmvPerUser = avgGmvPerBaker;
+    const platformFees =
+      freeUsers * avgGmvPerUser * 0.07 +
+      basicUsers * avgGmvPerUser * 0.05 +
+      proUsers * avgGmvPerUser * 0.03;
+    const subscriptionRevenue = basicUsers * 4.99 + proUsers * 9.99;
+    const grossRevenue = platformFees + subscriptionRevenue;
+    const affiliateCosts = subscriptionRevenue * (affiliateRate / 100) * (3 / 12) * 0.20;
+    const transactions = totalUsers * avgTransactions;
+    const stripeProcessingCosts = monthlyGMV * (stripeFee / 100) + transactions * 0.30;
+    const netRevenue = grossRevenue - affiliateCosts - stripeProcessingCosts;
+    const revenuePerUser = totalUsers > 0 ? netRevenue / totalUsers : 0;
+    const arpuWeighted = totalUsers > 0 ? grossRevenue / totalUsers : 0;
+
+    return {
+      totalUsers,
+      freeUsers,
+      basicUsers,
+      proUsers,
+      monthlyGMV,
+      platformFees,
+      subscriptionRevenue,
+      grossRevenue,
+      affiliateCosts,
+      stripeProcessingCosts,
+      netRevenue,
+      revenuePerUser,
+      arpuWeighted,
+      annualGMV: monthlyGMV * 12,
+      annualGrossRevenue: grossRevenue * 12,
+      annualNetRevenue: netRevenue * 12,
+    };
+  };
+
+  const projections = scenarios.map(computeScenario);
+
+  const fmtCurrency = (v: number) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(v);
+  const fmtCurrencyDecimal = (v: number) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(v);
+  const fmtNumber = (v: number) => new Intl.NumberFormat("en-US").format(Math.round(v));
+
+  const lm = financials?.liveMetrics;
+
+  const exportLiveMetrics = () => {
+    if (!lm) return;
+    const rows = [
+      ["Metric", "Value"],
+      ["Total Bakers", lm.totalBakers],
+      ["Free Bakers", lm.bakersByPlan.free],
+      ["Basic Bakers", lm.bakersByPlan.basic],
+      ["Pro Bakers", lm.bakersByPlan.pro],
+      ["Total GMV", lm.totalGMV.toFixed(2)],
+      ["Monthly GMV", lm.monthlyGMV.toFixed(2)],
+      ["Platform Fee Revenue", lm.platformFeeRevenue.toFixed(2)],
+      ["Monthly Platform Fees", lm.monthlyPlatformFees.toFixed(2)],
+      ["Monthly Subscription Revenue", lm.subscriptionRevenue.monthly.toFixed(2)],
+      ["Annual Subscription Revenue", lm.subscriptionRevenue.annual.toFixed(2)],
+      ["Affiliate Costs (Paid)", lm.affiliateCosts.totalPaid.toFixed(2)],
+      ["Affiliate Costs (Pending)", lm.affiliateCosts.totalPending.toFixed(2)],
+      ["Monthly Net Revenue", lm.netRevenue.monthly.toFixed(2)],
+      ["Total Net Revenue", lm.netRevenue.total.toFixed(2)],
+      ["ARPU", lm.arpu.toFixed(2)],
+      ["Monthly ARPU", lm.monthlyArpu.toFixed(2)],
+      ["Stripe Connect Adoption %", lm.stripeConnectAdoption.toFixed(1)],
+    ];
+    if (lm.monthlyTrends.length > 0) {
+      rows.push([]);
+      rows.push(["Month", "New Bakers", "Total Bakers", "GMV", "Platform Fees", "Sub Revenue"]);
+      lm.monthlyTrends.forEach(t => {
+        rows.push([t.month, t.newBakers, t.totalBakers, t.gmv.toFixed(2), t.platformFees.toFixed(2), t.subscriptionRevenue.toFixed(2)]);
+      });
+    }
+    const csv = rows.map(r => (r as any[]).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "bakeriq-live-metrics.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportProjections = () => {
+    const headers = ["Metric", ...scenarios.map(s => `${fmtNumber(s)} Users`)];
+    const rows: any[][] = [headers];
+    const addRow = (label: string, getter: (p: ReturnType<typeof computeScenario>) => string) => {
+      rows.push([label, ...projections.map(getter)]);
+    };
+    const addSectionHeader = (label: string) => {
+      rows.push([label, ...scenarios.map(() => "")]);
+    };
+
+    addSectionHeader("--- Users ---");
+    addRow("Total Users", p => fmtNumber(p.totalUsers));
+    addRow("Free Tier", p => fmtNumber(p.freeUsers));
+    addRow("Basic Tier", p => fmtNumber(p.basicUsers));
+    addRow("Pro Tier", p => fmtNumber(p.proUsers));
+    addSectionHeader("--- Monthly Revenue ---");
+    addRow("Monthly GMV", p => p.monthlyGMV.toFixed(2));
+    addRow("Platform Fees", p => p.platformFees.toFixed(2));
+    addRow("Subscription Revenue", p => p.subscriptionRevenue.toFixed(2));
+    addRow("Gross Revenue", p => p.grossRevenue.toFixed(2));
+    addSectionHeader("--- Monthly Costs ---");
+    addRow("Affiliate Commissions", p => p.affiliateCosts.toFixed(2));
+    addRow("Stripe Processing", p => p.stripeProcessingCosts.toFixed(2));
+    addSectionHeader("--- Monthly Net ---");
+    addRow("Net Revenue", p => p.netRevenue.toFixed(2));
+    addRow("ARPU", p => p.arpuWeighted.toFixed(2));
+    addRow("Revenue Per User", p => p.revenuePerUser.toFixed(2));
+    addSectionHeader("--- Annual Projections ---");
+    addRow("Annual GMV", p => p.annualGMV.toFixed(2));
+    addRow("Annual Gross Revenue", p => p.annualGrossRevenue.toFixed(2));
+    addRow("Annual Net Revenue", p => p.annualNetRevenue.toFixed(2));
+
+    const csv = rows.map(r => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "bakeriq-revenue-projections.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        {isLoading ? (
+          [...Array(6)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="pb-2"><Skeleton className="h-4 w-24" /></CardHeader>
+              <CardContent><Skeleton className="h-8 w-16" /></CardContent>
+            </Card>
+          ))
+        ) : (
+          <>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Bakers</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold" data-testid="text-fin-total-bakers">{lm?.totalBakers || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  Free: {lm?.bakersByPlan.free || 0} / Basic: {lm?.bakersByPlan.basic || 0} / Pro: {lm?.bakersByPlan.pro || 0}
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Monthly GMV</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold" data-testid="text-fin-monthly-gmv">{fmtCurrencyDecimal(lm?.monthlyGMV || 0)}</div>
+                <p className="text-xs text-muted-foreground">This month</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total GMV</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold" data-testid="text-fin-total-gmv">{fmtCurrencyDecimal(lm?.totalGMV || 0)}</div>
+                <p className="text-xs text-muted-foreground">All time</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Monthly Platform Fees</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400" data-testid="text-fin-monthly-fees">{fmtCurrencyDecimal(lm?.monthlyPlatformFees || 0)}</div>
+                <p className="text-xs text-muted-foreground">Total: {fmtCurrencyDecimal(lm?.platformFeeRevenue || 0)}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Subscription Revenue</CardTitle>
+                <Crown className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold" data-testid="text-fin-subscription-rev">{fmtCurrencyDecimal(lm?.subscriptionRevenue.monthly || 0)}</div>
+                <p className="text-xs text-muted-foreground">{fmtCurrencyDecimal(lm?.subscriptionRevenue.annual || 0)}/yr</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Monthly Net Revenue</CardTitle>
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold" data-testid="text-fin-net-revenue">{fmtCurrencyDecimal(lm?.netRevenue.monthly || 0)}</div>
+                <p className="text-xs text-muted-foreground">ARPU: {fmtCurrencyDecimal(lm?.monthlyArpu || 0)}</p>
+              </CardContent>
+            </Card>
+          </>
+        )}
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Monthly Trends</CardTitle>
+          <CardDescription>Last 6 months performance</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <Skeleton className="h-48 w-full" />
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Month</TableHead>
+                    <TableHead className="text-right">New Bakers</TableHead>
+                    <TableHead className="text-right">Total Bakers</TableHead>
+                    <TableHead className="text-right">GMV</TableHead>
+                    <TableHead className="text-right">Platform Fees</TableHead>
+                    <TableHead className="text-right">Sub Revenue</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(lm?.monthlyTrends || []).map((t) => (
+                    <TableRow key={t.month}>
+                      <TableCell className="font-medium" data-testid={`text-trend-month-${t.month}`}>{t.month}</TableCell>
+                      <TableCell className="text-right" data-testid={`text-trend-new-${t.month}`}>{t.newBakers}</TableCell>
+                      <TableCell className="text-right">{t.totalBakers}</TableCell>
+                      <TableCell className="text-right">{fmtCurrencyDecimal(t.gmv)}</TableCell>
+                      <TableCell className="text-right">{fmtCurrencyDecimal(t.platformFees)}</TableCell>
+                      <TableCell className="text-right">{fmtCurrencyDecimal(t.subscriptionRevenue)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Revenue Projections</CardTitle>
+          <CardDescription>Model revenue at different user scales</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="p-4 border rounded-lg space-y-4">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <h4 className="text-sm font-medium">Assumptions</h4>
+              <Button variant="outline" size="sm" onClick={resetDefaults} data-testid="button-reset-defaults">
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Reset Defaults
+              </Button>
+            </div>
+            <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1">Free Tier %</label>
+                <Input
+                  type="number"
+                  value={freePct}
+                  onChange={(e) => setFreePct(Number(e.target.value))}
+                  data-testid="input-free-pct"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1">Basic Tier %</label>
+                <Input
+                  type="number"
+                  value={basicPct}
+                  onChange={(e) => setBasicPct(Number(e.target.value))}
+                  data-testid="input-basic-pct"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1">Pro Tier %</label>
+                <Input
+                  type="number"
+                  value={proPct}
+                  onChange={(e) => setProPct(Number(e.target.value))}
+                  data-testid="input-pro-pct"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1">
+                  Tier Sum {tierSum !== 100 && <span className="text-destructive">({tierSum}%)</span>}
+                </label>
+                <div className={`text-sm font-medium p-2 rounded ${tierSum === 100 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>
+                  {tierSum === 100 ? "Valid (100%)" : `Must equal 100%`}
+                </div>
+              </div>
+            </div>
+            <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1">Avg Monthly GMV/Baker ($)</label>
+                <Input
+                  type="number"
+                  value={avgGmvPerBaker}
+                  onChange={(e) => setAvgGmvPerBaker(Number(e.target.value))}
+                  data-testid="input-avg-gmv"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1">Avg Transactions/Month</label>
+                <Input
+                  type="number"
+                  value={avgTransactions}
+                  onChange={(e) => setAvgTransactions(Number(e.target.value))}
+                  data-testid="input-avg-transactions"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1">Affiliate Acq. Rate (%)</label>
+                <Input
+                  type="number"
+                  value={affiliateRate}
+                  onChange={(e) => setAffiliateRate(Number(e.target.value))}
+                  data-testid="input-affiliate-rate"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1">Stripe Processing (%)</label>
+                <Input
+                  type="number"
+                  value={stripeFee}
+                  onChange={(e) => setStripeFee(Number(e.target.value))}
+                  step="0.1"
+                  data-testid="input-stripe-fee"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[180px]">Metric</TableHead>
+                  {scenarios.map(s => (
+                    <TableHead key={s} className="text-right min-w-[120px]" data-testid={`text-scenario-header-${s}`}>
+                      {fmtNumber(s)} Users
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow className="bg-muted/50">
+                  <TableCell colSpan={5} className="font-semibold text-xs uppercase tracking-wider">Users</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Total Users</TableCell>
+                  {projections.map((p, i) => <TableCell key={i} className="text-right" data-testid={`text-proj-total-users-${scenarios[i]}`}>{fmtNumber(p.totalUsers)}</TableCell>)}
+                </TableRow>
+                <TableRow>
+                  <TableCell className="text-muted-foreground">Free Tier</TableCell>
+                  {projections.map((p, i) => <TableCell key={i} className="text-right">{fmtNumber(p.freeUsers)}</TableCell>)}
+                </TableRow>
+                <TableRow>
+                  <TableCell className="text-muted-foreground">Basic Tier</TableCell>
+                  {projections.map((p, i) => <TableCell key={i} className="text-right">{fmtNumber(p.basicUsers)}</TableCell>)}
+                </TableRow>
+                <TableRow>
+                  <TableCell className="text-muted-foreground">Pro Tier</TableCell>
+                  {projections.map((p, i) => <TableCell key={i} className="text-right">{fmtNumber(p.proUsers)}</TableCell>)}
+                </TableRow>
+
+                <TableRow className="bg-muted/50">
+                  <TableCell colSpan={5} className="font-semibold text-xs uppercase tracking-wider">Monthly Revenue</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Monthly GMV</TableCell>
+                  {projections.map((p, i) => <TableCell key={i} className="text-right">{fmtCurrency(p.monthlyGMV)}</TableCell>)}
+                </TableRow>
+                <TableRow>
+                  <TableCell>Platform Fees (7%/5%/3%)</TableCell>
+                  {projections.map((p, i) => <TableCell key={i} className="text-right">{fmtCurrency(p.platformFees)}</TableCell>)}
+                </TableRow>
+                <TableRow>
+                  <TableCell>Subscription Revenue</TableCell>
+                  {projections.map((p, i) => <TableCell key={i} className="text-right">{fmtCurrency(p.subscriptionRevenue)}</TableCell>)}
+                </TableRow>
+                <TableRow className="font-medium">
+                  <TableCell>Gross Revenue</TableCell>
+                  {projections.map((p, i) => <TableCell key={i} className="text-right text-green-600 dark:text-green-400" data-testid={`text-proj-gross-${scenarios[i]}`}>{fmtCurrency(p.grossRevenue)}</TableCell>)}
+                </TableRow>
+
+                <TableRow className="bg-muted/50">
+                  <TableCell colSpan={5} className="font-semibold text-xs uppercase tracking-wider">Monthly Costs</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Affiliate Commissions</TableCell>
+                  {projections.map((p, i) => <TableCell key={i} className="text-right text-red-600 dark:text-red-400">{fmtCurrency(p.affiliateCosts)}</TableCell>)}
+                </TableRow>
+                <TableRow>
+                  <TableCell>Stripe Processing</TableCell>
+                  {projections.map((p, i) => <TableCell key={i} className="text-right text-red-600 dark:text-red-400">{fmtCurrency(p.stripeProcessingCosts)}</TableCell>)}
+                </TableRow>
+
+                <TableRow className="bg-muted/50">
+                  <TableCell colSpan={5} className="font-semibold text-xs uppercase tracking-wider">Monthly Net</TableCell>
+                </TableRow>
+                <TableRow className="font-medium">
+                  <TableCell>Net Revenue</TableCell>
+                  {projections.map((p, i) => <TableCell key={i} className="text-right" data-testid={`text-proj-net-${scenarios[i]}`}>{fmtCurrency(p.netRevenue)}</TableCell>)}
+                </TableRow>
+                <TableRow>
+                  <TableCell>ARPU</TableCell>
+                  {projections.map((p, i) => <TableCell key={i} className="text-right">{fmtCurrencyDecimal(p.arpuWeighted)}</TableCell>)}
+                </TableRow>
+                <TableRow>
+                  <TableCell>Revenue Per User</TableCell>
+                  {projections.map((p, i) => <TableCell key={i} className="text-right">{fmtCurrencyDecimal(p.revenuePerUser)}</TableCell>)}
+                </TableRow>
+
+                <TableRow className="bg-muted/50">
+                  <TableCell colSpan={5} className="font-semibold text-xs uppercase tracking-wider">Annual Projections</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Annual GMV</TableCell>
+                  {projections.map((p, i) => <TableCell key={i} className="text-right">{fmtCurrency(p.annualGMV)}</TableCell>)}
+                </TableRow>
+                <TableRow>
+                  <TableCell>Annual Gross Revenue</TableCell>
+                  {projections.map((p, i) => <TableCell key={i} className="text-right text-green-600 dark:text-green-400">{fmtCurrency(p.annualGrossRevenue)}</TableCell>)}
+                </TableRow>
+                <TableRow className="font-bold">
+                  <TableCell>Annual Net Revenue</TableCell>
+                  {projections.map((p, i) => <TableCell key={i} className="text-right" data-testid={`text-proj-annual-net-${scenarios[i]}`}>{fmtCurrency(p.annualNetRevenue)}</TableCell>)}
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex gap-3 flex-wrap">
+        <Button variant="outline" onClick={exportLiveMetrics} disabled={isLoading || !lm} data-testid="button-export-live-metrics">
+          <Download className="h-4 w-4 mr-2" />
+          Export Live Metrics
+        </Button>
+        <Button variant="outline" onClick={exportProjections} data-testid="button-export-projections">
+          <Download className="h-4 w-4 mr-2" />
+          Export Projections
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -1131,7 +1651,7 @@ export default function AdminDashboard() {
       </div>
 
       <Tabs defaultValue="accounts" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-8 lg:w-auto lg:inline-flex">
           <TabsTrigger value="accounts" className="gap-2" data-testid="tab-accounts">
             <Users className="h-4 w-4" />
             <span className="hidden sm:inline">Accounts</span>
@@ -1159,6 +1679,10 @@ export default function AdminDashboard() {
           <TabsTrigger value="affiliates" className="gap-2" data-testid="tab-affiliates">
             <Share2 className="h-4 w-4" />
             <span className="hidden sm:inline">Affiliates</span>
+          </TabsTrigger>
+          <TabsTrigger value="financials" className="gap-2" data-testid="tab-financials">
+            <Calculator className="h-4 w-4" />
+            <span className="hidden sm:inline">Financials</span>
           </TabsTrigger>
         </TabsList>
 
@@ -2249,6 +2773,11 @@ export default function AdminDashboard() {
         {/* AFFILIATES TAB */}
         <TabsContent value="affiliates" className="space-y-4">
           <AffiliatesTab />
+        </TabsContent>
+
+        {/* FINANCIALS TAB */}
+        <TabsContent value="financials" className="space-y-4">
+          <FinancialsTab />
         </TabsContent>
 
       </Tabs>

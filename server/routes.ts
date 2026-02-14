@@ -2694,6 +2694,130 @@ export async function registerRoutes(
     }
   });
 
+  // Financial analytics endpoint for admin
+  app.get("/api/admin/financials", requireAdmin, async (req, res) => {
+    try {
+      const [allBakers, allPayments, allCommissions] = await Promise.all([
+        storage.getAllBakers(),
+        storage.getAllQuotePayments(),
+        storage.getAllCommissions(),
+      ]);
+
+      const totalBakers = allBakers.length;
+      const bakersByPlan = {
+        free: allBakers.filter(b => (b.plan || "free") === "free").length,
+        basic: allBakers.filter(b => b.plan === "basic").length,
+        pro: allBakers.filter(b => b.plan === "pro").length,
+      };
+
+      const succeeded = allPayments.filter((p: any) => p.status === "succeeded");
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const thisMonthPayments = succeeded.filter((p: any) => new Date(p.createdAt) >= startOfMonth);
+
+      const totalGMV = succeeded.reduce((sum: number, p: any) => sum + parseFloat(p.amount), 0);
+      const monthlyGMV = thisMonthPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount), 0);
+      const platformFeeRevenue = succeeded.reduce((sum: number, p: any) => sum + parseFloat(p.platformFee), 0);
+      const monthlyPlatformFees = thisMonthPayments.reduce((sum: number, p: any) => sum + parseFloat(p.platformFee), 0);
+
+      const subscriptionMonthly = (bakersByPlan.basic * 4.99) + (bakersByPlan.pro * 9.99);
+      const subscriptionRevenue = {
+        monthly: subscriptionMonthly,
+        annual: subscriptionMonthly * 12,
+      };
+
+      const totalPaidCommissions = allCommissions
+        .filter(c => c.status === "paid")
+        .reduce((sum, c) => sum + parseFloat(c.commissionAmount), 0);
+      const totalPendingCommissions = allCommissions
+        .filter(c => c.status === "pending" || c.status === "approved")
+        .reduce((sum, c) => sum + parseFloat(c.commissionAmount), 0);
+      const totalAllCommissions = allCommissions
+        .reduce((sum, c) => sum + parseFloat(c.commissionAmount), 0);
+
+      const affiliateCosts = {
+        totalPaid: totalPaidCommissions,
+        totalPending: totalPendingCommissions,
+        totalAll: totalAllCommissions,
+      };
+
+      const monthlyAffiliateCostEstimate = totalAllCommissions > 0 ? totalAllCommissions / 6 : 0;
+      const monthlyNetRevenue = monthlyPlatformFees + subscriptionMonthly - monthlyAffiliateCostEstimate;
+      const totalNetRevenue = platformFeeRevenue + subscriptionRevenue.annual - totalAllCommissions;
+
+      const netRevenue = {
+        monthly: monthlyNetRevenue,
+        total: totalNetRevenue,
+      };
+
+      const arpu = totalBakers > 0 ? totalNetRevenue / totalBakers : 0;
+      const monthlyArpu = totalBakers > 0 ? monthlyNetRevenue / totalBakers : 0;
+
+      const connectBakers = allBakers.filter(b => b.stripeConnectAccountId);
+      const stripeConnectAdoption = totalBakers > 0 ? (connectBakers.length / totalBakers) * 100 : 0;
+
+      const monthlyTrends: Array<{
+        month: string;
+        gmv: number;
+        platformFees: number;
+        subscriptionRevenue: number;
+        newBakers: number;
+        totalBakers: number;
+      }> = [];
+
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+        const monthLabel = d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+
+        const monthPayments = succeeded.filter((p: any) => {
+          const pd = new Date(p.createdAt);
+          return pd.getFullYear() === d.getFullYear() && pd.getMonth() === d.getMonth();
+        });
+
+        const gmv = monthPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount), 0);
+        const fees = monthPayments.reduce((sum: number, p: any) => sum + parseFloat(p.platformFee), 0);
+
+        const newBakersThisMonth = allBakers.filter(b => {
+          const bd = new Date(b.createdAt);
+          return bd.getFullYear() === d.getFullYear() && bd.getMonth() === d.getMonth();
+        }).length;
+
+        const totalBakersAtMonth = allBakers.filter(b => new Date(b.createdAt) <= monthEnd).length;
+
+        monthlyTrends.push({
+          month: monthLabel,
+          gmv,
+          platformFees: fees,
+          subscriptionRevenue: subscriptionMonthly,
+          newBakers: newBakersThisMonth,
+          totalBakers: totalBakersAtMonth,
+        });
+      }
+
+      res.json({
+        liveMetrics: {
+          totalBakers,
+          bakersByPlan,
+          totalGMV,
+          monthlyGMV,
+          platformFeeRevenue,
+          monthlyPlatformFees,
+          subscriptionRevenue,
+          affiliateCosts,
+          netRevenue,
+          arpu,
+          monthlyArpu,
+          stripeConnectAdoption,
+          monthlyTrends,
+        },
+      });
+    } catch (error) {
+      console.error("Admin financials error:", error);
+      res.status(500).json({ message: "Failed to fetch financial data" });
+    }
+  });
+
   // Suspend/unsuspend baker
   app.post("/api/admin/bakers/:id/suspend", requireAdmin, async (req, res) => {
     try {
