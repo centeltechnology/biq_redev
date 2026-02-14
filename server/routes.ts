@@ -3073,6 +3073,11 @@ export async function registerRoutes(
       const stats = await storage.getOnboardingEmailStats();
       const allBakers = await storage.getAllBakers();
 
+      const withinWindow = (signupDate: Date | null, eventDate: Date | null, hours: number): boolean => {
+        if (!signupDate || !eventDate) return false;
+        return (eventDate.getTime() - signupDate.getTime()) <= hours * 60 * 60 * 1000;
+      };
+
       const activationStats = {
         totalBakers: stats.totalBakers,
         stripeConnectedWithin7Days: stats.stripeConnectedWithin7Days,
@@ -3084,6 +3089,13 @@ export async function registerRoutes(
           firstQuoteSent: allBakers.filter(b => b.firstQuoteSentAt).length,
           firstInvoiceCreated: allBakers.filter(b => b.firstInvoiceCreatedAt).length,
           firstPaymentProcessed: allBakers.filter(b => b.firstPaymentProcessedAt).length,
+        },
+        conversionWindows: {
+          stripeConnected24h: allBakers.filter(b => withinWindow(b.createdAt, b.stripeConnectedAt, 24)).length,
+          stripeConnected72h: allBakers.filter(b => withinWindow(b.createdAt, b.stripeConnectedAt, 72)).length,
+          stripeConnected7d: allBakers.filter(b => withinWindow(b.createdAt, b.stripeConnectedAt, 168)).length,
+          firstQuoteSent7d: allBakers.filter(b => withinWindow(b.createdAt, b.firstQuoteSentAt, 168)).length,
+          firstPayment14d: allBakers.filter(b => withinWindow(b.createdAt, b.firstPaymentProcessedAt, 336)).length,
         },
         featureFlagEnabled: process.env.ONBOARDING_CONDITIONALS_ENABLED === "true",
       };

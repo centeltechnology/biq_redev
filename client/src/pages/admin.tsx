@@ -1454,6 +1454,13 @@ export default function AdminDashboard() {
       firstInvoiceCreated: number;
       firstPaymentProcessed: number;
     };
+    conversionWindows: {
+      stripeConnected24h: number;
+      stripeConnected72h: number;
+      stripeConnected7d: number;
+      firstQuoteSent7d: number;
+      firstPayment14d: number;
+    };
     featureFlagEnabled: boolean;
   }>({
     queryKey: ["/api/admin/onboarding-stats"],
@@ -2343,28 +2350,49 @@ export default function AdminDashboard() {
                     )}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center justify-between gap-2 p-3 bg-muted rounded-lg">
-                    <span className="text-sm">Stripe Connected (within 7 days)</span>
-                    <div className="flex items-center gap-2">
-                      <Badge>{onboardingStats.stripeConnectedWithin7Days} / {onboardingStats.totalBakers}</Badge>
-                      <span className="text-sm font-medium">{onboardingStats.stripeAdoptionRate}%</span>
+                <CardContent className="space-y-4">
+                  <div>
+                    <p className="text-sm font-medium mb-2">Revenue Pipeline (time-windowed conversion)</p>
+                    <div className="space-y-2">
+                      {[
+                        { label: "Stripe Connected within 24h", count: onboardingStats.conversionWindows.stripeConnected24h },
+                        { label: "Stripe Connected within 72h", count: onboardingStats.conversionWindows.stripeConnected72h },
+                        { label: "Stripe Connected within 7d", count: onboardingStats.conversionWindows.stripeConnected7d },
+                        { label: "First Quote Sent within 7d", count: onboardingStats.conversionWindows.firstQuoteSent7d },
+                        { label: "First Payment within 14d", count: onboardingStats.conversionWindows.firstPayment14d },
+                      ].map(({ label, count }) => {
+                        const rate = onboardingStats.totalBakers > 0 ? ((count / onboardingStats.totalBakers) * 100).toFixed(1) : "0";
+                        return (
+                          <div key={label} className="flex items-center justify-between gap-2 p-3 bg-muted rounded-lg">
+                            <span className="text-sm">{label}</span>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" data-testid={`badge-${label.replace(/\s+/g, "-").toLowerCase()}`}>{count} / {onboardingStats.totalBakers}</Badge>
+                              <span className="text-sm font-medium w-14 text-right">{rate}%</span>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-                  <div className="flex items-center justify-between gap-2 p-3 bg-muted rounded-lg">
-                    <span className="text-sm">First Product Created</span>
-                    <Badge>{onboardingStats.activationMilestones.firstProductCreated}</Badge>
-                  </div>
-                  <div className="flex items-center justify-between gap-2 p-3 bg-muted rounded-lg">
-                    <span className="text-sm">First Quote Sent</span>
-                    <Badge>{onboardingStats.activationMilestones.firstQuoteSent}</Badge>
-                  </div>
-                  <div className="flex items-center justify-between gap-2 p-3 bg-muted rounded-lg">
-                    <span className="text-sm">First Payment Processed</span>
-                    <Badge>{onboardingStats.activationMilestones.firstPaymentProcessed}</Badge>
+                  <div>
+                    <p className="text-sm font-medium mb-2">All-time Milestones</p>
+                    <div className="space-y-2">
+                      {[
+                        { label: "Stripe Connected", count: onboardingStats.activationMilestones.stripeConnected },
+                        { label: "First Product Created", count: onboardingStats.activationMilestones.firstProductCreated },
+                        { label: "First Quote Sent", count: onboardingStats.activationMilestones.firstQuoteSent },
+                        { label: "First Invoice Created", count: onboardingStats.activationMilestones.firstInvoiceCreated },
+                        { label: "First Payment Processed", count: onboardingStats.activationMilestones.firstPaymentProcessed },
+                      ].map(({ label, count }) => (
+                        <div key={label} className="flex items-center justify-between gap-2 p-3 bg-muted rounded-lg">
+                          <span className="text-sm">{label}</span>
+                          <Badge data-testid={`badge-milestone-${label.replace(/\s+/g, "-").toLowerCase()}`}>{count}</Badge>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                   {Object.keys(onboardingStats.emailsSentByKey).length > 0 && (
-                    <div className="mt-4">
+                    <div>
                       <p className="text-sm font-medium mb-2">Emails Sent by Template</p>
                       <div className="grid gap-1">
                         {Object.entries(onboardingStats.emailsSentByKey).sort().map(([key, count]) => (
