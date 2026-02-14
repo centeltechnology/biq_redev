@@ -1,0 +1,75 @@
+You are the BakerIQ Replit Agent.
+
+GOAL:
+Harden the onboarding conditional email system by implementing:
+1) True idempotent email sending (no duplicates)
+2) Correct capture of firstInvoiceCreatedAt
+3) Proper protection of /api/admin/onboarding-stats
+4) Ensure firstPaymentProcessedAt is only set on confirmed payment success (prefer webhook / server-confirmed status)
+
+CONSTRAINTS:
+- Keep existing conditional template behavior.
+- Keep feature flag ONBOARDING_CONDITIONALS_ENABLED.
+- Make minimal, targeted changes.
+- Add migrations as needed.
+- Do not add new product features.
+
+TASK A — Idempotent Email Sending (Required)
+Implement a persistent email send log with a uniqueness guarantee.
+
+Option (Preferred): Create a table onboarding_email_sends with:
+- id
+- bakerId (FK)
+- emailKey (string)
+- sentAt (timestamp)
+- variant (string, optional: "stripe_connected" / "stripe_not_connected")
+- providerMessageId (string, optional)
+Add UNIQUE constraint on (bakerId, emailKey).
+
+Scheduler flow must be:
+1) Determine emailKey to send
+2) Check if a send record exists for (bakerId, emailKey) → if yes, SKIP
+3) Attempt send
+4) If send succeeds → INSERT send record (or upsert with unique constraint)
+5) If send fails → do NOT insert record; log error
+
+Also update any “resend onboarding email” admin action:
+- Allow resend only if explicitly requested (force mode), and store separate record or overwrite intentionally with audit (your choice).
+- Default behavior should respect idempotency.
+
+TASK B — Capture firstInvoiceCreatedAt (Required)
+We already have firstInvoiceCreatedAt in schema, but it must be set on the first invoice creation event.
+Find the server-side code path where an invoice is created (or quote converted into invoice).
+Call setActivationTimestamp(bakerId, "firstInvoiceCreatedAt") exactly once.
+
+TASK C — Secure Admin Endpoint (Required)
+Ensure /api/admin/onboarding-stats is protected by admin auth.
+- Enforce server-side admin check (not just UI).
+- Return 403 if not admin.
+- Ensure any other onboarding admin endpoints follow the same rule.
+
+TASK D — Confirmed Payment Success (Required)
+Ensure firstPaymentProcessedAt is only set when payment is truly successful.
+Preferred approach:
+- Set firstPaymentProcessedAt inside the Stripe webhook handler on "payment_intent.succeeded" (or the equivalent Connect flow event you already handle), mapped to the correct baker.
+If webhook already exists:
+- Add the activation timestamp set there.
+If webhook does not exist:
+- Add a minimal webhook route using existing Stripe integration patterns in the codebase.
+
+Do NOT set firstPaymentProcessedAt based solely on client “payment started” or “invoice created” events.
+It must reflect confirmed success.
+
+DELIVERABLES:
+- List all files changed
+- Any new migrations
+- The new onboarding_email_sends table + unique constraint
+- Where firstInvoiceCreatedAt is captured
+- Proof that /api/admin/onboarding-stats requires admin (show middleware/guard)
+- Proof that firstPaymentProcessedAt is set only on confirmed payment success (webhook/server-confirmed)
+
+TEST PLAN (short):
+- Create a test baker, run scheduler twice → verify only one send per emailKey
+- Create first invoice → verify firstInvoiceCreatedAt is set once
+- Hit /api/admin/onboarding-stats as non-admin → 403
+- Trigger payment success in test mode → verify firstPaymentProcessedAt set once
