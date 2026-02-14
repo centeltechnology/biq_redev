@@ -94,9 +94,11 @@ Preferred communication style: Simple, everyday language.
 - **Scheduler**: Runs hourly via `server/onboarding-scheduler.ts`, checks for eligible bakers
 - **Activation Tracking**: `stripeConnectedAt`, `firstProductCreatedAt`, `firstQuoteSentAt`, `firstInvoiceCreatedAt`, `firstPaymentProcessedAt` timestamps on bakers table
 - **Tracking**: `baker_onboarding_emails` table with `email_key` (template variant) and `stripe_connected` (status at send time)
+- **Idempotency**: `onboarding_email_sends` table with UNIQUE(bakerId, emailKey) prevents duplicate sends; scheduler checks before sending
 - **Admin UI**: Activation Funnel card in System tab shows Stripe adoption rate, activation milestones, and emails sent by template
+- **Admin Resend**: `/api/admin/bakers/:id/resend-email` with `force` flag; returns 409 if already sent unless `force=true`
 - **Retry Logic**: Failed emails are recorded and retried by scheduler; successful sends prevent duplicates
-- **Safety**: Skips admin accounts; feature flag prevents sends until explicitly enabled
+- **Safety**: Skips admin accounts; feature flag prevents sends until explicitly enabled; payment timestamps only set on webhook-confirmed success
 
 ### Environment Variables Required
 - `DATABASE_URL`: PostgreSQL connection string
