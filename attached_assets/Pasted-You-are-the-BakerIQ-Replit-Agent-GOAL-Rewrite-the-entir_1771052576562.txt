@@ -1,0 +1,83 @@
+You are the BakerIQ Replit Agent.
+
+GOAL:
+Rewrite the entire 7-day new user email sequence to focus on activation and revenue-driving behavior.
+
+IMPORTANT:
+- Do NOT change sending logic unless necessary.
+- Keep it as a 7-day sequence (Day 0–Day 6).
+- Focus on behavioral activation, not feature explanations.
+- Each email must have ONE clear primary CTA.
+- Tone: confident, direct, professional. No fluff. No hype.
+
+PRIMARY ACTIVATION GOALS (in order of importance):
+1) Connect Stripe
+2) Create first product in pricing calculator
+3) Send first quote
+4) Create first invoice with deposit
+5) Share pricing calculator link publicly
+
+Each email must move the user toward one of these actions.
+
+STRUCTURE THE SEQUENCE AS FOLLOWS:
+
+DAY 0 – Welcome + Outcome Framing
+Subject line focused on getting paid professionally.
+Content:
+- Position BakerIQ as a professional system.
+- Call out “stop pricing in DMs.”
+- Primary CTA: Connect Stripe.
+
+DAY 1 – Pricing Efficiency
+Subject: Stop quoting in text messages.
+Content:
+- Explain the inefficiency of manual pricing.
+- Introduce pricing calculator.
+- Primary CTA: Create first product/service.
+
+DAY 2 – Professional Quotes Convert Better
+Subject focused on professionalism.
+Content:
+- Explain why structured quotes increase deposits.
+- Primary CTA: Send your first quote (even as a test).
+
+DAY 3 – Stripe Push
+Subject focused on payments.
+Content:
+- Emphasize you can’t get paid without Stripe connected.
+- Address common hesitation.
+- Primary CTA: Connect Stripe.
+
+DAY 4 – Deposits Protect Your Time
+Subject focused on deposits.
+Content:
+- Teach why deposits matter.
+- Introduce invoice/deposit feature.
+- Primary CTA: Create first invoice with deposit.
+
+DAY 5 – Case Example / Social Proof
+Subject focused on “what happens when bakers go pro.”
+Content:
+- Short example workflow.
+- Reinforce system usage.
+- Primary CTA: Send a real quote to a customer.
+
+DAY 6 – Habit Formation
+Subject focused on “make this your new normal.”
+Content:
+- Encourage switching fully from DMs.
+- Encourage sharing calculator link publicly.
+- Primary CTA: Share your pricing calculator link.
+
+ADDITIONAL REQUIREMENTS:
+- Keep each email under 250 words.
+- Use short paragraphs.
+- No long walls of text.
+- Include button CTA text suggestions.
+- Add optional P.S. reminder for Stripe if not connected.
+
+DELIVERABLE:
+- Provide full rewritten email copy for all 7 emails.
+- Include subject lines.
+- Clearly label each day.
+- Do NOT implement code changes yet — output copy only.
