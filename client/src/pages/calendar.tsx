@@ -46,10 +46,8 @@ const MONTHS = [
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   cash: "Cash",
-  zelle: "Zelle",
-  paypal: "PayPal",
-  cashapp: "CashApp",
-  venmo: "Venmo",
+  card: "Card",
+  pending: "Pending",
 };
 
 const FULFILLMENT_STATUS_COLORS: Record<string, string> = {

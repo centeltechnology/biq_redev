@@ -1227,46 +1227,6 @@ export default function QuoteBuilderPage() {
                   </CardContent>
                 </Card>
 
-                {/* Payment Options Card */}
-                {(baker?.paymentZelle || baker?.paymentPaypal || baker?.paymentCashapp || baker?.paymentVenmo) && (
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        <CreditCard className="h-4 w-4" />
-                        Payment Options
-                      </CardTitle>
-                      <CardDescription>
-                        Accepted payment methods
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      {baker.paymentZelle && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Zelle</span>
-                          <span className="font-medium" data-testid="text-payment-zelle">{baker.paymentZelle}</span>
-                        </div>
-                      )}
-                      {baker.paymentPaypal && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">PayPal</span>
-                          <span className="font-medium" data-testid="text-payment-paypal">{baker.paymentPaypal}</span>
-                        </div>
-                      )}
-                      {baker.paymentCashapp && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Cash App</span>
-                          <span className="font-medium" data-testid="text-payment-cashapp">{baker.paymentCashapp}</span>
-                        </div>
-                      )}
-                      {baker.paymentVenmo && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Venmo</span>
-                          <span className="font-medium" data-testid="text-payment-venmo">{baker.paymentVenmo}</span>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )}
               </div>
             </div>
           </form>

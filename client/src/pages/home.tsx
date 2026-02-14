@@ -220,7 +220,7 @@ export default function HomePage() {
                 From inquiry to payment in three steps
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                No more chasing customers through DMs, texts, and Venmo. BakerIQ handles the entire flow.
+                No more chasing customers through DMs and texts. BakerIQ handles the entire flow.
               </p>
             </div>
             <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">

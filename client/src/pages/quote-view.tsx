@@ -32,11 +32,9 @@ interface PublicBaker {
   depositPercentage?: number | null;
   defaultDepositType?: string | null;
   depositFixedAmount?: string | null;
-  paymentZelle?: string | null;
-  paymentPaypal?: string | null;
-  paymentVenmo?: string | null;
-  paymentCashapp?: string | null;
-  customPaymentOptions?: { id: string; name: string; details: string }[] | null;
+
+
+
   currency?: string | null;
   onlinePaymentsEnabled?: boolean;
 }
@@ -387,45 +385,6 @@ export default function QuoteViewPage() {
                   <span>{fmt(total - depositAmount)}</span>
                 </div>
                 <Separator />
-                <div className="text-sm">
-                  <p className="font-medium mb-2">Payment Methods:</p>
-                  {(baker.paymentZelle || baker.paymentPaypal || baker.paymentVenmo || baker.paymentCashapp || (baker.customPaymentOptions && baker.customPaymentOptions.length > 0)) ? (
-                    <div className="space-y-2">
-                      {baker.paymentZelle && (
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary">Zelle</Badge>
-                          <span>{baker.paymentZelle}</span>
-                        </div>
-                      )}
-                      {baker.paymentPaypal && (
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary">PayPal</Badge>
-                          <span>{baker.paymentPaypal}</span>
-                        </div>
-                      )}
-                      {baker.paymentVenmo && (
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary">Venmo</Badge>
-                          <span>{baker.paymentVenmo}</span>
-                        </div>
-                      )}
-                      {baker.paymentCashapp && (
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary">Cash App</Badge>
-                          <span>{baker.paymentCashapp}</span>
-                        </div>
-                      )}
-                      {baker.customPaymentOptions && baker.customPaymentOptions.map((option) => (
-                        <div key={option.id} className="flex items-center gap-2">
-                          <Badge variant="secondary">{option.name}</Badge>
-                          <span>{option.details}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground">Contact baker for payment options</span>
-                  )}
-                </div>
               </div>
             </CardContent>
           </Card>

@@ -29,7 +29,6 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AVAILABLE_CURRENCIES } from "@/lib/calculator";
 
-type CustomPaymentOption = { id: string; name: string; details: string };
 
 const profileSchema = z.object({
   businessName: z.string().min(2, "Business name must be at least 2 characters"),
@@ -45,10 +44,6 @@ const profileSchema = z.object({
 type ProfileFormData = z.infer<typeof profileSchema>;
 
 const paymentSchema = z.object({
-  paymentZelle: z.string().optional(),
-  paymentPaypal: z.string().optional(),
-  paymentCashapp: z.string().optional(),
-  paymentVenmo: z.string().optional(),
   depositPercentage: z.number().min(0).max(100),
   defaultDepositType: z.enum(["full", "percentage", "fixed"]),
   depositFixedAmount: z.string().optional(),
@@ -222,9 +217,6 @@ export default function SettingsPage() {
   const [uploadingPortfolio, setUploadingPortfolio] = useState(false);
   const [uploadingHeader, setUploadingHeader] = useState(false);
   const [currency, setCurrency] = useState("USD");
-  const [customPaymentOptions, setCustomPaymentOptions] = useState<CustomPaymentOption[]>([]);
-  const [newPaymentName, setNewPaymentName] = useState("");
-  const [newPaymentDetails, setNewPaymentDetails] = useState("");
   const profileInputRef = useRef<HTMLInputElement>(null);
   const portfolioInputRef = useRef<HTMLInputElement>(null);
   const headerInputRef = useRef<HTMLInputElement>(null);
@@ -256,10 +248,6 @@ export default function SettingsPage() {
   const paymentForm = useForm<PaymentFormData>({
     resolver: zodResolver(paymentSchema),
     defaultValues: {
-      paymentZelle: "",
-      paymentPaypal: "",
-      paymentCashapp: "",
-      paymentVenmo: "",
       depositPercentage: 50,
       defaultDepositType: "full",
       depositFixedAmount: "",
@@ -279,10 +267,6 @@ export default function SettingsPage() {
         socialPinterest: baker.socialPinterest || "",
       });
       paymentForm.reset({
-        paymentZelle: baker.paymentZelle || "",
-        paymentPaypal: baker.paymentPaypal || "",
-        paymentCashapp: baker.paymentCashapp || "",
-        paymentVenmo: baker.paymentVenmo || "",
         depositPercentage: baker.depositPercentage ?? 50,
         defaultDepositType: (baker.defaultDepositType as "full" | "percentage" | "fixed") || "full",
         depositFixedAmount: baker.depositFixedAmount || "",
@@ -291,7 +275,6 @@ export default function SettingsPage() {
       setPortfolioImages((baker.portfolioImages || []).slice(0, 6));
       setHeaderImage(baker.calculatorHeaderImage || null);
       setCurrency(baker.currency || "USD");
-      setCustomPaymentOptions((baker.customPaymentOptions as CustomPaymentOption[]) || []);
     }
   }, [baker, profileForm, paymentForm]);
 
@@ -316,7 +299,7 @@ export default function SettingsPage() {
 
   const updatePaymentMutation = useMutation({
     mutationFn: async (data: PaymentFormData) => {
-      const res = await apiRequest("PATCH", "/api/bakers/me", { ...data, customPaymentOptions });
+      const res = await apiRequest("PATCH", "/api/bakers/me", data);
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.message || "Failed to update payment options");
@@ -423,24 +406,6 @@ export default function SettingsPage() {
     updateCurrencyMutation.mutate(newCurrency);
   };
 
-  const addCustomPaymentOption = () => {
-    if (!newPaymentName.trim() || !newPaymentDetails.trim()) {
-      toast({ title: "Please enter both name and details", variant: "destructive" });
-      return;
-    }
-    const newOption: CustomPaymentOption = {
-      id: crypto.randomUUID(),
-      name: newPaymentName.trim(),
-      details: newPaymentDetails.trim(),
-    };
-    setCustomPaymentOptions([...customPaymentOptions, newOption]);
-    setNewPaymentName("");
-    setNewPaymentDetails("");
-  };
-
-  const removeCustomPaymentOption = (id: string) => {
-    setCustomPaymentOptions(customPaymentOptions.filter(opt => opt.id !== id));
-  };
 
   const updatePasswordMutation = useMutation({
     mutationFn: async (data: PasswordFormData) => {
@@ -1273,9 +1238,9 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Payment Options</CardTitle>
+            <CardTitle>Deposit Settings</CardTitle>
             <CardDescription>
-              Add your payment details to display on quotes
+              Configure deposit requirements for your quotes
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -1286,140 +1251,7 @@ export default function SettingsPage() {
                 )}
                 className="space-y-4"
               >
-                <FormField
-                  control={paymentForm.control}
-                  name="paymentZelle"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Zelle</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="Email or phone for Zelle"
-                          data-testid="input-payment-zelle"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={paymentForm.control}
-                  name="paymentPaypal"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>PayPal</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="PayPal email or @username"
-                          data-testid="input-payment-paypal"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={paymentForm.control}
-                  name="paymentCashapp"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cash App</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="$cashtag"
-                          data-testid="input-payment-cashapp"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={paymentForm.control}
-                  name="paymentVenmo"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Venmo</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="@username"
-                          data-testid="input-payment-venmo"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="space-y-4 border-t pt-4">
-                  <h4 className="font-medium text-sm">Custom Payment Methods</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Add additional payment options for your region (e.g., OXXO, SPEI, bank transfer)
-                  </p>
-                  
-                  {customPaymentOptions.length > 0 && (
-                    <div className="space-y-2">
-                      {customPaymentOptions.map((option) => (
-                        <div 
-                          key={option.id} 
-                          className="flex items-center justify-between gap-2 p-3 bg-muted rounded-md"
-                          data-testid={`custom-payment-${option.id}`}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm">{option.name}</p>
-                            <p className="text-sm text-muted-foreground truncate">{option.details}</p>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeCustomPaymentOption(option.id)}
-                            data-testid={`button-remove-custom-payment-${option.id}`}
-                          >
-                            <Trash2 className="h-4 w-4 text-muted-foreground" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  
-                  <div className="flex flex-col gap-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <Input
-                        placeholder="Payment name (e.g., OXXO)"
-                        value={newPaymentName}
-                        onChange={(e) => setNewPaymentName(e.target.value)}
-                        data-testid="input-custom-payment-name"
-                      />
-                      <Input
-                        placeholder="Details (reference # or link)"
-                        value={newPaymentDetails}
-                        onChange={(e) => setNewPaymentDetails(e.target.value)}
-                        data-testid="input-custom-payment-details"
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={addCustomPaymentOption}
-                      className="w-fit"
-                      data-testid="button-add-custom-payment"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Payment Method
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="space-y-4 border-t pt-4">
-                  <h4 className="font-medium text-sm">Quote Deposit Settings</h4>
+                <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">
                     Set how much deposit is required when customers accept quotes
                   </p>

@@ -544,11 +544,9 @@ export const QUOTE_STATUSES = [
 ] as const;
 
 export const ORDER_PAYMENT_METHODS = [
+  { id: "card", label: "Card (Stripe)" },
   { id: "cash", label: "Cash" },
-  { id: "zelle", label: "Zelle" },
-  { id: "paypal", label: "PayPal" },
-  { id: "cashapp", label: "Cash App" },
-  { id: "venmo", label: "Venmo" },
+  { id: "pending", label: "Pending" },
 ] as const;
 
 export const ORDER_PAYMENT_STATUSES = [

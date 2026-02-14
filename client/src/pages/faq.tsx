@@ -93,7 +93,7 @@ const faqs = [
       },
       {
         q: "What payment methods can I accept?",
-        a: "You can accept credit/debit card payments directly through your quotes by connecting Stripe in Settings. You can also configure offline payment methods (Zelle, PayPal, CashApp, Venmo, Cash) in Calculator Pricing to display on your quotes."
+        a: "You can accept credit/debit card payments directly through your quotes by connecting Stripe in Settings. Once connected, customers will see a 'Pay Now' button on quotes you send."
       },
       {
         q: "How do deposits work?",
@@ -134,7 +134,7 @@ const faqs = [
       },
       {
         q: "Do I need a Stripe account to use BakerIQ?",
-        a: "A Stripe account is only needed if you want to accept online payments through your quotes. You can use all other BakerIQ features (calculator, leads, quotes, calendar) without Stripe. You can also continue accepting payments outside of BakerIQ through Zelle, PayPal, cash, etc."
+        a: "A Stripe account is only needed if you want to accept online payments through your quotes. You can use all other BakerIQ features (calculator, leads, quotes, calendar) without Stripe."
       },
       {
         q: "How do I disconnect my Stripe account?",

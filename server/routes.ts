@@ -67,9 +67,8 @@ SUBSCRIPTION PLANS:
 - Upgrade anytime in Settings
 
 PAYMENT METHODS:
-- Configure accepted payment methods (Zelle, PayPal, CashApp, Venmo)
-- Set default deposit percentage
-- Add custom payment options in Settings
+- Stripe Connect for online payments through quotes
+- Set default deposit percentage/type in Settings
 
 EMAIL NOTIFICATIONS:
 - New lead alerts when customers submit inquiries
@@ -503,10 +502,6 @@ export async function registerRoutes(
         email: z.string().email().optional(),
         phone: z.string().optional(),
         address: z.string().optional(),
-        paymentZelle: z.string().optional().nullable(),
-        paymentPaypal: z.string().optional().nullable(),
-        paymentCashapp: z.string().optional().nullable(),
-        paymentVenmo: z.string().optional().nullable(),
         depositPercentage: z.number().min(0).max(100).optional().nullable(),
         defaultDepositType: z.enum(["full", "percentage", "fixed"]).optional(),
         depositFixedAmount: z.string().optional().nullable(),
@@ -522,11 +517,6 @@ export async function registerRoutes(
         profilePhoto: z.string().optional().nullable(),
         portfolioImages: z.array(z.string()).max(6).optional().nullable(),
         calculatorHeaderImage: z.string().optional().nullable(),
-        customPaymentOptions: z.array(z.object({
-          id: z.string(),
-          name: z.string().min(1),
-          details: z.string().min(1),
-        })).optional().nullable(),
       }).refine((data) => {
         // Validate fixed deposit amount when fixed type is selected
         if (data.defaultDepositType === "fixed") {
@@ -1559,11 +1549,6 @@ export async function registerRoutes(
       profilePhoto: baker.profilePhoto,
       portfolioImages: baker.portfolioImages,
       currency: baker.currency,
-      customPaymentOptions: baker.customPaymentOptions,
-      paymentZelle: baker.paymentZelle,
-      paymentPaypal: baker.paymentPaypal,
-      paymentCashapp: baker.paymentCashapp,
-      paymentVenmo: baker.paymentVenmo,
       calculatorHeaderImage: baker.calculatorHeaderImage,
     });
   });
@@ -1636,11 +1621,6 @@ export async function registerRoutes(
           depositPercentage: baker.depositPercentage,
           defaultDepositType: baker.defaultDepositType,
           depositFixedAmount: baker.depositFixedAmount,
-          paymentZelle: baker.paymentZelle,
-          paymentPaypal: baker.paymentPaypal,
-          paymentVenmo: baker.paymentVenmo,
-          paymentCashapp: baker.paymentCashapp,
-          customPaymentOptions: baker.customPaymentOptions,
           currency: baker.currency,
           onlinePaymentsEnabled: !!(baker.stripeConnectAccountId && baker.stripeConnectOnboarded && baker.stripeConnectPayoutsEnabled),
         },
