@@ -242,7 +242,31 @@ export default function PartnersPage() {
               <AccordionTrigger data-testid="faq-who">Who is this program for?</AccordionTrigger>
               <AccordionContent>
                 <p className="text-muted-foreground">
-                  This program is designed for educators, content creators, supply shops, and business coaches who have an audience of bakers. It is not intended for existing BakerIQ bakers looking to earn commission — bakers should use the in-app referral program instead, which rewards them with free months and Quick Quote access.
+                  This program is for educators, creators, and professionals whose audience genuinely benefits from pricing, quoting, and business tools. We selectively approve partners based on alignment and professional reputation — follower count alone is not the deciding factor. If your work helps bakers run a better business, we want to talk.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="approve">
+              <AccordionTrigger data-testid="faq-approve">Do you approve everyone?</AccordionTrigger>
+              <AccordionContent>
+                <p className="text-muted-foreground">
+                  No. Every application is reviewed manually. We prioritize trusted relationships, audience fit, and professional credibility. We reserve the right to decline applications that aren't the right match.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="referral-difference">
+              <AccordionTrigger data-testid="faq-referral-difference">Is this the same as the baker referral program?</AccordionTrigger>
+              <AccordionContent>
+                <p className="text-muted-foreground">
+                  No. This is a curated, commission-based partner program for creators and educators. If you're already a BakerIQ baker, use your in-app referral link instead — it rewards you with free months and Quick Quote access for every baker you bring in.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="strong-partner">
+              <AccordionTrigger data-testid="faq-strong-partner">What makes a strong partner?</AccordionTrigger>
+              <AccordionContent>
+                <p className="text-muted-foreground">
+                  Strong partners teach business, pricing, or professionalism to bakers. They have an engaged audience that trusts their recommendations. They value long-term credibility over quick promotion.
                 </p>
               </AccordionContent>
             </AccordionItem>
@@ -250,7 +274,7 @@ export default function PartnersPage() {
               <AccordionTrigger data-testid="faq-cost">Is there a cost to join?</AccordionTrigger>
               <AccordionContent>
                 <p className="text-muted-foreground">
-                  No cost at all. You apply using the form below, and we review applications based on audience fit and relevance to the baking community. There are no fees, no obligations, and no strings attached.
+                  No. There's no fee to apply or participate. We review applications based on audience fit and relevance to the baking community.
                 </p>
               </AccordionContent>
             </AccordionItem>
@@ -258,7 +282,7 @@ export default function PartnersPage() {
               <AccordionTrigger data-testid="faq-use-bakeriq">Can I use BakerIQ myself?</AccordionTrigger>
               <AccordionContent>
                 <p className="text-muted-foreground">
-                  Yes, and we encourage it. If you bake and sell, having a BakerIQ account yourself means you can demonstrate the product authentically to your audience. Nothing sells better than showing the real thing.
+                  Yes, and we encourage it. Using BakerIQ yourself means you can demonstrate the product authentically. Partners who use the tool tend to be more effective because they speak from experience.
                 </p>
               </AccordionContent>
             </AccordionItem>
@@ -266,7 +290,7 @@ export default function PartnersPage() {
               <AccordionTrigger data-testid="faq-support">What support do partners receive?</AccordionTrigger>
               <AccordionContent>
                 <p className="text-muted-foreground">
-                  Approved partners get access to a real-time tracking dashboard with click, signup, and commission data. Additional resources and guidance are provided upon approval to help you get started.
+                  Approved partners get a real-time tracking dashboard with click, signup, and commission data. Additional resources and guidance are provided upon approval.
                 </p>
               </AccordionContent>
             </AccordionItem>
