@@ -1,0 +1,76 @@
+You are the BakerIQ Replit Agent.
+
+GOAL:
+Rewrite the content on the /partners page (https://bakeriq.app/partners) to be more persuasive and aligned with a curated “Founding Partners” affiliate program, while keeping it clean, SaaS-minimal, and non-hype.
+
+IMPORTANT CONSTRAINTS:
+- Do NOT change the page layout/components unless needed to support the rewritten copy.
+- Prefer editing ONLY the text/copy strings used on the page.
+- Keep all existing functional elements: the 3 benefit cards, “How it Works”, “Who is this for?”, and the application form.
+- Keep the current program rules intact:
+  - 20% commission on subscription revenue only
+  - for the first 3 months
+  - 45-day cookie tracking
+  - real-time dashboard tracking
+  - application + approval required
+- Ensure the page clearly separates:
+  (1) Influencer Affiliate Program (commission-based) vs
+  (2) Baker-to-baker referral program (free month / Quick Quote access)
+- Tone: confident, straightforward, Gen-X direct, not cheesy.
+
+COPY CHANGES TO MAKE:
+
+1) HERO SECTION
+Replace current headline/subheadline with stronger positioning:
+- Headline should emphasize recurring income + helping bakers get paid professionally.
+- Subheadline should connect the pain (DM pricing, chasing deposits) to BakerIQ’s solution (calculator → quote → invoice/payment).
+Add a small “Founding Partners” line:
+- “We’re onboarding a limited number of founding partners.”
+
+Example direction (do not copy verbatim if you have better):
+Headline: “Turn your baking audience into recurring income.”
+Sub: “BakerIQ helps bakers price faster, send professional quotes, and get paid through Stripe. Share your link and earn on new subscriptions.”
+
+Add 1 short “Earnings clarity” line beneath:
+- A simple example, not hype:
+  “Example: 25 Pro subscribers = ~$50/month commission for 3 months.” (Use accurate math and show it as an estimate.)
+(Keep it short—one line.)
+
+2) 3 BENEFIT CARDS
+Keep the 3 cards but tighten the wording to be more benefit-driven:
+- Card 1: Make the 20% for 3 months crystal clear in one sentence.
+- Card 2: Emphasize “link in bio / video description / pinned comment” and 45-day cookie.
+- Card 3: Emphasize visibility + trust: “track clicks, signups, commissions in real time.”
+
+3) HOW IT WORKS
+Keep the 4 steps (Apply → Get Approved → Share → Earn), but rewrite each step description to be more action-oriented and clearer:
+- Mention “approved partners get a dashboard + custom link”
+- Mention “earn on new paid subscriptions (Basic/Pro) for first 3 months”
+
+4) WHO IS THIS FOR?
+Keep the categories but rewrite the intro sentence so it feels curated:
+- “Best fit for educators and creators whose audience asks about pricing, deposits, and business systems.”
+Keep the list items, but slightly tighten each.
+
+5) ADD A SHORT “WHY BAKERS LOVE IT” SECTION (small, optional)
+If layout allows without redesign, add a short 3-bullet section between “How it Works” and “Who is this for?”:
+- “Pricing calculator link they can share”
+- “Professional quotes + deposits”
+- “Invoices + payments through Stripe Connect”
+(If adding a new section requires major layout work, skip it and instead weave these points into the hero/subhead.)
+
+6) CLARIFY DIFFERENCE FROM BAKER REFERRALS (important)
+Near the bottom (above or below the form), add a short note:
+- “Already a BakerIQ user? Use your in-app referral link to earn free months / perks. This Partners program is for creators/educators earning commission.”
+
+7) FORM MICROCOPY
+Keep the form fields exactly the same, but improve the short helper text:
+- Add one sentence that sets expectations:
+  “We review applications within a few business days.”
+- Add a sentence about what they should include:
+  “Share your primary platform + audience size and how you plan to introduce BakerIQ.”
+
+DELIVERABLE:
+- Update the /partners page copy in the codebase (wherever that copy lives).
+- Do not break any routes, styling, or form submission.
+- Provide a summary of what files you changed and paste the final rewritten copy blocks for review.

@@ -17,6 +17,9 @@ import {
   CheckCircle2,
   ArrowRight,
   Cake,
+  Calculator,
+  FileText,
+  CreditCard,
 } from "lucide-react";
 
 export default function PartnersPage() {
@@ -75,12 +78,18 @@ export default function PartnersPage() {
 
       <main className="max-w-5xl mx-auto px-4 py-12">
         <div className="text-center mb-12">
-          <Badge variant="secondary" className="mb-4">Affiliate Program</Badge>
+          <Badge variant="secondary" className="mb-4">Founding Partners</Badge>
           <h1 className="text-4xl font-bold tracking-tight mb-4" data-testid="text-partners-title">
-            Earn with BakerIQ
+            Turn your baking audience into recurring income.
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Help bakers discover better tools for their business, and earn a commission for every subscription that comes through your link.
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-3">
+            Bakers are tired of pricing in DMs, chasing deposits, and looking unprofessional. BakerIQ gives them a pricing calculator, professional quotes, and Stripe payments. Share your link and earn on every new subscription.
+          </p>
+          <p className="text-sm text-muted-foreground max-w-xl mx-auto mb-2">
+            We're onboarding a limited number of founding partners.
+          </p>
+          <p className="text-xs text-muted-foreground max-w-xl mx-auto">
+            Example: 25 Pro subscribers = ~$50/month in commission for 3 months.
           </p>
         </div>
 
@@ -92,9 +101,9 @@ export default function PartnersPage() {
                   <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-1">20% Commission</h3>
+                  <h3 className="font-semibold mb-1">20% for 3 Months</h3>
                   <p className="text-sm text-muted-foreground">
-                    Earn 20% of every subscription payment from bakers who sign up through your link — for their first 3 months.
+                    Earn 20% of subscription revenue on every baker who signs up through your link — paid on their first 3 months of Basic or Pro.
                   </p>
                 </div>
               </div>
@@ -107,9 +116,9 @@ export default function PartnersPage() {
                   <Link2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-1">Your Own Link</h3>
+                  <h3 className="font-semibold mb-1">Custom Link, 45-Day Cookie</h3>
                   <p className="text-sm text-muted-foreground">
-                    Get a custom referral link you can share on social media, in videos, or in your bio. 45-day cookie tracking.
+                    Drop your link in your bio, video description, or pinned comment. A 45-day cookie means you get credit even if they sign up later.
                   </p>
                 </div>
               </div>
@@ -122,9 +131,9 @@ export default function PartnersPage() {
                   <TrendingUp className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-1">Real-Time Dashboard</h3>
+                  <h3 className="font-semibold mb-1">Full Transparency</h3>
                   <p className="text-sm text-muted-foreground">
-                    Track clicks, signups, and earnings from your dashboard. Know exactly how your referrals are performing.
+                    Track every click, signup, and commission in real time from your partner dashboard. No guesswork.
                   </p>
                 </div>
               </div>
@@ -136,10 +145,10 @@ export default function PartnersPage() {
           <h2 className="text-2xl font-bold text-center mb-8">How It Works</h2>
           <div className="grid gap-6 md:grid-cols-4">
             {[
-              { step: "1", title: "Apply", desc: "Fill out the form below. We review applications within a few days." },
-              { step: "2", title: "Get Approved", desc: "Once approved, log in to your BakerIQ account and grab your custom referral link." },
-              { step: "3", title: "Share", desc: "Share your link with bakers who could benefit from a pricing calculator and quote tool." },
-              { step: "4", title: "Earn", desc: "When someone signs up through your link and subscribes to a paid plan, you earn 20% for 3 months." },
+              { step: "1", title: "Apply", desc: "Fill out the form below with your platform, audience, and how you'd introduce BakerIQ." },
+              { step: "2", title: "Get Approved", desc: "Approved partners get a personal dashboard with a custom referral link you can edit." },
+              { step: "3", title: "Share", desc: "Add your link to your bio, videos, posts, or wherever you connect with bakers." },
+              { step: "4", title: "Earn", desc: "When a baker signs up through your link and subscribes to Basic or Pro, you earn 20% for their first 3 months." },
             ].map((item) => (
               <div key={item.step} className="text-center">
                 <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center mx-auto mb-3 text-sm font-bold">
@@ -152,17 +161,41 @@ export default function PartnersPage() {
           </div>
         </div>
 
+        <div className="mb-16 max-w-3xl mx-auto">
+          <h2 className="text-2xl font-bold text-center mb-6">Why Bakers Love BakerIQ</h2>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="flex items-start gap-2">
+              <div className="p-1.5 rounded-md bg-muted shrink-0 mt-0.5">
+                <Calculator className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <span className="text-sm">Pricing calculator link they can share with customers</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="p-1.5 rounded-md bg-muted shrink-0 mt-0.5">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <span className="text-sm">Professional quotes with deposit requests built in</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="p-1.5 rounded-md bg-muted shrink-0 mt-0.5">
+                <CreditCard className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <span className="text-sm">Online payments through Stripe Connect — no chasing deposits</span>
+            </div>
+          </div>
+        </div>
+
         <div className="mb-16">
           <h2 className="text-2xl font-bold text-center mb-2">Who Is This For?</h2>
-          <p className="text-center text-muted-foreground mb-8">This program is a great fit for anyone who connects with bakers, cake makers, or treat makers.</p>
+          <p className="text-center text-muted-foreground mb-8">Best fit for educators and creators whose audience asks about pricing, deposits, and running a baking business.</p>
           <div className="grid gap-4 md:grid-cols-2 max-w-3xl mx-auto">
             {[
               "Baking content creators on Instagram, TikTok, or YouTube",
-              "Cake decorating bloggers and educators",
-              "Baking supply shops or e-commerce owners",
-              "Business coaches for cottage food or home bakers",
+              "Cake decorating educators and course creators",
+              "Baking supply shops and e-commerce owners",
+              "Business coaches for cottage food and home bakers",
               "Wedding and event planners who work with bakers",
-              "Baking community group admins or moderators",
+              "Baking community group admins and moderators",
             ].map((item, i) => (
               <div key={i} className="flex items-start gap-2">
                 <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
@@ -175,12 +208,12 @@ export default function PartnersPage() {
         <Card className="max-w-2xl mx-auto" id="apply">
           <CardHeader>
             <CardTitle data-testid="text-apply-title">
-              {submitted ? "Application Submitted" : "Apply to the Affiliate Program"}
+              {submitted ? "Application Submitted" : "Apply to the Founding Partners Program"}
             </CardTitle>
             <CardDescription>
               {submitted
-                ? "Thanks for your interest! We'll review your application and get back to you within a few days."
-                : "Tell us a bit about yourself and how you connect with the baking community."}
+                ? "Thanks for your interest! We'll review your application and get back to you within a few business days."
+                : "Share your primary platform, audience size, and how you plan to introduce BakerIQ. We review applications within a few business days."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -246,11 +279,11 @@ export default function PartnersPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Why are you interested in partnering with BakerIQ?</label>
+                  <label className="text-sm font-medium mb-1 block">How would you introduce BakerIQ to your audience?</label>
                   <Textarea
                     value={formData.message}
                     onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
-                    placeholder="Tell us how you plan to share BakerIQ with your audience..."
+                    placeholder="Tell us your primary platform, content style, and how you'd share BakerIQ..."
                     rows={4}
                     data-testid="input-affiliate-message"
                   />
@@ -268,9 +301,9 @@ export default function PartnersPage() {
           </CardContent>
         </Card>
 
-        <div className="text-center mt-16 mb-8">
-          <p className="text-sm text-muted-foreground">
-            Already have a BakerIQ account? Every baker gets a referral link to earn free months.{" "}
+        <div className="max-w-2xl mx-auto mt-8 p-4 rounded-md bg-muted/50 border">
+          <p className="text-sm text-muted-foreground text-center">
+            <strong className="text-foreground">Already a BakerIQ user?</strong> This Partners program is for creators and educators earning commission. If you're a baker, use your in-app referral link instead to earn free months and Quick Quote access.{" "}
             <Link href="/login">
               <span className="underline cursor-pointer">Log in</span>
             </Link>{" "}
@@ -279,7 +312,7 @@ export default function PartnersPage() {
         </div>
       </main>
 
-      <footer className="border-t py-6">
+      <footer className="border-t py-6 mt-8">
         <div className="max-w-5xl mx-auto px-4 text-center text-sm text-muted-foreground">
           <p>BakerIQ &mdash; Pricing & Quote Tool for Custom Bakers</p>
         </div>
