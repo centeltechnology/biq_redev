@@ -8,6 +8,7 @@ import {
   passwordResetTokens,
   emailVerificationTokens,
   bakerOnboardingEmails,
+  onboardingEmailSends,
   pricingCalculations,
   supportTickets,
   ticketMessages,
@@ -148,6 +149,9 @@ export interface IStorage {
   getBakersForOnboardingEmails(targetDay: number): Promise<Baker[]>;
   setActivationTimestamp(bakerId: string, field: "stripeConnectedAt" | "firstProductCreatedAt" | "firstQuoteSentAt" | "firstInvoiceCreatedAt" | "firstPaymentProcessedAt"): Promise<void>;
   getOnboardingEmailStats(): Promise<{ totalBakers: number; stripeConnectedWithin7Days: number; emailsSentByKey: Record<string, number> }>;
+  hasOnboardingEmailKeyBeenSent(bakerId: string, emailKey: string): Promise<boolean>;
+  recordOnboardingEmailSend(bakerId: string, emailKey: string, variant?: string, providerMessageId?: string): Promise<void>;
+  deleteOnboardingEmailSend(bakerId: string, emailKey: string): Promise<void>;
 
   // Pricing Calculations
   getPricingCalculation(id: string): Promise<PricingCalculation | undefined>;
@@ -861,6 +865,34 @@ export class DatabaseStorage implements IStorage {
     }
 
     return { totalBakers, stripeConnectedWithin7Days, emailsSentByKey };
+  }
+
+  async hasOnboardingEmailKeyBeenSent(bakerId: string, emailKey: string): Promise<boolean> {
+    const [result] = await db.select().from(onboardingEmailSends).where(
+      and(
+        eq(onboardingEmailSends.bakerId, bakerId),
+        eq(onboardingEmailSends.emailKey, emailKey)
+      )
+    );
+    return !!result;
+  }
+
+  async recordOnboardingEmailSend(bakerId: string, emailKey: string, variant?: string, providerMessageId?: string): Promise<void> {
+    await db.insert(onboardingEmailSends).values({
+      bakerId,
+      emailKey,
+      variant: variant || null,
+      providerMessageId: providerMessageId || null,
+    }).onConflictDoNothing();
+  }
+
+  async deleteOnboardingEmailSend(bakerId: string, emailKey: string): Promise<void> {
+    await db.delete(onboardingEmailSends).where(
+      and(
+        eq(onboardingEmailSends.bakerId, bakerId),
+        eq(onboardingEmailSends.emailKey, emailKey)
+      )
+    );
   }
 
   // Pricing Calculations

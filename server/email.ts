@@ -1017,6 +1017,19 @@ function getConditionalOnboardingTemplate(day: number, stripeConnected: boolean)
   }
 }
 
+export function getEmailKeyForDay(day: number, stripeConnected: boolean): string {
+  switch (day) {
+    case 0: return "day0_welcome";
+    case 1: return "day1_pricing";
+    case 2: return "day2_quotes";
+    case 3: return stripeConnected ? "day3_stripe_connected" : "day3_stripe_push";
+    case 4: return stripeConnected ? "day4_deposit" : "day4_stripe_reminder";
+    case 5: return "day5_workflow";
+    case 6: return stripeConnected ? "day6_habit" : "day6_final_stripe_push";
+    default: return `day${day}_unknown`;
+  }
+}
+
 export async function sendOnboardingEmail(
   bakerEmail: string,
   businessName: string,

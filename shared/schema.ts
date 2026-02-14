@@ -135,6 +135,20 @@ export const bakerOnboardingEmailsRelations = relations(bakerOnboardingEmails, (
 export type BakerOnboardingEmail = typeof bakerOnboardingEmails.$inferSelect;
 export type InsertBakerOnboardingEmail = typeof bakerOnboardingEmails.$inferInsert;
 
+export const onboardingEmailSends = pgTable("onboarding_email_sends", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  bakerId: varchar("baker_id").notNull().references(() => bakers.id),
+  emailKey: text("email_key").notNull(),
+  sentAt: timestamp("sent_at").defaultNow().notNull(),
+  variant: text("variant"),
+  providerMessageId: text("provider_message_id"),
+}, (table) => [
+  uniqueIndex("baker_email_key_unique").on(table.bakerId, table.emailKey),
+]);
+
+export type OnboardingEmailSend = typeof onboardingEmailSends.$inferSelect;
+export type InsertOnboardingEmailSend = typeof onboardingEmailSends.$inferInsert;
+
 export const bakersRelations = relations(bakers, ({ many }) => ({
   customers: many(customers),
   leads: many(leads),

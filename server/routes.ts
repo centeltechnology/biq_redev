@@ -1039,7 +1039,6 @@ export async function registerRoutes(
       // Track quote sent
       trackEvent(bakerId, "quote_sent", { quoteId: quote.id, customerId: quote.customerId });
       await storage.setActivationTimestamp(bakerId, "firstQuoteSentAt");
-      await storage.setActivationTimestamp(bakerId, "firstInvoiceCreatedAt");
 
       // Auto-update linked lead status to "quoted"
       if (quote.leadId) {
@@ -2320,6 +2319,8 @@ export async function registerRoutes(
         cancel_url: `${baseUrl}/quote/${quote.id}/pay?status=cancelled`,
       });
 
+      await storage.setActivationTimestamp(quote.bakerId, "firstInvoiceCreatedAt");
+
       res.json({ url: session.url, sessionId: session.id });
     } catch (error: any) {
       console.error("Payment session error:", error);
@@ -2357,6 +2358,12 @@ export async function registerRoutes(
 
       if (event.type === "checkout.session.completed") {
         const session = event.data.object;
+
+        if (session.payment_status !== "paid") {
+          console.log(`[Webhook] Skipping checkout.session.completed with payment_status=${session.payment_status}`);
+          return res.json({ received: true });
+        }
+
         const quoteId = session.metadata?.quoteId;
         const bakerId = session.metadata?.bakerId;
         const paymentType = session.metadata?.paymentType || "full";
@@ -3023,21 +3030,33 @@ export async function registerRoutes(
   // Resend onboarding email manually
   app.post("/api/admin/bakers/:id/resend-email", requireAdmin, async (req, res) => {
     try {
-      const { emailDay } = req.body;
+      const { emailDay, force } = req.body;
       const baker = await storage.getBaker(req.params.id);
       if (!baker) {
         return res.status(404).json({ message: "Baker not found" });
       }
-      
-      // Delete existing record to allow resend
-      await storage.deleteOnboardingEmail(req.params.id, emailDay);
-      
-      const baseUrl = `${req.protocol}://${req.get("host")}`;
+
       const stripeConnected = !!(baker.stripeConnectAccountId && baker.stripeConnectOnboarded && baker.stripeConnectPayoutsEnabled);
+      const { getEmailKeyForDay } = await import("./email");
+      const emailKey = getEmailKeyForDay(emailDay, stripeConnected);
+
+      if (!force) {
+        const alreadySent = await storage.hasOnboardingEmailKeyBeenSent(baker.id, emailKey);
+        if (alreadySent) {
+          return res.status(409).json({ message: `Email ${emailKey} already sent to this baker. Use force=true to resend.` });
+        }
+      }
+
+      await storage.deleteOnboardingEmail(baker.id, emailDay);
+      await storage.deleteOnboardingEmailSend(baker.id, emailKey);
+
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
       const result = await sendOnboardingEmail(baker.email, baker.businessName, emailDay, baseUrl, stripeConnected);
-      
+
       if (result.success) {
         await storage.recordOnboardingEmail(baker.id, emailDay, "sent", undefined, result.emailKey, stripeConnected);
+        const variant = stripeConnected ? "stripe_connected" : "stripe_not_connected";
+        await storage.recordOnboardingEmailSend(baker.id, result.emailKey, variant);
         res.json({ message: `Email day ${emailDay} (${result.emailKey}) resent to ${baker.email}` });
       } else {
         await storage.recordOnboardingEmail(baker.id, emailDay, "failed", "Email send failed", result.emailKey, stripeConnected);

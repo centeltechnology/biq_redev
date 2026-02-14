@@ -1,5 +1,5 @@
 import { storage } from "./storage";
-import { sendOnboardingEmail } from "./email";
+import { sendOnboardingEmail, getEmailKeyForDay } from "./email";
 
 const ONBOARDING_DAYS = [0, 1, 2, 3, 4, 5, 6];
 
@@ -46,6 +46,14 @@ export async function processOnboardingEmails(baseUrl: string): Promise<void> {
 
           const stripeConnected = !!(baker.stripeConnectAccountId && baker.stripeConnectOnboarded && baker.stripeConnectPayoutsEnabled);
 
+          const emailKey = getEmailKeyForDay(day, stripeConnected);
+
+          const alreadySent = await storage.hasOnboardingEmailKeyBeenSent(baker.id, emailKey);
+          if (alreadySent) {
+            console.log(`[Onboarding] SKIP duplicate: day=${day} key=${emailKey} baker=${baker.email}`);
+            continue;
+          }
+
           console.log(`[Onboarding] Sending day ${day} email to ${baker.email} | stripeConnected=${stripeConnected}`);
 
           const result = await sendOnboardingEmail(
@@ -58,6 +66,8 @@ export async function processOnboardingEmails(baseUrl: string): Promise<void> {
 
           if (result.success) {
             await storage.recordOnboardingEmail(baker.id, day, "sent", undefined, result.emailKey, stripeConnected);
+            const variant = stripeConnected ? "stripe_connected" : "stripe_not_connected";
+            await storage.recordOnboardingEmailSend(baker.id, result.emailKey, variant);
             console.log(`[Onboarding] SENT day=${day} key=${result.emailKey} to=${baker.email} stripe=${stripeConnected}`);
           } else {
             await storage.recordOnboardingEmail(baker.id, day, "failed", "Email send returned false", result.emailKey, stripeConnected);
