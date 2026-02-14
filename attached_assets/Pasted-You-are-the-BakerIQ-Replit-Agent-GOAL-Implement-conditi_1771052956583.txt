@@ -1,0 +1,122 @@
+You are the BakerIQ Replit Agent.
+
+GOAL:
+Implement conditional logic for the 7-day onboarding email sequence so emails adapt based on user activation events (Stripe Connect + core actions). This should be robust, idempotent (no duplicate sends), and easy to maintain.
+
+SCOPE:
+- Implement event tracking fields
+- Implement conditional email scheduling + sending logic
+- Add/adjust email templates as needed
+- Do NOT add Twilio or PWA work
+
+PRIMARY ACTIVATION EVENT:
+- Stripe Connect completed (stripe_connected_at timestamp)
+
+SECONDARY EVENTS:
+- first_product_created_at
+- first_quote_sent_at
+- first_invoice_created_at
+- first_payment_processed_at
+
+REQUIREMENTS:
+
+1) DATABASE / DATA MODEL
+Add the following nullable timestamp fields (where appropriate: users table or a dedicated user_activation table):
+- stripe_connected_at
+- first_product_created_at
+- first_quote_sent_at
+- first_invoice_created_at
+- first_payment_processed_at
+
+Also add an “onboarding email state” tracking mechanism:
+Option A (simple): a table onboarding_email_sends with columns:
+- id, user_id, email_key, sent_at
+Unique constraint: (user_id, email_key)
+Option B: JSONB on user (not preferred). Use a table if possible.
+
+Email keys should include:
+- day0_welcome
+- day1_pricing
+- day2_quotes
+- day3_stripe_push
+- day4_deposit
+- day5_workflow
+- day6_habit
+Plus conditional replacements:
+- day4_stripe_reminder (only if Stripe NOT connected)
+- day6_final_stripe_push (only if Stripe NOT connected)
+- day4_conversion_boost (only if Stripe connected; replaces day4_stripe_reminder if applicable)
+- day6_conversion_boost (only if Stripe connected; replaces final stripe push if applicable)
+
+2) EVENT CAPTURE (set timestamps automatically)
+Wherever these actions happen in the app, set the relevant timestamp ONLY ONCE (first time):
+- When Stripe Connect completes successfully → set stripe_connected_at = now()
+- When user creates first product → set first_product_created_at
+- When user sends first quote → set first_quote_sent_at
+- When user creates first invoice → set first_invoice_created_at
+- When first payment is confirmed/recorded → set first_payment_processed_at
+
+3) EMAIL SCHEDULER / DELIVERY
+Implement a daily job (cron/queue worker) that:
+- Finds users eligible for onboarding emails (new signups within last 7 days)
+- Determines which “day email” should go out based on signup time or created_at (Day 0..6)
+- Checks onboarding_email_sends to ensure the email has NOT already been sent (idempotency)
+- Chooses which template to send based on Stripe status:
+  - If Stripe NOT connected:
+      - Send standard Day 0–3 as written
+      - Day 4: send day4_stripe_reminder (instead of day4_deposit if you choose to prioritize Stripe)
+      - Day 6: send day6_final_stripe_push (instead of day6_habit if you choose to prioritize Stripe)
+  - If Stripe IS connected:
+      - Send standard Day 0–3 (with Stripe PS removed or reduced)
+      - Day 4: send day4_deposit (or day4_conversion_boost if you want an alternate)
+      - Day 6: send day6_habit (or day6_conversion_boost)
+
+IMPORTANT CHOICE (make it consistent):
+- Prioritize Stripe connection above all else:
+  If NOT connected by Day 3, Day 4 and Day 6 should be Stripe-focused.
+  If connected, proceed with deposit + habit formation.
+
+4) TEMPLATE BEHAVIOR RULES
+- If stripe_connected_at is NOT NULL, do NOT include “Connect Stripe” P.S. in emails.
+- If NOT connected, include the Stripe P.S. (or Stripe CTA) as specified.
+
+5) TIME CALCULATION
+Define “day number” by hours since signup:
+- Day 0: 0–23h
+- Day 1: 24–47h
+- Day 2: 48–71h
+- Day 3: 72–95h
+- Day 4: 96–119h
+- Day 5: 120–143h
+- Day 6: 144–167h
+Ensure no double-send if job runs multiple times per day.
+
+6) OBSERVABILITY
+Log for each attempted send:
+- user_id
+- email_key
+- selected template variant (stripe_connected true/false)
+- send result (success/failure)
+- reason skipped (already sent / user outside window / etc.)
+Add a simple admin report query (even just SQL or a route) showing:
+- % of users with stripe_connected_at within 7 days
+- onboarding email open/click metrics if available (or placeholders)
+
+7) SAFE DEPLOYMENT
+- Add a feature flag ONBOARDING_CONDITIONALS_ENABLED default false.
+- Deploy code with flag off.
+- Turn on flag once verified in staging/dev.
+- Ensure emails do not send to test/admin accounts.
+
+DELIVERABLES:
+- List files changed
+- Migration(s) added
+- New/updated email templates (content can be placeholders if already stored elsewhere)
+- The scheduler/worker logic with clear comments
+- How to enable via feature flag
+- A short test plan (manual + automated if possible)
+
+DO NOT:
+- Add new unrelated features
+- Add a commission calculator
+- Change Stripe Connect flow beyond setting stripe_connected_at

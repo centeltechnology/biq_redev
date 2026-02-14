@@ -814,197 +814,225 @@ View in Dashboard: ${response.dashboardUrl}
   });
 }
 
-// Onboarding email templates
-interface OnboardingEmailData {
+// Onboarding email templates with conditional Stripe logic
+interface OnboardingEmailTemplate {
+  emailKey: string;
   day: number;
   subject: string;
-  title: string;
   content: string;
-  ctaText?: string;
-  ctaUrl?: string;
+  ctaText: string;
+  ctaUrl: string;
+  stripePsHtml?: string;
+  stripePsText?: string;
 }
 
-const ONBOARDING_EMAILS: OnboardingEmailData[] = [
-  {
-    day: 0,
-    subject: "Welcome to BakerIQ! Let's get you started",
-    title: "Welcome to BakerIQ!",
-    content: `
-      <p>Congratulations on taking the first step to streamline your bakery business!</p>
-      <p>BakerIQ helps you capture leads, create professional quotes, and manage your orders all in one place.</p>
-      <h3 style="color: #E91E63; margin-top: 24px;">Quick Start Checklist:</h3>
-      <ul style="padding-left: 20px;">
-        <li><strong>Set your prices</strong> - Go to Calculator Pricing to customize your rates</li>
-        <li><strong>Share your calculator</strong> - Copy your unique link from Settings</li>
-        <li><strong>Wait for leads</strong> - You'll get an email when customers submit inquiries</li>
-      </ul>
-      <p style="margin-top: 20px;">You're on the <strong>Free plan</strong> with 15 quotes per month. Upgrade anytime for unlimited quotes and lower fees!</p>
-    `,
-    ctaText: "Go to Dashboard",
-    ctaUrl: "/dashboard",
-  },
-  {
-    day: 1,
-    subject: "Set up your pricing - Day 1 of getting started",
-    title: "Set Up Your Pricing",
-    content: `
-      <p>Your public calculator is ready - now let's customize your prices!</p>
-      <h3 style="color: #E91E63; margin-top: 24px;">What you can customize:</h3>
-      <ul style="padding-left: 20px;">
-        <li><strong>Cake sizes</strong> - Set base prices for each tier size</li>
-        <li><strong>Flavors & frostings</strong> - Add premiums for specialty options</li>
-        <li><strong>Decorations</strong> - Price your artistic touches</li>
-        <li><strong>Addons</strong> - Dipped strawberries, sweets tables, and more</li>
-        <li><strong>Delivery fees</strong> - Standard, rush, and setup service pricing</li>
-      </ul>
-      <p style="margin-top: 20px;">Customers will see estimates based on YOUR prices when they use your calculator.</p>
-      <h3 style="color: #E91E63; margin-top: 24px;">Need help calculating prices?</h3>
-      <p>Use our <strong>Price Calculator</strong> tool to figure out how much to charge based on your material costs, labor time, and desired profit margin. Find it in your dashboard sidebar!</p>
-    `,
-    ctaText: "Set Your Prices",
-    ctaUrl: "/pricing",
-  },
-  {
-    day: 2,
-    subject: "Create professional quotes - Day 2",
-    title: "Creating Professional Quotes",
-    content: `
-      <p>When a customer is interested, turn their inquiry into a polished quote!</p>
-      <h3 style="color: #E91E63; margin-top: 24px;">Quote builder features:</h3>
-      <ul style="padding-left: 20px;">
-        <li><strong>Pre-filled details</strong> - Lead information carries over automatically</li>
-        <li><strong>Line items</strong> - Add cakes, decorations, delivery, and custom items</li>
-        <li><strong>Professional emails</strong> - Send quotes directly to customers</li>
-        <li><strong>Status tracking</strong> - See when quotes are viewed and accepted</li>
-      </ul>
-      <p style="margin-top: 20px;"><strong>Tip:</strong> Draft quotes don't count toward your monthly limit - only sent quotes do!</p>
-    `,
-    ctaText: "View Your Leads",
-    ctaUrl: "/leads",
-  },
-  {
-    day: 3,
-    subject: "Managing leads effectively - Day 3",
-    title: "Managing Your Leads",
-    content: `
-      <p>Every calculator submission becomes a lead you can track and convert.</p>
-      <h3 style="color: #E91E63; margin-top: 24px;">Lead management tips:</h3>
-      <ul style="padding-left: 20px;">
-        <li><strong>Update status</strong> - Mark leads as Contacted, Quoted, Won, or Lost</li>
-        <li><strong>Add notes</strong> - Keep track of conversations and details</li>
-        <li><strong>Quick actions</strong> - Create quotes or convert to customers in one click</li>
-        <li><strong>Email notifications</strong> - Get alerted when new leads come in</li>
-      </ul>
-      <p style="margin-top: 20px;">Leads are <strong>unlimited on all plans</strong> - never miss an opportunity!</p>
-    `,
-    ctaText: "View Leads",
-    ctaUrl: "/leads",
-  },
-  {
-    day: 4,
-    subject: "Your order calendar - Day 4",
-    title: "Using the Order Calendar",
-    content: `
-      <p>Once a quote is accepted, convert it to an order and track it on your calendar.</p>
-      <h3 style="color: #E91E63; margin-top: 24px;">Calendar features:</h3>
-      <ul style="padding-left: 20px;">
-        <li><strong>Visual timeline</strong> - See all upcoming orders at a glance</li>
-        <li><strong>Payment tracking</strong> - Monitor deposits and balances due</li>
-        <li><strong>Order details</strong> - Click any order for full specifications</li>
-        <li><strong>Search</strong> - Find orders by customer name or event type</li>
-      </ul>
-      <p style="margin-top: 20px;">Never miss a delivery date again!</p>
-    `,
-    ctaText: "View Calendar",
-    ctaUrl: "/orders/calendar",
-  },
-  {
-    day: 5,
-    subject: "Customize your treats menu - Day 5",
-    title: "Customizing Your Treats",
-    content: `
-      <p>Your calculator can offer more than just cakes! Customize what treats you sell.</p>
-      <h3 style="color: #E91E63; margin-top: 24px;">Available treats:</h3>
-      <ul style="padding-left: 20px;">
-        <li>Cupcakes (standard & gourmet)</li>
-        <li>Cake pops</li>
-        <li>Decorated cookies</li>
-        <li>Brownies & rice treats</li>
-        <li>Dipped strawberries & chocolate apples</li>
-        <li>And more!</li>
-      </ul>
-      <p style="margin-top: 20px;">In Calculator Pricing, you can <strong>enable or disable</strong> any treat item and set your own prices.</p>
-    `,
-    ctaText: "Customize Treats",
-    ctaUrl: "/calculator-pricing",
-  },
-  {
-    day: 6,
-    subject: "Grow with the right plan - Day 6",
-    title: "Choose Your Plan",
-    content: `
-      <p>As your business grows, BakerIQ grows with you!</p>
-      <h3 style="color: #E91E63; margin-top: 24px;">Plans to fit your needs:</h3>
-      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-        <tr style="background: #f8f9fa;">
-          <td style="padding: 12px; border: 1px solid #e9ecef;"><strong>Free</strong></td>
-          <td style="padding: 12px; border: 1px solid #e9ecef;">15 quotes/month</td>
-          <td style="padding: 12px; border: 1px solid #e9ecef;">$0</td>
-        </tr>
-        <tr>
-          <td style="padding: 12px; border: 1px solid #e9ecef;"><strong>Basic</strong></td>
-          <td style="padding: 12px; border: 1px solid #e9ecef;">Unlimited quotes</td>
-          <td style="padding: 12px; border: 1px solid #e9ecef;">$4.99/mo</td>
-        </tr>
-        <tr style="background: #fce4ec;">
-          <td style="padding: 12px; border: 1px solid #e9ecef;"><strong>Pro</strong></td>
-          <td style="padding: 12px; border: 1px solid #e9ecef;">Unlimited quotes</td>
-          <td style="padding: 12px; border: 1px solid #e9ecef;">$9.99/mo</td>
-        </tr>
-      </table>
-      <p><strong>Remember:</strong> Leads are always unlimited, and draft quotes don't count!</p>
-    `,
-    ctaText: "View Plans",
-    ctaUrl: "/settings",
-  },
-  {
-    day: 7,
-    subject: "Tips for success - Day 7",
-    title: "Tips for Success",
-    content: `
-      <p>You're all set! Here are some final tips to make the most of BakerIQ:</p>
-      <h3 style="color: #E91E63; margin-top: 24px;">Pro tips from successful bakers:</h3>
-      <ul style="padding-left: 20px;">
-        <li><strong>Share your link everywhere</strong> - Instagram bio, Facebook, business cards</li>
-        <li><strong>Respond quickly</strong> - Leads go cold fast, so quote them promptly</li>
-        <li><strong>Add social links</strong> - Help customers find you on social media</li>
-        <li><strong>Set your payment methods</strong> - Make it easy for customers to pay</li>
-        <li><strong>Check your calendar weekly</strong> - Stay organized with upcoming orders</li>
-      </ul>
-      <p style="margin-top: 20px;">Thank you for choosing BakerIQ. We're here to help your bakery thrive!</p>
-    `,
-    ctaText: "Go to Dashboard",
-    ctaUrl: "/dashboard",
-  },
-];
+function getConditionalOnboardingTemplate(day: number, stripeConnected: boolean): OnboardingEmailTemplate | undefined {
+  const stripePsHtml = `<p style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e9ecef; color: #666; font-size: 14px;"><strong>P.S.</strong> Haven't connected Stripe yet? Do that first so you're ready to collect payments when quotes start going out. <a href="{{baseUrl}}/settings" style="color: #E91E63;">Connect Stripe</a></p>`;
+  const stripePsText = `\nP.S. Haven't connected Stripe yet? Do that first so you're ready to collect payments.`;
 
-export function getOnboardingEmailTemplate(day: number): OnboardingEmailData | undefined {
-  return ONBOARDING_EMAILS.find(e => e.day === day);
+  const templates: Record<string, OnboardingEmailTemplate> = {
+    day0_welcome: {
+      emailKey: "day0_welcome",
+      day: 0,
+      subject: "You just upgraded how you get paid.",
+      content: `
+        <p>Welcome to BakerIQ. You now have a system that handles pricing, quotes, and payments — so you can stop doing it in DMs.</p>
+        <p>Here's what BakerIQ replaces:</p>
+        <ul style="padding-left: 20px;">
+          <li>Pricing conversations in text messages</li>
+          <li>Chasing deposits over Venmo or cash</li>
+          <li>Sending quotes as screenshots or PDFs nobody responds to</li>
+        </ul>
+        <p>The first thing to do: <strong>connect Stripe</strong> so you can accept deposits and payments directly through your quotes. It takes about 5 minutes.</p>
+        <p>Once Stripe is connected, every quote you send can collect a deposit automatically. No awkward follow-ups.</p>
+        <p>We'll walk you through the rest this week.</p>
+      `,
+      ctaText: "Connect Stripe Now",
+      ctaUrl: "/settings",
+    },
+    day1_pricing: {
+      emailKey: "day1_pricing",
+      day: 1,
+      subject: "Stop quoting in text messages.",
+      content: `
+        <p>Every time you price a cake in a DM, you're doing math that a system should handle for you.</p>
+        <p>BakerIQ's pricing calculator lets you set your prices once — by size, shape, flavor, frosting, and add-ons. Then your customers get an instant estimate without you typing a single message.</p>
+        <p>Today, set up your first product. Pick your most popular cake and add it to your calculator. It takes about 3 minutes.</p>
+        <p>Once it's live, you'll have a link you can share anywhere — Instagram bio, Facebook page, or directly to customers who ask "how much?"</p>
+      `,
+      ctaText: "Set Up Your First Product",
+      ctaUrl: "/calculator-pricing",
+      ...(!stripeConnected ? { stripePsHtml, stripePsText } : {}),
+    },
+    day2_quotes: {
+      emailKey: "day2_quotes",
+      day: 2,
+      subject: "A real quote gets a real deposit.",
+      content: `
+        <p>Bakers who send structured quotes with clear line items and a deposit request get paid faster. Customers take you more seriously when you look like a business, not a text thread.</p>
+        <p>BakerIQ quotes include:</p>
+        <ul style="padding-left: 20px;">
+          <li>Itemized pricing your customer can review</li>
+          <li>A deposit request they can pay online</li>
+          <li>A professional look that builds trust</li>
+        </ul>
+        <p>Try it today. Send your first quote — even to yourself as a test. See what your customers will see.</p>
+        <p>Once you see how clean it looks, you won't go back to screenshots.</p>
+      `,
+      ctaText: "Send Your First Quote",
+      ctaUrl: "/quotes",
+      ...(!stripeConnected ? { stripePsHtml: `<p style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e9ecef; color: #666; font-size: 14px;"><strong>P.S.</strong> Stripe not connected yet? Your quotes can't collect payment without it. <a href="{{baseUrl}}/settings" style="color: #E91E63;">Connect Stripe</a></p>`, stripePsText: `\nP.S. Stripe not connected yet? Your quotes can't collect payment without it.` } : {}),
+    },
+    day3_stripe_push: {
+      emailKey: "day3_stripe_push",
+      day: 3,
+      subject: "You can't get paid if Stripe isn't connected.",
+      content: `
+        <p>Quick check: is your Stripe account connected?</p>
+        <p>Without it, your quotes are informational only. Customers can view them, but they can't pay you. That means you're still chasing deposits the old way.</p>
+        <p>Common hesitations:</p>
+        <ul style="padding-left: 20px;">
+          <li><strong>"Is it safe?"</strong> — Stripe handles billions in payments. Your data is encrypted and secure.</li>
+          <li><strong>"Does it cost money?"</strong> — There's no monthly fee for Stripe. Standard processing applies only when you get paid.</li>
+          <li><strong>"Is it complicated?"</strong> — It takes about 5 minutes. BakerIQ walks you through it.</li>
+        </ul>
+        <p>Once connected, every quote you send becomes a payment link. Deposits land in your bank account automatically.</p>
+        <p>This is the single most important step in your setup.</p>
+      `,
+      ctaText: "Connect Stripe Now",
+      ctaUrl: "/settings",
+    },
+    day3_stripe_connected: {
+      emailKey: "day3_stripe_connected",
+      day: 3,
+      subject: "Stripe is connected. Now let's put it to work.",
+      content: `
+        <p>Your Stripe account is live — that means every quote you send can collect a deposit or full payment automatically.</p>
+        <p>Here's what to do next:</p>
+        <ul style="padding-left: 20px;">
+          <li>Send a quote to a real customer (or yourself as a test)</li>
+          <li>Include a deposit request so they can pay right away</li>
+          <li>Watch the payment land in your Stripe dashboard</li>
+        </ul>
+        <p>No more chasing deposits over text. No more screenshots of Zelle confirmations. This is how professional bakers get paid.</p>
+      `,
+      ctaText: "Send Your First Quote",
+      ctaUrl: "/quotes",
+    },
+    day4_deposit: {
+      emailKey: "day4_deposit",
+      day: 4,
+      subject: "No deposit? No commitment.",
+      content: `
+        <p>If you've ever had a customer ghost after you spent hours on a design, you already know: no deposit means no commitment.</p>
+        <p>BakerIQ lets you require a deposit right inside your quote. You set the amount — flat fee or percentage — and the customer pays it when they accept. No awkward conversations. No chasing.</p>
+        <p>Today, create a quote with a deposit requirement. Pick a real or recent order and build it out.</p>
+        <p>Your time is worth protecting. A deposit does that before you ever pick up a spatula.</p>
+      `,
+      ctaText: "Create a Quote with Deposit",
+      ctaUrl: "/quotes",
+    },
+    day4_stripe_reminder: {
+      emailKey: "day4_stripe_reminder",
+      day: 4,
+      subject: "Still haven't connected Stripe?",
+      content: `
+        <p>We've shown you the pricing calculator, the quote system, and how deposits work — but none of it collects real money without Stripe.</p>
+        <p>Right now, your quotes are informational. Customers see them, but they can't pay you through them. You're still handling payments the old way.</p>
+        <p>Connecting takes about 5 minutes:</p>
+        <ul style="padding-left: 20px;">
+          <li>Go to Settings</li>
+          <li>Click "Connect Stripe"</li>
+          <li>Follow the Stripe setup prompts</li>
+        </ul>
+        <p>Once connected, deposits collect automatically when customers accept your quotes. That's the whole point.</p>
+      `,
+      ctaText: "Connect Stripe Now",
+      ctaUrl: "/settings",
+    },
+    day5_workflow: {
+      emailKey: "day5_workflow",
+      day: 5,
+      subject: "What happens when a baker goes pro.",
+      content: `
+        <p>Here's what a typical BakerIQ workflow looks like:</p>
+        <ol style="padding-left: 20px;">
+          <li>Customer clicks your pricing calculator link</li>
+          <li>They get an instant estimate and submit their details</li>
+          <li>You get a lead notification with everything they selected</li>
+          <li>You send a professional quote with a deposit request</li>
+          <li>Customer accepts and pays — deposit hits your bank</li>
+        </ol>
+        <p>No DMs. No back-and-forth. No chasing.</p>
+        <p>That's the system working for you instead of you working for the system.</p>
+        <p>If you haven't sent a real quote to a customer yet, today is the day.</p>
+      `,
+      ctaText: "Send a Quote to a Customer",
+      ctaUrl: "/quotes",
+      ...(!stripeConnected ? { stripePsHtml: `<p style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e9ecef; color: #666; font-size: 14px;"><strong>P.S.</strong> Stripe not connected? That's the missing piece. <a href="{{baseUrl}}/settings" style="color: #E91E63;">Connect Stripe</a></p>`, stripePsText: `\nP.S. Stripe not connected? That's the missing piece.` } : {}),
+    },
+    day6_habit: {
+      emailKey: "day6_habit",
+      day: 6,
+      subject: "Make this your new normal.",
+      content: `
+        <p>You have a pricing calculator, a quote system, and a payment tool. The only thing left is to use it consistently.</p>
+        <p>Here's how to make the switch:</p>
+        <p><strong>Share your calculator link publicly.</strong> Add it to your Instagram bio, your Facebook page, or wherever customers find you. When someone asks "how much?", send the link instead of typing out prices.</p>
+        <p>Every inquiry that comes through your calculator becomes a lead you can convert into a quote — and a quote you can convert into a paid order.</p>
+        <p>Stop pricing in DMs. You have a better system now.</p>
+      `,
+      ctaText: "Copy Your Calculator Link",
+      ctaUrl: "/settings",
+    },
+    day6_final_stripe_push: {
+      emailKey: "day6_final_stripe_push",
+      day: 6,
+      subject: "Last chance: connect Stripe and start getting paid.",
+      content: `
+        <p>This is the last email in your getting-started series, and your Stripe account still isn't connected.</p>
+        <p>That means right now, you have a pricing calculator and a quote system — but no way to collect payment through them. Customers see your quotes but still have to pay you the old way.</p>
+        <p>Five minutes is all it takes. Once connected:</p>
+        <ul style="padding-left: 20px;">
+          <li>Deposits collect automatically through your quotes</li>
+          <li>Payments go straight to your bank account</li>
+          <li>No more chasing customers for money</li>
+        </ul>
+        <p>This is the one step that turns BakerIQ from a nice tool into a real payment system for your business.</p>
+      `,
+      ctaText: "Connect Stripe Now",
+      ctaUrl: "/settings",
+    },
+  };
+
+  switch (day) {
+    case 0: return templates.day0_welcome;
+    case 1: return templates.day1_pricing;
+    case 2: return templates.day2_quotes;
+    case 3: return stripeConnected ? templates.day3_stripe_connected : templates.day3_stripe_push;
+    case 4: return stripeConnected ? templates.day4_deposit : templates.day4_stripe_reminder;
+    case 5: return templates.day5_workflow;
+    case 6: return stripeConnected ? templates.day6_habit : templates.day6_final_stripe_push;
+    default: return undefined;
+  }
 }
 
 export async function sendOnboardingEmail(
   bakerEmail: string,
   businessName: string,
   day: number,
-  baseUrl: string
-): Promise<boolean> {
-  const template = getOnboardingEmailTemplate(day);
+  baseUrl: string,
+  stripeConnected: boolean = false
+): Promise<{ success: boolean; emailKey: string }> {
+  const template = getConditionalOnboardingTemplate(day, stripeConnected);
   if (!template) {
     console.error(`No onboarding email template found for day ${day}`);
-    return false;
+    return { success: false, emailKey: `day${day}_unknown` };
   }
 
-  const ctaUrl = template.ctaUrl ? `${baseUrl}${template.ctaUrl}` : null;
+  const resolvedContent = template.content.replace(/\{\{baseUrl\}\}/g, baseUrl);
+  const resolvedPs = template.stripePsHtml?.replace(/\{\{baseUrl\}\}/g, baseUrl) || '';
+  const ctaUrl = `${baseUrl}${template.ctaUrl}`;
 
   const html = `
 <!DOCTYPE html>
@@ -1017,24 +1045,22 @@ export async function sendOnboardingEmail(
     .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px; }
     .cta { display: inline-block; background: #E91E63; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600; }
     .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-    ul { margin: 16px 0; }
+    ul, ol { margin: 16px 0; }
     li { margin: 8px 0; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1 style="margin: 0;">${template.title}</h1>
-      ${day > 0 ? `<p style="margin: 10px 0 0 0; opacity: 0.9;">Day ${day} of your onboarding journey</p>` : ''}
+      <h1 style="margin: 0; font-size: 22px;">BakerIQ</h1>
     </div>
     <div class="content">
       <p>Hi ${businessName},</p>
-      ${template.content}
-      ${ctaUrl && template.ctaText ? `
+      ${resolvedContent}
       <p style="text-align: center; margin-top: 24px;">
         <a href="${ctaUrl}" class="cta">${template.ctaText}</a>
       </p>
-      ` : ''}
+      ${resolvedPs}
     </div>
     <div class="footer">
       <p>This email was sent by BakerIQ to help you get started.</p>
@@ -1045,7 +1071,7 @@ export async function sendOnboardingEmail(
 </html>
 `;
 
-  const textContent = template.content
+  const textContent = resolvedContent
     .replace(/<h3[^>]*>/g, '\n\n')
     .replace(/<\/h3>/g, '\n')
     .replace(/<li><strong>([^<]+)<\/strong>/g, '- $1')
@@ -1053,32 +1079,24 @@ export async function sendOnboardingEmail(
     .replace(/<\/li>/g, '')
     .replace(/<ul[^>]*>/g, '')
     .replace(/<\/ul>/g, '')
+    .replace(/<ol[^>]*>/g, '')
+    .replace(/<\/ol>/g, '')
     .replace(/<p[^>]*>/g, '\n')
     .replace(/<\/p>/g, '')
     .replace(/<[^>]+>/g, '')
     .replace(/&nbsp;/g, ' ')
     .trim();
 
-  const text = `
-Hi ${businessName},
+  const text = `Hi ${businessName},\n\n${textContent}\n\n${template.ctaText}: ${ctaUrl}${template.stripePsText || ''}\n\n---\nThis email was sent by BakerIQ to help you get started.`;
 
-${template.title}
-${day > 0 ? `Day ${day} of your onboarding journey` : ''}
-
-${textContent}
-
-${ctaUrl ? `${template.ctaText}: ${ctaUrl}` : ''}
-
----
-This email was sent by BakerIQ to help you get started.
-`;
-
-  return sendEmail({
+  const success = await sendEmail({
     to: bakerEmail,
     subject: template.subject,
     html,
     text,
   });
+
+  return { success, emailKey: template.emailKey };
 }
 
 export async function sendRetentionEmail(

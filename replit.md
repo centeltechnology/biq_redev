@@ -81,12 +81,22 @@ Preferred communication style: Simple, everyday language.
 - esbuild for server bundling in production
 - TypeScript for type checking
 
-### Onboarding Email System
-- **Welcome Email (Day 0)**: Sent immediately on signup
-- **7-Day Series (Days 1-7)**: Automated emails covering pricing setup, quotes, leads, calendar, treats, plans, and success tips
+### Onboarding Email System (Conditional)
+- **7-Day Series (Day 0-6)**: Activation-focused emails with conditional Stripe logic
+  - Day 0: Welcome + Connect Stripe CTA
+  - Day 1: Pricing calculator setup
+  - Day 2: Professional quotes
+  - Day 3: Stripe push (if not connected) OR Stripe connected congrats (if connected)
+  - Day 4: Deposits (if Stripe connected) OR Stripe reminder (if not connected)
+  - Day 5: Pro workflow example
+  - Day 6: Habit formation (if Stripe connected) OR final Stripe push (if not connected)
+- **Feature Flag**: `ONBOARDING_CONDITIONALS_ENABLED` env var (set to "true" to enable)
 - **Scheduler**: Runs hourly via `server/onboarding-scheduler.ts`, checks for eligible bakers
-- **Tracking**: `baker_onboarding_emails` table with unique constraint on (baker_id, email_day)
+- **Activation Tracking**: `stripeConnectedAt`, `firstProductCreatedAt`, `firstQuoteSentAt`, `firstInvoiceCreatedAt`, `firstPaymentProcessedAt` timestamps on bakers table
+- **Tracking**: `baker_onboarding_emails` table with `email_key` (template variant) and `stripe_connected` (status at send time)
+- **Admin UI**: Activation Funnel card in System tab shows Stripe adoption rate, activation milestones, and emails sent by template
 - **Retry Logic**: Failed emails are recorded and retried by scheduler; successful sends prevent duplicates
+- **Safety**: Skips admin accounts; feature flag prevents sends until explicitly enabled
 
 ### Environment Variables Required
 - `DATABASE_URL`: PostgreSQL connection string

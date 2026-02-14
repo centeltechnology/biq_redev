@@ -82,6 +82,12 @@ export const bakers = pgTable("bakers", {
   quickQuoteCredits: integer("quick_quote_credits").default(0).notNull(),
   referredByBakerId: varchar("referred_by_baker_id"),
   bakerReferredAt: timestamp("baker_referred_at"),
+  // Activation tracking timestamps (set once on first occurrence)
+  stripeConnectedAt: timestamp("stripe_connected_at"),
+  firstProductCreatedAt: timestamp("first_product_created_at"),
+  firstQuoteSentAt: timestamp("first_quote_sent_at"),
+  firstInvoiceCreatedAt: timestamp("first_invoice_created_at"),
+  firstPaymentProcessedAt: timestamp("first_payment_processed_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -109,7 +115,9 @@ export const emailVerificationTokens = pgTable("email_verification_tokens", {
 export const bakerOnboardingEmails = pgTable("baker_onboarding_emails", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   bakerId: varchar("baker_id").notNull().references(() => bakers.id),
-  emailDay: integer("email_day").notNull(), // 0 = welcome, 1-7 = onboarding series
+  emailDay: integer("email_day").notNull(), // 0-6 onboarding series
+  emailKey: text("email_key"), // e.g. "day0_welcome", "day4_stripe_reminder", "day4_deposit"
+  stripeConnected: boolean("stripe_connected").default(false).notNull(), // Stripe status at time of send
   sentAt: timestamp("sent_at").defaultNow().notNull(),
   status: text("status").notNull().default("sent"), // "sent", "failed"
   error: text("error"),

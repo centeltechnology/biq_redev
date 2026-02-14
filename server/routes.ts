@@ -1038,6 +1038,8 @@ export async function registerRoutes(
 
       // Track quote sent
       trackEvent(bakerId, "quote_sent", { quoteId: quote.id, customerId: quote.customerId });
+      await storage.setActivationTimestamp(bakerId, "firstQuoteSentAt");
+      await storage.setActivationTimestamp(bakerId, "firstInvoiceCreatedAt");
 
       // Auto-update linked lead status to "quoted"
       if (quote.leadId) {
@@ -1383,6 +1385,7 @@ export async function registerRoutes(
       
       // Track pricing item added
       trackEvent(req.session.bakerId!, "pricing_item_added", { calculationId: calculation.id, category: data.category });
+      await storage.setActivationTimestamp(req.session.bakerId!, "firstProductCreatedAt");
       
       res.json(calculation);
     } catch (error: any) {
@@ -2176,6 +2179,9 @@ export async function registerRoutes(
           stripeConnectPayoutsEnabled: payoutsEnabled,
         });
       }
+      if (onboarded && payoutsEnabled) {
+        await storage.setActivationTimestamp(baker.id, "stripeConnectedAt");
+      }
 
       res.json({
         connected: true,
@@ -2383,6 +2389,8 @@ export async function registerRoutes(
               status: "succeeded",
               paymentType,
             });
+
+            await storage.setActivationTimestamp(bakerId, "firstPaymentProcessedAt");
 
             const baker = await storage.getBaker(bakerId);
             const customer = await storage.getCustomer(quote.customerId);
@@ -3024,20 +3032,47 @@ export async function registerRoutes(
       // Delete existing record to allow resend
       await storage.deleteOnboardingEmail(req.params.id, emailDay);
       
-      // Trigger the email send with correct parameters
       const baseUrl = `${req.protocol}://${req.get("host")}`;
-      const success = await sendOnboardingEmail(baker.email, baker.businessName, emailDay, baseUrl);
+      const stripeConnected = !!(baker.stripeConnectAccountId && baker.stripeConnectOnboarded && baker.stripeConnectPayoutsEnabled);
+      const result = await sendOnboardingEmail(baker.email, baker.businessName, emailDay, baseUrl, stripeConnected);
       
-      if (success) {
-        await storage.recordOnboardingEmail(baker.id, emailDay, "sent");
-        res.json({ message: `Email day ${emailDay} resent to ${baker.email}` });
+      if (result.success) {
+        await storage.recordOnboardingEmail(baker.id, emailDay, "sent", undefined, result.emailKey, stripeConnected);
+        res.json({ message: `Email day ${emailDay} (${result.emailKey}) resent to ${baker.email}` });
       } else {
-        await storage.recordOnboardingEmail(baker.id, emailDay, "failed", "Email send failed");
+        await storage.recordOnboardingEmail(baker.id, emailDay, "failed", "Email send failed", result.emailKey, stripeConnected);
         res.status(500).json({ message: "Failed to send email" });
       }
     } catch (error) {
       console.error("Resend email error:", error);
       res.status(500).json({ message: "Failed to resend email" });
+    }
+  });
+
+  app.get("/api/admin/onboarding-stats", requireAdmin, async (req, res) => {
+    try {
+      const stats = await storage.getOnboardingEmailStats();
+      const allBakers = await storage.getAllBakers();
+
+      const activationStats = {
+        totalBakers: stats.totalBakers,
+        stripeConnectedWithin7Days: stats.stripeConnectedWithin7Days,
+        stripeAdoptionRate: stats.totalBakers > 0 ? ((stats.stripeConnectedWithin7Days / stats.totalBakers) * 100).toFixed(1) : "0",
+        emailsSentByKey: stats.emailsSentByKey,
+        activationMilestones: {
+          stripeConnected: allBakers.filter(b => b.stripeConnectedAt).length,
+          firstProductCreated: allBakers.filter(b => b.firstProductCreatedAt).length,
+          firstQuoteSent: allBakers.filter(b => b.firstQuoteSentAt).length,
+          firstInvoiceCreated: allBakers.filter(b => b.firstInvoiceCreatedAt).length,
+          firstPaymentProcessed: allBakers.filter(b => b.firstPaymentProcessedAt).length,
+        },
+        featureFlagEnabled: process.env.ONBOARDING_CONDITIONALS_ENABLED === "true",
+      };
+
+      res.json(activationStats);
+    } catch (error) {
+      console.error("Get onboarding stats error:", error);
+      res.status(500).json({ message: "Failed to get onboarding stats" });
     }
   });
 

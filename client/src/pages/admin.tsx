@@ -90,14 +90,13 @@ interface SupportTicketWithBaker extends SupportTicket {
 }
 
 const EMAIL_DAY_LABELS: Record<number, string> = {
-  0: "Welcome Email",
-  1: "Day 1: Set Up Pricing",
-  2: "Day 2: First Quote",
-  3: "Day 3: Lead Management",
-  4: "Day 4: Calendar",
-  5: "Day 5: Treats Menu",
-  6: "Day 6: Plans & Upgrade",
-  7: "Day 7: Success Tips",
+  0: "Day 0: Welcome + Connect Stripe",
+  1: "Day 1: Pricing Calculator",
+  2: "Day 2: Professional Quotes",
+  3: "Day 3: Stripe Push / Connected",
+  4: "Day 4: Deposits / Stripe Reminder",
+  5: "Day 5: Pro Workflow",
+  6: "Day 6: Habit / Final Stripe Push",
 };
 
 const SEGMENT_LABELS: Record<string, { label: string; description: string }> = {
@@ -1443,6 +1442,23 @@ export default function AdminDashboard() {
     queryKey: ["/api/admin/email-logs"],
   });
 
+  const { data: onboardingStats } = useQuery<{
+    totalBakers: number;
+    stripeConnectedWithin7Days: number;
+    stripeAdoptionRate: string;
+    emailsSentByKey: Record<string, number>;
+    activationMilestones: {
+      stripeConnected: number;
+      firstProductCreated: number;
+      firstQuoteSent: number;
+      firstInvoiceCreated: number;
+      firstPaymentProcessed: number;
+    };
+    featureFlagEnabled: boolean;
+  }>({
+    queryKey: ["/api/admin/onboarding-stats"],
+  });
+
   const { data: bakerActivity, isLoading: activityLoading } = useQuery<BakerActivity>({
     queryKey: ["/api/admin/bakers", selectedBaker?.id, "activity"],
     enabled: !!selectedBaker && activityDialogOpen,
@@ -2312,6 +2328,57 @@ export default function AdminDashboard() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Activation & Onboarding Stats */}
+            {onboardingStats && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Activation Funnel</CardTitle>
+                  <CardDescription>
+                    User activation milestones
+                    {onboardingStats.featureFlagEnabled ? (
+                      <Badge variant="outline" className="ml-2 bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400">Conditional emails ON</Badge>
+                    ) : (
+                      <Badge variant="outline" className="ml-2">Conditional emails OFF</Badge>
+                    )}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center justify-between gap-2 p-3 bg-muted rounded-lg">
+                    <span className="text-sm">Stripe Connected (within 7 days)</span>
+                    <div className="flex items-center gap-2">
+                      <Badge>{onboardingStats.stripeConnectedWithin7Days} / {onboardingStats.totalBakers}</Badge>
+                      <span className="text-sm font-medium">{onboardingStats.stripeAdoptionRate}%</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 p-3 bg-muted rounded-lg">
+                    <span className="text-sm">First Product Created</span>
+                    <Badge>{onboardingStats.activationMilestones.firstProductCreated}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 p-3 bg-muted rounded-lg">
+                    <span className="text-sm">First Quote Sent</span>
+                    <Badge>{onboardingStats.activationMilestones.firstQuoteSent}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 p-3 bg-muted rounded-lg">
+                    <span className="text-sm">First Payment Processed</span>
+                    <Badge>{onboardingStats.activationMilestones.firstPaymentProcessed}</Badge>
+                  </div>
+                  {Object.keys(onboardingStats.emailsSentByKey).length > 0 && (
+                    <div className="mt-4">
+                      <p className="text-sm font-medium mb-2">Emails Sent by Template</p>
+                      <div className="grid gap-1">
+                        {Object.entries(onboardingStats.emailsSentByKey).sort().map(([key, count]) => (
+                          <div key={key} className="flex items-center justify-between gap-2 p-2 bg-muted/50 rounded text-sm">
+                            <span className="text-muted-foreground">{key}</span>
+                            <span className="font-medium">{count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Manual Email Tools */}
             <Card>

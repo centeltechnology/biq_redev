@@ -144,8 +144,10 @@ export interface IStorage {
   // Onboarding Emails
   getOnboardingEmailsSent(bakerId: string): Promise<BakerOnboardingEmail[]>;
   hasOnboardingEmailBeenSent(bakerId: string, emailDay: number): Promise<boolean>;
-  recordOnboardingEmail(bakerId: string, emailDay: number, status: string, error?: string): Promise<void>;
+  recordOnboardingEmail(bakerId: string, emailDay: number, status: string, error?: string, emailKey?: string, stripeConnected?: boolean): Promise<void>;
   getBakersForOnboardingEmails(targetDay: number): Promise<Baker[]>;
+  setActivationTimestamp(bakerId: string, field: "stripeConnectedAt" | "firstProductCreatedAt" | "firstQuoteSentAt" | "firstInvoiceCreatedAt" | "firstPaymentProcessedAt"): Promise<void>;
+  getOnboardingEmailStats(): Promise<{ totalBakers: number; stripeConnectedWithin7Days: number; emailsSentByKey: Record<string, number> }>;
 
   // Pricing Calculations
   getPricingCalculation(id: string): Promise<PricingCalculation | undefined>;
@@ -778,16 +780,20 @@ export class DatabaseStorage implements IStorage {
     return !!result;
   }
 
-  async recordOnboardingEmail(bakerId: string, emailDay: number, status: string, error?: string): Promise<void> {
+  async recordOnboardingEmail(bakerId: string, emailDay: number, status: string, error?: string, emailKey?: string, stripeConnected?: boolean): Promise<void> {
     await db.insert(bakerOnboardingEmails).values({
       bakerId,
       emailDay,
+      emailKey: emailKey || null,
+      stripeConnected: stripeConnected ?? false,
       status,
       error: error || null,
     }).onConflictDoUpdate({
       target: [bakerOnboardingEmails.bakerId, bakerOnboardingEmails.emailDay],
       set: {
         status,
+        emailKey: emailKey || null,
+        stripeConnected: stripeConnected ?? false,
         error: error || null,
         sentAt: new Date(),
       },
@@ -826,6 +832,35 @@ export class DatabaseStorage implements IStorage {
       )
     );
     return !!result;
+  }
+
+  async setActivationTimestamp(bakerId: string, field: "stripeConnectedAt" | "firstProductCreatedAt" | "firstQuoteSentAt" | "firstInvoiceCreatedAt" | "firstPaymentProcessedAt"): Promise<void> {
+    const baker = await this.getBaker(bakerId);
+    if (!baker || baker[field]) return;
+    await db.update(bakers).set({ [field]: new Date() } as any).where(eq(bakers.id, bakerId));
+  }
+
+  async getOnboardingEmailStats(): Promise<{ totalBakers: number; stripeConnectedWithin7Days: number; emailsSentByKey: Record<string, number> }> {
+    const allBakersList = await db.select().from(bakers);
+    const totalBakers = allBakersList.length;
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const stripeConnectedWithin7Days = allBakersList.filter(b => {
+      if (!b.stripeConnectedAt || !b.createdAt) return false;
+      const diff = b.stripeConnectedAt.getTime() - b.createdAt.getTime();
+      return diff <= 7 * 24 * 60 * 60 * 1000;
+    }).length;
+
+    const allEmails = await db.select().from(bakerOnboardingEmails).where(eq(bakerOnboardingEmails.status, "sent"));
+    const emailsSentByKey: Record<string, number> = {};
+    for (const email of allEmails) {
+      const key = email.emailKey || `day${email.emailDay}`;
+      emailsSentByKey[key] = (emailsSentByKey[key] || 0) + 1;
+    }
+
+    return { totalBakers, stripeConnectedWithin7Days, emailsSentByKey };
   }
 
   // Pricing Calculations
