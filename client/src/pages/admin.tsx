@@ -497,6 +497,7 @@ function FinancialsTab() {
       netRevenue,
       revenuePerUser,
       arpuWeighted,
+      arr: subscriptionRevenue * 12,
       annualGMV: monthlyGMV * 12,
       annualGrossRevenue: grossRevenue * 12,
       annualNetRevenue: netRevenue * 12,
@@ -527,6 +528,7 @@ function FinancialsTab() {
       ["Monthly Platform Fees", lm.monthlyPlatformFees.toFixed(2)],
       ["Monthly Subscription Revenue", lm.subscriptionRevenue.monthly.toFixed(2)],
       ["Annual Subscription Revenue", lm.subscriptionRevenue.annual.toFixed(2)],
+      ["ARR (Annual Recurring Revenue)", lm.subscriptionRevenue.annual.toFixed(2)],
       ["Affiliate Costs (Paid)", lm.affiliateCosts.totalPaid.toFixed(2)],
       ["Affiliate Costs (Pending)", lm.affiliateCosts.totalPending.toFixed(2)],
       ["Monthly Net Revenue", lm.netRevenue.monthly.toFixed(2)],
@@ -579,6 +581,8 @@ function FinancialsTab() {
     addRow("Net Revenue", p => p.netRevenue.toFixed(2));
     addRow("ARPU", p => p.arpuWeighted.toFixed(2));
     addRow("Revenue Per User", p => p.revenuePerUser.toFixed(2));
+    addSectionHeader("--- ARR ---");
+    addRow("ARR (Subscriptions Only)", p => p.arr.toFixed(2));
     addSectionHeader("--- Annual Projections ---");
     addRow("Annual GMV", p => p.annualGMV.toFixed(2));
     addRow("Annual Gross Revenue", p => p.annualGrossRevenue.toFixed(2));
@@ -598,7 +602,7 @@ function FinancialsTab() {
     <div className="space-y-6">
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {isLoading ? (
-          [...Array(6)].map((_, i) => (
+          [...Array(7)].map((_, i) => (
             <Card key={i}>
               <CardHeader className="pb-2"><Skeleton className="h-4 w-24" /></CardHeader>
               <CardContent><Skeleton className="h-8 w-16" /></CardContent>
@@ -656,6 +660,16 @@ function FinancialsTab() {
               <CardContent>
                 <div className="text-2xl font-bold" data-testid="text-fin-subscription-rev">{fmtCurrencyDecimal(lm?.subscriptionRevenue.monthly || 0)}</div>
                 <p className="text-xs text-muted-foreground">{fmtCurrencyDecimal(lm?.subscriptionRevenue.annual || 0)}/yr</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">ARR</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400" data-testid="text-fin-arr">{fmtCurrencyDecimal(lm?.subscriptionRevenue.annual || 0)}</div>
+                <p className="text-xs text-muted-foreground">Annual Recurring Revenue</p>
               </CardContent>
             </Card>
             <Card>
@@ -882,6 +896,14 @@ function FinancialsTab() {
                 <TableRow>
                   <TableCell>Revenue Per User</TableCell>
                   {projections.map((p, i) => <TableCell key={i} className="text-right">{fmtCurrencyDecimal(p.revenuePerUser)}</TableCell>)}
+                </TableRow>
+
+                <TableRow className="bg-muted/50">
+                  <TableCell colSpan={5} className="font-semibold text-xs uppercase tracking-wider">Annual Recurring Revenue</TableCell>
+                </TableRow>
+                <TableRow className="font-bold">
+                  <TableCell>ARR (Subscriptions Only)</TableCell>
+                  {projections.map((p, i) => <TableCell key={i} className="text-right text-green-600 dark:text-green-400" data-testid={`text-proj-arr-${scenarios[i]}`}>{fmtCurrency(p.arr)}</TableCell>)}
                 </TableRow>
 
                 <TableRow className="bg-muted/50">
