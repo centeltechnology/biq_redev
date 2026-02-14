@@ -35,6 +35,7 @@ import PaymentsPage from "@/pages/payments";
 import ReferralsPage from "@/pages/referrals";
 import ReferPage from "@/pages/refer";
 import PartnersPage from "@/pages/partners";
+import { CookieConsent } from "@/components/cookie-consent";
 
 function Router() {
   return (
@@ -113,6 +114,7 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <Router />
+          <CookieConsent />
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>
