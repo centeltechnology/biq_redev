@@ -16,7 +16,8 @@ import {
   BookOpen,
   Zap,
   CreditCard,
-  Play
+  Play,
+  Gift
 } from "lucide-react";
 
 const VIDEOS = [
@@ -425,6 +426,34 @@ export default function HelpPage() {
                   <h4 className="font-medium">Link to Quotes & Orders</h4>
                   <p className="text-sm text-muted-foreground">
                     All quotes and orders are linked to customers, making it easy to see their complete history.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate">
+              <CardHeader>
+                <Gift className="h-10 w-10 text-primary mb-2" />
+                <CardTitle>Refer a Friend</CardTitle>
+                <CardDescription>Earn free months by sharing BakerIQ</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium">Your Referral Link</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Every baker gets a unique referral link. Find yours on the "Refer a Friend" page in your dashboard. Share it with other bakers to start earning rewards.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">How Rewards Work</h4>
+                  <p className="text-sm text-muted-foreground">
+                    On a paid plan: earn 1 free month of your subscription for each baker who signs up and subscribes. On the free plan: earn 1 month of Fast Quote access per referral. Stack up to 12 months of credits.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Track Your Referrals</h4>
+                  <p className="text-sm text-muted-foreground">
+                    See how many bakers you've referred, who has signed up, and how many credits you've earned — all from your Refer a Friend dashboard.
                   </p>
                 </div>
               </CardContent>

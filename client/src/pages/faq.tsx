@@ -214,6 +214,35 @@ const faqs = [
     ]
   },
   {
+    category: "Referral Program",
+    questions: [
+      {
+        q: "How does the referral program work?",
+        a: "Every BakerIQ baker gets a unique referral link. When someone signs up using your link and subscribes to a paid plan, you earn a reward. Paid plan bakers get 1 free month of their subscription. Free plan bakers get 1 month of Fast Quote access. You can earn up to 12 months of stacked credits."
+      },
+      {
+        q: "Where do I find my referral link?",
+        a: "Go to 'Refer a Friend' in your dashboard sidebar. Your unique referral link is displayed there and ready to copy. Share it on social media, in group chats, or anywhere bakers hang out."
+      },
+      {
+        q: "When do I get my referral credit?",
+        a: "Your credit is awarded automatically when the baker you referred subscribes to a paid plan (Basic or Pro). You'll see the credit reflected on your Refer a Friend page."
+      },
+      {
+        q: "Is there a limit to how many referrals I can make?",
+        a: "You can refer as many bakers as you like. The credit cap is 12 months — once you've earned 12 months of free subscription (or Fast Quote access), additional referrals won't add more credits."
+      },
+      {
+        q: "What's the difference between the referral program and the affiliate program?",
+        a: "The referral program is available to every baker and rewards you with free months of service. The affiliate program is an invite-only program for influencers and content creators who earn cash commissions (20% of subscription revenue) for referring new bakers. You can apply for the affiliate program on our Partners page."
+      },
+      {
+        q: "Do I get credit if the person I referred stays on the free plan?",
+        a: "No — referral credits are awarded when the referred baker subscribes to a paid plan. If they stay on the free plan, the referral is tracked but no credit is awarded yet. You'll receive the credit automatically if they upgrade later."
+      }
+    ]
+  },
+  {
     category: "Fast Quote",
     questions: [
       {
