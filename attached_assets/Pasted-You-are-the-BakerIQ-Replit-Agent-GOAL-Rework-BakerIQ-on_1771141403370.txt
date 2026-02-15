@@ -1,0 +1,84 @@
+You are the BakerIQ Replit Agent.
+
+GOAL:
+Rework BakerIQ onboarding to be action-driven (activation-focused) instead of informational. The objective is to increase early activation by guiding new bakers to complete “Stripe → First Quote → (Optional) Share Calculator Link” in their first session.
+
+PRIMARY KPI:
+- Increase % of new signups who send a first quote within 48 hours
+- Secondary: increase % who process first payment within 30 days
+
+CONSTRAINTS:
+- Do NOT add new major features.
+- Reuse existing screens/components and Stripe Connect flow.
+- Keep the current inbound-lead model (calculator link) intact.
+- This is a UX + onboarding flow refactor: checklist, routing, copy, and lightweight helper UI only.
+- Soft-gate only. No hard lockouts unless already required for payments.
+- Admin accounts must be excluded from onboarding prompts.
+
+WHAT TO CHANGE:
+
+1) Replace “Tour/Modal Walkthrough” With an “Action Checklist”
+Current state: onboarding modal explains the system.
+New state: show a simple “Start Here” checklist widget at the top of the dashboard for bakers who have not completed key activation steps.
+
+Checklist items (in this order):
+✅ Step 1: Connect Stripe (required to get paid)
+✅ Step 2: Send your first quote (fast first win)
+✅ Step 3: Share your calculator link (inbound growth)
+
+Rules:
+- The checklist shows for new / unactivated bakers until steps are completed.
+- If stripeConnectedAt is null, Step 1 is highlighted with primary CTA “Connect Stripe”.
+- Once Stripe is connected, Step 2 becomes highlighted with primary CTA “Send your first quote”.
+- Step 3 is shown but not emphasized until Step 2 is completed.
+
+2) “Send First Quote” Guided Shortcut (No New Feature)
+When user clicks “Send your first quote” from the checklist:
+- Route them directly to the existing quote creation flow (or the closest equivalent).
+- If the flow requires a customer first, open the existing “Add Customer” modal inline, then return them to quote creation.
+- Pre-fill any optional fields if easy (e.g., “Test Customer” and their own email as recipient) BUT keep it optional.
+- Provide an explicit option: “Send test quote to myself” (if trivial) OR “Send to customer”.
+  - If adding “send to myself” is too invasive, just prefill their email in recipient field and label it as optional.
+
+Success feedback:
+- After sending first quote, show a toast:
+  “Nice — your first quote is sent. Next: share your calculator link to get inbound requests.”
+
+3) Re-sequence Dashboard Nudges
+Current: top banner emphasizes sharing calculator link.
+Change:
+- If Stripe NOT connected: primary banner emphasizes Stripe connect.
+- Else if Stripe connected AND firstQuoteSentAt is null: primary banner emphasizes “Send your first quote”.
+- Else: show “Share your calculator link” banner.
+This ensures the first thing they see matches the next best action.
+
+4) Update Onboarding Emails (Sequencing Only)
+Do NOT rewrite the entire series again.
+Just adjust Day 0–2 emphasis to mirror action order:
+- If Stripe not connected: connect Stripe CTA is primary.
+- If Stripe connected but no first quote: “send first quote today” CTA.
+- Only after quote is sent: “share calculator link” CTA.
+
+5) Tracking / Analytics (Lightweight)
+Add or reuse activation timestamps:
+- stripeConnectedAt already exists
+- firstQuoteSentAt already exists
+Ensure firstQuoteSentAt is set when a quote is actually sent.
+
+Add 2 simple tracking flags (optional but preferred):
+- onboardingChecklistSeenAt (timestamp) OR log an event
+- firstQuoteCTAUsedAt (timestamp) OR log an event
+
+These should be low-effort and help validate whether the checklist is driving behavior.
+
+DELIVERABLES:
+- Files changed list
+- Updated dashboard UI showing the “Start Here” checklist
+- Updated banner sequencing logic
+- Updated minimal email sequencing logic
+- Test plan:
+  1) New baker, no Stripe → sees checklist + Stripe CTA
+  2) After Stripe connect → checklist highlights “Send first quote”
+  3) After sending quote → checklist highlights “Share calculator”
+  4) Returning unactivated users see the correct next step
+  5) Admin accounts do not see onboarding UI
