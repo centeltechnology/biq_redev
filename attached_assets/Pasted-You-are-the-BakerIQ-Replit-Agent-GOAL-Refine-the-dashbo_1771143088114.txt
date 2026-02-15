@@ -1,0 +1,109 @@
+You are the BakerIQ Replit Agent.
+
+GOAL:
+Refine the dashboard onboarding experience to drive activation and add a frictionless “Send Test Quote to Myself” path.
+
+PRIMARY KPI:
+Increase % of new users who send their first quote within 48 hours.
+
+-----------------------------------------
+PART 1 — DASHBOARD ACTIVATION REFINEMENT
+-----------------------------------------
+
+1) Replace “Start Here” with:
+   Headline: “Let’s Get You Paid”
+
+2) When onboarding checklist is visible (stripeConnectedAt is NULL OR firstQuoteSentAt is NULL):
+
+- De-emphasize revenue widgets.
+  Option:
+    Replace with placeholder card:
+    “Your revenue metrics will appear after your first quote is sent.”
+
+3) Checklist Order (must remain):
+
+   1. Connect Stripe
+   2. Send your first quote
+   3. Share your calculator link
+
+4) Step Behavior:
+
+- Step 1:
+  Copy change to:
+  “Connect Stripe to start getting paid.”
+
+- After Stripe connects:
+  - Remove Stripe banner
+  - Mark Step 1 complete
+  - Highlight Step 2
+  - Show toast:
+    “Stripe connected — you’re ready to send your first quote.”
+
+- Step 2 must include a visible CTA button:
+  [ Send First Quote → ]
+
+-----------------------------------------
+PART 2 — SEND TEST QUOTE ACTIVATION PATH
+-----------------------------------------
+
+When user clicks “Send First Quote” from checklist:
+
+Show small modal:
+
+Title:
+“Send your first quote”
+
+Body:
+“Would you like to send a real quote to a customer, or test the system first?”
+
+Options:
+○ Send to a real customer
+○ Send a test quote to myself
+
+-----------------------------------------
+
+If “Send a test quote to myself” selected:
+
+- Auto-create customer:
+   Name: User display name
+   Email: User account email
+   (Prefix name with “Test – ” if helpful)
+
+- Auto-create basic quote draft:
+   Description: “Sample Cake Order”
+   Price: $100 (editable)
+
+- Route to quote preview screen.
+
+-----------------------------------------
+
+When test quote is sent:
+
+- Use normal send logic.
+- Deliver real email.
+- Include real Stripe checkout link.
+- Set firstQuoteSentAt if not already set.
+- Advance checklist to Step 3.
+- Show toast:
+  “Your first quote has been sent. Check your email to see how customers will receive it.”
+
+-----------------------------------------
+
+GUARDRAILS
+
+- Only show this flow if:
+   stripeConnectedAt is NOT NULL
+   AND firstQuoteSentAt is NULL
+- Admin accounts excluded.
+- Existing Create Quote flow remains unchanged.
+
+-----------------------------------------
+
+DELIVERABLES:
+
+- Files changed
+- Confirmation checklist logic works
+- Confirmation Stripe unlock transition works
+- Confirmation test quote sends properly
+- Test plan covering:
+   New baker → Connect Stripe → Send test quote → Checklist advances
