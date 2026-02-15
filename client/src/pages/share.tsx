@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuth } from "@/hooks/use-auth";
@@ -187,11 +186,11 @@ export default function SharePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Input
                 value={calculatorUrl}
                 readOnly
-                className="font-mono text-sm"
+                className="font-mono text-sm flex-1 min-w-0"
                 data-testid="input-calculator-url"
               />
               <Button onClick={handleCopyLink} variant="outline" data-testid="button-copy-link">
@@ -402,7 +401,7 @@ function FeaturedItemShare({ item, calculatorUrl }: { item: FeaturedItem; calcul
             <Copy className="h-3.5 w-3.5 mr-1" />
             Copy
           </Button>
-          {PLATFORMS.slice(0, 4).map((platform) => {
+          {PLATFORMS.map((platform) => {
             const shareUrl = getPlatformShareUrl(platform.id, itemUrl, itemCaption);
             return (
               <Button

@@ -61,6 +61,16 @@ Preferred communication style: Simple, everyday language.
 - **Baker context endpoint**: `GET /api/admin/support-tickets/:id/baker-context` returns limited info (plan, Stripe status, dates) for support resolution
 - **Files**: `client/src/pages/admin.tsx` (super_admin), `client/src/pages/admin-support.tsx` (support dashboard)
 
+### Social Media Sharing
+- **Share & Promote page**: `/share` route accessible from sidebar for all bakers
+- **Platforms**: Facebook, Twitter/X, Instagram (copy-to-clipboard), Pinterest, WhatsApp, LinkedIn
+- **Caption templates**: Pre-written templates in 3 categories (General, Featured Items, Seasonal)
+- **Featured items sharing**: Per-item share buttons for all featured pricing items
+- **Calculator link tools**: Copy link, QR code download, preview
+- **OG meta tags**: Server-side dynamic Open Graph tags for `/c/:slug` calculator pages (baker name, description, hero image)
+- **Sharing tips**: Practical advice card with timing, content, and offline promotion tips
+- **Files**: `client/src/pages/share.tsx`
+
 ### Design Patterns
 - **Shared Types**: Schema definitions in `shared/` are used by both client and server
 - **Storage Interface**: `server/storage.ts` abstracts database operations
