@@ -1,0 +1,83 @@
+You are the BakerIQ Replit Agent.
+
+GOAL:
+Implement a “first login / first-run” onboarding experience that strongly drives Stripe Connect setup as the first step after signup/login, while still allowing the user to dismiss and explore. If dismissed, the app should continue reminding them until Stripe is connected.
+
+CONSTRAINTS:
+- Do NOT break existing routing or Stripe Connect flow.
+- Do NOT remove access to the app (no hard lock). This is a “soft gate” with persistent nudges.
+- Must be idempotent: once Stripe is connected, the onboarding prompt never shows again.
+- Respect existing feature flag patterns if available; add a new one if needed.
+- Ensure this works for both first-time signup and returning users who haven’t connected Stripe yet.
+- Keep UI consistent with current design system (existing modal / dialog / toast components if present).
+
+BEHAVIOR SPEC:
+
+1) FIRST-RUN STRIPE SETUP MODAL (Soft Gate)
+When a baker logs into app.bakeriq.app:
+- If baker.stripeConnectedAt IS NULL:
+  - Show a modal/dialog immediately (on first load of dashboard or app shell).
+  - Title: “Connect Stripe to start getting paid”
+  - Body (short, outcome-focused):
+    - “Connecting Stripe takes a few minutes and lets you collect deposits and payments directly through BakerIQ.”
+  - Primary button: “Connect Stripe” → takes user to the existing Stripe Connect onboarding route (do not create a new flow)
+  - Secondary option: “Not now” (X icon + text button)
+  - If dismissed, store a local/session dismissal state so we don’t immediately re-open in the same session.
+
+2) PERSISTENT REMINDERS UNTIL CONNECTED
+If stripeConnectedAt is still NULL, show these reminders:
+
+A) Dashboard banner (or top-of-page notice)
+- Visible on dashboard and key pages (quotes/invoices/customers)
+- Message: “Connect Stripe to collect deposits and payments.”
+- Button: “Connect Stripe”
+
+B) Sidebar / navbar badge (optional if easy)
+- Small “Setup” badge or indicator prompting Stripe connection.
+
+C) Contextual nudge
+- If user tries to create/send an invoice OR request a deposit:
+  - Show a lightweight prompt (not blocking permanently) that says:
+    “Connect Stripe to accept payments on invoices.”
+  - Button: “Connect Stripe”
+  - Allow “Continue without payments” only if your current product supports it; otherwise direct them.
+
+3) POST-CONNECTION EXPERIENCE
+When Stripe Connect completes:
+- Ensure baker.stripeConnectedAt is set (should already exist from prior work).
+- On next page load:
+  - Stripe modal never appears.
+  - Banners/badges disappear.
+- Show a one-time success toast:
+  “Stripe connected — you can now collect deposits and payments.”
+
+4) TRACKING (Admin Analytics)
+Add (or reuse) event logging so we can measure this funnel:
+- first_login_at (if not already tracked)
+- stripe_prompt_shown_count (or lastStripePromptShownAt timestamp)
+- stripe_prompt_dismissed_at (optional)
+- stripe_connected_at already exists
+
+Keep it lightweight: at minimum, log a server event when the modal is shown (once per user per day max) so stats aren’t inflated.
+
+5) EDGE CASES
+- Admin accounts should NOT be forced through the Stripe prompt.
+- If the baker is already connected, do nothing.
+- Make sure the modal doesn’t show on public/marketing pages, only inside the authenticated app.
+- If Stripe Connect is temporarily unavailable, show a graceful error.
+
+FILES / IMPLEMENTATION NOTES
+- Add any new UI components in client where appropriate.
+- Use existing route guards / auth context to detect user and stripeConnectedAt.
+- Avoid polling; rely on existing user fetch/refresh after Stripe completion.
+- Keep changes minimal and well-documented.
+
+DELIVERABLES:
+- List all files changed
+- Brief explanation of where the modal triggers and where banners render
+- Screenshots (if possible) or detailed description of the UI states
+- Test plan:
+  - New user logs in → sees modal → dismiss → sees banner reminders
+  - Click Connect → completes Stripe → returns → no modal/banner + success toast
+  - Returning unconnected user → sees reminders
+  - Admin user → no modal

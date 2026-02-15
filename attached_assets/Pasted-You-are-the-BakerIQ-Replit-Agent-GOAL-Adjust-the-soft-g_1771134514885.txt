@@ -1,0 +1,79 @@
+You are the BakerIQ Replit Agent.
+
+GOAL:
+Adjust the soft-gate Stripe Connect onboarding implementation to improve UX and data quality:
+1) Make the Stripe banner persistent (no easy permanent dismissal), with an optional “Remind me later” snooze for 24 hours max.
+2) Move the contextual nudge triggers to payment-related actions (invoice/deposit/payment session), NOT quote creation/sending unless the current flow truly requires Stripe.
+3) Simplify tracking: remove stripePromptShownCount and implement a server-controlled once-per-day impression using a single timestamp.
+4) Make the “Stripe connected” success toast reliable using return-route intent + server truth (stripeConnectedAt), not localStorage alone.
+
+CONSTRAINTS:
+- Keep the “soft gate” approach: no hard lockout.
+- Keep skipping admin accounts.
+- Keep everything disappearing permanently once stripeConnectedAt is set.
+- Make minimal changes; build on the existing work.
+
+TASK 1 — Persistent Banner With 24h Snooze
+Current behavior: banner is dismissible and uses sessionStorage.
+Change to:
+- Banner should display on all authenticated pages (DashboardLayout) whenever stripeConnectedAt is NULL,
+  UNLESS the user has snoozed it in the last 24 hours.
+- Replace “Dismiss X” with a small secondary link/button: “Remind me later”.
+- “Remind me later” hides banner for 24 hours. Implement via localStorage or sessionStorage with a timestamp:
+  e.g. stripeBannerSnoozedUntil = now + 24h
+- After 24 hours, banner returns automatically if still not connected.
+- Primary CTA remains “Connect Stripe”.
+
+TASK 2 — Contextual Nudges Only for Payment Actions
+Current behavior: contextual nudge triggers on quote send/create payment session without Stripe.
+Change to:
+- Do NOT nudge on quote creation/sending if your product allows quotes without payments.
+- Trigger contextual nudge ONLY when user attempts:
+  a) Create/send an invoice that includes a payment link
+  b) Create a Stripe Checkout Session / payment session
+  c) Request or configure a deposit that requires payment collection
+- UX: show a small modal/prompt:
+  “Connect Stripe to accept deposits and payments.”
+  Buttons:
+   - “Connect Stripe” (goes to existing Stripe connect route)
+   - “Not now” (closes prompt, but user can’t proceed with the payment-required action if it truly requires Stripe; if your flow supports “invoice without pay link,” allow that path explicitly)
+- Keep it “fair”: only block actions that cannot succeed without Stripe.
+
+TASK 3 — Tracking Simplification (Server Truth, Once Per Day)
+Remove stripePromptShownCount (and related code).
+Implement ONE server-side field on bakers:
+- stripePromptLastShownAt (timestamp nullable)
+
+Add/adjust logging endpoint/logic so:
+- When the Stripe modal is shown (client), call POST /api/activation/stripe-prompt-shown (or existing endpoint).
+- Server updates stripePromptLastShownAt ONLY if:
+  - stripeConnectedAt is NULL
+  - AND stripePromptLastShownAt is null OR is before today (once per day max)
+- Return a boolean like { recorded: true/false } for debugging logs.
+
+Make sure this doesn’t spam DB writes (once/day).
+
+TASK 4 — Reliable Success Toast (Return Intent + stripeConnectedAt)
+Current behavior: success toast uses localStorage.
+Change to:
+- When Stripe Connect completes and redirects back to the app, append a query param:
+  ?stripe=connected (or reuse existing callback route behavior).
+- On app load, if:
+  - query param stripe=connected is present
+  - AND baker.stripeConnectedAt is NOT NULL
+  - AND a sessionStorage flag has not already shown the toast in this session (e.g. stripeConnectToastShown=true)
+  Then show toast: “Stripe connected — you can now collect deposits and payments.”
+  Then set stripeConnectToastShown=true and remove the query param from the URL (replaceState).
+- Do NOT show toast if stripeConnectedAt is still null (Stripe not actually connected).
+
+DELIVERABLES:
+- List files changed
+- Migration updates (add stripePromptLastShownAt; remove stripePromptShownCount if added)
+- Updated banner behavior (persistent + 24h snooze)
+- Updated contextual trigger points (payment-only)
+- Updated toast behavior (query param + stripeConnectedAt confirmation)
+- Test plan:
+  1) Unconnected baker: banner shows; snooze hides 24h; returns next day
+  2) Unconnected baker: quotes work without Stripe; payment action triggers prompt
+  3) Stripe connect complete: return with ?stripe=connected → toast shows once; banner disappears
+  4) Admin account: no modal/banner/prompt
