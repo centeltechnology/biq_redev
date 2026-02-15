@@ -90,6 +90,9 @@ export const bakers = pgTable("bakers", {
   firstQuoteSentAt: timestamp("first_quote_sent_at"),
   firstInvoiceCreatedAt: timestamp("first_invoice_created_at"),
   firstPaymentProcessedAt: timestamp("first_payment_processed_at"),
+  giftedPlan: text("gifted_plan"),
+  giftedPlanExpiresAt: timestamp("gifted_plan_expires_at"),
+  invitedByAdminId: varchar("invited_by_admin_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -910,3 +913,29 @@ export const adminAuditLogs = pgTable("admin_audit_logs", {
 });
 
 export type AdminAuditLog = typeof adminAuditLogs.$inferSelect;
+
+export const invitations = pgTable("invitations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull(),
+  role: text("role").notNull().default("baker"),
+  giftedPlan: text("gifted_plan"),
+  giftedPlanDurationMonths: integer("gifted_plan_duration_months"),
+  token: text("token").notNull().unique(),
+  status: text("status").notNull().default("pending"),
+  invitedByAdminId: varchar("invited_by_admin_id").notNull(),
+  acceptedByBakerId: varchar("accepted_by_baker_id"),
+  acceptedAt: timestamp("accepted_at"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertInvitationSchema = createInsertSchema(invitations).omit({
+  id: true,
+  status: true,
+  acceptedByBakerId: true,
+  acceptedAt: true,
+  createdAt: true,
+});
+
+export type Invitation = typeof invitations.$inferSelect;
+export type InsertInvitation = z.infer<typeof insertInvitationSchema>;
