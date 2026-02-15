@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +41,7 @@ import {
   X,
   Calculator,
   Download,
+  Percent,
 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -77,6 +79,55 @@ interface BakerActivity {
   recentLeads: any[];
   recentQuotes: any[];
   recentOrders: any[];
+}
+
+interface AnalyticsOverview {
+  activationFunnel: {
+    signups_30d: number;
+    stripe_connected_within_7d_count: number;
+    stripe_connected_within_7d_pct: number;
+    first_quote_within_14d_count: number;
+    first_quote_within_14d_pct: number;
+    first_payment_within_30d_count: number;
+    first_payment_within_30d_pct: number;
+    median_days_to_stripe_connect: number | null;
+  };
+  revenueHealth: {
+    active_processors_30d: number;
+    gmv_30d: number;
+    avg_gmv_per_active_processor_30d: number;
+    stripe_connect_rate_overall: number;
+    subscriptions_mrr_current: number;
+    transaction_fee_revenue_30d: { value: number; estimated: boolean };
+    total_platform_revenue_30d: number;
+  };
+  retentionSnapshot: {
+    active_bakers_30d: number;
+    active_bakers_90d: number;
+    churn_basic_30d: number | null;
+    churn_pro_30d: number | null;
+    churn_note: string;
+    median_ltv: number | null;
+    median_paid_tenure_months: number | null;
+    ltv_note: string;
+  };
+  tierDistribution: {
+    free_count: number;
+    basic_count: number;
+    pro_count: number;
+    total: number;
+    free_pct: number;
+    basic_pct: number;
+    pro_pct: number;
+  };
+}
+
+interface AnalyticsTrend {
+  date: string;
+  signups: number;
+  stripe_connections: number;
+  payments_succeeded_count: number;
+  gmv: number;
 }
 
 interface EmailLogWithBaker extends BakerOnboardingEmail {
@@ -1429,6 +1480,14 @@ export default function AdminDashboard() {
     queryKey: ["/api/admin/analytics"],
   });
 
+  const { data: overview, isLoading: overviewLoading } = useQuery<AnalyticsOverview>({
+    queryKey: ["/api/admin/analytics/overview"],
+  });
+
+  const { data: trendsData, isLoading: trendsLoading } = useQuery<{ trends: AnalyticsTrend[] }>({
+    queryKey: ["/api/admin/analytics/trends"],
+  });
+
   const { data: bakers, isLoading: bakersLoading } = useQuery<Baker[]>({
     queryKey: ["/api/admin/bakers"],
   });
@@ -1951,178 +2010,253 @@ export default function AdminDashboard() {
         </TabsContent>
 
         {/* ANALYTICS TAB */}
-        <TabsContent value="analytics" className="space-y-4">
-          {analyticsLoading ? (
+        <TabsContent value="analytics" className="space-y-6">
+          {overviewLoading ? (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {[...Array(8)].map((_, i) => (
                 <Card key={i}>
-                  <CardHeader className="pb-2">
-                    <Skeleton className="h-4 w-24" />
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-8 w-16" />
-                  </CardContent>
+                  <CardHeader className="pb-2"><Skeleton className="h-4 w-24" /></CardHeader>
+                  <CardContent><Skeleton className="h-8 w-16" /></CardContent>
                 </Card>
               ))}
             </div>
           ) : (
             <>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Total Bakers</CardTitle>
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{analytics?.totalBakers || 0}</div>
-                    <p className="text-xs text-muted-foreground">
-                      +{analytics?.weeklySignups || 0} this week
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Platform Revenue</CardTitle>
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{formatCurrency(analytics?.platformRevenue || 0)}</div>
-                    <p className="text-xs text-muted-foreground">
-                      From {analytics?.totalOrders || 0} orders
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Total Leads</CardTitle>
-                    <UserPlus className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{analytics?.totalLeads || 0}</div>
-                    <p className="text-xs text-muted-foreground">
-                      +{analytics?.leadsThisMonth || 0} this month
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Total Quotes</CardTitle>
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{analytics?.totalQuotes || 0}</div>
-                    <p className="text-xs text-muted-foreground">
-                      +{analytics?.quotesThisMonth || 0} this month
-                    </p>
-                  </CardContent>
-                </Card>
+              <div>
+                <h3 className="text-lg font-semibold mb-3" data-testid="text-activation-funnel-title">Activation Funnel (30-Day Cohort)</h3>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Signups</CardTitle>
+                      <UserPlus className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold" data-testid="text-signups-30d">{overview?.activationFunnel.signups_30d || 0}</div>
+                      <p className="text-xs text-muted-foreground">Last 30 days</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Stripe Connected</CardTitle>
+                      <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold" data-testid="text-stripe-connected-pct">{overview?.activationFunnel.stripe_connected_within_7d_pct || 0}%</div>
+                      <p className="text-xs text-muted-foreground">{overview?.activationFunnel.stripe_connected_within_7d_count || 0} within 7 days</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">First Quote</CardTitle>
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold" data-testid="text-first-quote-pct">{overview?.activationFunnel.first_quote_within_14d_pct || 0}%</div>
+                      <p className="text-xs text-muted-foreground">{overview?.activationFunnel.first_quote_within_14d_count || 0} within 14 days</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">First Payment</CardTitle>
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold" data-testid="text-first-payment-pct">{overview?.activationFunnel.first_payment_within_30d_pct || 0}%</div>
+                      <p className="text-xs text-muted-foreground">{overview?.activationFunnel.first_payment_within_30d_count || 0} within 30 days</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Median to Stripe</CardTitle>
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold" data-testid="text-median-stripe-days">{overview?.activationFunnel.median_days_to_stripe_connect != null ? `${overview.activationFunnel.median_days_to_stripe_connect}d` : "—"}</div>
+                      <p className="text-xs text-muted-foreground">Days to connect</p>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <h3 className="text-lg font-semibold mb-3" data-testid="text-revenue-health-title">Revenue Health (Last 30 Days)</h3>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">GMV</CardTitle>
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold" data-testid="text-gmv-30d">{formatCurrency(overview?.revenueHealth.gmv_30d || 0)}</div>
+                      <p className="text-xs text-muted-foreground">Gross merchandise value</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Platform Revenue</CardTitle>
+                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold" data-testid="text-platform-revenue-30d">{formatCurrency(overview?.revenueHealth.total_platform_revenue_30d || 0)}</div>
+                      <p className="text-xs text-muted-foreground">
+                        MRR: {formatCurrency(overview?.revenueHealth.subscriptions_mrr_current || 0)} + Fees: {formatCurrency(overview?.revenueHealth.transaction_fee_revenue_30d?.value || 0)}
+                        {overview?.revenueHealth.transaction_fee_revenue_30d?.estimated && <Badge variant="outline" className="ml-1 text-[10px]">est</Badge>}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Active Processors</CardTitle>
+                      <Activity className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold" data-testid="text-active-processors">{overview?.revenueHealth.active_processors_30d || 0}</div>
+                      <p className="text-xs text-muted-foreground">Avg GMV: {formatCurrency(overview?.revenueHealth.avg_gmv_per_active_processor_30d || 0)}</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Stripe Connect Rate</CardTitle>
+                      <Percent className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold" data-testid="text-stripe-connect-rate">{overview?.revenueHealth.stripe_connect_rate_overall || 0}%</div>
+                      <p className="text-xs text-muted-foreground">Overall adoption</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold mb-3" data-testid="text-retention-title">Retention Snapshot</h3>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Active (30d)</CardTitle>
+                      <Activity className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold" data-testid="text-active-30d">{overview?.retentionSnapshot.active_bakers_30d || 0}</div>
+                      <p className="text-xs text-muted-foreground">Processed payment in 30d</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Active (90d)</CardTitle>
+                      <Activity className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold" data-testid="text-active-90d">{overview?.retentionSnapshot.active_bakers_90d || 0}</div>
+                      <p className="text-xs text-muted-foreground">Processed payment in 90d</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Churn (Basic)</CardTitle>
+                      <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold" data-testid="text-churn-basic">
+                        {overview?.retentionSnapshot.churn_basic_30d != null ? `${overview.retentionSnapshot.churn_basic_30d}%` : "—"}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {overview?.retentionSnapshot.churn_basic_30d == null ? "Needs subscription history" : "30-day period"}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Churn (Pro)</CardTitle>
+                      <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold" data-testid="text-churn-pro">
+                        {overview?.retentionSnapshot.churn_pro_30d != null ? `${overview.retentionSnapshot.churn_pro_30d}%` : "—"}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {overview?.retentionSnapshot.churn_pro_30d == null ? "Needs subscription history" : "30-day period"}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold mb-3" data-testid="text-tier-distribution-title">Tier Distribution</h3>
                 <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Bakers by Plan</CardTitle>
-                    <CardDescription>Distribution across subscription tiers</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="pt-6 space-y-4">
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-2">
                         <span className="text-sm">Free</span>
-                        <span className="font-medium">{analytics?.bakersByPlan?.free || 0}</span>
+                        <span className="text-sm text-muted-foreground">{overview?.tierDistribution.free_count || 0} ({overview?.tierDistribution.free_pct || 0}%)</span>
                       </div>
                       <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-muted-foreground/40 rounded-full" 
-                          style={{ width: `${((analytics?.bakersByPlan?.free || 0) / (analytics?.totalBakers || 1)) * 100}%` }}
-                        />
+                        <div className="h-full bg-muted-foreground/40 rounded-full" style={{ width: `${overview?.tierDistribution.free_pct || 0}%` }} />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-2">
                         <span className="text-sm">Basic ($4.99/mo)</span>
-                        <span className="font-medium">{analytics?.bakersByPlan?.basic || 0}</span>
+                        <span className="text-sm text-muted-foreground">{overview?.tierDistribution.basic_count || 0} ({overview?.tierDistribution.basic_pct || 0}%)</span>
                       </div>
                       <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-blue-500 rounded-full" 
-                          style={{ width: `${((analytics?.bakersByPlan?.basic || 0) / (analytics?.totalBakers || 1)) * 100}%` }}
-                        />
+                        <div className="h-full bg-blue-500 rounded-full" style={{ width: `${overview?.tierDistribution.basic_pct || 0}%` }} />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-2">
                         <span className="text-sm flex items-center gap-1">
                           <Crown className="h-3 w-3 text-primary" />
                           Pro ($9.99/mo)
                         </span>
-                        <span className="font-medium">{analytics?.bakersByPlan?.pro || 0}</span>
+                        <span className="text-sm text-muted-foreground">{overview?.tierDistribution.pro_count || 0} ({overview?.tierDistribution.pro_pct || 0}%)</span>
                       </div>
                       <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-primary rounded-full" 
-                          style={{ width: `${((analytics?.bakersByPlan?.pro || 0) / (analytics?.totalBakers || 1)) * 100}%` }}
-                        />
+                        <div className="h-full bg-primary rounded-full" style={{ width: `${overview?.tierDistribution.pro_pct || 0}%` }} />
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Account Health</CardTitle>
-                    <CardDescription>Email verification and account status</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                        <span className="text-sm">Verified Emails</span>
-                      </div>
-                      <span className="font-medium">{analytics?.verifiedBakers || 0}</span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <XCircle className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">Unverified Emails</span>
-                      </div>
-                      <span className="font-medium">{(analytics?.totalBakers || 0) - (analytics?.verifiedBakers || 0)}</span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <Ban className="h-4 w-4 text-red-600" />
-                        <span className="text-sm">Suspended</span>
-                      </div>
-                      <span className="font-medium">{analytics?.suspendedBakers || 0}</span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <Shield className="h-4 w-4 text-blue-600" />
-                        <span className="text-sm">Admins</span>
-                      </div>
-                      <span className="font-medium">{analytics?.admins || 0}</span>
                     </div>
                   </CardContent>
                 </Card>
               </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Recent Signups (30 days)</CardTitle>
-                  <CardDescription>New bakers who joined in the last month</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-4">
-                    <TrendingUp className="h-8 w-8 text-green-600" />
-                    <div>
-                      <div className="text-3xl font-bold">{analytics?.recentSignups || 0}</div>
-                      <p className="text-sm text-muted-foreground">new bakers in the last 30 days</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <div>
+                <h3 className="text-lg font-semibold mb-3" data-testid="text-growth-trend-title">Growth Trend (30 Days)</h3>
+                <Card>
+                  <CardContent className="pt-6">
+                    {trendsLoading ? (
+                      <Skeleton className="h-[300px] w-full" />
+                    ) : (
+                      <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={trendsData?.trends || []}>
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                          <XAxis
+                            dataKey="date"
+                            tick={{ fontSize: 11 }}
+                            tickFormatter={(val: string) => {
+                              const d = new Date(val + "T00:00:00");
+                              return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                            }}
+                            interval={4}
+                            className="text-muted-foreground"
+                          />
+                          <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                          <Tooltip
+                            labelFormatter={(val: string) => {
+                              const d = new Date(val + "T00:00:00");
+                              return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+                            }}
+                            contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))", background: "hsl(var(--card))" }}
+                          />
+                          <Legend />
+                          <Line type="monotone" dataKey="signups" name="Signups" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                          <Line type="monotone" dataKey="stripe_connections" name="Stripe Connections" stroke="#22c55e" strokeWidth={2} dot={false} />
+                          <Line type="monotone" dataKey="payments_succeeded_count" name="Payments" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </>
           )}
         </TabsContent>

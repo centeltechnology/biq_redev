@@ -2675,6 +2675,233 @@ export async function registerRoutes(
     }
   });
 
+  // Analytics Cockpit — Overview (Sections 1-4)
+  app.get("/api/admin/analytics/overview", requireAdmin, async (req, res) => {
+    try {
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+
+      // --- SECTION 1: Activation Funnel (cohort = signups in last 30d) ---
+      const funnelResult = await pool.query(`
+        WITH cohort AS (
+          SELECT id, created_at, stripe_connected_at, first_quote_sent_at, first_payment_processed_at
+          FROM bakers
+          WHERE created_at >= $1 AND role != 'super_admin'
+        )
+        SELECT
+          COUNT(*)::int AS signups_30d,
+          COUNT(*) FILTER (WHERE stripe_connected_at IS NOT NULL AND stripe_connected_at <= created_at + interval '7 days')::int AS stripe_connected_7d,
+          COUNT(*) FILTER (WHERE first_quote_sent_at IS NOT NULL AND first_quote_sent_at <= created_at + interval '14 days')::int AS first_quote_14d,
+          COUNT(*) FILTER (WHERE first_payment_processed_at IS NOT NULL AND first_payment_processed_at <= created_at + interval '30 days')::int AS first_payment_30d
+        FROM cohort
+      `, [thirtyDaysAgo.toISOString()]);
+
+      const funnel = funnelResult.rows[0];
+      const signups30d = funnel.signups_30d || 0;
+
+      // Median days to Stripe connect (for cohort who connected)
+      const medianResult = await pool.query(`
+        SELECT percentile_cont(0.5) WITHIN GROUP (
+          ORDER BY EXTRACT(EPOCH FROM (stripe_connected_at - created_at)) / 86400.0
+        ) AS median_days
+        FROM bakers
+        WHERE created_at >= $1 AND role != 'super_admin'
+          AND stripe_connected_at IS NOT NULL
+          AND stripe_connected_at <= created_at + interval '30 days'
+      `, [thirtyDaysAgo.toISOString()]);
+
+      const medianDaysToStripe = medianResult.rows[0]?.median_days != null
+        ? Math.round(medianResult.rows[0].median_days * 10) / 10
+        : null;
+
+      const activationFunnel = {
+        signups_30d: signups30d,
+        stripe_connected_within_7d_count: funnel.stripe_connected_7d,
+        stripe_connected_within_7d_pct: signups30d > 0 ? Math.round((funnel.stripe_connected_7d / signups30d) * 1000) / 10 : 0,
+        first_quote_within_14d_count: funnel.first_quote_14d,
+        first_quote_within_14d_pct: signups30d > 0 ? Math.round((funnel.first_quote_14d / signups30d) * 1000) / 10 : 0,
+        first_payment_within_30d_count: funnel.first_payment_30d,
+        first_payment_within_30d_pct: signups30d > 0 ? Math.round((funnel.first_payment_30d / signups30d) * 1000) / 10 : 0,
+        median_days_to_stripe_connect: medianDaysToStripe,
+      };
+
+      // --- SECTION 2: Revenue Health (last 30d) ---
+      const revenueResult = await pool.query(`
+        SELECT
+          COUNT(DISTINCT baker_id)::int AS active_processors_30d,
+          COALESCE(SUM(amount::numeric), 0)::numeric AS gmv_30d,
+          COALESCE(SUM(platform_fee::numeric), 0)::numeric AS transaction_fee_revenue_30d,
+          COUNT(*)::int AS payments_count_30d
+        FROM quote_payments
+        WHERE status = 'succeeded' AND created_at >= $1
+      `, [thirtyDaysAgo.toISOString()]);
+
+      const rev = revenueResult.rows[0];
+      const activeProcessors = rev.active_processors_30d || 0;
+      const gmv30d = parseFloat(rev.gmv_30d) || 0;
+      const txFeeRevenue30d = parseFloat(rev.transaction_fee_revenue_30d) || 0;
+
+      // Stripe connect rate (overall)
+      const connectRateResult = await pool.query(`
+        SELECT
+          COUNT(*) FILTER (WHERE stripe_connected_at IS NOT NULL)::int AS connected,
+          COUNT(*)::int AS total
+        FROM bakers WHERE role != 'super_admin'
+      `);
+      const cr = connectRateResult.rows[0];
+      const stripeConnectRateOverall = cr.total > 0 ? Math.round((cr.connected / cr.total) * 1000) / 10 : 0;
+
+      // Subscriptions MRR from current plan distribution
+      const mrrResult = await pool.query(`
+        SELECT
+          COUNT(*) FILTER (WHERE plan = 'basic')::int AS basic_count,
+          COUNT(*) FILTER (WHERE plan = 'pro')::int AS pro_count
+        FROM bakers WHERE role != 'super_admin'
+      `);
+      const mrrRow = mrrResult.rows[0];
+      const subscriptionsMrrCurrent = (mrrRow.basic_count * 4.99) + (mrrRow.pro_count * 9.99);
+
+      const revenueHealth = {
+        active_processors_30d: activeProcessors,
+        gmv_30d: Math.round(gmv30d * 100) / 100,
+        avg_gmv_per_active_processor_30d: activeProcessors > 0
+          ? Math.round((gmv30d / activeProcessors) * 100) / 100
+          : 0,
+        stripe_connect_rate_overall: stripeConnectRateOverall,
+        subscriptions_mrr_current: Math.round(subscriptionsMrrCurrent * 100) / 100,
+        transaction_fee_revenue_30d: {
+          value: Math.round(txFeeRevenue30d * 100) / 100,
+          estimated: false,
+        },
+        total_platform_revenue_30d: Math.round((subscriptionsMrrCurrent + txFeeRevenue30d) * 100) / 100,
+      };
+
+      // --- SECTION 3: Retention Snapshot ---
+      const retention30dResult = await pool.query(`
+        SELECT COUNT(DISTINCT baker_id)::int AS active
+        FROM quote_payments
+        WHERE status = 'succeeded' AND created_at >= $1
+      `, [thirtyDaysAgo.toISOString()]);
+
+      const retention90dResult = await pool.query(`
+        SELECT COUNT(DISTINCT baker_id)::int AS active
+        FROM quote_payments
+        WHERE status = 'succeeded' AND created_at >= $1
+      `, [ninetyDaysAgo.toISOString()]);
+
+      const retentionSnapshot = {
+        active_bakers_30d: retention30dResult.rows[0]?.active || 0,
+        active_bakers_90d: retention90dResult.rows[0]?.active || 0,
+        churn_basic_30d: null as number | null,
+        churn_pro_30d: null as number | null,
+        churn_note: "Requires subscription history tracking to compute accurately",
+        median_ltv: null as number | null,
+        median_paid_tenure_months: null as number | null,
+        ltv_note: "Requires billing history to compute accurately",
+      };
+
+      // --- SECTION 4: Tier Distribution ---
+      const tierResult = await pool.query(`
+        SELECT
+          COUNT(*) FILTER (WHERE plan = 'free' OR plan IS NULL)::int AS free_count,
+          COUNT(*) FILTER (WHERE plan = 'basic')::int AS basic_count,
+          COUNT(*) FILTER (WHERE plan = 'pro')::int AS pro_count,
+          COUNT(*)::int AS total
+        FROM bakers WHERE role != 'super_admin'
+      `);
+      const tier = tierResult.rows[0];
+      const tierTotal = tier.total || 1;
+
+      const tierDistribution = {
+        free_count: tier.free_count,
+        basic_count: tier.basic_count,
+        pro_count: tier.pro_count,
+        total: tier.total,
+        free_pct: Math.round((tier.free_count / tierTotal) * 1000) / 10,
+        basic_pct: Math.round((tier.basic_count / tierTotal) * 1000) / 10,
+        pro_pct: Math.round((tier.pro_count / tierTotal) * 1000) / 10,
+      };
+
+      res.json({
+        activationFunnel,
+        revenueHealth,
+        retentionSnapshot,
+        tierDistribution,
+      });
+    } catch (error) {
+      console.error("Admin analytics overview error:", error);
+      res.status(500).json({ message: "Failed to get analytics overview" });
+    }
+  });
+
+  // Analytics Cockpit — Trends (Section 5: 30 daily buckets)
+  app.get("/api/admin/analytics/trends", requireAdmin, async (req, res) => {
+    try {
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+      // Signups by day
+      const signupsResult = await pool.query(`
+        SELECT to_char(date_trunc('day', created_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD') AS date,
+               COUNT(*)::int AS signups
+        FROM bakers
+        WHERE created_at >= $1 AND role != 'super_admin'
+        GROUP BY 1 ORDER BY 1
+      `, [thirtyDaysAgo.toISOString()]);
+
+      // Stripe connections by day (based on stripeConnectedAt)
+      const connectionsResult = await pool.query(`
+        SELECT to_char(date_trunc('day', stripe_connected_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD') AS date,
+               COUNT(*)::int AS stripe_connections
+        FROM bakers
+        WHERE stripe_connected_at >= $1 AND role != 'super_admin'
+        GROUP BY 1 ORDER BY 1
+      `, [thirtyDaysAgo.toISOString()]);
+
+      // Payments by day
+      const paymentsResult = await pool.query(`
+        SELECT to_char(date_trunc('day', created_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD') AS date,
+               COUNT(*)::int AS payments_succeeded_count,
+               COALESCE(SUM(amount::numeric), 0)::numeric AS gmv
+        FROM quote_payments
+        WHERE status = 'succeeded' AND created_at >= $1
+        GROUP BY 1 ORDER BY 1
+      `, [thirtyDaysAgo.toISOString()]);
+
+      // Build 30-day buckets
+      const signupMap = new Map(signupsResult.rows.map((r: any) => [r.date, r.signups]));
+      const connectionMap = new Map(connectionsResult.rows.map((r: any) => [r.date, r.stripe_connections]));
+      const paymentMap = new Map(paymentsResult.rows.map((r: any) => [r.date, { count: r.payments_succeeded_count, gmv: parseFloat(r.gmv) }]));
+
+      const trends: Array<{
+        date: string;
+        signups: number;
+        stripe_connections: number;
+        payments_succeeded_count: number;
+        gmv: number;
+      }> = [];
+
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        const dateStr = d.toISOString().slice(0, 10);
+        const payment = paymentMap.get(dateStr) || { count: 0, gmv: 0 };
+        trends.push({
+          date: dateStr,
+          signups: signupMap.get(dateStr) || 0,
+          stripe_connections: connectionMap.get(dateStr) || 0,
+          payments_succeeded_count: payment.count,
+          gmv: Math.round(payment.gmv * 100) / 100,
+        });
+      }
+
+      res.json({ trends });
+    } catch (error) {
+      console.error("Admin analytics trends error:", error);
+      res.status(500).json({ message: "Failed to get analytics trends" });
+    }
+  });
+
   // Admin payment overview
   app.get("/api/admin/payments", requireAdmin, async (req, res) => {
     try {
