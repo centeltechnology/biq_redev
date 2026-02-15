@@ -964,6 +964,65 @@ export async function registerRoutes(
     res.json({ message: "Quote deleted" });
   });
 
+  app.post("/api/quotes/test-quote", requireAuth, async (req, res) => {
+    try {
+      const bakerId = req.session.bakerId!;
+      const baker = await storage.getBaker(bakerId);
+      if (!baker) return res.status(404).json({ message: "Baker not found" });
+      if (baker.role === "super_admin") return res.status(403).json({ message: "Admin accounts excluded" });
+      if (!baker.stripeConnectedAt) return res.status(400).json({ message: "Connect Stripe first" });
+      if (baker.firstQuoteSentAt) return res.status(400).json({ message: "First quote already sent" });
+
+      let customer = await storage.getCustomerByEmail(bakerId, baker.email);
+      if (!customer) {
+        const displayName = baker.businessName || "Test Customer";
+        customer = await storage.createCustomer({
+          bakerId,
+          name: `Test - ${displayName}`,
+          email: baker.email,
+          phone: baker.phone || null,
+        });
+      }
+
+      const quoteNumber = await storage.getNextQuoteNumber(bakerId);
+      const unitPrice = 100;
+      const taxRate = 0.08;
+      const subtotal = unitPrice;
+      const taxAmount = subtotal * taxRate;
+      const total = subtotal + taxAmount;
+
+      const quote = await storage.createQuote({
+        bakerId,
+        customerId: customer.id,
+        leadId: null,
+        quoteNumber,
+        title: "Sample Cake Order",
+        eventDate: null,
+        status: "draft",
+        subtotal: subtotal.toFixed(2),
+        taxRate: taxRate.toFixed(4),
+        taxAmount: taxAmount.toFixed(2),
+        total: total.toFixed(2),
+        notes: null,
+      });
+
+      await storage.createQuoteItem({
+        quoteId: quote.id,
+        name: "Sample Cake Order",
+        description: "6-inch round cake - vanilla with buttercream frosting",
+        quantity: 1,
+        unitPrice: unitPrice.toFixed(2),
+        totalPrice: unitPrice.toFixed(2),
+        category: "cake",
+      });
+
+      res.json({ quoteId: quote.id, customerId: customer.id });
+    } catch (error: any) {
+      console.error("Test quote creation error:", error);
+      res.status(500).json({ message: "Failed to create test quote" });
+    }
+  });
+
   app.post("/api/quotes/:id/duplicate", requireAuth, async (req, res) => {
     try {
       const existingQuote = await storage.getQuoteWithItems(req.params.id);

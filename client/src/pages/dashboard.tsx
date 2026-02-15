@@ -1,12 +1,14 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { ClipboardList, FileText, Users, ArrowRight, Calendar, DollarSign, TrendingUp, CalendarCheck, Sparkles, AlertTriangle, Plus, UserPlus, Mail, Share2, X, Copy } from "lucide-react";
+import { ClipboardList, FileText, Users, ArrowRight, Calendar, DollarSign, TrendingUp, CalendarCheck, Sparkles, AlertTriangle, Plus, UserPlus, Mail, Share2, X, Copy, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
+import { FirstQuoteModal } from "@/components/first-quote-modal";
 import { StatusBadge } from "@/components/status-badge";
 import { useFormatCurrency } from "@/hooks/use-baker-currency";
 import { apiRequest } from "@/lib/queryClient";
@@ -43,7 +45,8 @@ export default function DashboardPage() {
   const { baker } = useAuth();
   const formatCurrency = useFormatCurrency();
   const { toast } = useToast();
-  
+  const [showFirstQuoteModal, setShowFirstQuoteModal] = useState(false);
+
   const { data: stats, isLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
   });
@@ -98,9 +101,22 @@ export default function DashboardPage() {
   const showUpgradePrompt = subscription && subscription.plan === "free" && 
     subscription.quoteLimit !== null && subscription.monthlyQuoteCount >= subscription.quoteLimit - 2;
 
+  const isOnboarding = baker && baker.role !== "super_admin" && (!baker.stripeConnectedAt || !baker.firstQuoteSentAt);
+  const canShowTestQuote = baker && baker.stripeConnectedAt && !baker.firstQuoteSentAt && baker.role !== "super_admin";
+
+  const handleSendFirstQuote = () => {
+    apiRequest("POST", "/api/activity/track", { eventType: "first_quote_cta_used" }).catch(() => {});
+    if (canShowTestQuote) {
+      setShowFirstQuoteModal(true);
+    } else {
+      window.location.href = "/quotes/new";
+    }
+  };
+
   return (
     <DashboardLayout title="Dashboard">
       <div className="space-y-6">
+        <FirstQuoteModal open={showFirstQuoteModal} onOpenChange={setShowFirstQuoteModal} />
         {baker && !baker.emailVerified && (
           <Card className="border-amber-500/50 bg-amber-500/5">
             <CardContent className="flex items-center justify-between gap-4 py-4">
@@ -167,40 +183,52 @@ export default function DashboardPage() {
         <OnboardingChecklist
           onConnectStripe={() => connectMutation.mutate()}
           isConnecting={connectMutation.isPending}
+          onSendFirstQuote={handleSendFirstQuote}
         />
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <RevenueCard
-            title="Monthly Revenue"
-            subtitle={new Date().toLocaleDateString('en-US', { month: 'long' })}
-            value={orderStats?.monthlyRevenue}
-            count={orderStats?.monthlyCount}
-            icon={DollarSign}
-            isLoading={isLoadingOrders}
-          />
-          <RevenueCard
-            title="Yearly Revenue"
-            subtitle={new Date().getFullYear().toString()}
-            value={orderStats?.yearlyRevenue}
-            count={orderStats?.yearlyCount}
-            icon={TrendingUp}
-            isLoading={isLoadingOrders}
-          />
-          <MetricCard
-            title="New Leads"
-            subtitle="Last 7 days"
-            value={stats?.newLeadsCount}
-            icon={ClipboardList}
-            isLoading={isLoading}
-          />
-          <MetricCard
-            title="Total Customers"
-            subtitle="All time"
-            value={stats?.totalCustomers}
-            icon={Users}
-            isLoading={isLoading}
-          />
-        </div>
+        {isOnboarding ? (
+          <Card>
+            <CardContent className="flex items-center gap-3 py-6">
+              <BarChart3 className="h-5 w-5 text-muted-foreground shrink-0" />
+              <p className="text-sm text-muted-foreground">
+                Your revenue metrics will appear after your first quote is sent.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <RevenueCard
+              title="Monthly Revenue"
+              subtitle={new Date().toLocaleDateString('en-US', { month: 'long' })}
+              value={orderStats?.monthlyRevenue}
+              count={orderStats?.monthlyCount}
+              icon={DollarSign}
+              isLoading={isLoadingOrders}
+            />
+            <RevenueCard
+              title="Yearly Revenue"
+              subtitle={new Date().getFullYear().toString()}
+              value={orderStats?.yearlyRevenue}
+              count={orderStats?.yearlyCount}
+              icon={TrendingUp}
+              isLoading={isLoadingOrders}
+            />
+            <MetricCard
+              title="New Leads"
+              subtitle="Last 7 days"
+              value={stats?.newLeadsCount}
+              icon={ClipboardList}
+              isLoading={isLoading}
+            />
+            <MetricCard
+              title="Total Customers"
+              subtitle="All time"
+              value={stats?.totalCustomers}
+              icon={Users}
+              isLoading={isLoading}
+            />
+          </div>
+        )}
 
         <Card>
           <CardHeader className="pb-3">

@@ -64,7 +64,7 @@ export function DashboardLayout({ children, title, actions }: DashboardLayoutPro
       } else if (baker.stripeConnectedAt) {
         toast({
           title: "Stripe connected",
-          description: "You can now collect deposits and payments.",
+          description: "You're ready to send your first quote.",
         });
         sessionStorage.setItem("stripeConnectToastShown", "true");
         params.delete("stripe");

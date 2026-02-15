@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useMutation } from "@tanstack/react-query";
 import { Check, CreditCard, FileText, Share2, ArrowRight, Copy, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,9 +10,10 @@ import { apiRequest } from "@/lib/queryClient";
 interface OnboardingChecklistProps {
   onConnectStripe: () => void;
   isConnecting?: boolean;
+  onSendFirstQuote: () => void;
 }
 
-export function OnboardingChecklist({ onConnectStripe, isConnecting }: OnboardingChecklistProps) {
+export function OnboardingChecklist({ onConnectStripe, isConnecting, onSendFirstQuote }: OnboardingChecklistProps) {
   const { baker } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -41,11 +41,6 @@ export function OnboardingChecklist({ onConnectStripe, isConnecting }: Onboardin
 
   const currentStep = !stripeConnected ? 1 : !firstQuoteSent ? 2 : 3;
 
-  const handleSendFirstQuote = () => {
-    apiRequest("POST", "/api/activity/track", { eventType: "first_quote_cta_used" }).catch(() => {});
-    setLocation(`/quotes/new?prefill=self`);
-  };
-
   const handleCopyLink = async () => {
     if (!baker?.slug) return;
     const calculatorUrl = `${window.location.origin}/c/${baker.slug}`;
@@ -72,11 +67,21 @@ export function OnboardingChecklist({ onConnectStripe, isConnecting }: Onboardin
     setDismissed(true);
   };
 
-  const steps = [
+  const steps: Array<{
+    step: number;
+    label: string;
+    description: string;
+    icon: typeof CreditCard;
+    complete: boolean;
+    action: () => void;
+    actionLabel: string;
+    actionDisabled?: boolean;
+    actionIcon?: typeof CreditCard;
+  }> = [
     {
       step: 1,
       label: "Connect Stripe",
-      description: "Required to collect deposits and payments",
+      description: "Connect Stripe to start getting paid.",
       icon: CreditCard,
       complete: stripeConnected,
       action: onConnectStripe,
@@ -89,9 +94,8 @@ export function OnboardingChecklist({ onConnectStripe, isConnecting }: Onboardin
       description: "See what your customers will see",
       icon: FileText,
       complete: firstQuoteSent,
-      action: handleSendFirstQuote,
-      actionLabel: "Send a Quote",
-      actionDisabled: false,
+      action: onSendFirstQuote,
+      actionLabel: "Send First Quote",
     },
     {
       step: 3,
@@ -101,7 +105,6 @@ export function OnboardingChecklist({ onConnectStripe, isConnecting }: Onboardin
       complete: linkShared,
       action: handleCopyLink,
       actionLabel: "Copy Link",
-      actionDisabled: false,
       actionIcon: Copy,
     },
   ];
@@ -110,7 +113,7 @@ export function OnboardingChecklist({ onConnectStripe, isConnecting }: Onboardin
     <Card className="border-primary/30 bg-primary/5" data-testid="card-onboarding-checklist">
       <CardContent className="py-4">
         <div className="flex items-center justify-between gap-4 mb-3">
-          <h3 className="font-semibold text-sm">Start Here</h3>
+          <h3 className="font-semibold text-base">Let's Get You Paid</h3>
           <Button
             variant="ghost"
             size="icon"
@@ -125,7 +128,6 @@ export function OnboardingChecklist({ onConnectStripe, isConnecting }: Onboardin
           {steps.map((s) => {
             const isActive = s.step === currentStep;
             const isPast = s.step < currentStep;
-            const isFuture = s.step > currentStep;
 
             return (
               <div
@@ -166,8 +168,7 @@ export function OnboardingChecklist({ onConnectStripe, isConnecting }: Onboardin
                     data-testid={`button-checklist-step-${s.step}`}
                   >
                     {s.actionLabel}
-                    {!s.actionIcon && <ArrowRight className="ml-1 h-3.5 w-3.5" />}
-                    {s.actionIcon && <s.actionIcon className="ml-1 h-3.5 w-3.5" />}
+                    {s.actionIcon ? <s.actionIcon className="ml-1 h-3.5 w-3.5" /> : <ArrowRight className="ml-1 h-3.5 w-3.5" />}
                   </Button>
                 )}
               </div>
