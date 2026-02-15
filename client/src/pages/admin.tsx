@@ -702,7 +702,191 @@ function InvitationsTab() {
           )}
         </CardContent>
       </Card>
+
+      <GiftedPlansTracker />
     </div>
+  );
+}
+
+function GiftedPlansTracker() {
+  const { data, isLoading } = useQuery<{
+    stats: { total: number; active: number; expiringSoon: number; expired: number; convertedToPaid: number };
+    bakers: Array<{
+      id: string;
+      businessName: string;
+      email: string;
+      giftedPlan: string;
+      giftedPlanExpiresAt: string;
+      currentPlan: string;
+      inviterName: string;
+      isActive: boolean;
+      isExpiringSoon: boolean;
+      isExpired: boolean;
+      convertedToPaid: boolean;
+      daysRemaining: number;
+      createdAt: string;
+      stripeConnectedAt: string | null;
+      firstQuoteSentAt: string | null;
+      firstPaymentProcessedAt: string | null;
+    }>;
+  }>({
+    queryKey: ["/api/admin/gifted-plans"],
+  });
+
+  const stats = data?.stats;
+  const bakers = data?.bakers;
+
+  type GiftedBaker = NonNullable<typeof bakers>[number];
+
+  const getGiftStatusBadge = (baker: GiftedBaker) => {
+    if (baker.convertedToPaid) {
+      return <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300">Converted</Badge>;
+    }
+    if (baker.isExpiringSoon) {
+      return <Badge variant="outline" className="bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300">Expiring Soon</Badge>;
+    }
+    if (baker.isActive) {
+      return <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300">Active</Badge>;
+    }
+    return <Badge variant="destructive">Expired</Badge>;
+  };
+
+  const getActivityIndicators = (baker: GiftedBaker) => {
+    const indicators: string[] = [];
+    if (baker.stripeConnectedAt) indicators.push("Stripe");
+    if (baker.firstQuoteSentAt) indicators.push("Quoted");
+    if (baker.firstPaymentProcessedAt) indicators.push("Paid");
+    return indicators;
+  };
+
+  return (
+    <>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <Card>
+          <CardContent className="pt-4 pb-3 px-4">
+            <p className="text-xs text-muted-foreground">Total Gifted</p>
+            <p className="text-2xl font-bold" data-testid="text-gifted-total">
+              {isLoading ? <Skeleton className="h-8 w-12" /> : stats?.total ?? 0}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3 px-4">
+            <p className="text-xs text-muted-foreground">Active</p>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400" data-testid="text-gifted-active">
+              {isLoading ? <Skeleton className="h-8 w-12" /> : stats?.active ?? 0}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3 px-4">
+            <p className="text-xs text-muted-foreground">Expiring Soon</p>
+            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400" data-testid="text-gifted-expiring">
+              {isLoading ? <Skeleton className="h-8 w-12" /> : stats?.expiringSoon ?? 0}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3 px-4">
+            <p className="text-xs text-muted-foreground">Expired</p>
+            <p className="text-2xl font-bold text-muted-foreground" data-testid="text-gifted-expired">
+              {isLoading ? <Skeleton className="h-8 w-12" /> : stats?.expired ?? 0}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3 px-4">
+            <p className="text-xs text-muted-foreground">Converted to Paid</p>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400" data-testid="text-gifted-converted">
+              {isLoading ? <Skeleton className="h-8 w-12" /> : stats?.convertedToPaid ?? 0}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Crown className="h-5 w-5" />
+            Gifted Plan Bakers
+          </CardTitle>
+          <CardDescription>Track bakers who received gifted plans and their activity</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="p-6">
+              <Skeleton className="h-32 w-full" />
+            </div>
+          ) : !bakers?.length ? (
+            <div className="p-6 text-center text-muted-foreground">No bakers with gifted plans yet</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Baker</TableHead>
+                  <TableHead>Gifted Plan</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Days Left</TableHead>
+                  <TableHead>Invited By</TableHead>
+                  <TableHead>Current Plan</TableHead>
+                  <TableHead>Activity</TableHead>
+                  <TableHead>Expires</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {bakers.map((baker) => (
+                  <TableRow key={baker.id} data-testid={`row-gifted-baker-${baker.id}`}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium text-sm" data-testid={`text-gifted-name-${baker.id}`}>{baker.businessName}</p>
+                        <p className="text-xs text-muted-foreground">{baker.email}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">
+                        {baker.giftedPlan.charAt(0).toUpperCase() + baker.giftedPlan.slice(1)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{getGiftStatusBadge(baker)}</TableCell>
+                    <TableCell>
+                      {baker.isActive ? (
+                        <span className={`text-sm font-medium ${baker.isExpiringSoon ? "text-amber-600 dark:text-amber-400" : ""}`}>
+                          {baker.daysRemaining}d
+                        </span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{baker.inviterName}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="text-xs">
+                        {(baker.currentPlan || "free").charAt(0).toUpperCase() + (baker.currentPlan || "free").slice(1)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1 flex-wrap">
+                        {getActivityIndicators(baker).length > 0 ? (
+                          getActivityIndicators(baker).map(indicator => (
+                            <Badge key={indicator} variant="secondary" className="text-xs">
+                              {indicator}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-xs text-muted-foreground">None yet</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {baker.giftedPlanExpiresAt ? format(new Date(baker.giftedPlanExpiresAt), "MMM d, yyyy") : "-"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </>
   );
 }
 

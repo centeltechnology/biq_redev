@@ -3616,6 +3616,64 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/admin/gifted-plans", requireSuperAdmin, async (req, res) => {
+    try {
+      const allBakers = await storage.getAllBakers();
+      const now = new Date();
+      const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+      const giftedBakers = allBakers
+        .filter(b => b.giftedPlan)
+        .map(b => {
+          const expiresAt = b.giftedPlanExpiresAt ? new Date(b.giftedPlanExpiresAt) : null;
+          const isActive = expiresAt ? expiresAt > now : false;
+          const isExpiringSoon = expiresAt ? (expiresAt > now && expiresAt <= sevenDaysFromNow) : false;
+          const isExpired = expiresAt ? expiresAt <= now : true;
+          const convertedToPaid = isExpired && b.plan !== "free" && b.stripeSubscriptionId != null;
+          const daysRemaining = expiresAt && isActive ? Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+
+          const inviter = b.invitedByAdminId ? allBakers.find(a => a.id === b.invitedByAdminId) : null;
+
+          return {
+            id: b.id,
+            businessName: b.businessName,
+            email: b.email,
+            giftedPlan: b.giftedPlan,
+            giftedPlanExpiresAt: b.giftedPlanExpiresAt,
+            currentPlan: b.plan,
+            inviterName: inviter?.businessName || inviter?.email || "Unknown",
+            isActive,
+            isExpiringSoon,
+            isExpired,
+            convertedToPaid,
+            daysRemaining,
+            createdAt: b.createdAt,
+            stripeConnectedAt: b.stripeConnectedAt,
+            firstQuoteSentAt: b.firstQuoteSentAt,
+            firstPaymentProcessedAt: b.firstPaymentProcessedAt,
+          };
+        })
+        .sort((a, b) => {
+          if (a.isActive && !b.isActive) return -1;
+          if (!a.isActive && b.isActive) return 1;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+
+      const stats = {
+        total: giftedBakers.length,
+        active: giftedBakers.filter(b => b.isActive).length,
+        expiringSoon: giftedBakers.filter(b => b.isExpiringSoon).length,
+        expired: giftedBakers.filter(b => b.isExpired).length,
+        convertedToPaid: giftedBakers.filter(b => b.convertedToPaid).length,
+      };
+
+      res.json({ stats, bakers: giftedBakers });
+    } catch (error) {
+      console.error("Get gifted plans error:", error);
+      res.status(500).json({ message: "Failed to get gifted plans data" });
+    }
+  });
+
   // Support Chat Routes
   app.post("/api/support/chat", requireAuth, async (req, res) => {
     try {
