@@ -1,0 +1,113 @@
+You are the BakerIQ Replit Agent.
+
+GOAL:
+Refine the homepage to feel inevitable — structured, authoritative, and established.
+
+Tone:
+Calm.
+Confident.
+Professional.
+No hype.
+No fluff.
+No “startup energy.”
+
+Target:
+Growth-oriented and established treat makers.
+
+----------------------------------------
+1) ADD SCREENSHOT ABOVE THE FOLD
+----------------------------------------
+
+Under the hero section, add a high-quality screenshot of the main baker dashboard.
+
+Requirements:
+- Use realistic demo data (not empty states).
+- Stripe connected visible.
+- Revenue snapshot visible.
+- Clean UI clearly shown.
+
+Layout:
+Option A: Hero copy left, screenshot right (desktop).
+Option B: Hero centered, screenshot immediately below.
+
+Add small caption under screenshot:
+“Your revenue. Your customers. Organized.”
+
+----------------------------------------
+2) ADD “HOW IT WORKS” SYSTEM SECTION
+----------------------------------------
+
+Add a clean 3-step visual section:
+
+Title:
+How It Works
+
+Step 1:
+Share Your Pricing Link
+Customers build their order before messaging you.
+
+Step 2:
+Send a Clean Quote
+Adjust pricing and send a professional quote in minutes.
+
+Step 3:
+Collect Deposits Automatically
+Customers pay securely through Stripe. Money goes directly to your bank.
+
+Keep this minimal, structured, and visually separated.
+
+----------------------------------------
+3) STRENGTHEN STRIPE AUTHORITY
+----------------------------------------
+
+In the Stripe section, add:
+
+- Powered by Stripe Connect
+- Bank-level encryption
+- Funds go directly to your bank
+- BakerIQ never holds your money
+
+Keep tone factual.
+
+----------------------------------------
+4) ADD IDENTITY FILTERING LINE
+----------------------------------------
+
+Before pricing section, add:
+
+“Serious bakers don’t run their business in DMs.”
+
+Keep it subtle.
+Not aggressive.
+
+----------------------------------------
+5) REINFORCE TARGET AUDIENCE
+----------------------------------------
+
+Add a small section:
+
+Designed for:
+• Custom cake artists
+• Treat makers
+• Home bakers ready to scale
+• Established bakery operations
+
+----------------------------------------
+6) REMOVE ANY LANGUAGE THAT FEELS:
+----------------------------------------
+
+- Beginner-focused
+- Side-hustle oriented
+- Overly promotional
+- Startup-y
+
+Replace with confident, matter-of-fact tone.
+
+----------------------------------------
+DELIVERABLES:
+
+- Files changed
+- Screenshot placement confirmation
+- Before/after hero comparison
+- Confirmation tone now reflects:
+  “Inevitable infrastructure”

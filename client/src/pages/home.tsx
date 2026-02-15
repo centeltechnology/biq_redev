@@ -19,11 +19,16 @@ import {
   Users,
   Banknote,
   ShieldCheck,
+  Send,
+  Lock,
+  Building2,
 } from "lucide-react";
+
+import dashboardImage from "@assets/img-1_1768182819883.png";
 
 export default function HomePage() {
   const scrollToHowItWorks = () => {
-    document.getElementById("the-problem")?.scrollIntoView({ behavior: "smooth" });
+    document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
@@ -53,9 +58,9 @@ export default function HomePage() {
       </header>
 
       <main>
-        <section className="py-24 md:py-36">
+        <section className="py-20 md:py-28">
           <div className="container max-w-7xl mx-auto px-4">
-            <div className="max-w-3xl mx-auto text-center">
+            <div className="max-w-3xl mx-auto text-center mb-16">
               <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6" data-testid="text-hero-heading">
                 Stop running your baking business like a secretary.
               </h1>
@@ -83,17 +88,31 @@ export default function HomePage() {
               <div className="flex items-center gap-6 text-sm text-muted-foreground mt-6 flex-wrap justify-center">
                 <span className="flex items-center gap-1.5" data-testid="text-trust-free">
                   <Check className="h-4 w-4 text-primary" />
-                  Free forever plan
-                </span>
-                <span className="flex items-center gap-1.5" data-testid="text-trust-nocard">
-                  <Check className="h-4 w-4 text-primary" />
                   No credit card required
                 </span>
                 <span className="flex items-center gap-1.5" data-testid="text-trust-payments">
                   <Check className="h-4 w-4 text-primary" />
-                  Get paid directly
+                  Payments go directly to your bank
+                </span>
+                <span className="flex items-center gap-1.5" data-testid="text-trust-stripe">
+                  <Check className="h-4 w-4 text-primary" />
+                  Powered by Stripe
                 </span>
               </div>
+            </div>
+
+            <div className="max-w-5xl mx-auto">
+              <div className="rounded-xl overflow-hidden shadow-2xl border bg-card">
+                <img
+                  src={dashboardImage}
+                  alt="BakerIQ dashboard showing revenue, customers, and order management"
+                  className="w-full h-auto"
+                  data-testid="img-dashboard-preview"
+                />
+              </div>
+              <p className="text-center text-sm text-muted-foreground mt-4" data-testid="text-screenshot-caption">
+                Your revenue. Your customers. Organized.
+              </p>
             </div>
           </div>
         </section>
@@ -162,7 +181,47 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="py-16 md:py-24 bg-muted/30">
+        <section id="how-it-works" className="py-16 md:py-24 bg-muted/30">
+          <div className="container max-w-7xl mx-auto px-4">
+            <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center" data-testid="text-how-heading">
+              How It Works
+            </h2>
+            <div className="grid md:grid-cols-3 gap-10 max-w-5xl mx-auto">
+              <div className="text-center">
+                <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-5">
+                  <LinkIcon className="h-7 w-7 text-primary" />
+                </div>
+                <div className="text-sm font-medium text-primary mb-2">Step 1</div>
+                <h3 className="text-lg font-semibold mb-2">Share Your Pricing Link</h3>
+                <p className="text-sm text-muted-foreground">
+                  Customers build their order before messaging you.
+                </p>
+              </div>
+              <div className="text-center">
+                <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-5">
+                  <Send className="h-7 w-7 text-primary" />
+                </div>
+                <div className="text-sm font-medium text-primary mb-2">Step 2</div>
+                <h3 className="text-lg font-semibold mb-2">Send a Clean Quote</h3>
+                <p className="text-sm text-muted-foreground">
+                  Adjust pricing and send a professional quote in minutes.
+                </p>
+              </div>
+              <div className="text-center">
+                <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-5">
+                  <Banknote className="h-7 w-7 text-primary" />
+                </div>
+                <div className="text-sm font-medium text-primary mb-2">Step 3</div>
+                <h3 className="text-lg font-semibold mb-2">Collect Deposits Automatically</h3>
+                <p className="text-sm text-muted-foreground">
+                  Customers pay securely through Stripe. Money goes directly to your bank.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-16 md:py-24">
           <div className="container max-w-7xl mx-auto px-4">
             <div className="max-w-2xl mx-auto text-center">
               <div className="flex justify-center mb-6">
@@ -173,24 +232,33 @@ export default function HomePage() {
               <h2 className="text-3xl md:text-4xl font-bold mb-6" data-testid="text-stripe-heading">
                 Get Paid Like a Professional
               </h2>
-              <p className="text-lg text-muted-foreground mb-4">
+              <p className="text-lg text-muted-foreground mb-8">
                 Connect your own Stripe account and collect deposits and payments automatically.
+                Money goes directly to your bank. No chasing. No confusion.
               </p>
-              <p className="text-lg text-muted-foreground mb-2">
-                Money goes directly to your bank.
-              </p>
-              <p className="text-lg text-muted-foreground">
-                No chasing. No confusion.
-              </p>
-              <div className="flex items-center justify-center gap-3 mt-8 text-sm text-muted-foreground">
-                <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
-                <span>Bank-level security powered by Stripe</span>
+              <div className="grid sm:grid-cols-2 gap-4 max-w-md mx-auto text-sm text-muted-foreground">
+                <div className="flex items-center gap-2.5">
+                  <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
+                  <span>Powered by Stripe Connect</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <Lock className="h-4 w-4 text-primary shrink-0" />
+                  <span>Bank-level encryption</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <Building2 className="h-4 w-4 text-primary shrink-0" />
+                  <span>Funds go directly to your bank</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <Check className="h-4 w-4 text-primary shrink-0" />
+                  <span>BakerIQ never holds your money</span>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="py-16 md:py-24">
+        <section className="py-16 md:py-24 bg-muted/30">
           <div className="container max-w-7xl mx-auto px-4">
             <div className="max-w-2xl mx-auto text-center">
               <div className="flex justify-center mb-6">
@@ -211,14 +279,24 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="py-16 md:py-24">
+        <section className="py-12 md:py-16">
+          <div className="container max-w-7xl mx-auto px-4">
+            <div className="max-w-3xl mx-auto text-center">
+              <p className="text-xl md:text-2xl font-semibold text-muted-foreground italic" data-testid="text-identity-filter">
+                Serious bakers don't run their business in DMs.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-16 md:py-24 bg-muted/30">
           <div className="container max-w-7xl mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-pricing-heading">
                 Simple, transparent pricing
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Start free. Upgrade when you're ready. Every plan includes built-in payments.
+                Every plan includes built-in payments. Upgrade as your operation grows.
               </p>
             </div>
             <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
@@ -313,7 +391,7 @@ export default function HomePage() {
                     <CardTitle>Pro</CardTitle>
                     <Badge variant="secondary" className="no-default-active-elevate text-xs">Best Value</Badge>
                   </div>
-                  <CardDescription>For established treat makers</CardDescription>
+                  <CardDescription>For established operations</CardDescription>
                   <div className="mt-4">
                     <span className="text-4xl font-bold">$9.99</span>
                     <span className="text-muted-foreground">/month</span>
@@ -350,6 +428,34 @@ export default function HomePage() {
                   </Link>
                 </CardContent>
               </Card>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-16 md:py-20">
+          <div className="container max-w-7xl mx-auto px-4">
+            <div className="max-w-2xl mx-auto text-center">
+              <h3 className="text-xl font-semibold mb-6" data-testid="text-designed-for-heading">
+                Designed for
+              </h3>
+              <div className="grid sm:grid-cols-2 gap-4 text-muted-foreground">
+                <div className="flex items-center justify-center gap-2.5">
+                  <Cake className="h-4 w-4 text-primary shrink-0" />
+                  <span>Custom cake artists</span>
+                </div>
+                <div className="flex items-center justify-center gap-2.5">
+                  <Cake className="h-4 w-4 text-primary shrink-0" />
+                  <span>Treat makers</span>
+                </div>
+                <div className="flex items-center justify-center gap-2.5">
+                  <Cake className="h-4 w-4 text-primary shrink-0" />
+                  <span>Home bakery businesses</span>
+                </div>
+                <div className="flex items-center justify-center gap-2.5">
+                  <Cake className="h-4 w-4 text-primary shrink-0" />
+                  <span>Established bakery operations</span>
+                </div>
+              </div>
             </div>
           </div>
         </section>
