@@ -33,8 +33,8 @@ export const bakers = pgTable("bakers", {
   calculatorConfig: jsonb("calculator_config"),
   // Email verification
   emailVerified: timestamp("email_verified"),
-  // Role for admin access
-  role: text("role").notNull().default("baker"), // "baker" or "super_admin"
+  // Role for admin access: "baker", "admin" (support/ops), or "super_admin"
+  role: text("role").notNull().default("baker"),
   // Subscription
   plan: text("plan").notNull().default("free"), // "free" or "pro"
   stripeCustomerId: text("stripe_customer_id"),
@@ -899,3 +899,14 @@ export const insertAffiliateRequestSchema = createInsertSchema(affiliateRequests
 
 export type AffiliateRequest = typeof affiliateRequests.$inferSelect;
 export type InsertAffiliateRequest = z.infer<typeof insertAffiliateRequestSchema>;
+
+export const adminAuditLogs = pgTable("admin_audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  adminUserId: varchar("admin_user_id").notNull(),
+  actionKey: text("action_key").notNull(),
+  targetId: text("target_id"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type AdminAuditLog = typeof adminAuditLogs.$inferSelect;

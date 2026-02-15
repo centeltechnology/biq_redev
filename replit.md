@@ -48,6 +48,19 @@ Preferred communication style: Simple, everyday language.
 - **Leads**: Incoming inquiries from the public calculator with status tracking
 - **Quotes**: Formal price quotes with line items, linked to customers
 
+### Role-Based Admin Access
+- **Roles**: Three roles on `bakers.role` field: `baker` (default), `admin` (support/ops), `super_admin`
+- **Middleware**: `requireAdmin` allows admin + super_admin; `requireSuperAdmin` allows only super_admin
+- **Admin routes (super_admin only)**: Analytics, financials, payments, bakers management, affiliates, retention, announcements, onboarding stats, impersonation, email logs
+- **Support routes (admin + super_admin)**: Support tickets (list, update, reply), baker context endpoint
+- **Admin UI routes**: `/admin` (super_admin analytics dashboard), `/admin/support` (ticket management for both roles)
+- **Role guard**: Admin role users navigating to `/admin` are redirected to `/admin/support`
+- **Sidebar**: Admin role sees only "Support" nav link; Super Admin sees both "Admin" and "Support" links
+- **Role badge**: Displayed in both admin page headers showing current role
+- **Audit logging**: `admin_audit_logs` table tracks TICKET_REPLY, TICKET_STATUS_CHANGE, ROLE_CHANGE actions
+- **Baker context endpoint**: `GET /api/admin/support-tickets/:id/baker-context` returns limited info (plan, Stripe status, dates) for support resolution
+- **Files**: `client/src/pages/admin.tsx` (super_admin), `client/src/pages/admin-support.tsx` (support dashboard)
+
 ### Design Patterns
 - **Shared Types**: Schema definitions in `shared/` are used by both client and server
 - **Storage Interface**: `server/storage.ts` abstracts database operations

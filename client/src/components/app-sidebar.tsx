@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
-import { Home, Users, FileText, ClipboardList, Settings, LogOut, Cake, CalendarDays, DollarSign, Shield, Calculator, CreditCard, Share2, Gift } from "lucide-react";
+import { Home, Users, FileText, ClipboardList, Settings, LogOut, Cake, CalendarDays, DollarSign, Shield, Calculator, CreditCard, Share2, Gift, Ticket } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import {
   Sidebar,
   SidebarContent,
@@ -82,15 +83,35 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
-              {baker?.role === "super_admin" && (
+              {baker?.role === "admin" && (
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={location === "/admin"}>
-                    <Link href="/admin" data-testid="nav-admin">
-                      <Shield className="h-4 w-4" />
-                      <span>Admin</span>
+                  <SidebarMenuButton asChild isActive={location === "/admin/support"}>
+                    <Link href="/admin/support" data-testid="nav-admin-support">
+                      <Ticket className="h-4 w-4" />
+                      <span>Support</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+              )}
+              {baker?.role === "super_admin" && (
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location === "/admin"}>
+                      <Link href="/admin" data-testid="nav-admin">
+                        <Shield className="h-4 w-4" />
+                        <span>Admin</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location === "/admin/support"}>
+                      <Link href="/admin/support" data-testid="nav-admin-support">
+                        <Ticket className="h-4 w-4" />
+                        <span>Support</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </>
               )}
             </SidebarMenu>
           </SidebarGroupContent>

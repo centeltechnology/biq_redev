@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1463,6 +1465,8 @@ function AffiliateRequestsSection() {
 }
 
 export default function AdminDashboard() {
+  const { baker: currentAdmin } = useAuth();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBaker, setSelectedBaker] = useState<Baker | null>(null);
@@ -1747,11 +1751,22 @@ export default function AdminDashboard() {
     }).format(amount);
   };
 
+  if (currentAdmin && currentAdmin.role !== "super_admin") {
+    setLocation("/admin/support");
+    return null;
+  }
+
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold" data-testid="text-admin-title">Super Admin Dashboard</h1>
-        <p className="text-muted-foreground">Platform management and oversight</p>
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-semibold" data-testid="text-admin-title">Super Admin Dashboard</h1>
+          <p className="text-muted-foreground">Platform management and oversight</p>
+        </div>
+        <Badge variant="outline" className="gap-1.5" data-testid="badge-admin-role">
+          <Shield className="h-3.5 w-3.5" />
+          Role: Super Admin
+        </Badge>
       </div>
 
       <Tabs defaultValue="accounts" className="space-y-4">

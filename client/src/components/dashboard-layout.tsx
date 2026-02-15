@@ -148,7 +148,7 @@ export function DashboardLayout({ children, title, actions }: DashboardLayoutPro
     "--sidebar-width-icon": "3rem",
   };
 
-  const needsStripeConnect = baker && !baker.stripeConnectedAt && baker.role !== "super_admin";
+  const needsStripeConnect = baker && !baker.stripeConnectedAt && baker.role !== "super_admin" && baker.role !== "admin";
   const showStripeBanner = needsStripeConnect && !snoozed;
 
   useEffect(() => {

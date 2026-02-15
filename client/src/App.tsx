@@ -1,4 +1,5 @@
 import { Switch, Route } from "wouter";
+import { lazy, Suspense } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -22,7 +23,8 @@ import SettingsPage from "@/pages/settings";
 import PricingPage from "@/pages/pricing";
 import CalculatorPage from "@/pages/calculator";
 import CalendarPage from "@/pages/calendar";
-import AdminPage from "@/pages/admin";
+const AdminPage = lazy(() => import("@/pages/admin"));
+import AdminSupportPage from "@/pages/admin-support";
 import QuoteViewPage from "@/pages/quote-view";
 import VerifyEmailPage from "@/pages/verify-email";
 import ForgotPasswordPage from "@/pages/forgot-password";
@@ -92,8 +94,11 @@ function Router() {
       <Route path="/settings">
         <ProtectedRoute><SettingsPage /></ProtectedRoute>
       </Route>
+      <Route path="/admin/support">
+        <ProtectedRoute><AdminSupportPage /></ProtectedRoute>
+      </Route>
       <Route path="/admin">
-        <ProtectedRoute><AdminPage /></ProtectedRoute>
+        <ProtectedRoute><Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}><AdminPage /></Suspense></ProtectedRoute>
       </Route>
       <Route path="/c/:slug" component={CalculatorPage} />
       <Route path="/q/:id" component={QuoteViewPage} />

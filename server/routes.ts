@@ -12,7 +12,7 @@ import crypto from "crypto";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
-import { CAKE_SIZES, CAKE_SHAPES, CAKE_FLAVORS, FROSTING_TYPES, DECORATIONS, DELIVERY_OPTIONS, ADDONS, USER_ACTIVITY_EVENT_TYPES, type UserActivityEventType } from "@shared/schema";
+import { CAKE_SIZES, CAKE_SHAPES, CAKE_FLAVORS, FROSTING_TYPES, DECORATIONS, DELIVERY_OPTIONS, ADDONS, USER_ACTIVITY_EVENT_TYPES, type UserActivityEventType, adminAuditLogs } from "@shared/schema";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import OpenAI from "openai";
 import { trackEvent } from "./event-tracking";
@@ -2646,27 +2646,53 @@ export async function registerRoutes(
     }
   });
 
-  // Super Admin Routes
+  // Admin middleware: allows both "admin" and "super_admin" roles
   async function requireAdmin(req: Request, res: Response, next: NextFunction) {
     if (!req.session.bakerId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
     const baker = await storage.getBaker(req.session.bakerId);
-    if (!baker || baker.role !== "super_admin") {
+    if (!baker || (baker.role !== "super_admin" && baker.role !== "admin")) {
       return res.status(403).json({ message: "Admin access required" });
     }
     next();
   }
 
-  app.get("/api/admin/bakers", requireAdmin, async (req, res) => {
+  // Super admin middleware: only "super_admin" role
+  async function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {
+    if (!req.session.bakerId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const baker = await storage.getBaker(req.session.bakerId);
+    if (!baker || baker.role !== "super_admin") {
+      return res.status(403).json({ message: "Requires Super Admin access" });
+    }
+    next();
+  }
+
+  // Audit logging helper
+  async function logAdminAction(adminUserId: string, actionKey: string, targetId?: string, metadata?: any) {
+    try {
+      await db.insert(adminAuditLogs).values({
+        adminUserId,
+        actionKey,
+        targetId: targetId || null,
+        metadata: metadata || null,
+      });
+    } catch (error) {
+      console.error("Audit log error:", error);
+    }
+  }
+
+  app.get("/api/admin/bakers", requireSuperAdmin, async (req, res) => {
     const allBakers = await storage.getAllBakers();
     res.json(allBakers.map(b => ({ ...b, passwordHash: undefined })));
   });
 
-  app.patch("/api/admin/bakers/:id", requireAdmin, async (req, res) => {
+  app.patch("/api/admin/bakers/:id", requireSuperAdmin, async (req, res) => {
     try {
       const schema = z.object({
-        role: z.enum(["baker", "super_admin"]).optional(),
+        role: z.enum(["baker", "admin", "super_admin"]).optional(),
         businessName: z.string().optional(),
         email: z.string().email().optional(),
         plan: z.enum(["free", "basic", "pro"]).optional(),
@@ -2677,6 +2703,9 @@ export async function registerRoutes(
       if (!updated) {
         return res.status(404).json({ message: "Baker not found" });
       }
+      if (data.role) {
+        await logAdminAction(req.session.bakerId!, "ROLE_CHANGE", req.params.id, { newRole: data.role });
+      }
       res.json({ ...updated, passwordHash: undefined });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -2686,7 +2715,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/admin/bakers/:id", requireAdmin, async (req, res) => {
+  app.delete("/api/admin/bakers/:id", requireSuperAdmin, async (req, res) => {
     const baker = await storage.getBaker(req.params.id);
     if (!baker) {
       return res.status(404).json({ message: "Baker not found" });
@@ -2698,7 +2727,7 @@ export async function registerRoutes(
     res.json({ message: "Baker deleted" });
   });
 
-  app.get("/api/admin/stats", requireAdmin, async (req, res) => {
+  app.get("/api/admin/stats", requireSuperAdmin, async (req, res) => {
     const allBakers = await storage.getAllBakers();
     const totalBakers = allBakers.length;
     const verifiedBakers = allBakers.filter(b => b.emailVerified).length;
@@ -2706,7 +2735,7 @@ export async function registerRoutes(
   });
 
   // Enhanced admin analytics
-  app.get("/api/admin/analytics", requireAdmin, async (req, res) => {
+  app.get("/api/admin/analytics", requireSuperAdmin, async (req, res) => {
     try {
       const allBakers = await storage.getAllBakers();
       const now = new Date();
@@ -2752,7 +2781,7 @@ export async function registerRoutes(
   });
 
   // Analytics Cockpit — Overview (Sections 1-4)
-  app.get("/api/admin/analytics/overview", requireAdmin, async (req, res) => {
+  app.get("/api/admin/analytics/overview", requireSuperAdmin, async (req, res) => {
     try {
       const now = new Date();
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -2912,7 +2941,7 @@ export async function registerRoutes(
   });
 
   // Analytics Cockpit — Trends (Section 5: 30 daily buckets)
-  app.get("/api/admin/analytics/trends", requireAdmin, async (req, res) => {
+  app.get("/api/admin/analytics/trends", requireSuperAdmin, async (req, res) => {
     try {
       const now = new Date();
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -2979,7 +3008,7 @@ export async function registerRoutes(
   });
 
   // Admin payment overview
-  app.get("/api/admin/payments", requireAdmin, async (req, res) => {
+  app.get("/api/admin/payments", requireSuperAdmin, async (req, res) => {
     try {
       const allPayments = await storage.getAllQuotePayments();
       const allBakers = await storage.getAllBakers();
@@ -3043,7 +3072,7 @@ export async function registerRoutes(
   });
 
   // Financial analytics endpoint for admin
-  app.get("/api/admin/financials", requireAdmin, async (req, res) => {
+  app.get("/api/admin/financials", requireSuperAdmin, async (req, res) => {
     try {
       const [allBakers, allPayments, allCommissions] = await Promise.all([
         storage.getAllBakers(),
@@ -3167,7 +3196,7 @@ export async function registerRoutes(
   });
 
   // Suspend/unsuspend baker
-  app.post("/api/admin/bakers/:id/suspend", requireAdmin, async (req, res) => {
+  app.post("/api/admin/bakers/:id/suspend", requireSuperAdmin, async (req, res) => {
     try {
       const { reason } = req.body;
       const baker = await storage.getBaker(req.params.id);
@@ -3191,7 +3220,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/admin/bakers/:id/unsuspend", requireAdmin, async (req, res) => {
+  app.post("/api/admin/bakers/:id/unsuspend", requireSuperAdmin, async (req, res) => {
     try {
       const baker = await storage.getBaker(req.params.id);
       if (!baker) {
@@ -3212,7 +3241,7 @@ export async function registerRoutes(
   });
 
   // Reset baker password (generates temporary password and emails it)
-  app.post("/api/admin/bakers/:id/reset-password", requireAdmin, async (req, res) => {
+  app.post("/api/admin/bakers/:id/reset-password", requireSuperAdmin, async (req, res) => {
     try {
       const baker = await storage.getBaker(req.params.id);
       if (!baker) {
@@ -3247,7 +3276,7 @@ export async function registerRoutes(
   });
 
   // Reset quote limit for baker
-  app.post("/api/admin/bakers/:id/reset-quote-limit", requireAdmin, async (req, res) => {
+  app.post("/api/admin/bakers/:id/reset-quote-limit", requireSuperAdmin, async (req, res) => {
     try {
       const baker = await storage.getBaker(req.params.id);
       if (!baker) {
@@ -3267,7 +3296,7 @@ export async function registerRoutes(
   });
 
   // Impersonation - login as another baker
-  app.post("/api/admin/bakers/:id/impersonate", requireAdmin, async (req, res) => {
+  app.post("/api/admin/bakers/:id/impersonate", requireSuperAdmin, async (req, res) => {
     try {
       const baker = await storage.getBaker(req.params.id);
       if (!baker) {
@@ -3314,7 +3343,7 @@ export async function registerRoutes(
   });
 
   // Get baker activity (leads, quotes, orders)
-  app.get("/api/admin/bakers/:id/activity", requireAdmin, async (req, res) => {
+  app.get("/api/admin/bakers/:id/activity", requireSuperAdmin, async (req, res) => {
     try {
       const baker = await storage.getBaker(req.params.id);
       if (!baker) {
@@ -3350,7 +3379,7 @@ export async function registerRoutes(
   });
 
   // Get email logs
-  app.get("/api/admin/email-logs", requireAdmin, async (req, res) => {
+  app.get("/api/admin/email-logs", requireSuperAdmin, async (req, res) => {
     try {
       const emailLogs = await storage.getAdminEmailLogs();
       res.json(emailLogs);
@@ -3361,7 +3390,7 @@ export async function registerRoutes(
   });
 
   // Resend onboarding email manually
-  app.post("/api/admin/bakers/:id/resend-email", requireAdmin, async (req, res) => {
+  app.post("/api/admin/bakers/:id/resend-email", requireSuperAdmin, async (req, res) => {
     try {
       const { emailDay, force } = req.body;
       const baker = await storage.getBaker(req.params.id);
@@ -3401,7 +3430,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/admin/onboarding-stats", requireAdmin, async (req, res) => {
+  app.get("/api/admin/onboarding-stats", requireSuperAdmin, async (req, res) => {
     try {
       const stats = await storage.getOnboardingEmailStats();
       const allBakers = await storage.getAllBakers();
@@ -3683,6 +3712,8 @@ Guidelines:
         return res.status(404).json({ message: "Ticket not found" });
       }
 
+      await logAdminAction(req.session.bakerId!, "TICKET_STATUS_CHANGE", req.params.id, { status, priority });
+
       res.json(ticket);
     } catch (error) {
       console.error("Update ticket error:", error);
@@ -3713,6 +3744,8 @@ Guidelines:
         content: content,
       });
 
+      await logAdminAction(adminId!, "TICKET_REPLY", ticketId);
+
       // Update ticket status to in_progress if it was open
       if (ticket.status === "open") {
         await storage.updateSupportTicket(ticketId, { status: "in_progress" });
@@ -3725,11 +3758,38 @@ Guidelines:
     }
   });
 
+  // Support admin: Get limited baker context for ticket resolution
+  app.get("/api/admin/support-tickets/:id/baker-context", requireAdmin, async (req, res) => {
+    try {
+      const ticket = await storage.getSupportTicket(req.params.id);
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+      const baker = await storage.getBaker(ticket.bakerId);
+      if (!baker) {
+        return res.status(404).json({ message: "Baker not found" });
+      }
+      res.json({
+        plan: baker.plan,
+        stripeConnectedAt: baker.stripeConnectOnboarded,
+        emailVerified: !!baker.emailVerified,
+        createdAt: baker.createdAt,
+        businessName: baker.businessName,
+        email: baker.email,
+        firstQuoteSentAt: baker.firstQuoteSentAt,
+        firstPaymentProcessedAt: baker.firstPaymentProcessedAt,
+      });
+    } catch (error) {
+      console.error("Baker context error:", error);
+      res.status(500).json({ message: "Failed to get baker context" });
+    }
+  });
+
   // ============================================
   // RETENTION EMAIL ADMIN ROUTES
   // ============================================
   
-  app.get("/api/admin/retention/templates", requireAdmin, async (req, res) => {
+  app.get("/api/admin/retention/templates", requireSuperAdmin, async (req, res) => {
     try {
       const { getRetentionTemplates } = await import("./retention-admin");
       const templates = await getRetentionTemplates();
@@ -3740,7 +3800,7 @@ Guidelines:
     }
   });
 
-  app.patch("/api/admin/retention/templates/:id", requireAdmin, async (req, res) => {
+  app.patch("/api/admin/retention/templates/:id", requireSuperAdmin, async (req, res) => {
     try {
       const { updateRetentionTemplate } = await import("./retention-admin");
       const template = await updateRetentionTemplate(req.params.id, req.body);
@@ -3751,7 +3811,7 @@ Guidelines:
     }
   });
 
-  app.get("/api/admin/retention/stats", requireAdmin, async (req, res) => {
+  app.get("/api/admin/retention/stats", requireSuperAdmin, async (req, res) => {
     try {
       const { getRetentionEmailStats } = await import("./retention-scheduler");
       const stats = await getRetentionEmailStats();
@@ -3762,7 +3822,7 @@ Guidelines:
     }
   });
 
-  app.get("/api/admin/retention/segments", requireAdmin, async (req, res) => {
+  app.get("/api/admin/retention/segments", requireSuperAdmin, async (req, res) => {
     try {
       const { getSegmentDistribution } = await import("./segmentation");
       const distribution = await getSegmentDistribution();
@@ -3773,7 +3833,7 @@ Guidelines:
     }
   });
 
-  app.post("/api/admin/retention/run", requireAdmin, async (req, res) => {
+  app.post("/api/admin/retention/run", requireSuperAdmin, async (req, res) => {
     try {
       const { runRetentionEmailScheduler } = await import("./retention-scheduler");
       const result = await runRetentionEmailScheduler();
@@ -3785,7 +3845,7 @@ Guidelines:
   });
 
   // Admin: Preview announcement email HTML
-  app.get("/api/admin/announcement/preview", requireAdmin, async (req, res) => {
+  app.get("/api/admin/announcement/preview", requireSuperAdmin, async (req, res) => {
     try {
       const html = getAnnouncementEmailHtml("{{Baker Name}}");
       res.json({ html });
@@ -3795,7 +3855,7 @@ Guidelines:
   });
 
   // Admin: Send announcement email to all bakers
-  app.post("/api/admin/announcement/send", requireAdmin, async (req, res) => {
+  app.post("/api/admin/announcement/send", requireSuperAdmin, async (req, res) => {
     try {
       const allBakers = await storage.getAllBakers();
       const activeBakers = allBakers.filter(b => !b.suspended);
@@ -3821,7 +3881,7 @@ Guidelines:
   });
 
   // Admin: Send test announcement email to admin only
-  app.post("/api/admin/announcement/test", requireAdmin, async (req, res) => {
+  app.post("/api/admin/announcement/test", requireSuperAdmin, async (req, res) => {
     try {
       const baker = await storage.getBaker(req.session.bakerId!);
       if (!baker) return res.status(404).json({ message: "Baker not found" });
@@ -3993,13 +4053,8 @@ Guidelines:
   });
 
   // Get survey responses (admin only)
-  app.get("/api/admin/survey-responses", requireAuth, async (req, res) => {
+  app.get("/api/admin/survey-responses", requireSuperAdmin, async (req, res) => {
     try {
-      const baker = await storage.getBaker(req.session.bakerId!);
-      if (!baker || baker.role !== "super_admin") {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-
       const responses = await storage.getAllSurveyResponses();
       res.json(responses);
     } catch (error) {
@@ -4033,7 +4088,7 @@ Guidelines:
     }
   });
 
-  app.get("/api/admin/affiliate-requests", requireAdmin, async (req, res) => {
+  app.get("/api/admin/affiliate-requests", requireSuperAdmin, async (req, res) => {
     try {
       const status = req.query.status as string | undefined;
       const requests = await storage.getAffiliateRequests(status);
@@ -4044,7 +4099,7 @@ Guidelines:
     }
   });
 
-  app.post("/api/admin/affiliate-requests/:id/approve", requireAdmin, async (req, res) => {
+  app.post("/api/admin/affiliate-requests/:id/approve", requireSuperAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       const { adminNotes } = req.body;
@@ -4063,7 +4118,7 @@ Guidelines:
     }
   });
 
-  app.post("/api/admin/affiliate-requests/:id/deny", requireAdmin, async (req, res) => {
+  app.post("/api/admin/affiliate-requests/:id/deny", requireSuperAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       const { adminNotes } = req.body;
@@ -4188,7 +4243,7 @@ Guidelines:
   });
 
   // Admin: Get all affiliates with stats
-  app.get("/api/admin/affiliates", requireAdmin, async (req, res) => {
+  app.get("/api/admin/affiliates", requireSuperAdmin, async (req, res) => {
     try {
       const affiliates = await storage.getAffiliates();
       const affiliatesWithStats = await Promise.all(
@@ -4209,7 +4264,7 @@ Guidelines:
   });
 
   // Admin: Enable baker as affiliate
-  app.post("/api/admin/affiliates/:bakerId/enable", requireAdmin, async (req, res) => {
+  app.post("/api/admin/affiliates/:bakerId/enable", requireSuperAdmin, async (req, res) => {
     try {
       const { bakerId } = req.params;
       const { commissionRate, commissionMonths } = req.body;
@@ -4244,7 +4299,7 @@ Guidelines:
   });
 
   // Admin: Disable affiliate
-  app.post("/api/admin/affiliates/:bakerId/disable", requireAdmin, async (req, res) => {
+  app.post("/api/admin/affiliates/:bakerId/disable", requireSuperAdmin, async (req, res) => {
     try {
       const updated = await storage.disableAffiliate(req.params.bakerId);
       res.json({ ...updated, passwordHash: undefined });
@@ -4255,7 +4310,7 @@ Guidelines:
   });
 
   // Admin: Update affiliate settings
-  app.patch("/api/admin/affiliates/:bakerId", requireAdmin, async (req, res) => {
+  app.patch("/api/admin/affiliates/:bakerId", requireSuperAdmin, async (req, res) => {
     try {
       const { commissionRate, commissionMonths } = req.body;
       const updated = await storage.updateBaker(req.params.bakerId, {
@@ -4270,7 +4325,7 @@ Guidelines:
   });
 
   // Admin: Get all commissions
-  app.get("/api/admin/affiliates/commissions", requireAdmin, async (req, res) => {
+  app.get("/api/admin/affiliates/commissions", requireSuperAdmin, async (req, res) => {
     try {
       const affiliates = await storage.getAffiliates();
       const allCommissions = [];
@@ -4293,7 +4348,7 @@ Guidelines:
   });
 
   // Admin: Mark commission as paid
-  app.post("/api/admin/affiliates/commissions/:commissionId/payout", requireAdmin, async (req, res) => {
+  app.post("/api/admin/affiliates/commissions/:commissionId/payout", requireSuperAdmin, async (req, res) => {
     try {
       const { commissionId } = req.params;
       const updated = await storage.updateCommissionStatus(commissionId, "paid", new Date());
@@ -4308,7 +4363,7 @@ Guidelines:
   });
 
   // Admin: Search affiliates
-  app.get("/api/admin/affiliates/search", requireAdmin, async (req, res) => {
+  app.get("/api/admin/affiliates/search", requireSuperAdmin, async (req, res) => {
     try {
       const q = ((req.query.q as string) || "").toLowerCase().trim();
       if (!q) {
