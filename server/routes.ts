@@ -7,7 +7,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { pool } from "./db";
 import connectPgSimple from "connect-pg-simple";
-import { sendNewLeadNotification, sendLeadConfirmationToCustomer, sendPasswordResetEmail, sendEmailVerification, sendQuoteNotification, sendOnboardingEmail, sendQuoteResponseNotification, sendAdminPasswordReset, sendPaymentReceivedNotification, sendAnnouncementEmail, getAnnouncementEmailHtml } from "./email";
+import { sendNewLeadNotification, sendLeadConfirmationToCustomer, sendPasswordResetEmail, sendEmailVerification, sendQuoteNotification, sendOnboardingEmail, sendQuoteResponseNotification, sendAdminPasswordReset, sendPaymentReceivedNotification, sendAnnouncementEmail, getAnnouncementEmailHtml, sendInvitationEmail } from "./email";
 import crypto from "crypto";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { db } from "./db";
@@ -100,11 +100,16 @@ function getPlatformFeePercent(plan: string): number {
   }
 }
 
-// Helper to get effective plan (checks survey trial)
-function getEffectivePlan(baker: { plan: string; surveyTrialEndDate?: Date | null }): string {
-  // Check if survey trial is active
+// Helper to get effective plan (checks survey trial, gifted plan, subscription)
+function getEffectivePlan(baker: { plan: string; surveyTrialEndDate?: Date | null; giftedPlan?: string | null; giftedPlanExpiresAt?: Date | null }): string {
   if (baker.surveyTrialEndDate && new Date(baker.surveyTrialEndDate) > new Date()) {
-    return "pro"; // Survey trial gives Pro access
+    return "pro";
+  }
+  if (baker.plan && baker.plan !== "free") {
+    return baker.plan;
+  }
+  if (baker.giftedPlan && baker.giftedPlanExpiresAt && new Date(baker.giftedPlanExpiresAt) > new Date()) {
+    return baker.giftedPlan;
   }
   return baker.plan || "free";
 }
@@ -176,9 +181,19 @@ export async function registerRoutes(
         email: z.string().email(),
         password: z.string().min(8),
         businessName: z.string().min(2),
+        inviteToken: z.string().optional(),
       });
 
       const data = schema.parse(req.body);
+
+      let invitation: any = null;
+      if (data.inviteToken) {
+        invitation = await storage.getInvitationByToken(data.inviteToken);
+        if (!invitation || invitation.status !== "pending" || new Date(invitation.expiresAt) < new Date()) {
+          return res.status(400).json({ message: "Invalid or expired invitation" });
+        }
+        data.email = invitation.email;
+      }
 
       const existingBaker = await storage.getBakerByEmail(data.email);
       if (existingBaker) {
@@ -240,6 +255,29 @@ export async function registerRoutes(
         await storage.createBakerReferral({
           referringBakerId: bakerReferralData.referredByBakerId,
           referredBakerId: baker.id,
+        });
+      }
+
+      // Handle invitation acceptance
+      if (invitation) {
+        const updateData: any = {
+          role: invitation.role,
+          invitedByAdminId: invitation.invitedByAdminId,
+        };
+        if (invitation.giftedPlan) {
+          updateData.giftedPlan = invitation.giftedPlan;
+          updateData.giftedPlanExpiresAt = new Date(Date.now() + (invitation.giftedPlanDurationMonths || 1) * 30 * 24 * 60 * 60 * 1000);
+        }
+        await storage.updateBaker(baker.id, updateData);
+        await storage.updateInvitation(invitation.id, {
+          status: "accepted",
+          acceptedByBakerId: baker.id,
+          acceptedAt: new Date(),
+        });
+        await logAdminAction(invitation.invitedByAdminId, "INVITATION_ACCEPTED", baker.id, {
+          email: invitation.email,
+          role: invitation.role,
+          giftedPlan: invitation.giftedPlan,
         });
       }
 
@@ -319,6 +357,25 @@ export async function registerRoutes(
       res.clearCookie("connect.sid");
       res.json({ message: "Logged out" });
     });
+  });
+
+  // Public invitation validation
+  app.get("/api/auth/invitation/:token", async (req, res) => {
+    try {
+      const invitation = await storage.getInvitationByToken(req.params.token);
+      if (!invitation || invitation.status !== "pending" || new Date(invitation.expiresAt) < new Date()) {
+        return res.json({ valid: false });
+      }
+      res.json({
+        valid: true,
+        email: invitation.email,
+        role: invitation.role,
+        giftedPlan: invitation.giftedPlan,
+        giftedPlanDurationMonths: invitation.giftedPlanDurationMonths,
+      });
+    } catch (error) {
+      res.json({ valid: false });
+    }
   });
 
   // Forgot Password
@@ -3466,6 +3523,96 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Get onboarding stats error:", error);
       res.status(500).json({ message: "Failed to get onboarding stats" });
+    }
+  });
+
+  // Admin Invitation Routes
+  app.post("/api/admin/invitations", requireSuperAdmin, async (req, res) => {
+    try {
+      const schema = z.object({
+        email: z.string().email(),
+        role: z.enum(["baker", "admin", "super_admin"]).default("baker"),
+        giftedPlan: z.enum(["basic", "pro"]).nullable().optional(),
+        giftedPlanDurationMonths: z.number().min(1).max(12).default(1),
+      });
+      const data = schema.parse(req.body);
+
+      const existingBaker = await storage.getBakerByEmail(data.email);
+      if (existingBaker) {
+        return res.status(400).json({ message: "This email is already registered" });
+      }
+
+      const existingInvitation = await storage.getInvitationByEmail(data.email);
+      if (existingInvitation && existingInvitation.status === "pending") {
+        return res.status(400).json({ message: "A pending invitation already exists for this email" });
+      }
+
+      const token = crypto.randomBytes(32).toString("hex");
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+      const invitation = await storage.createInvitation({
+        email: data.email,
+        role: data.role,
+        giftedPlan: data.giftedPlan || null,
+        giftedPlanDurationMonths: data.giftedPlan ? data.giftedPlanDurationMonths : null,
+        token,
+        expiresAt,
+        invitedByAdminId: req.session.bakerId!,
+      });
+
+      const baseUrl = `https://${req.get("host")}`;
+      const inviteLink = `${baseUrl}/signup?invite=${token}`;
+
+      try {
+        await sendInvitationEmail(data.email, inviteLink, data.role, data.giftedPlan || null, data.giftedPlan ? data.giftedPlanDurationMonths : null);
+      } catch (emailError) {
+        console.error("Failed to send invitation email:", emailError);
+      }
+
+      await logAdminAction(req.session.bakerId!, "INVITATION_SENT", invitation.id, {
+        email: data.email,
+        role: data.role,
+        giftedPlan: data.giftedPlan || null,
+      });
+
+      res.json(invitation);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      console.error("Create invitation error:", error);
+      res.status(500).json({ message: "Failed to create invitation" });
+    }
+  });
+
+  app.get("/api/admin/invitations", requireSuperAdmin, async (req, res) => {
+    try {
+      const allInvitations = await storage.getInvitations();
+      res.json(allInvitations);
+    } catch (error) {
+      console.error("Get invitations error:", error);
+      res.status(500).json({ message: "Failed to get invitations" });
+    }
+  });
+
+  app.delete("/api/admin/invitations/:id", requireSuperAdmin, async (req, res) => {
+    try {
+      const invitations = await storage.getInvitations();
+      const invitation = invitations.find(i => i.id === req.params.id);
+      if (!invitation) {
+        return res.status(404).json({ message: "Invitation not found" });
+      }
+      if (invitation.status !== "pending") {
+        return res.status(400).json({ message: "Only pending invitations can be cancelled" });
+      }
+      await storage.updateInvitation(req.params.id, { status: "cancelled" });
+      await logAdminAction(req.session.bakerId!, "INVITATION_CANCELLED", req.params.id, {
+        email: invitation.email,
+      });
+      res.json({ message: "Invitation cancelled" });
+    } catch (error) {
+      console.error("Cancel invitation error:", error);
+      res.status(500).json({ message: "Failed to cancel invitation" });
     }
   });
 

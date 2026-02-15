@@ -1,12 +1,14 @@
+import { useState, useEffect } from "react";
 import { Link, Redirect } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Cake, Mail, Lock, Building2, Loader2 } from "lucide-react";
+import { Cake, Mail, Lock, Building2, Loader2, Gift, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -18,8 +20,19 @@ const signupSchema = z.object({
 
 type SignupForm = z.infer<typeof signupSchema>;
 
+interface InvitationData {
+  valid: boolean;
+  email?: string;
+  role?: string;
+  giftedPlan?: string | null;
+  giftedPlanDurationMonths?: number | null;
+}
+
 export default function SignupPage() {
   const { register, isRegistering, registerError, isAuthenticated, isLoading } = useAuth();
+  const [inviteToken] = useState(() => new URLSearchParams(window.location.search).get("invite"));
+  const [inviteData, setInviteData] = useState<InvitationData | null>(null);
+  const [inviteLoading, setInviteLoading] = useState(!!inviteToken);
 
   const form = useForm<SignupForm>({
     resolver: zodResolver(signupSchema),
@@ -30,11 +43,31 @@ export default function SignupPage() {
     },
   });
 
+  useEffect(() => {
+    if (!inviteToken) return;
+    fetch(`/api/auth/invitation/${inviteToken}`)
+      .then(res => res.json())
+      .then((data: InvitationData) => {
+        setInviteData(data);
+        if (data.valid && data.email) {
+          form.setValue("email", data.email);
+        }
+        setInviteLoading(false);
+      })
+      .catch(() => {
+        setInviteData({ valid: false });
+        setInviteLoading(false);
+      });
+  }, [inviteToken]);
+
   const onSubmit = (data: SignupForm) => {
-    register(data);
+    register({
+      ...data,
+      ...(inviteToken && inviteData?.valid ? { inviteToken } : {}),
+    });
   };
 
-  if (isLoading) {
+  if (isLoading || inviteLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -45,6 +78,8 @@ export default function SignupPage() {
   if (isAuthenticated) {
     return <Redirect to="/dashboard" />;
   }
+
+  const hasValidInvite = inviteToken && inviteData?.valid;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -61,8 +96,33 @@ export default function SignupPage() {
       <main className="flex-1 flex items-center justify-center p-6">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">Create your account</CardTitle>
-            <CardDescription>Start managing leads and quotes for your bakery</CardDescription>
+            <CardTitle className="text-2xl font-bold">
+              {hasValidInvite ? "Welcome to BakerIQ" : "Create your account"}
+            </CardTitle>
+            <CardDescription>
+              {hasValidInvite
+                ? "Complete your registration below"
+                : "Start managing leads and quotes for your bakery"}
+            </CardDescription>
+            {hasValidInvite && (
+              <div className="flex flex-col items-center gap-2 pt-2">
+                <Badge variant="secondary" className="gap-1.5" data-testid="badge-invited">
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  You've been invited!
+                </Badge>
+                {inviteData?.giftedPlan && inviteData?.giftedPlanDurationMonths && (
+                  <Badge variant="outline" className="gap-1.5" data-testid="badge-gifted-plan">
+                    <Gift className="h-3.5 w-3.5" />
+                    {inviteData.giftedPlanDurationMonths} month{inviteData.giftedPlanDurationMonths > 1 ? "s" : ""} of {inviteData.giftedPlan.charAt(0).toUpperCase() + inviteData.giftedPlan.slice(1)} plan included
+                  </Badge>
+                )}
+              </div>
+            )}
+            {inviteToken && !inviteData?.valid && (
+              <p className="text-sm text-destructive pt-2" data-testid="text-invite-invalid">
+                This invitation link is invalid or has expired. You can still create a regular account below.
+              </p>
+            )}
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -105,6 +165,7 @@ export default function SignupPage() {
                             type="email"
                             placeholder="you@example.com"
                             className="pl-10"
+                            disabled={!!hasValidInvite}
                             data-testid="input-email"
                           />
                         </div>

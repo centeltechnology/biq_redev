@@ -488,6 +488,224 @@ const DEFAULT_ASSUMPTIONS = {
   stripeFee: 2.9,
 };
 
+function InvitationsTab() {
+  const { toast } = useToast();
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("baker");
+  const [giftedPlan, setGiftedPlan] = useState("none");
+  const [giftedDuration, setGiftedDuration] = useState(1);
+
+  const { data: allInvitations, isLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/invitations"],
+  });
+
+  const sendInviteMutation = useMutation({
+    mutationFn: async () => {
+      const body: any = {
+        email: inviteEmail,
+        role: inviteRole,
+      };
+      if (giftedPlan !== "none") {
+        body.giftedPlan = giftedPlan;
+        body.giftedPlanDurationMonths = giftedDuration;
+      }
+      const res = await apiRequest("POST", "/api/admin/invitations", body);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Invitation sent", description: `Invitation email sent to ${inviteEmail}` });
+      setInviteEmail("");
+      setInviteRole("baker");
+      setGiftedPlan("none");
+      setGiftedDuration(1);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/invitations"] });
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to send invitation", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const cancelInviteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("DELETE", `/api/admin/invitations/${id}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Invitation cancelled" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/invitations"] });
+    },
+    onError: () => {
+      toast({ title: "Failed to cancel invitation", variant: "destructive" });
+    },
+  });
+
+  const getStatusBadge = (status: string, expiresAt: string) => {
+    if (status === "pending" && new Date(expiresAt) < new Date()) {
+      return <Badge variant="destructive">Expired</Badge>;
+    }
+    switch (status) {
+      case "pending":
+        return <Badge variant="outline" className="bg-yellow-50 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300">Pending</Badge>;
+      case "accepted":
+        return <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300">Accepted</Badge>;
+      case "cancelled":
+        return <Badge variant="secondary">Cancelled</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <UserPlus className="h-5 w-5" />
+            Send Invitation
+          </CardTitle>
+          <CardDescription>Invite new bakers to join BakerIQ with an optional gifted plan</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-3 items-end flex-wrap">
+            <div className="flex-1 min-w-[200px]">
+              <label className="text-sm font-medium mb-1 block">Email</label>
+              <Input
+                type="email"
+                placeholder="baker@example.com"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                data-testid="input-invite-email"
+              />
+            </div>
+            <div className="w-[140px]">
+              <label className="text-sm font-medium mb-1 block">Role</label>
+              <Select value={inviteRole} onValueChange={setInviteRole}>
+                <SelectTrigger data-testid="select-invite-role">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="baker">Baker</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="super_admin">Super Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-[140px]">
+              <label className="text-sm font-medium mb-1 block">Gifted Plan</label>
+              <Select value={giftedPlan} onValueChange={setGiftedPlan}>
+                <SelectTrigger data-testid="select-gifted-plan">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="basic">Basic</SelectItem>
+                  <SelectItem value="pro">Pro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {giftedPlan !== "none" && (
+              <div className="w-[120px]">
+                <label className="text-sm font-medium mb-1 block">Months</label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={12}
+                  value={giftedDuration}
+                  onChange={(e) => setGiftedDuration(Math.min(12, Math.max(1, parseInt(e.target.value) || 1)))}
+                  data-testid="input-gifted-duration"
+                />
+              </div>
+            )}
+            <Button
+              onClick={() => sendInviteMutation.mutate()}
+              disabled={sendInviteMutation.isPending || !inviteEmail}
+              data-testid="button-send-invite"
+            >
+              {sendInviteMutation.isPending ? (
+                <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Sending...</>
+              ) : (
+                <><Send className="mr-2 h-4 w-4" /> Send Invite</>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Invitations</CardTitle>
+          <CardDescription>{allInvitations?.length || 0} total invitations</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="p-6">
+              <Skeleton className="h-32 w-full" />
+            </div>
+          ) : !allInvitations?.length ? (
+            <div className="p-6 text-center text-muted-foreground">No invitations sent yet</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Gifted Plan</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Sent</TableHead>
+                  <TableHead>Expires</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {allInvitations.map((inv: any) => (
+                  <TableRow key={inv.id}>
+                    <TableCell className="font-medium">{inv.email}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">
+                        {inv.role === "super_admin" ? "Super Admin" : inv.role.charAt(0).toUpperCase() + inv.role.slice(1)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {inv.giftedPlan ? (
+                        <Badge variant="outline" className="text-xs">
+                          {inv.giftedPlan.charAt(0).toUpperCase() + inv.giftedPlan.slice(1)} ({inv.giftedPlanDurationMonths}mo)
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(inv.status, inv.expiresAt)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {format(new Date(inv.createdAt), "MMM d, yyyy")}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {format(new Date(inv.expiresAt), "MMM d, yyyy")}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {inv.status === "pending" && new Date(inv.expiresAt) >= new Date() && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => cancelInviteMutation.mutate(inv.id)}
+                          disabled={cancelInviteMutation.isPending}
+                          data-testid={`button-cancel-invite-${inv.id}`}
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Cancel
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function FinancialsTab() {
   const { data: financials, isLoading } = useQuery<FinancialData>({
     queryKey: ["/api/admin/financials"],
@@ -1770,7 +1988,7 @@ export default function AdminDashboard() {
       </div>
 
       <Tabs defaultValue="accounts" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-8 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-9 lg:w-auto lg:inline-flex">
           <TabsTrigger value="accounts" className="gap-2" data-testid="tab-accounts">
             <Users className="h-4 w-4" />
             <span className="hidden sm:inline">Accounts</span>
@@ -1798,6 +2016,10 @@ export default function AdminDashboard() {
           <TabsTrigger value="affiliates" className="gap-2" data-testid="tab-affiliates">
             <Share2 className="h-4 w-4" />
             <span className="hidden sm:inline">Affiliates</span>
+          </TabsTrigger>
+          <TabsTrigger value="invitations" className="gap-2" data-testid="tab-invitations">
+            <UserPlus className="h-4 w-4" />
+            <span className="hidden sm:inline">Invites</span>
           </TabsTrigger>
           <TabsTrigger value="financials" className="gap-2" data-testid="tab-financials">
             <Calculator className="h-4 w-4" />
@@ -3039,6 +3261,11 @@ export default function AdminDashboard() {
         {/* AFFILIATES TAB */}
         <TabsContent value="affiliates" className="space-y-4">
           <AffiliatesTab />
+        </TabsContent>
+
+        {/* INVITATIONS TAB */}
+        <TabsContent value="invitations" className="space-y-4">
+          <InvitationsTab />
         </TabsContent>
 
         {/* FINANCIALS TAB */}

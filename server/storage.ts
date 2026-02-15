@@ -49,6 +49,9 @@ import {
   affiliateRequests,
   type AffiliateRequest,
   type InsertAffiliateRequest,
+  invitations,
+  type Invitation,
+  type InsertInvitation,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql, or, ilike, isNull } from "drizzle-orm";
@@ -216,6 +219,13 @@ export interface IStorage {
   getAffiliateRequests(status?: string): Promise<AffiliateRequest[]>;
   getAffiliateRequest(id: string): Promise<AffiliateRequest | undefined>;
   updateAffiliateRequest(id: string, updates: Partial<AffiliateRequest>): Promise<AffiliateRequest | undefined>;
+
+  // Invitations
+  createInvitation(invitation: InsertInvitation): Promise<Invitation>;
+  getInvitations(): Promise<Invitation[]>;
+  getInvitationByToken(token: string): Promise<Invitation | undefined>;
+  getInvitationByEmail(email: string): Promise<Invitation | undefined>;
+  updateInvitation(id: string, data: Partial<Invitation>): Promise<Invitation | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1288,6 +1298,31 @@ export class DatabaseStorage implements IStorage {
   async updateAffiliateRequest(id: string, updates: Partial<AffiliateRequest>): Promise<AffiliateRequest | undefined> {
     const [updated] = await db.update(affiliateRequests).set(updates).where(eq(affiliateRequests.id, id)).returning();
     return updated;
+  }
+
+  // Invitations
+  async createInvitation(invitation: InsertInvitation): Promise<Invitation> {
+    const [created] = await db.insert(invitations).values(invitation).returning();
+    return created;
+  }
+
+  async getInvitations(): Promise<Invitation[]> {
+    return db.select().from(invitations).orderBy(desc(invitations.createdAt));
+  }
+
+  async getInvitationByToken(token: string): Promise<Invitation | undefined> {
+    const [invitation] = await db.select().from(invitations).where(eq(invitations.token, token));
+    return invitation || undefined;
+  }
+
+  async getInvitationByEmail(email: string): Promise<Invitation | undefined> {
+    const [invitation] = await db.select().from(invitations).where(eq(invitations.email, email));
+    return invitation || undefined;
+  }
+
+  async updateInvitation(id: string, data: Partial<Invitation>): Promise<Invitation | undefined> {
+    const [updated] = await db.update(invitations).set(data).where(eq(invitations.id, id)).returning();
+    return updated || undefined;
   }
 }
 

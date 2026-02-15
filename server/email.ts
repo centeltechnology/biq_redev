@@ -1395,6 +1395,87 @@ Thank you for being part of the BakerIQ community!
 `;
 }
 
+export async function sendInvitationEmail(
+  to: string,
+  inviteLink: string,
+  role: string,
+  giftedPlan: string | null,
+  giftedPlanDurationMonths: number | null,
+): Promise<boolean> {
+  const planDetails = giftedPlan && giftedPlanDurationMonths
+    ? `<p style="background: #fff3e0; border: 1px solid #ffe0b2; padding: 12px; border-radius: 6px; margin: 16px 0;">
+        As part of this invitation, you'll receive <strong>${giftedPlanDurationMonths} month${giftedPlanDurationMonths > 1 ? "s" : ""}</strong> of our <strong>${giftedPlan.charAt(0).toUpperCase() + giftedPlan.slice(1)} plan</strong> at no cost!
+      </p>`
+    : "";
+
+  const roleLabel = role === "super_admin" ? "Super Admin" : role.charAt(0).toUpperCase() + role.slice(1);
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #E91E63, #F06292); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px; }
+    .cta { display: inline-block; background: #E91E63; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>You're Invited to BakerIQ</h1>
+    </div>
+    <div class="content">
+      <p>Hi there,</p>
+      <p>You've been invited to join <strong>BakerIQ</strong> as a <strong>${roleLabel}</strong>. BakerIQ is a lead capture and quote management platform designed specifically for custom cake bakers.</p>
+      <p>With BakerIQ you can:</p>
+      <ul>
+        <li>Capture leads with a customizable cake pricing calculator</li>
+        <li>Create and send professional quotes</li>
+        <li>Accept payments through Stripe</li>
+        <li>Manage orders and customer relationships</li>
+      </ul>
+      ${planDetails}
+      <p style="text-align: center;">
+        <a href="${inviteLink}" class="cta">Accept Invitation</a>
+      </p>
+      <p style="color: #666; font-size: 14px;">This invitation link will expire in 7 days.</p>
+    </div>
+    <div class="footer">
+      <p>This email was sent by <a href="https://bakeriq.app/" style="color: #E91E63; text-decoration: none;">BakerIQ</a></p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  const text = `You're Invited to BakerIQ
+
+Hi there,
+
+You've been invited to join BakerIQ as a ${roleLabel}.
+
+BakerIQ is a lead capture and quote management platform designed specifically for custom cake bakers.
+
+${giftedPlan && giftedPlanDurationMonths ? `You'll receive ${giftedPlanDurationMonths} month(s) of the ${giftedPlan.charAt(0).toUpperCase() + giftedPlan.slice(1)} plan at no cost!` : ""}
+
+Accept your invitation here: ${inviteLink}
+
+This invitation link will expire in 7 days.
+`;
+
+  return sendEmail({
+    to,
+    subject: "You've been invited to join BakerIQ",
+    html,
+    text,
+    senderType: "platform",
+  });
+}
+
 export async function sendAnnouncementEmail(
   to: string,
   bakerName: string,
