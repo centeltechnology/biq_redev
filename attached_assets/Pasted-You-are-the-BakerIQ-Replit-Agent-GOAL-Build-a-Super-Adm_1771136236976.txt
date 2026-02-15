@@ -1,0 +1,94 @@
+You are the BakerIQ Replit Agent.
+
+GOAL:
+Build a Super Admin Analytics dashboard focused on activation, revenue health, and retention.
+
+This is INTERNAL ONLY (admin view). Do not expose to bakers.
+
+CONSTRAINTS:
+- Keep UI simple and clean.
+- Reuse existing admin layout.
+- Use server-calculated aggregates (not heavy client calculations).
+- Avoid expensive queries; add lightweight daily aggregation if needed.
+- No third-party analytics tools.
+
+SECTION 1 — Activation Funnel (Core KPI View)
+
+Add a card showing:
+
+- Total signups (last 30 days)
+- % who connected Stripe (within 7 days)
+- % who sent first quote
+- % who processed first payment
+- Median time to Stripe connect (in days)
+
+Use existing fields:
+- stripeConnectedAt
+- firstQuoteSentAt
+- firstPaymentProcessedAt
+
+SECTION 2 — Revenue Health
+
+Add:
+
+- Total GMV (last 30 days)
+- Total platform revenue (subscriptions + transaction fees)
+- Active processors (processed payment in last 30 days)
+- Average GMV per active baker
+- Stripe connect rate (overall %)
+
+SECTION 3 — Retention Snapshot
+
+Add:
+
+- Bakers active in last 30 days
+- Bakers active in last 90 days
+- Churn rate (Basic + Pro separately if possible)
+- Median lifetime value (subscription only for now)
+
+SECTION 4 — Tier Distribution
+
+Add:
+
+- Free count
+- Basic count
+- Pro count
+- % breakdown by tier
+
+SECTION 5 — Growth Trend (Simple Chart)
+
+Add 30-day rolling chart for:
+
+- New signups
+- Stripe connections
+- Payments processed
+
+Simple line chart is fine.
+
+DATA IMPLEMENTATION NOTES:
+
+- If needed, create lightweight server endpoints:
+  GET /api/admin/analytics/overview
+  GET /api/admin/analytics/trends
+
+- Use server-side aggregation queries.
+- Add indexes if necessary.
+- Avoid scanning entire tables per request.
+- If performance becomes an issue, add a daily summary table.
+
+SECURITY:
+
+- Ensure requireAdmin middleware protects all analytics endpoints.
+- No leakage to non-admin users.
+
+DELIVERABLES:
+
+- List of files changed
+- Any new indexes or migrations
+- Query logic summary
+- Performance considerations
+- Example JSON response shape for each endpoint
+- Test plan verifying:
+  - Correct % calculations
+  - Correct 30-day window logic
+  - Admin-only access enforced

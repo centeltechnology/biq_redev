@@ -1,0 +1,96 @@
+You are the BakerIQ Replit Agent.
+
+GOAL:
+Implement a Super Admin Analytics cockpit by creating two endpoints and replacing the current Admin “Analytics” tab with 5 sections. Metrics must be defined precisely and calculated server-side via efficient SQL aggregation.
+
+ENDPOINTS:
+1) GET /api/admin/analytics/overview
+2) GET /api/admin/analytics/trends
+
+SECURITY:
+- Both routes must be protected by requireAdmin middleware.
+- Return 403 for non-admin.
+
+METRIC DEFINITIONS (MUST FOLLOW):
+
+TIME WINDOWS:
+- “30d” means last 30 *calendar* days from now (UTC).
+- Use UTC consistently.
+
+SECTION 1 — Activation Funnel (Cohort-based)
+Compute all funnel %’s using the same signup cohort:
+- cohort = bakers created in last 30d
+
+Return:
+- signups_30d: count(cohort)
+- stripe_connected_within_7d_pct:
+    numerator = count(cohort where stripeConnectedAt is not null AND stripeConnectedAt <= createdAt + interval '7 days')
+    denom = signups_30d
+- first_quote_within_14d_pct:
+    numerator = count(cohort where firstQuoteSentAt is not null AND firstQuoteSentAt <= createdAt + interval '14 days')
+- first_payment_within_30d_pct:
+    numerator = count(cohort where firstPaymentProcessedAt is not null AND firstPaymentProcessedAt <= createdAt + interval '30 days')
+- median_days_to_stripe_connect:
+    median of (stripeConnectedAt - createdAt) in days for cohort who connected within 7d (or all connected with a 30d cap)
+Also return raw counts for each numerator for debugging.
+
+SECTION 2 — Revenue Health (Last 30d)
+Define:
+- active_processors_30d = count(distinct bakerId with payment succeeded in last 30d)
+- gmv_30d = sum(payment amount) where succeeded/paid in last 30d
+- avg_gmv_per_active_processor_30d = gmv_30d / active_processors_30d (guard divide by zero)
+- stripe_connect_rate_overall = count(bakers with stripeConnectedAt not null) / count(all bakers)
+
+Platform revenue:
+- subscriptions_mrr_current: if available from your billing data; else return null and add TODO
+- transaction_fee_revenue_30d:
+   If actual fee capture exists, sum it.
+   If not, return an estimate labeled as “estimated” using blended_take_rate (configurable env var), e.g. GMV * 0.04.
+Return both the value and a flag { estimated: true/false }.
+
+SECTION 3 — Retention Snapshot
+Define “active” primarily as payment activity.
+Return:
+- active_bakers_30d = distinct bakers with succeeded payment in last 30d
+- active_bakers_90d = distinct bakers with succeeded payment in last 90d
+Churn by plan:
+- churn_basic_30d = cancellations in last 30d / basic_paid_at_start_of_period
+- churn_pro_30d = cancellations in last 30d / pro_paid_at_start_of_period
+If you lack subscription history to compute “start_of_period”, return churn as null and add TODO, but do NOT fake it.
+Median LTV:
+- If billing history exists: median total subscription revenue per baker
+- Else return “median_paid_tenure_months” if you can compute it, otherwise null.
+
+SECTION 4 — Tier Distribution (Current)
+Return:
+- free_count, basic_count, pro_count
+- free_pct, basic_pct, pro_pct (of total)
+
+SECTION 5 — Growth Trend (Trends Endpoint)
+GET /api/admin/analytics/trends returns an array of 30 daily buckets (UTC date):
+For each date:
+- date
+- signups
+- stripe_connections (stripeConnectedAt date)
+- payments_succeeded_count
+- gmv
+All computed server-side using GROUP BY date.
+
+FRONTEND:
+Replace current Admin Analytics tab content with 5 sections:
+- Activation Funnel (KPI cards)
+- Revenue Health (KPI cards)
+- Retention Snapshot (KPI cards)
+- Tier Distribution (counts + percent bars)
+- Growth Trend chart using Recharts
+
+PERFORMANCE:
+- Use SQL aggregation (COUNT, SUM, GROUP BY).
+- Add indexes where needed to prevent full table scans.
+- Avoid loading all records into JS.
+
+DELIVERABLES:
+- Files changed
+- Any migrations/indexes
+- Example JSON response shapes for both endpoints
+- Test plan validating cohort-based % calculations and admin-only access
