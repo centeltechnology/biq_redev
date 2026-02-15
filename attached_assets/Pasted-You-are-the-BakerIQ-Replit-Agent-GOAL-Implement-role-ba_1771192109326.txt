@@ -1,0 +1,74 @@
+You are the BakerIQ Replit Agent.
+
+GOAL:
+Implement role-based admin access with two roles: SUPER_ADMIN and ADMIN (Support/Ops).
+ADMIN must handle support tickets/support chat, but must NOT have access to admin analytics.
+
+CONTEXT:
+Support system already exists:
+- AI support chat for basic FAQs
+- Users can open a ticket for human support
+- Tickets connect to support chat in the admin panel
+
+REQUIREMENTS:
+
+1) Roles
+- Add role field to admin-capable user model (or users table if auth lives there).
+  Enum: SUPER_ADMIN, ADMIN
+- Migrate existing admin(s) to SUPER_ADMIN.
+- Future support staff should be ADMIN.
+
+2) Middleware
+- Implement/adjust:
+  - requireAdmin: allows ADMIN or SUPER_ADMIN (general admin access)
+  - requireSuperAdmin: SUPER_ADMIN only
+  - OPTIONAL helper: requireSupportAdmin (alias to requireAdmin) for support routes, for clarity
+
+3) HARD RULE: Analytics = SUPER_ADMIN ONLY
+- Any routes related to analytics dashboards, activation funnel, revenue health, retention snapshot,
+  trends endpoints, onboarding stats endpoints, etc. must use requireSuperAdmin.
+Examples (adjust to actual routes):
+  - /api/admin/analytics/*
+  - /api/admin/onboarding-stats
+  - /api/admin/analytics/overview
+  - /api/admin/analytics/trends
+
+- Admin UI:
+  - Hide/disable the Analytics tab/section entirely for ADMIN role.
+  - If ADMIN tries to navigate to analytics route directly, return 403 from server.
+
+4) Support/Tickets + Support Chat Permissions (ADMIN allowed)
+ADMIN must be able to:
+- View ticket list + ticket details
+- View full message thread (support chat)
+- Reply to ticket thread (admin-to-user messages)
+- Change ticket status (open/pending/resolved)
+- (If supported) assign ticket to self/another admin
+
+ADMIN can view LIMITED user context needed for support ONLY:
+- plan tier
+- stripeConnectedAt status (read-only)
+- basic account flags (email verified, createdAt)
+- last activity timestamps relevant to onboarding (read-only)
+IMPORTANT: Do NOT expose platform-wide metrics, aggregated GMV, total revenue, churn, etc.
+
+5) Admin UI Role Visibility
+- Add label in admin header: “Role: Admin” or “Role: Super Admin”
+- If ADMIN attempts restricted action, show toast: “Requires Super Admin access.”
+
+6) Audit Logging (Lightweight)
+Add admin audit log entries for:
+- TICKET_REPLY
+- TICKET_STATUS_CHANGE
+- (SUPER_ADMIN only) ROLE_CHANGE / ADMIN_CREATED / ADMIN_REMOVED
+
+Store: adminUserId, actionKey, targetId (ticketId or userId), timestamp.
+
+7) Deliverables
+- Files changed
+- Exact list of routes restricted to SUPER_ADMIN (especially analytics)
+- Confirmation ADMIN cannot access analytics UI or endpoints (403)
+- Test plan:
+  a) ADMIN can fully handle tickets
+  b) ADMIN cannot access analytics endpoints or UI
+  c) SUPER_ADMIN can access everything
