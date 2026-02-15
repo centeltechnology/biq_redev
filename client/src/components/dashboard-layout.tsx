@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Sparkles, Bell, CreditCard, Clock } from "lucide-react";
+import { Sparkles, Bell, CreditCard, Clock, FileText, Share2, Copy } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { OnboardingTour } from "@/components/onboarding-tour";
-import { StripeConnectModal } from "@/components/stripe-connect-modal";
+import { OnboardingChecklist } from "@/components/onboarding-checklist";
 import { SupportChat } from "@/components/support-chat";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -48,9 +47,6 @@ export function DashboardLayout({ children, title, actions }: DashboardLayoutPro
   const { isAuthenticated, isLoading, baker } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [stripeModalDismissed, setStripeModalDismissed] = useState(() => {
-    return sessionStorage.getItem("stripeConnectModalDismissed") === "true";
-  });
   const { snoozed, snooze: snoozeBanner } = useStripeBannerSnooze();
 
   useEffect(() => {
@@ -153,9 +149,7 @@ export function DashboardLayout({ children, title, actions }: DashboardLayoutPro
   };
 
   const needsStripeConnect = baker && !baker.stripeConnectedAt && baker.role !== "super_admin";
-  const showStripeModal = needsStripeConnect && !stripeModalDismissed;
-  const showStripeBanner = needsStripeConnect && stripeModalDismissed && !snoozed;
-  const showOnboardingTour = baker?.onboardingTourStatus === "pending" && (!needsStripeConnect || stripeModalDismissed);
+  const showStripeBanner = needsStripeConnect && !snoozed;
 
   useEffect(() => {
     if (showStripeBanner) {
@@ -168,15 +162,6 @@ export function DashboardLayout({ children, title, actions }: DashboardLayoutPro
       <div className="flex h-screen w-full">
         <AppSidebar />
         <div className="flex flex-col flex-1 min-w-0">
-          {baker && showStripeModal && (
-            <StripeConnectModal
-              baker={baker}
-              onDismiss={() => setStripeModalDismissed(true)}
-            />
-          )}
-          {showOnboardingTour && (
-            <OnboardingTour tourStatus={baker!.onboardingTourStatus} />
-          )}
           <header className="flex items-center justify-between gap-4 px-4 py-3 border-b bg-background sticky top-0 z-50">
             <div className="flex items-center gap-4">
               <SidebarTrigger data-testid="button-sidebar-toggle" />

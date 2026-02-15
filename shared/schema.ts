@@ -686,6 +686,8 @@ export const USER_ACTIVITY_EVENT_TYPES = [
   "order_completed",
   "featured_item_added",
   "featured_item_updated",
+  "onboarding_checklist_seen",
+  "first_quote_cta_used",
 ] as const;
 
 export type UserActivityEventType = typeof USER_ACTIVITY_EVENT_TYPES[number];

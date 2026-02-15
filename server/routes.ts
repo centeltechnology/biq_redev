@@ -672,6 +672,23 @@ export async function registerRoutes(
     }
   });
 
+  // Activity tracking endpoint (lightweight event logging)
+  app.post("/api/activity/track", requireAuth, async (req, res) => {
+    try {
+      const { eventType } = req.body;
+      if (!eventType) return res.status(400).json({ message: "eventType required" });
+      const validTypes: readonly string[] = USER_ACTIVITY_EVENT_TYPES;
+      if (!validTypes.includes(eventType)) {
+        return res.status(400).json({ message: "Invalid eventType" });
+      }
+      await trackEvent(req.session.bakerId!, eventType as UserActivityEventType, {});
+      res.json({ tracked: true });
+    } catch (error: any) {
+      console.error("Activity tracking error:", error);
+      res.status(500).json({ message: "Tracking failed" });
+    }
+  });
+
   // Dashboard Stats
   app.get("/api/dashboard/stats", requireAuth, async (req, res) => {
     const stats = await storage.getDashboardStats(req.session.bakerId!);
