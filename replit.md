@@ -100,6 +100,27 @@ Preferred communication style: Simple, everyday language.
 - **Retry Logic**: Failed emails are recorded and retried by scheduler; successful sends prevent duplicates
 - **Safety**: Skips admin accounts; feature flag prevents sends until explicitly enabled; payment timestamps only set on webhook-confirmed success
 
+### In-App Stripe Connect Onboarding (Soft Gate)
+- **First-run Modal**: Shows on first dashboard load if `stripeConnectedAt` is NULL and user is not admin
+  - Dismissable with "Not now" — stores dismissal in `sessionStorage` (per session only)
+  - "Connect Stripe" button routes to existing Stripe Connect onboarding flow
+  - Fires `POST /api/activation/stripe-prompt-shown` to track impression (once per day max via `stripePromptLastShownAt`)
+- **Sequencing**: Stripe modal fires before onboarding tour; tour waits until modal is dismissed or Stripe is connected
+- **Persistent Banner**: Shows on all authenticated pages after modal dismissed
+  - "Remind me later" snoozes for 24 hours via `localStorage` timestamp
+  - No permanent dismiss — returns after snooze period until Stripe connected
+  - "Connect Stripe" button triggers Stripe Connect flow
+- **Contextual Nudge**: Settings deposit section shows amber notice when Stripe not connected
+  - Server already blocks payment session creation without Stripe
+  - Quotes can be created/sent without Stripe (no nudge on quote actions)
+- **Success Toast**: After Stripe Connect return, shows "Stripe connected" toast once
+  - Uses `?stripe=connected` URL param + `stripeConnectedAt` server truth + `sessionStorage` guard
+  - Settings page handles `?connect=complete` return: invalidates auth session + shows toast
+- **Files**: `client/src/components/stripe-connect-modal.tsx`, `client/src/components/stripe-connect-nudge.tsx`, `client/src/components/dashboard-layout.tsx`
+
+### Future Feature Ideas
+- **Recurring Event Reminders** (planned for ~late March 2026): Track customer birthdays/anniversaries with `eventDate` and `eventType` on customers. Daily scheduler sends dual reminders (baker + customer) 4-6 weeks before the event. Drives repeat annual orders.
+
 ### Environment Variables Required
 - `DATABASE_URL`: PostgreSQL connection string
 - `SESSION_SECRET`: Secret for session encryption (optional in dev, defaults to dev key)

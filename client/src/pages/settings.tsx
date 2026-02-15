@@ -375,8 +375,22 @@ export default function SettingsPage() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("connect") === "complete") {
       queryClient.invalidateQueries({ queryKey: ["/api/stripe-connect/status"] });
-      toast({ title: "Stripe account connected!", description: "You can now accept payments from customers." });
-      window.history.replaceState({}, "", "/settings");
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
+      const alreadyShown = sessionStorage.getItem("stripeConnectToastShown");
+      if (!alreadyShown) {
+        toast({
+          title: "Stripe connected",
+          description: "You can now collect deposits and payments.",
+        });
+        sessionStorage.setItem("stripeConnectToastShown", "true");
+      }
+      const cleanParams = new URLSearchParams(window.location.search);
+      cleanParams.delete("connect");
+      cleanParams.delete("stripe");
+      const cleanUrl = cleanParams.toString()
+        ? `${window.location.pathname}?${cleanParams.toString()}`
+        : window.location.pathname;
+      window.history.replaceState({}, "", cleanUrl);
     } else if (params.get("connect") === "refresh") {
       generateOnboardingLinkMutation.mutate();
     }
@@ -1244,6 +1258,12 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {!connectStatus?.onboarded && (
+              <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400 p-3 rounded-md mb-4" data-testid="notice-stripe-required-deposits">
+                <CreditCard className="h-4 w-4 shrink-0" />
+                <span>Connect Stripe above to collect deposits and payments from customers.</span>
+              </div>
+            )}
             <Form {...paymentForm}>
               <form
                 onSubmit={paymentForm.handleSubmit((data) =>

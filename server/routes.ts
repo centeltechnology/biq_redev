@@ -642,6 +642,36 @@ export async function registerRoutes(
     }
   });
 
+  // Stripe prompt tracking (once per day max)
+  app.post("/api/activation/stripe-prompt-shown", requireAuth, async (req, res) => {
+    try {
+      const baker = await storage.getBaker(req.session.bakerId!);
+      if (!baker) return res.status(404).json({ message: "Baker not found" });
+
+      if (baker.stripeConnectedAt) {
+        return res.json({ recorded: false });
+      }
+
+      const now = new Date();
+      const lastShown = baker.stripePromptLastShownAt;
+      if (lastShown) {
+        const lastShownDate = new Date(lastShown);
+        if (lastShownDate.toDateString() === now.toDateString()) {
+          return res.json({ recorded: false });
+        }
+      }
+
+      await storage.updateBaker(req.session.bakerId!, {
+        stripePromptLastShownAt: now,
+      });
+
+      res.json({ recorded: true });
+    } catch (error: any) {
+      console.error("Stripe prompt tracking error:", error);
+      res.status(500).json({ message: "Tracking failed" });
+    }
+  });
+
   // Dashboard Stats
   app.get("/api/dashboard/stats", requireAuth, async (req, res) => {
     const stats = await storage.getDashboardStats(req.session.bakerId!);
@@ -2140,7 +2170,7 @@ export async function registerRoutes(
       const accountLink = await stripe.accountLinks.create({
         account: baker.stripeConnectAccountId,
         refresh_url: `${baseUrl}/settings?tab=payments&connect=refresh`,
-        return_url: `${baseUrl}/settings?tab=payments&connect=complete`,
+        return_url: `${baseUrl}/settings?tab=payments&connect=complete&stripe=connected`,
         type: "account_onboarding",
       });
 
