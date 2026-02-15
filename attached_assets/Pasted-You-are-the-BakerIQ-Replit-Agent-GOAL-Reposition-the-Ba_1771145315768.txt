@@ -1,0 +1,121 @@
+You are the BakerIQ Replit Agent.
+
+GOAL:
+Reposition the BakerIQ front page to align with the new strategy:
+BakerIQ is revenue infrastructure that reduces administrative chaos for serious treat makers.
+
+Tone:
+Calm, direct, professional.
+Not hypey.
+Not fluffy.
+Not beginner-focused.
+
+Target Audience:
+Growth-oriented and established treat makers (C & D).
+Not hobbyists.
+
+----------------------------------------
+1) HERO SECTION REWRITE
+----------------------------------------
+
+Replace current hero content with:
+
+Headline:
+Stop running your baking business like a secretary.
+
+Subheadline:
+Share one link. Send professional quotes. Collect deposits automatically.
+Spend less time managing orders — and more time baking.
+
+Primary CTA:
+Start Free
+
+Secondary CTA:
+See How It Works
+
+----------------------------------------
+2) PROBLEM SECTION
+----------------------------------------
+
+Add section titled:
+The Problem
+
+Bullet points:
+- Pricing in DMs
+- Chasing deposits
+- Manual order tracking
+- Guessing your monthly revenue
+- Spending more time managing than baking
+
+Keep tone matter-of-fact.
+
+----------------------------------------
+3) THE UPGRADE SECTION
+----------------------------------------
+
+Title:
+The Upgrade
+
+Bullet points:
+- One pricing link
+- Clean, branded quotes
+- Automatic deposits through Stripe
+- Organized customer records
+- Real revenue visibility
+
+Short, clear sentences.
+
+----------------------------------------
+4) STRIPE POSITIONING
+----------------------------------------
+
+Add small section:
+
+Get Paid Like a Professional
+
+Copy:
+Connect your own Stripe account and collect deposits and payments automatically.
+Money goes directly to your bank.
+No chasing.
+No confusion.
+
+----------------------------------------
+5) QR CODE / DISTRIBUTION SECTION
+----------------------------------------
+
+Title:
+Share Anywhere
+
+Copy:
+Download your QR code and add it to packaging, pop-ups, or business cards.
+Let customers build their order before they even message you.
+
+----------------------------------------
+6) POSITIONING STATEMENT SECTION
+----------------------------------------
+
+Add small closing section:
+
+Built for Treat Makers Who Take Their Business Seriously.
+
+Short paragraph reinforcing:
+Structure.
+Clarity.
+Automation.
+Professionalism.
+
+----------------------------------------
+7) REMOVE OR DE-EMPHASIZE
+----------------------------------------
+
+- Overly feature-heavy explanations.
+- “Side hustle” language.
+- Beginner-oriented tone.
+
+----------------------------------------
+DELIVERABLES:
+- Files changed
+- Before/after comparison of hero copy
+- Confirmation tone matches:
+  Calm + Direct
+- No technical regressions
