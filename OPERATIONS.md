@@ -87,6 +87,8 @@ All of these are visible in the **Financials tab** of the Admin Dashboard.
 
 **Quote limits reset monthly.** Drafts don't count against the limit — only sent quotes do.
 
+**Gifted Plans**: Super admins can gift a Basic or Pro plan to invited bakers for 1-12 months. Gifted plans give full access to that tier's features (quote limits, featured items, platform fee rate) for the duration. When the gift expires, the baker reverts to free unless they've subscribed via Stripe.
+
 ---
 
 ## Automated Systems
@@ -158,7 +160,7 @@ These systems run continuously without any human intervention. They are the back
 
 ## Admin Dashboard Guide
 
-The admin dashboard is accessible at `/admin` (requires super_admin role). It has 8 tabs:
+The admin dashboard is accessible at `/admin` (requires super_admin role). It has 9 tabs:
 
 ### Accounts Tab
 - **Search and browse** all registered bakers
@@ -226,6 +228,27 @@ The admin dashboard is accessible at `/admin` (requires super_admin role). It ha
   - Configurable assumptions: tier distribution, avg GMV per baker, transactions, affiliate rate, Stripe fee
   - Calculates: platform fees, subscription revenue, gross revenue, affiliate costs, Stripe processing, net revenue, ARPU, ARR, annual projections
 - **CSV export**: Download live metrics or projections for investor presentations
+
+### Invites Tab
+- **Send Invitation**: Invite new bakers by email with an optional gifted plan
+  - **Email**: The recipient's email address
+  - **Role**: Assign baker, admin, or super_admin role
+  - **Gifted Plan**: Optionally gift a Basic or Pro plan for 1-12 months
+  - The recipient receives an email with a signup link. The invitation token expires after 7 days.
+- **Invitations List**: Table of all invitations sent
+  - Shows email, role, gifted plan (with duration), status, sent date, and expiration date
+  - Status badges: Pending (yellow), Accepted (green), Cancelled (grey), Expired (red)
+  - Cancel action available for pending invitations
+- **Gifted Plans Tracker**: Monitor all bakers who received gifted plans
+  - **Summary cards**: Total gifted, Active, Expiring Soon (within 7 days), Expired, Converted to Paid
+  - **Detailed table**: Baker name/email, gifted plan tier, status, days remaining, who invited them, current subscription plan, activity indicators (Stripe connected, quote sent, payment processed), and expiration date
+  - **Conversion tracking**: "Converted" badge appears when a gifted baker subscribes via Stripe after their gift expires — this shows whether gifting plans works as an acquisition strategy
+- **How gifted plans work**:
+  - Gifted plans give the baker access to Basic or Pro features for a set duration (1-12 months)
+  - They take priority over the free tier but do NOT override an active Stripe subscription
+  - When the gifted plan expires, the baker drops back to their subscription plan (usually free)
+  - Priority order: Survey trial > Active Stripe subscription > Gifted plan (if not expired) > Free
+- **Audit logging**: All invitation actions (sent, cancelled, accepted) are recorded in the admin audit log
 
 ---
 
@@ -409,6 +432,7 @@ Here's the journey a baker takes through the platform:
 
 2. SIGNUP
    - Creates account at /signup
+   - If invited by admin: signs up via /signup?invite=TOKEN — email pre-filled, role and gifted plan auto-applied
    - If referred by affiliate: 45-day cookie tracks attribution
    - If referred by another baker: referral code links them
    - Welcome email sent immediately (Day 0)
@@ -730,6 +754,8 @@ shared/
 | `referral_clicks` | Affiliate link click tracking |
 | `affiliate_commissions` | Affiliate commission records |
 | `affiliate_requests` | Affiliate program applications |
+| `invitations` | Admin-sent invitations with token, role, gifted plan, and acceptance tracking |
+| `admin_audit_logs` | Audit trail for admin actions (invitations, suspensions, etc.) |
 | `support_tickets` | Support ticket submissions |
 | `ticket_messages` | Support ticket conversation messages |
 
