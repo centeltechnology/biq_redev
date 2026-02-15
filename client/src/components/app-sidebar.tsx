@@ -24,6 +24,7 @@ const menuItems = [
   { title: "Pricing", url: "/pricing", icon: DollarSign },
   { title: "Price Calculator", url: "/pricing-calculator", icon: Calculator },
   { title: "Payments", url: "/payments", icon: CreditCard },
+  { title: "Share & Promote", url: "/share", icon: Share2 },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 

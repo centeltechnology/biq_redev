@@ -25,6 +25,7 @@ import CalculatorPage from "@/pages/calculator";
 import CalendarPage from "@/pages/calendar";
 const AdminPage = lazy(() => import("@/pages/admin"));
 import AdminSupportPage from "@/pages/admin-support";
+import SharePage from "@/pages/share";
 import QuoteViewPage from "@/pages/quote-view";
 import VerifyEmailPage from "@/pages/verify-email";
 import ForgotPasswordPage from "@/pages/forgot-password";
@@ -90,6 +91,9 @@ function Router() {
       </Route>
       <Route path="/refer">
         <ProtectedRoute><ReferPage /></ProtectedRoute>
+      </Route>
+      <Route path="/share">
+        <ProtectedRoute><SharePage /></ProtectedRoute>
       </Route>
       <Route path="/settings">
         <ProtectedRoute><SettingsPage /></ProtectedRoute>
