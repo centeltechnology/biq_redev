@@ -106,7 +106,7 @@ Preferred communication style: Simple, everyday language.
   2. **Send your first quote** — CTA opens FirstQuoteModal with two options:
      - "Send to a real customer" → routes to /quotes/new
      - "Send a test quote to myself" → calls POST /api/quotes/test-quote (auto-creates test customer + $100 draft quote), routes to /quotes/:id for editing/sending
-  3. **Share your calculator link** — CTA copies calculator URL to clipboard, tracks via localStorage
+  3. **Share your calculator link** — Two CTAs: "Copy Link" copies calculator URL to clipboard; "Download QR" generates 1024x1024 PNG QR code with "Scan to build your order" text + URL, triggers download. Distribution tip toast shown after QR download.
 - **Completion**: Each step tracked via server fields (`stripeConnectedAt`, `firstQuoteSentAt`) or localStorage (`linkShared`). Checklist hides when all 3 complete or permanently dismissed (X button, localStorage)
 - **Revenue De-emphasis**: When checklist is visible, revenue/metric cards replaced with placeholder: "Your revenue metrics will appear after your first quote is sent."
 - **Admin exclusion**: Checklist never shown to super_admin accounts

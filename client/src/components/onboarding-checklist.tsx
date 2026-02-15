@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Check, CreditCard, FileText, Share2, ArrowRight, Copy, X } from "lucide-react";
+import { Check, CreditCard, FileText, Share2, ArrowRight, Copy, X, QrCode } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { downloadCalculatorQR } from "@/lib/qr-download";
 
 interface OnboardingChecklistProps {
   onConnectStripe: () => void;
@@ -57,6 +58,24 @@ export function OnboardingChecklist({ onConnectStripe, isConnecting, onSendFirst
       toast({
         title: "Failed to copy",
         description: "Could not copy the link to clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadQR = async () => {
+    if (!baker?.slug) return;
+    const calculatorUrl = `${window.location.origin}/c/${baker.slug}`;
+    try {
+      await downloadCalculatorQR(calculatorUrl);
+      toast({
+        title: "QR code downloaded",
+        description: "Tip: Add this QR to your packaging, pop-up booth, or business cards to get more orders.",
+      });
+    } catch {
+      toast({
+        title: "Download failed",
+        description: "Could not generate QR code. Please try again.",
         variant: "destructive",
       });
     }
@@ -160,7 +179,7 @@ export function OnboardingChecklist({ onConnectStripe, isConnecting, onSendFirst
                     )}
                   </div>
                 </div>
-                {isActive && (
+                {isActive && s.step !== 3 && (
                   <Button
                     size="sm"
                     onClick={s.action}
@@ -170,6 +189,27 @@ export function OnboardingChecklist({ onConnectStripe, isConnecting, onSendFirst
                     {s.actionLabel}
                     {s.actionIcon ? <s.actionIcon className="ml-1 h-3.5 w-3.5" /> : <ArrowRight className="ml-1 h-3.5 w-3.5" />}
                   </Button>
+                )}
+                {isActive && s.step === 3 && (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Button
+                      size="sm"
+                      onClick={handleCopyLink}
+                      data-testid="button-checklist-copy-link"
+                    >
+                      <Copy className="mr-1 h-3.5 w-3.5" />
+                      Copy Link
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleDownloadQR}
+                      data-testid="button-checklist-download-qr"
+                    >
+                      <QrCode className="mr-1 h-3.5 w-3.5" />
+                      Download QR
+                    </Button>
+                  </div>
                 )}
               </div>
             );

@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Copy, Check, Loader2, ExternalLink, CreditCard, Sparkles, Bell, HelpCircle, Zap, Camera, Upload, X, Image as ImageIcon, Plus, Trash2, Globe, Pencil, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Copy, Check, Loader2, ExternalLink, CreditCard, Sparkles, Bell, HelpCircle, Zap, Camera, Upload, X, Image as ImageIcon, Plus, Trash2, Globe, Pencil, AlertCircle, CheckCircle2, QrCode } from "lucide-react";
 import { useUpload } from "@/hooks/use-upload";
 import { InstructionModal } from "@/components/instruction-modal";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +28,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AVAILABLE_CURRENCIES } from "@/lib/calculator";
+import { downloadCalculatorQR } from "@/lib/qr-download";
 
 
 const profileSchema = z.object({
@@ -669,6 +670,28 @@ export default function SettingsPage() {
                 >
                   <ExternalLink className="h-4 w-4" />
                 </a>
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={async () => {
+                  try {
+                    await downloadCalculatorQR(calculatorUrl);
+                    toast({
+                      title: "QR code downloaded",
+                      description: "Tip: Add this QR to your packaging, pop-up booth, or business cards to get more orders.",
+                    });
+                  } catch {
+                    toast({
+                      title: "Download failed",
+                      description: "Could not generate QR code.",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+                data-testid="button-download-qr"
+              >
+                <QrCode className="h-4 w-4" />
               </Button>
             </div>
             <SlugEditor currentSlug={baker?.slug || ""} />
