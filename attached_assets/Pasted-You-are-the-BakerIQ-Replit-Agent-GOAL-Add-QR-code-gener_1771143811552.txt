@@ -1,0 +1,84 @@
+You are the BakerIQ Replit Agent.
+
+GOAL:
+Add QR code generation and download functionality for each baker’s public pricing calculator link, and reinforce real-world distribution behavior.
+
+PRIMARY OBJECTIVE:
+Increase inbound leads by reducing friction in sharing the calculator link online and offline.
+
+--------------------------------------
+1) QR CODE GENERATION
+--------------------------------------
+
+- Generate a QR code for each baker’s public calculator URL.
+- Use a lightweight QR library (client-side preferred).
+- High-resolution PNG output (minimum 1024x1024).
+- White background, black QR.
+- Include small centered text below QR:
+   “Scan to build your order”
+   + public calculator URL
+- File name:
+   bakeriq-calculator-qr.png
+
+--------------------------------------
+2) UI PLACEMENT
+--------------------------------------
+
+Add under onboarding checklist Step 3 (“Share your calculator link”):
+
+Buttons:
+[ Copy Link ]
+[ Download QR Code ]
+
+QR button should:
+- Generate QR
+- Trigger file download
+
+--------------------------------------
+3) BEHAVIORAL NUDGE AFTER DOWNLOAD
+--------------------------------------
+
+Immediately after QR download, show small non-intrusive toast:
+
+“Tip: Add this QR to your packaging, pop-up booth, or business cards to get more orders.”
+
+Tone:
+Professional.
+Encouraging.
+Not hypey.
+
+--------------------------------------
+4) ADD SECONDARY ACCESS POINT
+--------------------------------------
+
+QR download must also be accessible in:
+Settings → Public Link section
+OR
+Marketing Tools section (if exists)
+
+--------------------------------------
+5) PLAN AVAILABILITY
+--------------------------------------
+
+QR feature available to all plans.
+No gating.
+
+--------------------------------------
+6) PERFORMANCE
+--------------------------------------
+
+- No heavy dependencies.
+- No dashboard load delay.
+- QR generation should occur on-demand (not pre-rendered for all users).
+
+--------------------------------------
+DELIVERABLES:
+
+- Files changed
+- QR generation method
+- Example output description
+- Confirmation behavior works:
+   - New baker
+   - Existing baker
+   - All plans
+- Confirmation toast appears after download
