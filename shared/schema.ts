@@ -82,6 +82,8 @@ export const bakers = pgTable("bakers", {
   quickQuoteCredits: integer("quick_quote_credits").default(0).notNull(),
   referredByBakerId: varchar("referred_by_baker_id"),
   bakerReferredAt: timestamp("baker_referred_at"),
+  // Stripe onboarding prompt tracking
+  stripePromptLastShownAt: timestamp("stripe_prompt_last_shown_at"),
   // Activation tracking timestamps (set once on first occurrence)
   stripeConnectedAt: timestamp("stripe_connected_at"),
   firstProductCreatedAt: timestamp("first_product_created_at"),
