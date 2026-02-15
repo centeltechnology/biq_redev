@@ -2088,7 +2088,7 @@ export default function AdminDashboard() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold" data-testid="text-gmv-30d">{formatCurrency(overview?.revenueHealth.gmv_30d || 0)}</div>
-                      <p className="text-xs text-muted-foreground">Gross merchandise value</p>
+                      <p className="text-xs text-muted-foreground">Last 30 days</p>
                     </CardContent>
                   </Card>
                   <Card>
@@ -2099,7 +2099,7 @@ export default function AdminDashboard() {
                     <CardContent>
                       <div className="text-2xl font-bold" data-testid="text-platform-revenue-30d">{formatCurrency(overview?.revenueHealth.total_platform_revenue_30d || 0)}</div>
                       <p className="text-xs text-muted-foreground">
-                        MRR: {formatCurrency(overview?.revenueHealth.subscriptions_mrr_current || 0)} + Fees: {formatCurrency(overview?.revenueHealth.transaction_fee_revenue_30d?.value || 0)}
+                        Current MRR: {formatCurrency(overview?.revenueHealth.subscriptions_mrr_current || 0)} + Fees: {formatCurrency(overview?.revenueHealth.transaction_fee_revenue_30d?.value || 0)}
                         {overview?.revenueHealth.transaction_fee_revenue_30d?.estimated && <Badge variant="outline" className="ml-1 text-[10px]">est</Badge>}
                       </p>
                     </CardContent>
@@ -2111,7 +2111,7 @@ export default function AdminDashboard() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold" data-testid="text-active-processors">{overview?.revenueHealth.active_processors_30d || 0}</div>
-                      <p className="text-xs text-muted-foreground">Avg GMV: {formatCurrency(overview?.revenueHealth.avg_gmv_per_active_processor_30d || 0)}</p>
+                      <p className="text-xs text-muted-foreground">Last 30 days · Avg GMV: {formatCurrency(overview?.revenueHealth.avg_gmv_per_active_processor_30d || 0)}</p>
                     </CardContent>
                   </Card>
                   <Card>
