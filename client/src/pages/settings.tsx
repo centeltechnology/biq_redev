@@ -676,7 +676,7 @@ export default function SettingsPage() {
                 size="icon"
                 onClick={async () => {
                   try {
-                    await downloadCalculatorQR(calculatorUrl);
+                    await downloadCalculatorQR(calculatorUrl, baker?.businessName || undefined);
                     toast({
                       title: "QR code downloaded",
                       description: "Tip: Add this QR to your packaging, pop-up booth, or business cards to get more orders.",

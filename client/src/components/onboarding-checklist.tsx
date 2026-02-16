@@ -67,7 +67,7 @@ export function OnboardingChecklist({ onConnectStripe, isConnecting, onSendFirst
     if (!baker?.slug) return;
     const calculatorUrl = `${window.location.origin}/c/${baker.slug}`;
     try {
-      await downloadCalculatorQR(calculatorUrl);
+      await downloadCalculatorQR(calculatorUrl, baker?.businessName || undefined);
       toast({
         title: "QR code downloaded",
         description: "Tip: Add this QR to your packaging, pop-up booth, or business cards to get more orders.",

@@ -155,7 +155,7 @@ export default function SharePage() {
 
   const handleDownloadQR = async () => {
     try {
-      await downloadCalculatorQR(calculatorUrl);
+      await downloadCalculatorQR(calculatorUrl, baker?.businessName || undefined);
       toast({
         title: "QR code downloaded!",
         description: "Add it to your packaging, booth displays, or business cards.",
