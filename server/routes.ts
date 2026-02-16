@@ -574,6 +574,7 @@ export async function registerRoutes(
         profilePhoto: z.string().optional().nullable(),
         portfolioImages: z.array(z.string()).max(6).optional().nullable(),
         calculatorHeaderImage: z.string().optional().nullable(),
+        socialBannerUrl: z.string().optional().nullable(),
       }).refine((data) => {
         // Validate fixed deposit amount when fixed type is selected
         if (data.defaultDepositType === "fixed") {
@@ -4345,7 +4346,7 @@ Guidelines:
         /<meta property="og:description" content=".*?" \/>/,
         `<meta property="og:description" content="${description}" />`
       );
-      const ogImage = baker.calculatorHeaderImage || "/calc-social.png";
+      const ogImage = baker.socialBannerUrl || baker.calculatorHeaderImage || "/calc-social.png";
       const fullImageUrl = ogImage.startsWith("http") ? ogImage : `${req.protocol}://${req.get("host")}${ogImage}`;
       html = html.replace(
         /<meta property="og:image" content=".*?" \/>/,

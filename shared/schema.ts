@@ -64,6 +64,7 @@ export const bakers = pgTable("bakers", {
   profilePhoto: text("profile_photo"),
   portfolioImages: text("portfolio_images").array(),
   calculatorHeaderImage: text("calculator_header_image"),
+  socialBannerUrl: text("social_banner_url"),
   // Survey trial - free Pro access for completing feedback survey
   surveyTrialEndDate: timestamp("survey_trial_end_date"),
   // Affiliate program (influencer tier)

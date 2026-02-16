@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, ExternalLink, Link2, QrCode, Share2, Check, Download, Upload, Image as ImageIcon } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Copy, ExternalLink, Link2, QrCode, Share2, Check, Download, Upload, Save, Image as ImageIcon, Loader2 } from "lucide-react";
 import { SiFacebook, SiX, SiPinterest, SiWhatsapp, SiInstagram, SiLinkedin } from "react-icons/si";
 import { downloadCalculatorQR } from "@/lib/qr-download";
 
@@ -612,6 +613,7 @@ function SocialBannerGenerator({
   const [selectedDesign, setSelectedDesign] = useState<string>("elegant");
   const [customImage, setCustomImage] = useState<HTMLImageElement | null>(null);
   const [customImageName, setCustomImageName] = useState<string>("");
+  const [isSaving, setIsSaving] = useState(false);
 
   const activeDesign = BANNER_DESIGNS.find((d) => d.id === selectedDesign) || BANNER_DESIGNS[0];
 
@@ -656,6 +658,47 @@ function SocialBannerGenerator({
   const handleClearImage = () => {
     setCustomImage(null);
     setCustomImageName("");
+  };
+
+  const handleSaveBanner = async () => {
+    if (!canvasRef.current) return;
+    setIsSaving(true);
+    try {
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvasRef.current!.toBlob((b) => {
+          if (b) resolve(b);
+          else reject(new Error("Failed to convert canvas to image"));
+        }, "image/png");
+      });
+
+      const urlRes = await apiRequest("POST", "/api/uploads/request-url", {
+        name: "social-banner.png",
+        size: blob.size,
+        contentType: "image/png",
+      });
+      const { uploadURL, objectPath } = await urlRes.json();
+
+      await fetch(uploadURL, {
+        method: "PUT",
+        body: blob,
+        headers: { "Content-Type": "image/png" },
+      });
+
+      await apiRequest("PATCH", "/api/baker/profile", {
+        socialBannerUrl: objectPath,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["/api/baker/me"] });
+      toast({
+        title: "Banner saved!",
+        description: "Your social media banner is now set as your profile banner and will appear when your calculator link is shared.",
+      });
+    } catch (err) {
+      console.error("Error saving banner:", err);
+      toast({ title: "Failed to save banner", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -752,14 +795,32 @@ function SocialBannerGenerator({
           </div>
         </div>
 
-        <Button
-          onClick={handleDownloadBanner}
-          disabled={!calculatorUrl}
-          data-testid="button-download-banner"
-        >
-          <Download className="h-4 w-4 mr-2" />
-          Download Banner
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={handleDownloadBanner}
+            disabled={!calculatorUrl}
+            data-testid="button-download-banner"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Download Banner
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleSaveBanner}
+            disabled={!calculatorUrl || isSaving}
+            data-testid="button-save-banner"
+          >
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            {isSaving ? "Saving..." : "Save as Profile Banner"}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Saving sets this banner as the image that appears when your calculator link is shared on social media.
+        </p>
         {!calculatorUrl && (
           <p className="text-xs text-destructive" data-testid="text-banner-url-warning">
             Set up your business name in Settings first so your banner includes your calculator link.
