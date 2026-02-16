@@ -448,7 +448,13 @@ export default function HelpPage() {
                 <div className="space-y-2">
                   <h4 className="font-medium">Caption Templates</h4>
                   <p className="text-sm text-muted-foreground">
-                    Each platform comes with a ready-to-use caption you can customize before posting. Copy it or share directly to the platform.
+                    Choose from General, Wedding, Events, Featured Items, or Seasonal caption categories. Each comes with ready-to-use captions you can customize before posting.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Social Media Banners</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Create professional social media banners right from the Share page. Pick a pre-made design (Elegant Wedding, Fun Birthday, Clean Modern, or Holiday Seasonal) or upload your own cake photo. Your business name is overlaid automatically and the banner downloads as a ready-to-post image (1200x630, ideal for Facebook and LinkedIn).
                   </p>
                 </div>
                 <div className="space-y-2">

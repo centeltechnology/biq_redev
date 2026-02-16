@@ -176,7 +176,15 @@ const faqs = [
       },
       {
         q: "What is the Share page?",
-        a: "The Share page is a built-in tool in your dashboard that makes it easy to promote your calculator on social media. It includes sharing buttons for all major platforms, customizable caption templates for each one, a downloadable QR code for your calculator link, and the ability to share individual featured items (if you use Fast Quote) with their own links and captions."
+        a: "The Share page is a built-in tool in your dashboard that makes it easy to promote your calculator on social media. It includes sharing buttons for all major platforms, caption templates organized by category (General, Wedding, Events, Featured Items, Seasonal), a social media banner creator with pre-made designs and custom photo upload, a downloadable QR code, and per-item sharing for featured items."
+      },
+      {
+        q: "How do I create a social media banner?",
+        a: "Go to the Share page and scroll to Social Media Banners. Choose from four pre-made designs (Elegant Wedding, Fun Birthday, Clean Modern, or Holiday Seasonal) or upload your own cake photo. Your business name is automatically added to the banner. Click 'Download Banner' to save it as a ready-to-post image. The banner is 1200x630 pixels, which is the ideal size for Facebook and LinkedIn posts. For Instagram, you can crop the downloaded image to a square."
+      },
+      {
+        q: "What size photo should I upload for a social banner?",
+        a: "Any photo will work — the banner maker automatically crops and fits your image to 1200x630 pixels. For best results, use a landscape (horizontal) photo that's at least 1200 pixels wide. Photos of your finished cakes, treats, or your workspace work great."
       },
       {
         q: "How do I reset my password?",
