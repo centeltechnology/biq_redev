@@ -1,0 +1,85 @@
+You are the BakerIQ Replit Agent.
+
+GOAL:
+Add a “Stripe Connected → Behavior Activation” nudge that immediately tells new bakers what to do next (share calculator link + send a first quote), instead of stopping at “Stripe connected.”
+
+CONTEXT:
+We already have Stripe Connect and onboarding steps on the dashboard.
+We also have share tools (copy link, QR code download, social templates).
+We want to improve activation and LTV by changing user behavior post-Stripe.
+
+-----------------------------------------
+FEATURE: Post-Stripe Success Activation Modal
+-----------------------------------------
+
+TRIGGER:
+When a baker completes Stripe Connect successfully (stripeConnectedAt is set OR Stripe redirect/callback success is detected),
+show a one-time modal within the next page load/session.
+
+RULES:
+- Show ONLY to non-admin accounts.
+- Show ONLY if stripeConnectedAt is set AND firstQuoteSentAt is NOT set (still not activated).
+- Modal should appear once, then not repeat.
+- Persist dismissal in localStorage (e.g., `bakeriq_stripe_activation_modal_seen=true`), but allow it to reappear if:
+  - stripeConnectedAt was never set (shouldn’t happen) OR
+  - we add a force flag later (not required now).
+
+MODAL COPY (Calm + Direct):
+Title: Payments Activated 🎉
+Body:
+“Now let’s put it to work.
+Send your calculator link to anyone who asked about pricing recently.
+Don’t reply with a number — reply with your link.
+Then send your first quote and collect your first deposit.”
+
+PRIMARY ACTION BUTTONS (in this order):
+1) Copy Calculator Link (copies the baker’s public calculator URL)
+2) Download QR Code (uses existing QR download feature)
+3) Send Your First Quote (deep link to create customer/quote flow)
+
+SECONDARY:
+- “Not now” dismiss button.
+- Small note: “Tip: Send your link to everyone who DM’d you about pricing in the last 30 days.”
+
+-----------------------------------------
+FEATURE: 7-Day “Activation Banner” if No Quote Yet
+-----------------------------------------
+
+After Stripe is connected:
+If firstQuoteSentAt is still null, show a slim persistent banner (dismissible per session) across authenticated pages:
+
+Text:
+“Payments are ready. Send 1 quote to activate your system.”
+Buttons:
+- Send First Quote
+- Copy Calculator Link
+
+Rules:
+- Banner disappears permanently once firstQuoteSentAt is set.
+- Dismiss uses sessionStorage so it returns next visit until activated.
+
+-----------------------------------------
+TRACKING (Lightweight)
+-----------------------------------------
+
+Add a server endpoint to log “activation nudges” impressions (optional but preferred):
+- /api/activation/nudges/log
+Log once per day max per baker:
+- stripeSuccessModalShown
+- activationBannerShown
+- actions clicked (copy link, download QR, send quote)
+
+If tracking is too much for now, skip analytics but keep clean event hooks for later.
+
+-----------------------------------------
+DELIVERABLES
+-----------------------------------------
+- Files changed
+- Confirmation modal triggers correctly after Stripe connect
+- Confirmation it only shows when stripeConnectedAt set AND firstQuoteSentAt not set
+- Confirmation CTA buttons work (copy link, QR download, route to quote flow)
+- Confirmation banner persists until firstQuoteSentAt is set
+- Test plan with 3 cases:
+  1) New baker connects Stripe → sees modal → completes action
+  2) Baker already sent a quote → should NOT see modal/banner
+  3) Admin account → should NOT see modal/banner
