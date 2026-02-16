@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, ExternalLink, Link2, QrCode, Share2, Check } from "lucide-react";
+import { Copy, ExternalLink, Link2, QrCode, Share2, Check, Download, Upload, Image as ImageIcon } from "lucide-react";
 import { SiFacebook, SiX, SiPinterest, SiWhatsapp, SiInstagram, SiLinkedin } from "react-icons/si";
 import { downloadCalculatorQR } from "@/lib/qr-download";
 
@@ -28,6 +28,18 @@ const CAPTION_TEMPLATES = {
     "Custom cakes & treats made with love! Get an instant estimate for your next celebration.",
     "Planning a party? Use my pricing calculator to design your dream cake or treats!",
     "Order your custom cake or treats today! Quick estimates, beautiful results.",
+  ],
+  wedding: [
+    "Your dream wedding cake starts here! Get a custom estimate in minutes.",
+    "Engaged? Let's design your perfect wedding cake together. Tap for instant pricing!",
+    "From elegant tiers to stunning toppers \u2014 I create wedding cakes as unique as your love story. Get your estimate now!",
+    "Wedding planning made easy! Use my calculator to price your dream cake, then let's chat about the details.",
+  ],
+  events: [
+    "Birthday coming up? Let me make it extra sweet! Get an instant cake estimate.",
+    "Planning a corporate event, baby shower, or graduation? Custom cakes & treats for every occasion!",
+    "Make your next celebration unforgettable with a custom cake! Tap for pricing.",
+    "Hosting a party? From cupcakes to full dessert tables \u2014 I've got you covered. Get your estimate now!",
   ],
   featured: [
     "Check out my latest creation! Order yours today with an instant quote.",
@@ -106,7 +118,7 @@ export default function SharePage() {
   const { baker } = useAuth();
   const { toast } = useToast();
   const [caption, setCaption] = useState("");
-  const [templateCategory, setTemplateCategory] = useState<"general" | "featured" | "seasonal">("general");
+  const [templateCategory, setTemplateCategory] = useState<keyof typeof CAPTION_TEMPLATES>("general");
   const [copiedLink, setCopiedLink] = useState(false);
 
   const calculatorUrl = useMemo(() => {
@@ -254,13 +266,15 @@ export default function SharePage() {
               <div className="flex gap-2 flex-wrap">
                 <Select
                   value={templateCategory}
-                  onValueChange={(v) => setTemplateCategory(v as typeof templateCategory)}
+                  onValueChange={(v) => setTemplateCategory(v as keyof typeof CAPTION_TEMPLATES)}
                 >
                   <SelectTrigger className="w-[160px]" data-testid="select-template-category">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="general">General</SelectItem>
+                    <SelectItem value="wedding">Wedding</SelectItem>
+                    <SelectItem value="events">Events</SelectItem>
                     <SelectItem value="featured">Featured Items</SelectItem>
                     <SelectItem value="seasonal">Seasonal</SelectItem>
                   </SelectContent>
@@ -325,6 +339,11 @@ export default function SharePage() {
             )}
           </CardContent>
         </Card>
+
+        <SocialBannerGenerator
+          businessName={baker.businessName || "My Bakery"}
+          calculatorUrl={calculatorUrl}
+        />
 
         <Card>
           <CardHeader>
@@ -425,6 +444,330 @@ function FeaturedItemShare({ item, calculatorUrl }: { item: FeaturedItem; calcul
         </div>
       </div>
     </div>
+  );
+}
+
+interface BannerDesign {
+  id: string;
+  name: string;
+  description: string;
+  bgGradient: [string, string, string?];
+  textColor: string;
+  accentColor: string;
+  tagline: string;
+}
+
+const BANNER_DESIGNS: BannerDesign[] = [
+  {
+    id: "elegant",
+    name: "Elegant Wedding",
+    description: "Soft, romantic tones for wedding promotions",
+    bgGradient: ["#f8e8e0", "#e8c4b8", "#d4a090"],
+    textColor: "#3d2c2c",
+    accentColor: "#8b5e5e",
+    tagline: "Custom Wedding Cakes",
+  },
+  {
+    id: "birthday",
+    name: "Fun Birthday",
+    description: "Bright, cheerful colors for birthday events",
+    bgGradient: ["#ffecd2", "#fcb69f", "#ff9a9e"],
+    textColor: "#4a2c2a",
+    accentColor: "#e8685d",
+    tagline: "Custom Cakes & Treats",
+  },
+  {
+    id: "modern",
+    name: "Clean Modern",
+    description: "Sleek, professional design for general use",
+    bgGradient: ["#667eea", "#764ba2"],
+    textColor: "#ffffff",
+    accentColor: "#e0d4f7",
+    tagline: "Order Custom Cakes Online",
+  },
+  {
+    id: "seasonal",
+    name: "Holiday Seasonal",
+    description: "Warm tones for seasonal promotions",
+    bgGradient: ["#2d5016", "#4a7c24", "#6ba33e"],
+    textColor: "#ffffff",
+    accentColor: "#d4e8c4",
+    tagline: "Holiday Treats & Cakes",
+  },
+];
+
+function renderBannerToCanvas(
+  canvas: HTMLCanvasElement,
+  design: BannerDesign,
+  businessName: string,
+  calculatorUrl: string,
+  customImage?: HTMLImageElement | null,
+) {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  const W = 1200;
+  const H = 630;
+  canvas.width = W;
+  canvas.height = H;
+
+  if (customImage) {
+    const imgRatio = customImage.width / customImage.height;
+    const canvasRatio = W / H;
+    let sx = 0, sy = 0, sw = customImage.width, sh = customImage.height;
+    if (imgRatio > canvasRatio) {
+      sw = customImage.height * canvasRatio;
+      sx = (customImage.width - sw) / 2;
+    } else {
+      sh = customImage.width / canvasRatio;
+      sy = (customImage.height - sh) / 2;
+    }
+    ctx.drawImage(customImage, sx, sy, sw, sh, 0, 0, W, H);
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.fillRect(0, 0, W, H);
+  } else {
+    const gradient = ctx.createLinearGradient(0, 0, W, H);
+    const colors = design.bgGradient.filter((c): c is string => !!c);
+    colors.forEach((color, i) => {
+      gradient.addColorStop(i / Math.max(colors.length - 1, 1), color);
+    });
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.globalAlpha = 0.06;
+    for (let i = 0; i < 8; i++) {
+      ctx.beginPath();
+      ctx.arc(
+        100 + i * 150,
+        H / 2 + Math.sin(i) * 80,
+        60 + i * 15,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fillStyle = design.textColor;
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  const textColor = customImage ? "#ffffff" : design.textColor;
+  const accentColor = customImage ? "rgba(255,255,255,0.7)" : design.accentColor;
+
+  ctx.textAlign = "center";
+
+  ctx.font = "bold 56px system-ui, -apple-system, sans-serif";
+  ctx.fillStyle = textColor;
+  ctx.fillText(businessName, W / 2, H / 2 - 40, W - 120);
+
+  ctx.font = "28px system-ui, -apple-system, sans-serif";
+  ctx.fillStyle = accentColor;
+  ctx.fillText(design.tagline, W / 2, H / 2 + 20, W - 120);
+
+  const btnY = H / 2 + 60;
+  const btnText = "Get Your Estimate";
+  ctx.font = "bold 22px system-ui, -apple-system, sans-serif";
+  const btnMetrics = ctx.measureText(btnText);
+  const btnW = btnMetrics.width + 60;
+  const btnH = 48;
+
+  ctx.fillStyle = customImage ? "rgba(255,255,255,0.2)" : design.accentColor + "30";
+  ctx.beginPath();
+  const r = 8;
+  const bx = W / 2 - btnW / 2;
+  ctx.moveTo(bx + r, btnY);
+  ctx.lineTo(bx + btnW - r, btnY);
+  ctx.arcTo(bx + btnW, btnY, bx + btnW, btnY + r, r);
+  ctx.lineTo(bx + btnW, btnY + btnH - r);
+  ctx.arcTo(bx + btnW, btnY + btnH, bx + btnW - r, btnY + btnH, r);
+  ctx.lineTo(bx + r, btnY + btnH);
+  ctx.arcTo(bx, btnY + btnH, bx, btnY + btnH - r, r);
+  ctx.lineTo(bx, btnY + r);
+  ctx.arcTo(bx, btnY, bx + r, btnY, r);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.strokeStyle = textColor;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.fillStyle = textColor;
+  ctx.textAlign = "center";
+  ctx.fillText(btnText, W / 2, btnY + 32);
+
+  const shortUrl = calculatorUrl.replace(/^https?:\/\//, "");
+  ctx.font = "16px system-ui, -apple-system, sans-serif";
+  ctx.fillStyle = accentColor;
+  ctx.fillText(shortUrl, W / 2, H - 30, W - 60);
+}
+
+function SocialBannerGenerator({
+  businessName,
+  calculatorUrl,
+}: {
+  businessName: string;
+  calculatorUrl: string;
+}) {
+  const { toast } = useToast();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedDesign, setSelectedDesign] = useState<string>("elegant");
+  const [customImage, setCustomImage] = useState<HTMLImageElement | null>(null);
+  const [customImageName, setCustomImageName] = useState<string>("");
+
+  const activeDesign = BANNER_DESIGNS.find((d) => d.id === selectedDesign) || BANNER_DESIGNS[0];
+
+  const redrawCanvas = useCallback(() => {
+    if (!canvasRef.current) return;
+    renderBannerToCanvas(canvasRef.current, activeDesign, businessName, calculatorUrl, customImage);
+  }, [activeDesign, businessName, calculatorUrl, customImage]);
+
+  useEffect(() => {
+    redrawCanvas();
+  }, [redrawCanvas]);
+
+  const handleDownloadBanner = () => {
+    if (!canvasRef.current) return;
+    const link = document.createElement("a");
+    link.download = `${businessName.replace(/\s+/g, "-").toLowerCase()}-social-banner.png`;
+    link.href = canvasRef.current.toDataURL("image/png");
+    link.click();
+    toast({ title: "Banner downloaded!" });
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Please upload an image file", variant: "destructive" });
+      return;
+    }
+    const img = new window.Image();
+    img.onload = () => {
+      setCustomImage(img);
+      setCustomImageName(file.name);
+      toast({ title: "Image loaded! Banner updated with your photo." });
+    };
+    img.onerror = () => {
+      toast({ title: "Failed to load image", variant: "destructive" });
+    };
+    img.src = URL.createObjectURL(file);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleClearImage = () => {
+    setCustomImage(null);
+    setCustomImageName("");
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2" data-testid="text-banner-title">
+          <ImageIcon className="h-5 w-5" />
+          Social Media Banners
+        </CardTitle>
+        <CardDescription>
+          Create professional social media banners with your business name. Choose a pre-made design or upload your own photo.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <label className="text-sm font-medium" data-testid="label-choose-design">Choose a design</label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {BANNER_DESIGNS.map((design) => (
+              <div
+                key={design.id}
+                className={`p-3 rounded-md border cursor-pointer text-center space-y-1 hover-elevate ${
+                  selectedDesign === design.id && !customImage
+                    ? "border-primary ring-1 ring-primary"
+                    : ""
+                }`}
+                onClick={() => {
+                  setSelectedDesign(design.id);
+                  setCustomImage(null);
+                  setCustomImageName("");
+                }}
+                data-testid={`button-design-${design.id}`}
+              >
+                <div
+                  className="h-8 w-full rounded-md"
+                  style={{
+                    background: `linear-gradient(135deg, ${design.bgGradient.join(", ")})`,
+                  }}
+                />
+                <p className="text-xs font-medium">{design.name}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium" data-testid="label-upload-photo">Or use your own photo</label>
+          <div className="flex flex-wrap gap-2 items-center">
+            <Button
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              data-testid="button-upload-image"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Upload Image
+            </Button>
+            {customImage && (
+              <>
+                <span className="text-sm text-muted-foreground truncate max-w-[200px]" data-testid="text-uploaded-filename">
+                  {customImageName}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearImage}
+                  data-testid="button-clear-image"
+                >
+                  Clear
+                </Button>
+              </>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageUpload}
+              data-testid="input-upload-image"
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Upload a photo of your cakes or treats. Your business name and link will be overlaid on the image.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium" data-testid="label-banner-preview">Preview</label>
+          <div className="border rounded-md overflow-hidden" data-testid="container-banner-preview">
+            <canvas
+              ref={canvasRef}
+              className="w-full h-auto"
+              style={{ aspectRatio: "1200/630" }}
+              data-testid="canvas-banner-preview"
+            />
+          </div>
+        </div>
+
+        <Button
+          onClick={handleDownloadBanner}
+          disabled={!calculatorUrl}
+          data-testid="button-download-banner"
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Download Banner
+        </Button>
+        {!calculatorUrl && (
+          <p className="text-xs text-destructive" data-testid="text-banner-url-warning">
+            Set up your business name in Settings first so your banner includes your calculator link.
+          </p>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
