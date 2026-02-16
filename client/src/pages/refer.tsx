@@ -6,7 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, Gift, Users, Clock } from "lucide-react";
+import { Copy, Gift, Users, Clock, CreditCard } from "lucide-react";
+import { Link } from "wouter";
 import { format } from "date-fns";
 
 interface BakerReferralData {
@@ -15,6 +16,7 @@ interface BakerReferralData {
   quickQuoteCredits: number;
   totalCreditsEarned: number;
   plan: string;
+  stripeConnectOnboarded: boolean;
   referrals: Array<{
     id: string;
     businessName: string;
@@ -90,7 +92,24 @@ export default function ReferPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {referralLink ? (
+            {!data.stripeConnectOnboarded ? (
+              <div className="bg-muted px-4 py-3 rounded-md space-y-2">
+                <div className="flex items-start gap-3">
+                  <CreditCard className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">Connect Stripe to unlock your referral link</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Complete your Stripe setup to start referring friends and earning rewards.
+                    </p>
+                  </div>
+                </div>
+                <Link href="/settings">
+                  <Button className="mt-1" data-testid="button-connect-stripe-referral">
+                    Go to Settings
+                  </Button>
+                </Link>
+              </div>
+            ) : referralLink ? (
               <div className="flex gap-2 items-center">
                 <code 
                   className="flex-1 bg-muted px-3 py-2 rounded-md text-sm truncate" 

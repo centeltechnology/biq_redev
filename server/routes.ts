@@ -4629,6 +4629,7 @@ Guidelines:
         referralCredits: baker.referralCredits,
         quickQuoteCredits: baker.quickQuoteCredits,
         plan: baker.plan,
+        stripeConnectOnboarded: baker.stripeConnectOnboarded || false,
         referrals: referredBakers,
         totalCreditsEarned: referrals.filter(r => r.creditAwarded).length,
       });
