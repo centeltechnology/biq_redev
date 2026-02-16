@@ -17,7 +17,8 @@ import {
   Zap,
   CreditCard,
   Play,
-  Gift
+  Gift,
+  Share2
 } from "lucide-react";
 
 const VIDEOS = [
@@ -426,6 +427,40 @@ export default function HelpPage() {
                   <h4 className="font-medium">Link to Quotes & Orders</h4>
                   <p className="text-sm text-muted-foreground">
                     All quotes and orders are linked to customers, making it easy to see their complete history.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover-elevate">
+              <CardHeader>
+                <Share2 className="h-10 w-10 text-primary mb-2" />
+                <CardTitle>Share Your Calculator</CardTitle>
+                <CardDescription>Promote your business on social media</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium">Social Media Sharing</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Go to the Share page in your dashboard to share your calculator link on Facebook, Instagram, Twitter/X, Pinterest, WhatsApp, and LinkedIn with a single click.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Caption Templates</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Each platform comes with a ready-to-use caption you can customize before posting. Copy it or share directly to the platform.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">QR Code Download</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Download a QR code for your calculator link. Print it on business cards, flyers, or packaging so customers can scan and get an instant estimate.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Share Individual Items</h4>
+                  <p className="text-sm text-muted-foreground">
+                    If you have featured items (Fast Quote), you can share each one individually on social media with its own link and caption.
                   </p>
                 </div>
               </CardContent>

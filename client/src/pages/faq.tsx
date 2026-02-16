@@ -172,7 +172,11 @@ const faqs = [
       },
       {
         q: "How do I share my calculator?",
-        a: "Your calculator URL is shown in Settings. Copy it and share on your website, Instagram bio, Facebook page, or anywhere you connect with potential customers. The URL format is: /c/your-bakery-slug"
+        a: "The easiest way is to use the Share page in your dashboard. It gives you one-click sharing to Facebook, Instagram, Twitter/X, Pinterest, WhatsApp, and LinkedIn — with ready-made captions you can customize. You can also download a QR code to print on business cards or flyers. Your calculator URL is also shown in Settings if you just need to copy the link. The URL format is: /c/your-bakery-slug"
+      },
+      {
+        q: "What is the Share page?",
+        a: "The Share page is a built-in tool in your dashboard that makes it easy to promote your calculator on social media. It includes sharing buttons for all major platforms, customizable caption templates for each one, a downloadable QR code for your calculator link, and the ability to share individual featured items (if you use Fast Quote) with their own links and captions."
       },
       {
         q: "How do I reset my password?",
