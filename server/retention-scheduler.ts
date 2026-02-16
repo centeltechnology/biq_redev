@@ -3,6 +3,7 @@ import { retentionEmailTemplates, retentionEmailSends, type RetentionEmailTempla
 import { eq, and, desc } from "drizzle-orm";
 import { getBakersEligibleForRetentionEmail, type UserSegmentResult } from "./segmentation";
 import { sendRetentionEmail } from "./email";
+import { storage } from "./storage";
 
 interface PersonalizationTokens {
   first_name: string;
@@ -59,12 +60,16 @@ export async function sendRetentionEmailToUser(
   const bodyText = renderTemplate(template.bodyText, tokens);
   const ctaUrl = `${baseUrl}${template.ctaRoute}`;
 
+  const bakerRecord = await storage.getBaker(user.bakerId);
+  const emailPrefsToken = bakerRecord?.emailPrefsToken;
+
   try {
     await sendRetentionEmail(
       user.email,
       subject,
       bodyHtml,
-      bodyText
+      bodyText,
+      emailPrefsToken
     );
 
     await db.insert(retentionEmailSends).values({
@@ -114,6 +119,13 @@ export async function runRetentionEmailScheduler(): Promise<{
   let skipped = 0;
 
   for (const user of eligibleUsers) {
+    const baker = await storage.getBaker(user.bakerId);
+    if (baker && baker.notifyRetention === 0) {
+      console.log(`[Retention Scheduler] Skipping retention email for ${user.email} (opted out)`);
+      skipped++;
+      continue;
+    }
+
     const template = await getTemplateForSegment(user.segment);
     if (!template) {
       console.log(`[Retention Scheduler] No template for segment "${user.segment}", skipping ${user.email}`);
@@ -153,7 +165,7 @@ export function startRetentionScheduler(baseUrl: string) {
   setTimeout(async () => {
     console.log("[Retention] Running initial retention email check...");
     try {
-      const result = await runRetentionEmailScheduler(baseUrl);
+      const result = await runRetentionEmailScheduler();
       console.log(`[Retention] Initial check completed: ${result.processed} processed, ${result.sent} sent`);
     } catch (error) {
       console.error("[Retention] Initial check failed:", error);
@@ -163,7 +175,7 @@ export function startRetentionScheduler(baseUrl: string) {
     setInterval(async () => {
       console.log("[Retention] Running weekly retention email check...");
       try {
-        const result = await runRetentionEmailScheduler(baseUrl);
+        const result = await runRetentionEmailScheduler();
         console.log(`[Retention] Weekly check completed: ${result.processed} processed, ${result.sent} sent`);
       } catch (error) {
         console.error("[Retention] Weekly check failed:", error);

@@ -43,6 +43,33 @@ function formatSender(senderType: EmailSenderType, businessName?: string): strin
   return `"${PLATFORM_FROM_NAME}" <${PLATFORM_FROM_EMAIL}>`;
 }
 
+export function getBakerEmailFooterHtml(emailPrefsToken?: string | null): string {
+  const prefsUrl = emailPrefsToken 
+    ? `https://bakeriq.app/email-preferences/${emailPrefsToken}`
+    : "https://bakeriq.app/settings";
+  return `<div class="footer" style="text-align: center; padding: 20px; color: #666; font-size: 12px;">
+      <p>You're receiving this email because you have a <a href="https://bakeriq.app/" style="color: #E91E63; text-decoration: none;">BakerIQ</a> account.</p>
+      <p><a href="${prefsUrl}" style="color: #E91E63; text-decoration: none;">Manage email preferences</a></p>
+    </div>`;
+}
+
+export function getBakerEmailFooterText(emailPrefsToken?: string | null): string {
+  const prefsUrl = emailPrefsToken 
+    ? `https://bakeriq.app/email-preferences/${emailPrefsToken}`
+    : "https://bakeriq.app/settings";
+  return `\n---\nYou're receiving this email because you have a BakerIQ account.\nManage email preferences: ${prefsUrl}\n`;
+}
+
+export function getCustomerEmailFooterHtml(): string {
+  return `<div class="footer" style="text-align: center; padding: 20px; color: #666; font-size: 12px;">
+      <p>Powered by <a href="https://bakeriq.app/" style="color: #E91E63; text-decoration: none;">BakerIQ</a></p>
+    </div>`;
+}
+
+export function getCustomerEmailFooterText(): string {
+  return `\n---\nPowered by BakerIQ - https://bakeriq.app\n`;
+}
+
 export async function sendEmail({
   to,
   subject,
@@ -126,7 +153,8 @@ export async function sendNewLeadNotification(
     eventType?: string;
     eventDate?: string;
     estimatedTotal: number;
-  }
+  },
+  emailPrefsToken?: string | null
 ): Promise<boolean> {
   const html = `
 <!DOCTYPE html>
@@ -196,9 +224,7 @@ export async function sendNewLeadNotification(
       </div>
       <p style="margin-top: 20px;">Log in to your BakerIQ dashboard to view full details and follow up with this lead.</p>
     </div>
-    <div class="footer">
-      <p>This email was sent by <a href="https://bakeriq.app/" style="color: #E91E63; text-decoration: none;">BakerIQ</a></p>
-    </div>
+    ${getBakerEmailFooterHtml(emailPrefsToken)}
   </div>
 </body>
 </html>
@@ -215,7 +241,7 @@ ${lead.eventDate ? `Event Date: ${lead.eventDate}` : ""}
 Estimated Total: ${formatCurrency(lead.estimatedTotal)}
 
 Log in to your BakerIQ dashboard to view full details and follow up with this lead.
-`;
+${getBakerEmailFooterText(emailPrefsToken)}`;
 
   return sendEmail({
     to: bakerEmail,
@@ -269,9 +295,7 @@ export async function sendLeadConfirmationToCustomer(
       <p>We typically respond within 24-48 hours. If you have any urgent questions, feel free to reach out directly.</p>
       <p style="margin-top: 30px;">Sweet regards,<br><strong>${bakerBusinessName}</strong></p>
     </div>
-    <div class="footer">
-      <p>This email was sent via <a href="https://bakeriq.app/" style="color: #E91E63; text-decoration: none;">BakerIQ</a></p>
-    </div>
+    ${getCustomerEmailFooterHtml()}
   </div>
 </body>
 </html>
@@ -294,7 +318,7 @@ We typically respond within 24-48 hours.
 
 Sweet regards,
 ${bakerBusinessName}
-`;
+${getCustomerEmailFooterText()}`;
 
   return sendEmail({
     to: customerEmail,
@@ -469,9 +493,7 @@ export async function sendQuoteNotification(
       <p>To confirm your order, please respond to this email or contact us directly.</p>
       <p style="margin-top: 30px;">Sweet regards,<br><strong>${bakerBusinessName}</strong></p>
     </div>
-    <div class="footer">
-      <p>This email was sent via <a href="https://bakeriq.app/" style="color: #E91E63; text-decoration: none;">BakerIQ</a></p>
-    </div>
+    ${getCustomerEmailFooterHtml()}
   </div>
 </body>
 </html>
@@ -506,7 +528,7 @@ To confirm your order, please respond to this email or contact us directly.
 
 Sweet regards,
 ${bakerBusinessName}
-`;
+${getCustomerEmailFooterText()}`;
 
   return sendEmail({
     to: customerEmail,
@@ -521,7 +543,8 @@ ${bakerBusinessName}
 export async function sendPasswordResetEmail(
   email: string,
   resetToken: string,
-  baseUrl: string
+  baseUrl: string,
+  emailPrefsToken?: string | null
 ): Promise<boolean> {
   const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
   
@@ -552,9 +575,7 @@ export async function sendPasswordResetEmail(
       <p style="color: #666; font-size: 14px;">This link will expire in 1 hour.</p>
       <p style="color: #666; font-size: 14px;">If you didn't request a password reset, you can safely ignore this email.</p>
     </div>
-    <div class="footer">
-      <p>This email was sent by <a href="https://bakeriq.app/" style="color: #E91E63; text-decoration: none;">BakerIQ</a></p>
-    </div>
+    ${getBakerEmailFooterHtml(emailPrefsToken)}
   </div>
 </body>
 </html>
@@ -570,7 +591,7 @@ Reset your password here: ${resetUrl}
 This link will expire in 1 hour.
 
 If you didn't request a password reset, you can safely ignore this email.
-`;
+${getBakerEmailFooterText(emailPrefsToken)}`;
 
   return sendEmail({
     to: email,
@@ -584,7 +605,8 @@ export async function sendAdminPasswordReset(
   email: string,
   tempPassword: string,
   businessName: string,
-  baseUrl: string
+  baseUrl: string,
+  emailPrefsToken?: string | null
 ): Promise<boolean> {
   const loginUrl = `${baseUrl}/login`;
   
@@ -620,9 +642,7 @@ export async function sendAdminPasswordReset(
       </p>
       <p style="color: #666; font-size: 14px;">If you did not request this password reset, please contact support immediately.</p>
     </div>
-    <div class="footer">
-      <p>This email was sent by <a href="https://bakeriq.app/" style="color: #E91E63; text-decoration: none;">BakerIQ</a></p>
-    </div>
+    ${getBakerEmailFooterHtml(emailPrefsToken)}
   </div>
 </body>
 </html>
@@ -642,7 +662,7 @@ IMPORTANT: Please log in and change your password immediately for security.
 Log in here: ${loginUrl}
 
 If you did not request this password reset, please contact support immediately.
-`;
+${getBakerEmailFooterText(emailPrefsToken)}`;
 
   return sendEmail({
     to: email,
@@ -655,7 +675,8 @@ If you did not request this password reset, please contact support immediately.
 export async function sendEmailVerification(
   email: string,
   verificationToken: string,
-  baseUrl: string
+  baseUrl: string,
+  emailPrefsToken?: string | null
 ): Promise<boolean> {
   const verifyUrl = `${baseUrl}/verify-email?token=${verificationToken}`;
   
@@ -685,9 +706,7 @@ export async function sendEmailVerification(
       </p>
       <p style="color: #666; font-size: 14px;">This link will expire in 24 hours.</p>
     </div>
-    <div class="footer">
-      <p>This email was sent by <a href="https://bakeriq.app/" style="color: #E91E63; text-decoration: none;">BakerIQ</a></p>
-    </div>
+    ${getBakerEmailFooterHtml(emailPrefsToken)}
   </div>
 </body>
 </html>
@@ -701,7 +720,7 @@ Thanks for signing up! Please verify your email address by clicking the link bel
 ${verifyUrl}
 
 This link will expire in 24 hours.
-`;
+${getBakerEmailFooterText(emailPrefsToken)}`;
 
   return sendEmail({
     to: email,
@@ -723,7 +742,8 @@ export async function sendQuoteResponseNotification(
     total: number;
     action: "accepted" | "declined";
     dashboardUrl: string;
-  }
+  },
+  emailPrefsToken?: string | null
 ): Promise<boolean> {
   const actionColor = response.action === "accepted" ? "#22C55E" : "#EF4444";
   const actionText = response.action === "accepted" ? "Accepted" : "Declined";
@@ -783,9 +803,7 @@ export async function sendQuoteResponseNotification(
         <a href="${response.dashboardUrl}" class="cta">View in Dashboard</a>
       </p>
     </div>
-    <div class="footer">
-      <p>This email was sent by <a href="https://bakeriq.app/" style="color: #E91E63; text-decoration: none;">BakerIQ</a></p>
-    </div>
+    ${getBakerEmailFooterHtml(emailPrefsToken)}
   </div>
 </body>
 </html>
@@ -805,7 +823,7 @@ ${response.action === "accepted"
   : "The customer has declined this quote. You may want to follow up to understand their needs better."}
 
 View in Dashboard: ${response.dashboardUrl}
-`;
+${getBakerEmailFooterText(emailPrefsToken)}`;
 
   return sendEmail({
     to: bakerEmail,
@@ -1036,7 +1054,8 @@ export async function sendOnboardingEmail(
   businessName: string,
   day: number,
   baseUrl: string,
-  stripeConnected: boolean = false
+  stripeConnected: boolean = false,
+  emailPrefsToken?: string | null
 ): Promise<{ success: boolean; emailKey: string }> {
   const template = getConditionalOnboardingTemplate(day, stripeConnected);
   if (!template) {
@@ -1076,10 +1095,7 @@ export async function sendOnboardingEmail(
       </p>
       ${resolvedPs}
     </div>
-    <div class="footer">
-      <p>This email was sent by BakerIQ to help you get started.</p>
-      <p style="margin-top: 8px;"><a href="${baseUrl}/settings" style="color: #666;">Manage email preferences</a></p>
-    </div>
+    ${getBakerEmailFooterHtml(emailPrefsToken)}
   </div>
 </body>
 </html>
@@ -1101,7 +1117,7 @@ export async function sendOnboardingEmail(
     .replace(/&nbsp;/g, ' ')
     .trim();
 
-  const text = `Hi ${businessName},\n\n${textContent}\n\n${template.ctaText}: ${ctaUrl}${template.stripePsText || ''}\n\n---\nThis email was sent by BakerIQ to help you get started.`;
+  const text = `Hi ${businessName},\n\n${textContent}\n\n${template.ctaText}: ${ctaUrl}${template.stripePsText || ''}${getBakerEmailFooterText(emailPrefsToken)}`;
 
   const success = await sendEmail({
     to: bakerEmail,
@@ -1117,7 +1133,8 @@ export async function sendRetentionEmail(
   bakerEmail: string,
   subject: string,
   bodyHtml: string,
-  bodyText: string
+  bodyText: string,
+  emailPrefsToken?: string | null
 ): Promise<boolean> {
   const html = `
 <!DOCTYPE html>
@@ -1140,10 +1157,7 @@ export async function sendRetentionEmail(
     <div class="content">
       ${bodyHtml}
     </div>
-    <div class="footer">
-      <p>You're receiving this because you have a BakerIQ account.</p>
-      <p style="margin-top: 8px;"><a href="https://bakeriq.app/settings" style="color: #666;">Manage email preferences</a></p>
-    </div>
+    ${getBakerEmailFooterHtml(emailPrefsToken)}
   </div>
 </body>
 </html>
@@ -1153,7 +1167,7 @@ export async function sendRetentionEmail(
     to: bakerEmail,
     subject,
     html,
-    text: bodyText,
+    text: bodyText + getBakerEmailFooterText(emailPrefsToken),
   });
 }
 
@@ -1168,7 +1182,8 @@ export async function sendPaymentReceivedNotification(
     paymentType: string;
     totalQuoteAmount: number;
     totalPaid: number;
-  }
+  },
+  emailPrefsToken?: string | null
 ): Promise<boolean> {
   const paymentTypeLabel = payment.paymentType === "deposit" ? "Deposit" : "Full Payment";
   const isPaidInFull = payment.totalPaid >= payment.totalQuoteAmount;
@@ -1219,15 +1234,13 @@ export async function sendPaymentReceivedNotification(
       </div>
       ${isPaidInFull ? '<p style="text-align: center; color: #16a34a; font-weight: bold; margin-top: 20px;">This quote is now paid in full!</p>' : `<p style="text-align: center; color: #666; margin-top: 20px;">Remaining balance: ${formatCurrency(payment.totalQuoteAmount - payment.totalPaid)}</p>`}
     </div>
-    <div class="footer">
-      <p>This payment was processed through BakerIQ. Funds will be deposited to your connected Stripe account.</p>
-    </div>
+    ${getBakerEmailFooterHtml(emailPrefsToken)}
   </div>
 </body>
 </html>
 `;
 
-  const text = `Payment Received! ${formatCurrency(payment.amount)} ${paymentTypeLabel} from ${payment.customerName} for Quote #${payment.quoteNumber} (${payment.quoteTitle}). Total paid: ${formatCurrency(payment.totalPaid)} of ${formatCurrency(payment.totalQuoteAmount)}.`;
+  const text = `Payment Received! ${formatCurrency(payment.amount)} ${paymentTypeLabel} from ${payment.customerName} for Quote #${payment.quoteNumber} (${payment.quoteTitle}). Total paid: ${formatCurrency(payment.totalPaid)} of ${formatCurrency(payment.totalQuoteAmount)}.${getBakerEmailFooterText(emailPrefsToken)}`;
 
   return sendEmail({
     to: bakerEmail,
@@ -1237,7 +1250,7 @@ export async function sendPaymentReceivedNotification(
   });
 }
 
-export function getAnnouncementEmailHtml(bakerName: string): string {
+export function getAnnouncementEmailHtml(bakerName: string, emailPrefsToken?: string | null): string {
   return `
 <!DOCTYPE html>
 <html>
@@ -1354,17 +1367,14 @@ export function getAnnouncementEmailHtml(bakerName: string): string {
 
       <p style="color: #888; font-size: 13px; text-align: center; margin-top: 24px;">Thank you for being part of the BakerIQ community. We're here to help you succeed.</p>
     </div>
-    <div class="footer">
-      <p><a href="https://bakeriq.app">BakerIQ</a> &mdash; Pricing & Quote Tool for Custom Bakers</p>
-      <p>You're receiving this because you have an account with BakerIQ.</p>
-    </div>
+    ${getBakerEmailFooterHtml(emailPrefsToken)}
   </div>
 </body>
 </html>
 `;
 }
 
-export function getAnnouncementEmailText(bakerName: string): string {
+export function getAnnouncementEmailText(bakerName: string, emailPrefsToken?: string | null): string {
   return `Hi ${bakerName},
 
 We've been busy building new tools for BakerIQ. Here's what's new:
@@ -1393,7 +1403,7 @@ Log in to your dashboard: https://bakeriq.app/login
 
 Thank you for being part of the BakerIQ community!
 — The BakerIQ Team
-`;
+${getBakerEmailFooterText(emailPrefsToken)}`;
 }
 
 export async function sendInvitationEmail(
@@ -1402,6 +1412,7 @@ export async function sendInvitationEmail(
   role: string,
   giftedPlan: string | null,
   giftedPlanDurationMonths: number | null,
+  emailPrefsToken?: string | null,
 ): Promise<boolean> {
   const planDetails = giftedPlan && giftedPlanDurationMonths
     ? `<p style="background: #fff3e0; border: 1px solid #ffe0b2; padding: 12px; border-radius: 6px; margin: 16px 0;">
@@ -1445,9 +1456,7 @@ export async function sendInvitationEmail(
       </p>
       <p style="color: #666; font-size: 14px;">This invitation link will expire in 7 days.</p>
     </div>
-    <div class="footer">
-      <p>This email was sent by <a href="https://bakeriq.app/" style="color: #E91E63; text-decoration: none;">BakerIQ</a></p>
-    </div>
+    ${getBakerEmailFooterHtml(emailPrefsToken)}
   </div>
 </body>
 </html>
@@ -1466,7 +1475,7 @@ ${giftedPlan && giftedPlanDurationMonths ? `You'll receive ${giftedPlanDurationM
 Accept your invitation here: ${inviteLink}
 
 This invitation link will expire in 7 days.
-`;
+${getBakerEmailFooterText(emailPrefsToken)}`;
 
   return sendEmail({
     to,
@@ -1480,12 +1489,13 @@ This invitation link will expire in 7 days.
 export async function sendAnnouncementEmail(
   to: string,
   bakerName: string,
+  emailPrefsToken?: string | null,
 ): Promise<boolean> {
   return sendEmail({
     to,
     subject: "What's New at BakerIQ: Stripe Payments, More Quotes & New Features",
-    html: getAnnouncementEmailHtml(bakerName),
-    text: getAnnouncementEmailText(bakerName),
+    html: getAnnouncementEmailHtml(bakerName, emailPrefsToken),
+    text: getAnnouncementEmailText(bakerName, emailPrefsToken),
   });
 }
 
@@ -1563,7 +1573,7 @@ function inlineEmailStyles(html: string): string {
     .replace(/<u(?:\s[^>]*)?>/g, '<u style="text-decoration:underline;">');
 }
 
-export function getDynamicEmailHtml(subject: string, bodyContent: string, tokens: AdminEmailTokens): string {
+export function getDynamicEmailHtml(subject: string, bodyContent: string, tokens: AdminEmailTokens, emailPrefsToken?: string | null): string {
   const processedBody = replaceTokens(bodyContent, tokens);
   const bodyHtml = isHtml(processedBody) ? inlineEmailStyles(processedBody) : convertBodyToHtml(processedBody);
   return `
@@ -1600,10 +1610,7 @@ export function getDynamicEmailHtml(subject: string, bodyContent: string, tokens
         <a href="https://bakeriq.app/login" class="cta-button">Log In to Your Dashboard</a>
       </div>
     </div>
-    <div class="footer">
-      <p><a href="https://bakeriq.app">BakerIQ</a> &mdash; Pricing & Quote Tool for Custom Bakers</p>
-      <p>You're receiving this because you have an account with BakerIQ.</p>
-    </div>
+    ${getBakerEmailFooterHtml(emailPrefsToken)}
   </div>
 </body>
 </html>`;
@@ -1625,12 +1632,12 @@ function stripHtmlToText(html: string): string {
     .trim();
 }
 
-export function getDynamicEmailText(bodyContent: string, tokens: AdminEmailTokens): string {
+export function getDynamicEmailText(bodyContent: string, tokens: AdminEmailTokens, emailPrefsToken?: string | null): string {
   const processedBody = replaceTokens(bodyContent, tokens);
   const text = isHtml(processedBody) ? stripHtmlToText(processedBody) : processedBody
     .replace(/^#{1,3}\s/gm, "")
     .replace(/^[•\-]\s/gm, "- ");
-  return text + "\n\nLog in to your dashboard: https://bakeriq.app/login\n\n\u2014 The BakerIQ Team";
+  return text + "\n\nLog in to your dashboard: https://bakeriq.app/login\n\n\u2014 The BakerIQ Team" + getBakerEmailFooterText(emailPrefsToken);
 }
 
 export async function sendDynamicAdminEmail(
@@ -1638,11 +1645,12 @@ export async function sendDynamicAdminEmail(
   subject: string,
   bodyContent: string,
   tokens: AdminEmailTokens,
+  emailPrefsToken?: string | null,
 ): Promise<boolean> {
   return sendEmail({
     to,
     subject: replaceTokens(subject, tokens),
-    html: getDynamicEmailHtml(subject, bodyContent, tokens),
-    text: getDynamicEmailText(bodyContent, tokens),
+    html: getDynamicEmailHtml(subject, bodyContent, tokens, emailPrefsToken),
+    text: getDynamicEmailText(bodyContent, tokens, emailPrefsToken),
   });
 }

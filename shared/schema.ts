@@ -49,6 +49,11 @@ export const bakers = pgTable("bakers", {
   notifyNewLead: integer("notify_new_lead").notNull().default(1),
   notifyQuoteViewed: integer("notify_quote_viewed").notNull().default(1),
   notifyQuoteAccepted: integer("notify_quote_accepted").notNull().default(1),
+  notifyOnboarding: integer("notify_onboarding").notNull().default(1),
+  notifyRetention: integer("notify_retention").notNull().default(1),
+  notifyAnnouncements: integer("notify_announcements").notNull().default(1),
+  // Token for email preferences page (no login required)
+  emailPrefsToken: text("email_prefs_token"),
   // Onboarding tour status: "pending", "completed", "skipped"
   onboardingTourStatus: text("onboarding_tour_status").notNull().default("pending"),
   // Quick Order item limit (null = unlimited)

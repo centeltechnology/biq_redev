@@ -288,14 +288,14 @@ export async function registerRoutes(
       
       const baseUrl = `https://${req.get("host")}`;
       try {
-        await sendEmailVerification(baker.email, verifyToken, baseUrl);
+        await sendEmailVerification(baker.email, verifyToken, baseUrl, baker.emailPrefsToken);
       } catch (emailError) {
         console.error("Failed to send verification email:", emailError);
       }
 
       // Send welcome onboarding email (day 0)
       try {
-        const welcomeSent = await sendOnboardingEmail(baker.email, baker.businessName, 0, baseUrl);
+        const welcomeSent = await sendOnboardingEmail(baker.email, baker.businessName, 0, baseUrl, false, baker.emailPrefsToken);
         if (welcomeSent) {
           await storage.recordOnboardingEmail(baker.id, 0, "sent");
         } else {
@@ -394,7 +394,7 @@ export async function registerRoutes(
       await storage.createPasswordResetToken(baker.id, token, expiresAt);
 
       const baseUrl = `https://${req.get("host")}`;
-      await sendPasswordResetEmail(email, token, baseUrl);
+      await sendPasswordResetEmail(email, token, baseUrl, baker.emailPrefsToken);
 
       res.json({ message: "If an account exists, a reset link has been sent" });
     } catch (error: any) {
@@ -472,7 +472,7 @@ export async function registerRoutes(
       await storage.createEmailVerificationToken(baker.id, token, expiresAt);
 
       const baseUrl = `https://${req.get("host")}`;
-      await sendEmailVerification(baker.email, token, baseUrl);
+      await sendEmailVerification(baker.email, token, baseUrl, baker.emailPrefsToken);
 
       res.json({ message: "Verification email sent" });
     } catch (error) {
@@ -569,6 +569,9 @@ export async function registerRoutes(
         notifyNewLead: z.number().min(0).max(1).optional(),
         notifyQuoteViewed: z.number().min(0).max(1).optional(),
         notifyQuoteAccepted: z.number().min(0).max(1).optional(),
+        notifyOnboarding: z.number().min(0).max(1).optional(),
+        notifyRetention: z.number().min(0).max(1).optional(),
+        notifyAnnouncements: z.number().min(0).max(1).optional(),
         calculatorConfig: z.any().optional(),
         quickOrderItemLimit: z.number().min(1).max(100).optional().nullable(),
         profilePhoto: z.string().optional().nullable(),
@@ -1927,7 +1930,8 @@ export async function registerRoutes(
           total: parseFloat(quote.total),
           action: action === "accept" ? "accepted" : "declined",
           dashboardUrl: `${baseUrl}/quotes/${quote.id}`,
-        }
+        },
+        baker.emailPrefsToken
       );
 
       res.json({ 
@@ -2013,7 +2017,7 @@ export async function registerRoutes(
           eventType: data.eventType,
           eventDate: data.eventDate || undefined,
           estimatedTotal,
-        }),
+        }, baker.emailPrefsToken),
         sendLeadConfirmationToCustomer(data.customerEmail, data.customerName, baker.businessName, {
           eventType: data.eventType,
           eventDate: data.eventDate || undefined,
@@ -2612,7 +2616,7 @@ export async function registerRoutes(
                 paymentType,
                 totalQuoteAmount: total,
                 totalPaid,
-              }).catch(err => console.error("Failed to send payment notification:", err));
+              }, baker.emailPrefsToken).catch(err => console.error("Failed to send payment notification:", err));
             }
           }
         }
@@ -3349,7 +3353,7 @@ export async function registerRoutes(
       
       // Email the temporary password to the baker FIRST
       const baseUrl = `${req.protocol}://${req.get("host")}`;
-      const emailSent = await sendAdminPasswordReset(baker.email, tempPassword, baker.businessName, baseUrl);
+      const emailSent = await sendAdminPasswordReset(baker.email, tempPassword, baker.businessName, baseUrl, baker.emailPrefsToken);
       
       if (!emailSent) {
         // Don't change the password if email fails - this prevents locking out the baker
@@ -3505,11 +3509,16 @@ export async function registerRoutes(
         }
       }
 
+      if (baker.notifyOnboarding === 0) {
+        console.log(`Skipping onboarding email for ${baker.email} (opted out)`);
+        return res.json({ message: `Skipped: baker ${baker.email} has opted out of onboarding emails` });
+      }
+
       await storage.deleteOnboardingEmail(baker.id, emailDay);
       await storage.deleteOnboardingEmailSend(baker.id, emailKey);
 
       const baseUrl = `${req.protocol}://${req.get("host")}`;
-      const result = await sendOnboardingEmail(baker.email, baker.businessName, emailDay, baseUrl, stripeConnected);
+      const result = await sendOnboardingEmail(baker.email, baker.businessName, emailDay, baseUrl, stripeConnected, baker.emailPrefsToken);
 
       if (result.success) {
         await storage.recordOnboardingEmail(baker.id, emailDay, "sent", undefined, result.emailKey, stripeConnected);
@@ -4108,8 +4117,12 @@ Guidelines:
 
       for (const baker of activeBakers) {
         try {
+          if (baker.notifyAnnouncements === 0) {
+            console.log(`Skipping announcement email for ${baker.email} (opted out)`);
+            continue;
+          }
           const firstName = baker.businessName.split(" ")[0];
-          const success = await sendAnnouncementEmail(baker.email, firstName);
+          const success = await sendAnnouncementEmail(baker.email, firstName, baker.emailPrefsToken);
           if (success) sent++;
           else failed++;
         } catch {
@@ -4130,7 +4143,7 @@ Guidelines:
       const baker = await storage.getBaker(req.session.bakerId!);
       if (!baker) return res.status(404).json({ message: "Baker not found" });
 
-      const success = await sendAnnouncementEmail(baker.email, baker.businessName.split(" ")[0]);
+      const success = await sendAnnouncementEmail(baker.email, baker.businessName.split(" ")[0], baker.emailPrefsToken);
       res.json({ success, sentTo: baker.email });
     } catch (error) {
       console.error("Test announcement email error:", error);
@@ -4267,7 +4280,7 @@ Guidelines:
       if (!baker) return res.status(404).json({ message: "Baker not found" });
 
       const tokens = buildTokensForBaker(baker);
-      const success = await sendDynamicAdminEmail(baker.email, email.subject, email.bodyContent, tokens);
+      const success = await sendDynamicAdminEmail(baker.email, email.subject, email.bodyContent, tokens, baker.emailPrefsToken);
       res.json({ success, sentTo: baker.email });
     } catch (error) {
       console.error("Test admin email error:", error);
@@ -4289,8 +4302,12 @@ Guidelines:
 
       for (const baker of recipients) {
         try {
+          if (baker.notifyAnnouncements === 0) {
+            console.log(`Skipping admin email for ${baker.email} (opted out)`);
+            continue;
+          }
           const tokens = buildTokensForBaker(baker);
-          const success = await sendDynamicAdminEmail(baker.email, email.subject, email.bodyContent, tokens);
+          const success = await sendDynamicAdminEmail(baker.email, email.subject, email.bodyContent, tokens, baker.emailPrefsToken);
           if (success) sent++;
           else failed++;
         } catch {
@@ -4934,6 +4951,70 @@ Guidelines:
   } catch (error) {
     console.error("Failed to seed retention templates:", error);
   }
+
+  // Public email preferences endpoints (token-based, no login required)
+  app.get("/api/email-preferences/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      if (!token || token.length < 32) {
+        return res.status(400).json({ error: "Invalid token" });
+      }
+      const baker = await storage.getBakerByEmailPrefsToken(token);
+      if (!baker) {
+        return res.status(404).json({ error: "Invalid or expired preferences link" });
+      }
+      res.json({
+        businessName: baker.businessName,
+        email: baker.email,
+        notifyNewLead: baker.notifyNewLead,
+        notifyQuoteViewed: baker.notifyQuoteViewed,
+        notifyQuoteAccepted: baker.notifyQuoteAccepted,
+        notifyOnboarding: baker.notifyOnboarding,
+        notifyRetention: baker.notifyRetention,
+        notifyAnnouncements: baker.notifyAnnouncements,
+      });
+    } catch (error) {
+      console.error("Error fetching email preferences:", error);
+      res.status(500).json({ error: "Failed to load preferences" });
+    }
+  });
+
+  app.patch("/api/email-preferences/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      if (!token || token.length < 32) {
+        return res.status(400).json({ error: "Invalid token" });
+      }
+      const baker = await storage.getBakerByEmailPrefsToken(token);
+      if (!baker) {
+        return res.status(404).json({ error: "Invalid or expired preferences link" });
+      }
+      const schema = z.object({
+        notifyNewLead: z.number().min(0).max(1).optional(),
+        notifyQuoteViewed: z.number().min(0).max(1).optional(),
+        notifyQuoteAccepted: z.number().min(0).max(1).optional(),
+        notifyOnboarding: z.number().min(0).max(1).optional(),
+        notifyRetention: z.number().min(0).max(1).optional(),
+        notifyAnnouncements: z.number().min(0).max(1).optional(),
+      });
+      const data = schema.parse(req.body);
+      const updated = await storage.updateBaker(baker.id, data);
+      res.json({
+        notifyNewLead: updated!.notifyNewLead,
+        notifyQuoteViewed: updated!.notifyQuoteViewed,
+        notifyQuoteAccepted: updated!.notifyQuoteAccepted,
+        notifyOnboarding: updated!.notifyOnboarding,
+        notifyRetention: updated!.notifyRetention,
+        notifyAnnouncements: updated!.notifyAnnouncements,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid preferences data" });
+      }
+      console.error("Error updating email preferences:", error);
+      res.status(500).json({ error: "Failed to update preferences" });
+    }
+  });
 
   // Seed demo baker on startup
   const existingDemo = await storage.getBakerByEmail("demo@bakeriq.app");

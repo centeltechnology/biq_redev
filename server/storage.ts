@@ -64,6 +64,7 @@ export interface IStorage {
   getBaker(id: string): Promise<Baker | undefined>;
   getBakerByEmail(email: string): Promise<Baker | undefined>;
   getBakerBySlug(slug: string): Promise<Baker | undefined>;
+  getBakerByEmailPrefsToken(token: string): Promise<Baker | undefined>;
   createBaker(baker: InsertBaker): Promise<Baker>;
   updateBaker(id: string, data: Partial<InsertBaker>): Promise<Baker | undefined>;
 
@@ -256,8 +257,15 @@ export class DatabaseStorage implements IStorage {
     return baker || undefined;
   }
 
+  async getBakerByEmailPrefsToken(token: string): Promise<Baker | undefined> {
+    const [baker] = await db.select().from(bakers).where(eq(bakers.emailPrefsToken, token));
+    return baker || undefined;
+  }
+
   async createBaker(insertBaker: InsertBaker): Promise<Baker> {
-    const [baker] = await db.insert(bakers).values(insertBaker).returning();
+    const crypto = await import("crypto");
+    const emailPrefsToken = crypto.randomBytes(32).toString("hex");
+    const [baker] = await db.insert(bakers).values({ ...insertBaker, emailPrefsToken }).returning();
     return baker;
   }
 

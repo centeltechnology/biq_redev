@@ -54,6 +54,11 @@ export async function processOnboardingEmails(baseUrl: string): Promise<void> {
             continue;
           }
 
+          if (baker.notifyOnboarding === 0) {
+            console.log(`[Onboarding] Skipping onboarding email for ${baker.email} (opted out)`);
+            continue;
+          }
+
           console.log(`[Onboarding] Sending day ${day} email to ${baker.email} | stripeConnected=${stripeConnected}`);
 
           const result = await sendOnboardingEmail(
@@ -61,7 +66,8 @@ export async function processOnboardingEmails(baseUrl: string): Promise<void> {
             baker.businessName,
             day,
             baseUrl,
-            stripeConnected
+            stripeConnected,
+            baker.emailPrefsToken
           );
 
           if (result.success) {

@@ -1549,6 +1549,53 @@ export default function SettingsPage() {
                 data-testid="switch-notify-quote-accepted"
               />
             </div>
+            <div className="border-t pt-4 mt-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Marketing & Tips</p>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Onboarding Tips</p>
+                    <p className="text-sm text-muted-foreground">Helpful tips to get started with BakerIQ</p>
+                  </div>
+                  <Switch
+                    checked={baker?.notifyOnboarding === 1}
+                    onCheckedChange={(checked) => {
+                      updateNotificationsMutation.mutate({ notifyOnboarding: checked ? 1 : 0 });
+                    }}
+                    disabled={updateNotificationsMutation.isPending}
+                    data-testid="switch-notify-onboarding"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Engagement Reminders</p>
+                    <p className="text-sm text-muted-foreground">Periodic reminders and tips to grow your business</p>
+                  </div>
+                  <Switch
+                    checked={baker?.notifyRetention === 1}
+                    onCheckedChange={(checked) => {
+                      updateNotificationsMutation.mutate({ notifyRetention: checked ? 1 : 0 });
+                    }}
+                    disabled={updateNotificationsMutation.isPending}
+                    data-testid="switch-notify-retention"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Announcements & Updates</p>
+                    <p className="text-sm text-muted-foreground">New features, updates, and platform news</p>
+                  </div>
+                  <Switch
+                    checked={baker?.notifyAnnouncements === 1}
+                    onCheckedChange={(checked) => {
+                      updateNotificationsMutation.mutate({ notifyAnnouncements: checked ? 1 : 0 });
+                    }}
+                    disabled={updateNotificationsMutation.isPending}
+                    data-testid="switch-notify-announcements"
+                  />
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
