@@ -48,7 +48,9 @@ import {
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import type { Baker, BakerOnboardingEmail, SupportTicket, TicketMessage } from "@shared/schema";
+import type { Baker, BakerOnboardingEmail, SupportTicket, TicketMessage, AdminEmail } from "@shared/schema";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface AdminAnalytics {
@@ -161,23 +163,91 @@ const SEGMENT_LABELS: Record<string, { label: string; description: string }> = {
   at_risk: { label: "At Risk", description: "Previously active, no activity in 14 days" },
 };
 
-function AnnouncementEmailTab() {
+const PERSONALIZATION_TOKENS = [
+  { token: "{{Baker Name}}", description: "First name of the baker" },
+  { token: "{{Business Name}}", description: "Full business name" },
+  { token: "{{Calculator Link}}", description: "Public calculator URL" },
+  { token: "{{Email}}", description: "Baker's email address" },
+  { token: "{{Plan}}", description: "Current plan (Free/Basic/Pro)" },
+  { token: "{{Referral Link}}", description: "Baker's referral link" },
+];
+
+const AUDIENCE_OPTIONS = [
+  { value: "free", label: "Free Plan" },
+  { value: "basic", label: "Basic Plan" },
+  { value: "pro", label: "Pro Plan" },
+  { value: "stripe_connected", label: "Stripe Connected" },
+  { value: "stripe_not_connected", label: "Stripe Not Connected" },
+];
+
+function AdminEmailManager() {
   const { toast } = useToast();
+  const [view, setView] = useState<"list" | "edit">("list");
+  const [editingEmail, setEditingEmail] = useState<AdminEmail | null>(null);
+  const [title, setTitle] = useState("");
+  const [subject, setSubject] = useState("");
+  const [bodyContent, setBodyContent] = useState("");
+  const [targetAudience, setTargetAudience] = useState<string[]>([]);
   const [showPreview, setShowPreview] = useState(false);
   const [confirmSend, setConfirmSend] = useState(false);
 
-  const { data: preview, isLoading: previewLoading } = useQuery<{ html: string }>({
-    queryKey: ["/api/admin/announcement/preview"],
-    enabled: showPreview,
+  const { data: emails, isLoading } = useQuery<AdminEmail[]>({
+    queryKey: ["/api/admin/emails"],
   });
 
-  const { data: analytics } = useQuery<AdminAnalytics>({
-    queryKey: ["/api/admin/analytics"],
+  const { data: preview, isLoading: previewLoading } = useQuery<{ html: string }>({
+    queryKey: ["/api/admin/emails", editingEmail?.id, "preview"],
+    enabled: showPreview && !!editingEmail?.id,
+  });
+
+  const { data: audienceCount } = useQuery<{ count: number }>({
+    queryKey: ["/api/admin/emails/audience-count", targetAudience],
+    queryFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/emails/audience-count", { targetAudience: targetAudience.length > 0 ? targetAudience : null });
+      return res.json();
+    },
+    enabled: view === "edit",
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const data = { title, subject, bodyContent, targetAudience: targetAudience.length > 0 ? targetAudience : null };
+      if (editingEmail) {
+        const res = await apiRequest("PATCH", `/api/admin/emails/${editingEmail.id}`, data);
+        return res.json();
+      } else {
+        const res = await apiRequest("POST", "/api/admin/emails", data);
+        return res.json();
+      }
+    },
+    onSuccess: (data: AdminEmail) => {
+      toast({ title: editingEmail ? "Email updated" : "Email created" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/emails"] });
+      setEditingEmail(data);
+    },
+    onError: () => {
+      toast({ title: "Failed to save email", variant: "destructive" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/admin/emails/${id}`);
+    },
+    onSuccess: () => {
+      toast({ title: "Email deleted" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/emails"] });
+      setView("list");
+      resetForm();
+    },
+    onError: () => {
+      toast({ title: "Failed to delete email", variant: "destructive" });
+    },
   });
 
   const sendTestMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/admin/announcement/test");
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("POST", `/api/admin/emails/${id}/test`);
       return res.json();
     },
     onSuccess: (data: { success: boolean; sentTo: string }) => {
@@ -193,16 +263,17 @@ function AnnouncementEmailTab() {
   });
 
   const sendAllMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/admin/announcement/send");
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("POST", `/api/admin/emails/${id}/send`);
       return res.json();
     },
     onSuccess: (data: { total: number; sent: number; failed: number }) => {
       toast({
-        title: "Announcement emails sent",
-        description: `${data.sent} of ${data.total} emails delivered successfully${data.failed > 0 ? `, ${data.failed} failed` : ""}`,
+        title: "Emails sent",
+        description: `${data.sent} of ${data.total} delivered${data.failed > 0 ? `, ${data.failed} failed` : ""}`,
       });
       setConfirmSend(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/emails"] });
     },
     onError: () => {
       toast({ title: "Failed to send emails", variant: "destructive" });
@@ -210,107 +281,348 @@ function AnnouncementEmailTab() {
     },
   });
 
-  const totalActive = analytics ? analytics.totalBakers - (analytics.suspendedBakers || 0) : 0;
+  function resetForm() {
+    setEditingEmail(null);
+    setTitle("");
+    setSubject("");
+    setBodyContent("");
+    setTargetAudience([]);
+    setShowPreview(false);
+    setConfirmSend(false);
+  }
+
+  function openEmail(email: AdminEmail) {
+    setEditingEmail(email);
+    setTitle(email.title);
+    setSubject(email.subject);
+    setBodyContent(email.bodyContent);
+    setTargetAudience((email.targetAudience as string[]) || []);
+    setShowPreview(false);
+    setConfirmSend(false);
+    setView("edit");
+  }
+
+  function startNew() {
+    resetForm();
+    setView("edit");
+  }
+
+  function insertToken(token: string) {
+    const textarea = document.getElementById("email-body-textarea") as HTMLTextAreaElement | null;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const newValue = bodyContent.substring(0, start) + token + bodyContent.substring(end);
+      setBodyContent(newValue);
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + token.length, start + token.length);
+      }, 0);
+    } else {
+      setBodyContent(bodyContent + token);
+    }
+  }
+
+  function toggleAudience(value: string) {
+    setTargetAudience(prev =>
+      prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]
+    );
+  }
+
+  async function handleSaveAndPreview() {
+    try {
+      const saved = await saveMutation.mutateAsync();
+      if (saved?.id) {
+        setEditingEmail(saved);
+        setShowPreview(true);
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/emails", saved.id, "preview"] });
+      }
+    } catch {}
+  }
+
+  const recipientCount = audienceCount?.count ?? 0;
+
+  if (view === "edit") {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <Button variant="ghost" onClick={() => { setView("list"); resetForm(); }} data-testid="button-back-to-list">
+            <X className="mr-2 h-4 w-4" /> Back to Email List
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            {editingEmail ? "Editing" : "New Email"}{editingEmail?.status === "sent" ? " (Previously Sent)" : ""}
+          </span>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">{editingEmail ? "Edit Email" : "Create New Email"}</CardTitle>
+            <CardDescription>Compose your email with personalization tokens and choose your audience.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email-title">Internal Title</Label>
+              <Input
+                id="email-title"
+                placeholder="e.g. Feature Announcement, Stripe Reminder..."
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                data-testid="input-email-title"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email-subject">Email Subject</Label>
+              <Input
+                id="email-subject"
+                placeholder="What bakers see in their inbox"
+                value={subject}
+                onChange={e => setSubject(e.target.value)}
+                data-testid="input-email-subject"
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <Label htmlFor="email-body-textarea">Email Body</Label>
+                <div className="flex gap-1 flex-wrap">
+                  {PERSONALIZATION_TOKENS.map(t => (
+                    <Button
+                      key={t.token}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => insertToken(t.token)}
+                      title={t.description}
+                      data-testid={`button-insert-token-${t.token.replace(/[{}]/g, "").replace(/\s/g, "-").toLowerCase()}`}
+                    >
+                      {t.token.replace(/\{\{|\}\}/g, "")}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <Textarea
+                id="email-body-textarea"
+                placeholder={"Hi {{Baker Name}},\n\nWrite your email here...\n\nUse ## for section headers\nUse - or • for bullet points\nUse blank lines between paragraphs"}
+                value={bodyContent}
+                onChange={e => setBodyContent(e.target.value)}
+                className="min-h-[300px] font-mono text-sm"
+                data-testid="textarea-email-body"
+              />
+              <p className="text-xs text-muted-foreground">
+                Formatting: Use ## for headers, - or {"\u2022"} for bullet points, blank lines for paragraphs. Tokens get replaced with each baker's actual info.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Target Audience</CardTitle>
+            <CardDescription>Choose who should receive this email. Leave all unchecked to send to everyone.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+              {AUDIENCE_OPTIONS.map(opt => (
+                <div key={opt.value} className="flex items-center gap-2">
+                  <Checkbox
+                    id={`audience-${opt.value}`}
+                    checked={targetAudience.includes(opt.value)}
+                    onCheckedChange={() => toggleAudience(opt.value)}
+                    data-testid={`checkbox-audience-${opt.value}`}
+                  />
+                  <Label htmlFor={`audience-${opt.value}`} className="cursor-pointer text-sm">{opt.label}</Label>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 p-3 bg-muted rounded-lg">
+              <p className="text-sm font-medium" data-testid="text-recipient-count">
+                Recipients: {recipientCount} baker{recipientCount !== 1 ? "s" : ""}
+                {targetAudience.length > 0 && (
+                  <span className="text-muted-foreground ml-2">
+                    ({targetAudience.map(a => AUDIENCE_OPTIONS.find(o => o.value === a)?.label).join(", ")})
+                  </span>
+                )}
+                {targetAudience.length === 0 && (
+                  <span className="text-muted-foreground ml-2">(All active bakers)</span>
+                )}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                onClick={() => saveMutation.mutate()}
+                disabled={saveMutation.isPending || !title || !subject || !bodyContent}
+                data-testid="button-save-draft"
+              >
+                {saveMutation.isPending ? (
+                  <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+                ) : (
+                  <><FileText className="mr-2 h-4 w-4" /> Save Draft</>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleSaveAndPreview}
+                disabled={saveMutation.isPending || !title || !subject || !bodyContent}
+                data-testid="button-preview-email"
+              >
+                <Eye className="mr-2 h-4 w-4" /> Save & Preview
+              </Button>
+              {editingEmail && (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => sendTestMutation.mutate(editingEmail.id)}
+                    disabled={sendTestMutation.isPending}
+                    data-testid="button-send-test"
+                  >
+                    {sendTestMutation.isPending ? (
+                      <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Sending...</>
+                    ) : (
+                      <><Mail className="mr-2 h-4 w-4" /> Send Test to Me</>
+                    )}
+                  </Button>
+                  {!confirmSend ? (
+                    <Button
+                      onClick={() => setConfirmSend(true)}
+                      disabled={recipientCount === 0}
+                      data-testid="button-send-to-audience"
+                    >
+                      <Send className="mr-2 h-4 w-4" /> Send to {recipientCount} Baker{recipientCount !== 1 ? "s" : ""}
+                    </Button>
+                  ) : (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-medium text-destructive">
+                        <AlertTriangle className="inline h-4 w-4 mr-1" />
+                        Send to {recipientCount} baker{recipientCount !== 1 ? "s" : ""}?
+                      </p>
+                      <Button
+                        variant="destructive"
+                        onClick={() => sendAllMutation.mutate(editingEmail.id)}
+                        disabled={sendAllMutation.isPending}
+                        data-testid="button-confirm-send"
+                      >
+                        {sendAllMutation.isPending ? (
+                          <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Sending...</>
+                        ) : "Yes, Send Now"}
+                      </Button>
+                      <Button variant="ghost" onClick={() => setConfirmSend(false)} data-testid="button-cancel-send">Cancel</Button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {showPreview && editingEmail && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Email Preview</CardTitle>
+              <CardDescription>How the email will look with sample data</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {previewLoading ? (
+                <Skeleton className="h-96 w-full" />
+              ) : preview?.html ? (
+                <div className="border rounded-md overflow-hidden bg-white">
+                  <iframe
+                    srcDoc={preview.html}
+                    title="Email Preview"
+                    className="w-full border-0"
+                    style={{ height: "700px" }}
+                    data-testid="iframe-email-preview"
+                  />
+                </div>
+              ) : (
+                <p className="text-center py-8 text-muted-foreground">Save the email first to see a preview</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {editingEmail && (
+          <div className="flex justify-end">
+            <Button
+              variant="ghost"
+              className="text-destructive"
+              onClick={() => {
+                if (confirm("Delete this email permanently?")) {
+                  deleteMutation.mutate(editingEmail.id);
+                }
+              }}
+              data-testid="button-delete-email"
+            >
+              <X className="mr-2 h-4 w-4" /> Delete Email
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mail className="h-5 w-5" />
-            Feature Announcement Email
-          </CardTitle>
-          <CardDescription>
-            Send a branded email to all active bakers announcing new features, pricing updates, and Stripe payments.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
           <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="space-y-1">
-              <p className="text-sm font-medium" data-testid="text-email-recipients">
-                Recipients: {totalActive} active baker{totalActive !== 1 ? "s" : ""}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Subject: What's New at BakerIQ: Stripe Payments, More Quotes & New Features
-              </p>
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Email Manager
+              </CardTitle>
+              <CardDescription>Create, save, and send personalized emails to your bakers.</CardDescription>
             </div>
-            <div className="flex gap-2 flex-wrap">
-              <Button
-                variant="outline"
-                onClick={() => setShowPreview(!showPreview)}
-                data-testid="button-toggle-preview"
-              >
-                <Eye className="mr-2 h-4 w-4" />
-                {showPreview ? "Hide Preview" : "Preview Email"}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => sendTestMutation.mutate()}
-                disabled={sendTestMutation.isPending}
-                data-testid="button-send-test"
-              >
-                {sendTestMutation.isPending ? (
-                  <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Sending...</>
-                ) : (
-                  <><Mail className="mr-2 h-4 w-4" /> Send Test to Me</>
-                )}
-              </Button>
-            </div>
+            <Button onClick={startNew} data-testid="button-new-email">
+              <FileText className="mr-2 h-4 w-4" /> New Email
+            </Button>
           </div>
-
-          {showPreview && (
-            <div className="border rounded-md overflow-hidden bg-white">
-              {previewLoading ? (
-                <div className="p-8 flex justify-content-center">
-                  <Skeleton className="h-96 w-full" />
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+            </div>
+          ) : !emails?.length ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground mb-4">No emails yet. Create your first one to get started.</p>
+              <Button onClick={startNew} data-testid="button-create-first-email">
+                <FileText className="mr-2 h-4 w-4" /> Create Email
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {emails.map(email => (
+                <div
+                  key={email.id}
+                  className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted hover-elevate cursor-pointer"
+                  onClick={() => openEmail(email)}
+                  data-testid={`card-email-${email.id}`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-medium truncate">{email.title}</p>
+                      <Badge variant={email.status === "sent" ? "default" : "secondary"}>
+                        {email.status === "sent" ? "Sent" : "Draft"}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">{email.subject}</p>
+                    {email.sentAt && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Sent {format(new Date(email.sentAt), "MMM d, yyyy")} to {email.sentCount} baker{email.sentCount !== 1 ? "s" : ""}
+                      </p>
+                    )}
+                  </div>
+                  <Button variant="ghost" size="icon" data-testid={`button-edit-email-${email.id}`}>
+                    <Eye className="h-4 w-4" />
+                  </Button>
                 </div>
-              ) : preview?.html ? (
-                <iframe
-                  srcDoc={preview.html}
-                  title="Email Preview"
-                  className="w-full border-0"
-                  style={{ height: "800px" }}
-                  data-testid="iframe-email-preview"
-                />
-              ) : (
-                <p className="p-8 text-center text-muted-foreground">Failed to load preview</p>
-              )}
+              ))}
             </div>
           )}
-
-          <div className="border-t pt-4">
-            {!confirmSend ? (
-              <Button
-                onClick={() => setConfirmSend(true)}
-                data-testid="button-send-all"
-              >
-                <Send className="mr-2 h-4 w-4" />
-                Send to All Bakers ({totalActive})
-              </Button>
-            ) : (
-              <div className="flex items-center gap-3 flex-wrap">
-                <p className="text-sm font-medium text-destructive">
-                  <AlertTriangle className="inline h-4 w-4 mr-1" />
-                  This will send an email to {totalActive} baker{totalActive !== 1 ? "s" : ""}. Are you sure?
-                </p>
-                <Button
-                  variant="destructive"
-                  onClick={() => sendAllMutation.mutate()}
-                  disabled={sendAllMutation.isPending}
-                  data-testid="button-confirm-send-all"
-                >
-                  {sendAllMutation.isPending ? (
-                    <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Sending...</>
-                  ) : (
-                    "Yes, Send Now"
-                  )}
-                </Button>
-                <Button variant="ghost" onClick={() => setConfirmSend(false)} data-testid="button-cancel-send">
-                  Cancel
-                </Button>
-              </div>
-            )}
-          </div>
         </CardContent>
       </Card>
     </div>
@@ -2684,7 +2996,7 @@ export default function AdminDashboard() {
 
         {/* EMAIL BLAST TAB */}
         <TabsContent value="email-blast" className="space-y-4">
-          <AnnouncementEmailTab />
+          <AdminEmailManager />
         </TabsContent>
 
         {/* SUPPORT TAB */}

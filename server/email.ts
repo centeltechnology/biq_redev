@@ -1487,3 +1487,114 @@ export async function sendAnnouncementEmail(
     text: getAnnouncementEmailText(bakerName),
   });
 }
+
+export interface AdminEmailTokens {
+  bakerName: string;
+  businessName: string;
+  calculatorLink: string;
+  email: string;
+  plan: string;
+  referralLink: string;
+}
+
+function replaceTokens(content: string, tokens: AdminEmailTokens): string {
+  return content
+    .replace(/\{\{Baker Name\}\}/g, tokens.bakerName)
+    .replace(/\{\{Business Name\}\}/g, tokens.businessName)
+    .replace(/\{\{Calculator Link\}\}/g, tokens.calculatorLink)
+    .replace(/\{\{Email\}\}/g, tokens.email)
+    .replace(/\{\{Plan\}\}/g, tokens.plan)
+    .replace(/\{\{Referral Link\}\}/g, tokens.referralLink);
+}
+
+function convertBodyToHtml(body: string): string {
+  return body
+    .split("\n\n")
+    .map(block => {
+      const trimmed = block.trim();
+      if (!trimmed) return "";
+      if (trimmed.startsWith("# ")) return `<h1 style="font-size:24px;font-weight:700;color:#333;margin:20px 0 12px 0;">${trimmed.slice(2)}</h1>`;
+      if (trimmed.startsWith("## ")) return `<h2 style="font-size:20px;font-weight:700;color:#333;margin:18px 0 10px 0;">${trimmed.slice(3)}</h2>`;
+      if (trimmed.startsWith("### ")) return `<h3 style="font-size:17px;font-weight:700;color:#333;margin:16px 0 8px 0;">${trimmed.slice(4)}</h3>`;
+      const lines = trimmed.split("\n");
+      const isList = lines.every(l => l.trim().startsWith("• ") || l.trim().startsWith("- ") || l.trim() === "");
+      if (isList) {
+        const items = lines.filter(l => l.trim().startsWith("• ") || l.trim().startsWith("- ")).map(l => `<li style="padding:4px 0;color:#444;">${l.trim().replace(/^[•\-]\s*/, "")}</li>`).join("");
+        return `<ul style="list-style:disc;padding-left:24px;margin:8px 0;">${items}</ul>`;
+      }
+      return lines.map(l => {
+        const t = l.trim();
+        if (!t) return "<br/>";
+        return `<p style="color:#444;font-size:15px;margin:4px 0;line-height:1.6;">${t}</p>`;
+      }).join("");
+    })
+    .join("");
+}
+
+export function getDynamicEmailHtml(subject: string, bodyContent: string, tokens: AdminEmailTokens): string {
+  const processedBody = replaceTokens(bodyContent, tokens);
+  const bodyHtml = convertBodyToHtml(processedBody);
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body { font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f0f0f0; }
+    .wrapper { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #E91E63, #AD1457); color: white; padding: 40px 30px; text-align: center; border-radius: 12px 12px 0 0; }
+    .header h1 { margin: 0 0 8px 0; font-size: 24px; font-weight: 700; }
+    .content { background: #ffffff; padding: 32px; }
+    .cta-section { text-align: center; margin: 32px 0 16px 0; }
+    .cta-button { display: inline-block; background: #E91E63; color: white; padding: 14px 36px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; }
+    .footer { background: #fafafa; padding: 24px 32px; border-radius: 0 0 12px 12px; text-align: center; border-top: 1px solid #f0f0f0; }
+    .footer p { margin: 4px 0; color: #999; font-size: 12px; }
+    .footer a { color: #E91E63; text-decoration: none; }
+    @media (max-width: 480px) {
+      .header { padding: 30px 20px; }
+      .content { padding: 24px 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <h1>${replaceTokens(subject, tokens)}</h1>
+    </div>
+    <div class="content">
+      ${bodyHtml}
+      <div class="cta-section">
+        <a href="https://bakeriq.app/login" class="cta-button">Log In to Your Dashboard</a>
+      </div>
+    </div>
+    <div class="footer">
+      <p><a href="https://bakeriq.app">BakerIQ</a> &mdash; Pricing & Quote Tool for Custom Bakers</p>
+      <p>You're receiving this because you have an account with BakerIQ.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+export function getDynamicEmailText(bodyContent: string, tokens: AdminEmailTokens): string {
+  const processedBody = replaceTokens(bodyContent, tokens);
+  return processedBody
+    .replace(/^#{1,3}\s/gm, "")
+    .replace(/^[•\-]\s/gm, "- ")
+    + "\n\nLog in to your dashboard: https://bakeriq.app/login\n\n— The BakerIQ Team";
+}
+
+export async function sendDynamicAdminEmail(
+  to: string,
+  subject: string,
+  bodyContent: string,
+  tokens: AdminEmailTokens,
+): Promise<boolean> {
+  return sendEmail({
+    to,
+    subject: replaceTokens(subject, tokens),
+    html: getDynamicEmailHtml(subject, bodyContent, tokens),
+    text: getDynamicEmailText(bodyContent, tokens),
+  });
+}

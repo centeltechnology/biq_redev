@@ -7,7 +7,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { pool } from "./db";
 import connectPgSimple from "connect-pg-simple";
-import { sendNewLeadNotification, sendLeadConfirmationToCustomer, sendPasswordResetEmail, sendEmailVerification, sendQuoteNotification, sendOnboardingEmail, sendQuoteResponseNotification, sendAdminPasswordReset, sendPaymentReceivedNotification, sendAnnouncementEmail, getAnnouncementEmailHtml, sendInvitationEmail } from "./email";
+import { sendNewLeadNotification, sendLeadConfirmationToCustomer, sendPasswordResetEmail, sendEmailVerification, sendQuoteNotification, sendOnboardingEmail, sendQuoteResponseNotification, sendAdminPasswordReset, sendPaymentReceivedNotification, sendAnnouncementEmail, getAnnouncementEmailHtml, sendInvitationEmail, getDynamicEmailHtml, sendDynamicAdminEmail, type AdminEmailTokens } from "./email";
 import crypto from "crypto";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { db } from "./db";
@@ -4096,6 +4096,174 @@ Guidelines:
     } catch (error) {
       console.error("Test announcement email error:", error);
       res.status(500).json({ message: "Failed to send test email" });
+    }
+  });
+
+  // Admin Emails CRUD
+  app.get("/api/admin/emails", requireSuperAdmin, async (req, res) => {
+    try {
+      const emails = await storage.getAdminEmails();
+      res.json(emails);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch admin emails" });
+    }
+  });
+
+  app.get("/api/admin/emails/:id", requireSuperAdmin, async (req, res) => {
+    try {
+      const email = await storage.getAdminEmail(req.params.id);
+      if (!email) return res.status(404).json({ message: "Email not found" });
+      res.json(email);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch email" });
+    }
+  });
+
+  app.post("/api/admin/emails", requireSuperAdmin, async (req, res) => {
+    try {
+      const { title, subject, bodyContent, targetAudience } = req.body;
+      if (!title || !subject || !bodyContent) {
+        return res.status(400).json({ message: "Title, subject, and body content are required" });
+      }
+      const email = await storage.createAdminEmail({
+        title,
+        subject,
+        bodyContent,
+        targetAudience: targetAudience || null,
+        status: "draft",
+      });
+      res.json(email);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create email" });
+    }
+  });
+
+  app.patch("/api/admin/emails/:id", requireSuperAdmin, async (req, res) => {
+    try {
+      const email = await storage.updateAdminEmail(req.params.id, req.body);
+      if (!email) return res.status(404).json({ message: "Email not found" });
+      res.json(email);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update email" });
+    }
+  });
+
+  app.delete("/api/admin/emails/:id", requireSuperAdmin, async (req, res) => {
+    try {
+      await storage.deleteAdminEmail(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete email" });
+    }
+  });
+
+  function buildTokensForBaker(baker: { businessName: string; email: string; slug: string; plan: string; referralCode?: string | null }): AdminEmailTokens {
+    return {
+      bakerName: baker.businessName.split(" ")[0],
+      businessName: baker.businessName,
+      calculatorLink: `https://bakeriq.app/c/${baker.slug}`,
+      email: baker.email,
+      plan: (baker.plan || "free").charAt(0).toUpperCase() + (baker.plan || "free").slice(1),
+      referralLink: baker.referralCode ? `https://bakeriq.app/join/r/${baker.referralCode}` : "https://bakeriq.app",
+    };
+  }
+
+  // Preview an admin email with sample tokens
+  app.get("/api/admin/emails/:id/preview", requireSuperAdmin, async (req, res) => {
+    try {
+      const email = await storage.getAdminEmail(req.params.id);
+      if (!email) return res.status(404).json({ message: "Email not found" });
+      const sampleTokens: AdminEmailTokens = {
+        bakerName: "Jane",
+        businessName: "Jane's Sweet Creations",
+        calculatorLink: "https://bakeriq.app/c/janes-sweet-creations",
+        email: "jane@example.com",
+        plan: "Free",
+        referralLink: "https://bakeriq.app/join/r/abc123",
+      };
+      const html = getDynamicEmailHtml(email.subject, email.bodyContent, sampleTokens);
+      res.json({ html });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to generate preview" });
+    }
+  });
+
+  // Get recipient count for audience filters
+  app.post("/api/admin/emails/audience-count", requireSuperAdmin, async (req, res) => {
+    try {
+      const { targetAudience } = req.body;
+      const allBakers = await storage.getAllBakers();
+      const filtered = filterBakersByAudience(allBakers, targetAudience);
+      res.json({ count: filtered.length });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get audience count" });
+    }
+  });
+
+  function filterBakersByAudience(bakers: any[], targetAudience: string[] | null): any[] {
+    let filtered = bakers.filter(b => !b.suspended);
+    if (!targetAudience || targetAudience.length === 0) return filtered;
+
+    const planFilters = targetAudience.filter(a => ["free", "basic", "pro"].includes(a));
+    const stripeFilters = targetAudience.filter(a => ["stripe_connected", "stripe_not_connected"].includes(a));
+
+    if (planFilters.length > 0) {
+      filtered = filtered.filter(b => planFilters.includes(b.plan || "free"));
+    }
+    if (stripeFilters.includes("stripe_connected") && !stripeFilters.includes("stripe_not_connected")) {
+      filtered = filtered.filter(b => b.stripeConnectOnboarded);
+    }
+    if (stripeFilters.includes("stripe_not_connected") && !stripeFilters.includes("stripe_connected")) {
+      filtered = filtered.filter(b => !b.stripeConnectOnboarded);
+    }
+    return filtered;
+  }
+
+  // Send test admin email to self
+  app.post("/api/admin/emails/:id/test", requireSuperAdmin, async (req, res) => {
+    try {
+      const email = await storage.getAdminEmail(req.params.id);
+      if (!email) return res.status(404).json({ message: "Email not found" });
+      const baker = await storage.getBaker(req.session.bakerId!);
+      if (!baker) return res.status(404).json({ message: "Baker not found" });
+
+      const tokens = buildTokensForBaker(baker);
+      const success = await sendDynamicAdminEmail(baker.email, email.subject, email.bodyContent, tokens);
+      res.json({ success, sentTo: baker.email });
+    } catch (error) {
+      console.error("Test admin email error:", error);
+      res.status(500).json({ message: "Failed to send test email" });
+    }
+  });
+
+  // Send admin email to filtered audience
+  app.post("/api/admin/emails/:id/send", requireSuperAdmin, async (req, res) => {
+    try {
+      const email = await storage.getAdminEmail(req.params.id);
+      if (!email) return res.status(404).json({ message: "Email not found" });
+
+      const allBakers = await storage.getAllBakers();
+      const recipients = filterBakersByAudience(allBakers, email.targetAudience as string[] | null);
+
+      let sent = 0;
+      let failed = 0;
+
+      for (const baker of recipients) {
+        try {
+          const tokens = buildTokensForBaker(baker);
+          const success = await sendDynamicAdminEmail(baker.email, email.subject, email.bodyContent, tokens);
+          if (success) sent++;
+          else failed++;
+        } catch {
+          failed++;
+        }
+      }
+
+      await storage.markAdminEmailSent(email.id, sent);
+      res.json({ total: recipients.length, sent, failed });
+    } catch (error) {
+      console.error("Admin email send error:", error);
+      res.status(500).json({ message: "Failed to send emails" });
     }
   });
 

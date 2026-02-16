@@ -52,6 +52,9 @@ import {
   invitations,
   type Invitation,
   type InsertInvitation,
+  adminEmails,
+  type AdminEmail,
+  type InsertAdminEmail,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql, or, ilike, isNull } from "drizzle-orm";
@@ -226,6 +229,14 @@ export interface IStorage {
   getInvitationByToken(token: string): Promise<Invitation | undefined>;
   getInvitationByEmail(email: string): Promise<Invitation | undefined>;
   updateInvitation(id: string, data: Partial<Invitation>): Promise<Invitation | undefined>;
+
+  // Admin Emails
+  getAdminEmails(): Promise<AdminEmail[]>;
+  getAdminEmail(id: string): Promise<AdminEmail | undefined>;
+  createAdminEmail(email: InsertAdminEmail): Promise<AdminEmail>;
+  updateAdminEmail(id: string, data: Partial<InsertAdminEmail>): Promise<AdminEmail | undefined>;
+  deleteAdminEmail(id: string): Promise<void>;
+  markAdminEmailSent(id: string, sentCount: number): Promise<AdminEmail | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1322,6 +1333,35 @@ export class DatabaseStorage implements IStorage {
 
   async updateInvitation(id: string, data: Partial<Invitation>): Promise<Invitation | undefined> {
     const [updated] = await db.update(invitations).set(data).where(eq(invitations.id, id)).returning();
+    return updated || undefined;
+  }
+
+  // Admin Emails
+  async getAdminEmails(): Promise<AdminEmail[]> {
+    return db.select().from(adminEmails).orderBy(desc(adminEmails.createdAt));
+  }
+
+  async getAdminEmail(id: string): Promise<AdminEmail | undefined> {
+    const [email] = await db.select().from(adminEmails).where(eq(adminEmails.id, id));
+    return email || undefined;
+  }
+
+  async createAdminEmail(email: InsertAdminEmail): Promise<AdminEmail> {
+    const [created] = await db.insert(adminEmails).values(email).returning();
+    return created;
+  }
+
+  async updateAdminEmail(id: string, data: Partial<InsertAdminEmail>): Promise<AdminEmail | undefined> {
+    const [updated] = await db.update(adminEmails).set({ ...data, updatedAt: new Date() }).where(eq(adminEmails.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async deleteAdminEmail(id: string): Promise<void> {
+    await db.delete(adminEmails).where(eq(adminEmails.id, id));
+  }
+
+  async markAdminEmailSent(id: string, sentCount: number): Promise<AdminEmail | undefined> {
+    const [updated] = await db.update(adminEmails).set({ status: "sent", sentAt: new Date(), sentCount }).where(eq(adminEmails.id, id)).returning();
     return updated || undefined;
   }
 }

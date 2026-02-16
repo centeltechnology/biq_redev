@@ -939,3 +939,27 @@ export const insertInvitationSchema = createInsertSchema(invitations).omit({
 
 export type Invitation = typeof invitations.$inferSelect;
 export type InsertInvitation = z.infer<typeof insertInvitationSchema>;
+
+export const adminEmails = pgTable("admin_emails", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  subject: text("subject").notNull(),
+  bodyContent: text("body_content").notNull(),
+  status: text("status").notNull().default("draft"),
+  targetAudience: jsonb("target_audience").$type<string[]>(),
+  sentAt: timestamp("sent_at"),
+  sentCount: integer("sent_count").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertAdminEmailSchema = createInsertSchema(adminEmails).omit({
+  id: true,
+  sentAt: true,
+  sentCount: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type AdminEmail = typeof adminEmails.$inferSelect;
+export type InsertAdminEmail = z.infer<typeof insertAdminEmailSchema>;
