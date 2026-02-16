@@ -2963,30 +2963,6 @@ export default function AdminDashboard() {
               </Card>
             )}
 
-            {/* Manual Email Tools */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Manual Email Tools</CardTitle>
-                <CardDescription>Resend onboarding emails to bakers</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Select a baker from the Accounts tab and click the activity icon to view their details and resend emails.
-                </p>
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Onboarding Email Schedule:</p>
-                  <div className="grid gap-2">
-                    {Object.entries(EMAIL_DAY_LABELS).map(([day, label]) => (
-                      <div key={day} className="flex items-center gap-2 p-2 bg-muted rounded-lg text-sm">
-                        <Badge variant="outline">{day}</Badge>
-                        <span>{label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Quick Stats */}
             <Card>
               <CardHeader>
@@ -3017,6 +2993,30 @@ export default function AdminDashboard() {
                   <Badge variant="outline" className="text-orange-600 border-orange-600">
                     {supportTickets?.filter(t => t.priority === "high" && t.status !== "resolved" && t.status !== "archived").length || 0}
                   </Badge>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Email Schedule Reference */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Email Schedule Reference</CardTitle>
+                <CardDescription>Onboarding email timeline for new bakers</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  New bakers automatically receive onboarding emails on this schedule. To resend a specific email, go to the Accounts tab, find the baker, and click the activity icon.
+                </p>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Onboarding Email Schedule:</p>
+                  <div className="grid gap-2">
+                    {Object.entries(EMAIL_DAY_LABELS).map(([day, label]) => (
+                      <div key={day} className="flex items-center gap-2 p-2 bg-muted rounded-lg text-sm">
+                        <Badge variant="outline">{day}</Badge>
+                        <span>{label}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </CardContent>
             </Card>
