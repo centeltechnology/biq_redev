@@ -124,7 +124,7 @@ export default function PartnersPage() {
                 <div>
                   <h3 className="font-semibold mb-1">Custom Link, 45-Day Cookie</h3>
                   <p className="text-sm text-muted-foreground">
-                    Drop your link in your bio, video description, or pinned comment. A 45-day cookie means you get credit even if they sign up later.
+                    Drop your link in your bio, video description, or pinned comment. A 45-day cookie means you get credit even if they sign up later — and if they start on Free and upgrade to a paid plan, you still earn commission.
                   </p>
                 </div>
               </div>
@@ -226,7 +226,7 @@ export default function PartnersPage() {
               <AccordionTrigger data-testid="faq-tracking">How are referrals tracked?</AccordionTrigger>
               <AccordionContent>
                 <p className="text-muted-foreground">
-                  You get a unique custom affiliate link that you can edit to match your brand. When someone clicks it, a 45-day cookie is set — so you get credit even if they sign up days or weeks later. Your partner dashboard tracks every click, signup, and commission in real time.
+                  You get a unique custom affiliate link that you can edit to match your brand. When someone clicks it, a 45-day cookie is set — so you get credit even if they sign up days or weeks later. Once they sign up, the referral is permanently linked to their account. That means even if they start on the Free plan and upgrade to Basic or Pro down the road, you still earn your 20% commission on their first 3 months. Your partner dashboard tracks every click, signup, and commission in real time.
                 </p>
               </AccordionContent>
             </AccordionItem>
