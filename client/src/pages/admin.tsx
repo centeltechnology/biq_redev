@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/rich-text-editor";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -180,6 +181,27 @@ const AUDIENCE_OPTIONS = [
   { value: "stripe_not_connected", label: "Stripe Not Connected" },
 ];
 
+function plainTextToHtml(text: string): string {
+  if (text.startsWith("<") || text.includes("</p>") || text.includes("</h")) return text;
+  return text
+    .split("\n\n")
+    .map(block => {
+      const trimmed = block.trim();
+      if (!trimmed) return "";
+      if (trimmed.startsWith("### ")) return `<h3>${trimmed.slice(4)}</h3>`;
+      if (trimmed.startsWith("## ")) return `<h2>${trimmed.slice(3)}</h2>`;
+      if (trimmed.startsWith("# ")) return `<h1>${trimmed.slice(2)}</h1>`;
+      const lines = trimmed.split("\n");
+      const isList = lines.every(l => l.trim().startsWith("\u2022 ") || l.trim().startsWith("- ") || l.trim() === "");
+      if (isList) {
+        const items = lines.filter(l => l.trim().startsWith("\u2022 ") || l.trim().startsWith("- ")).map(l => `<li>${l.trim().replace(/^[\u2022\-]\s*/, "")}</li>`).join("");
+        return `<ul>${items}</ul>`;
+      }
+      return lines.map(l => l.trim() ? `<p>${l.trim()}</p>` : "").join("");
+    })
+    .join("");
+}
+
 function AdminEmailManager() {
   const { toast } = useToast();
   const [view, setView] = useState<"list" | "edit">("list");
@@ -190,6 +212,7 @@ function AdminEmailManager() {
   const [targetAudience, setTargetAudience] = useState<string[]>([]);
   const [showPreview, setShowPreview] = useState(false);
   const [confirmSend, setConfirmSend] = useState(false);
+  const [editorInstance, setEditorInstance] = useState<any>(null);
 
   const { data: emails, isLoading } = useQuery<AdminEmail[]>({
     queryKey: ["/api/admin/emails"],
@@ -295,7 +318,7 @@ function AdminEmailManager() {
     setEditingEmail(email);
     setTitle(email.title);
     setSubject(email.subject);
-    setBodyContent(email.bodyContent);
+    setBodyContent(plainTextToHtml(email.bodyContent));
     setTargetAudience((email.targetAudience as string[]) || []);
     setShowPreview(false);
     setConfirmSend(false);
@@ -308,18 +331,10 @@ function AdminEmailManager() {
   }
 
   function insertToken(token: string) {
-    const textarea = document.getElementById("email-body-textarea") as HTMLTextAreaElement | null;
-    if (textarea) {
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const newValue = bodyContent.substring(0, start) + token + bodyContent.substring(end);
-      setBodyContent(newValue);
-      setTimeout(() => {
-        textarea.focus();
-        textarea.setSelectionRange(start + token.length, start + token.length);
-      }, 0);
+    if (editorInstance) {
+      editorInstance.chain().focus().insertContent(token).run();
     } else {
-      setBodyContent(bodyContent + token);
+      setBodyContent(prev => prev + token);
     }
   }
 
@@ -398,16 +413,14 @@ function AdminEmailManager() {
                   ))}
                 </div>
               </div>
-              <Textarea
-                id="email-body-textarea"
-                placeholder={"Hi {{Baker Name}},\n\nWrite your email here...\n\nUse ## for section headers\nUse - or • for bullet points\nUse blank lines between paragraphs"}
-                value={bodyContent}
-                onChange={e => setBodyContent(e.target.value)}
-                className="min-h-[300px] font-mono text-sm"
-                data-testid="textarea-email-body"
+              <RichTextEditor
+                content={bodyContent}
+                onChange={setBodyContent}
+                onEditorReady={setEditorInstance}
+                placeholder="Write your email here... You can paste formatted content from ChatGPT or any other source."
               />
               <p className="text-xs text-muted-foreground">
-                Formatting: Use ## for headers, - or {"\u2022"} for bullet points, blank lines for paragraphs. Tokens get replaced with each baker's actual info.
+                Paste formatted content directly from ChatGPT or use the toolbar above. Tokens get replaced with each baker's actual info when sent.
               </p>
             </div>
           </CardContent>

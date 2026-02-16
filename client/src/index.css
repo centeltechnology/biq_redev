@@ -352,3 +352,46 @@
     color: white !important;
   }
 }
+
+.ProseMirror {
+  outline: none;
+  min-height: 250px;
+  padding: 1rem;
+}
+.ProseMirror p {
+  margin: 0.25em 0;
+}
+.ProseMirror h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0.75em 0 0.25em;
+}
+.ProseMirror h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0.5em 0 0.25em;
+}
+.ProseMirror h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0.5em 0 0.25em;
+}
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 1.5rem;
+  margin: 0.5em 0;
+}
+.ProseMirror li {
+  margin: 0.15em 0;
+}
+.ProseMirror a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+}
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+  height: 0;
+}

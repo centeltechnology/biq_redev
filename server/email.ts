@@ -1,4 +1,5 @@
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
+import sanitizeHtml from "sanitize-html";
 
 function getAwsRegion(): string {
   const regionValue = process.env.AWS_SES_REGION || process.env.AWS_REGION || "us-east-1";
@@ -1531,9 +1532,40 @@ function convertBodyToHtml(body: string): string {
     .join("");
 }
 
+function isHtml(text: string): boolean {
+  return /<[a-z][\s\S]*>/i.test(text);
+}
+
+function sanitizeEmailHtml(html: string): string {
+  return sanitizeHtml(html, {
+    allowedTags: ["h1", "h2", "h3", "p", "br", "strong", "b", "em", "i", "u", "ul", "ol", "li", "a", "span", "div", "blockquote", "hr"],
+    allowedAttributes: {
+      a: ["href", "target"],
+      "*": ["style"],
+    },
+    allowedSchemes: ["http", "https", "mailto"],
+  });
+}
+
+function inlineEmailStyles(html: string): string {
+  const clean = sanitizeEmailHtml(html);
+  return clean
+    .replace(/<h1(?:\s[^>]*)?>/g, '<h1 style="font-size:24px;font-weight:700;color:#333;margin:20px 0 12px 0;">')
+    .replace(/<h2(?:\s[^>]*)?>/g, '<h2 style="font-size:20px;font-weight:700;color:#333;margin:18px 0 10px 0;">')
+    .replace(/<h3(?:\s[^>]*)?>/g, '<h3 style="font-size:17px;font-weight:700;color:#333;margin:16px 0 8px 0;">')
+    .replace(/<p(?:\s[^>]*)?>/g, '<p style="color:#444;font-size:15px;margin:4px 0;line-height:1.6;">')
+    .replace(/<ul(?:\s[^>]*)?>/g, '<ul style="list-style:disc;padding-left:24px;margin:8px 0;">')
+    .replace(/<ol(?:\s[^>]*)?>/g, '<ol style="list-style:decimal;padding-left:24px;margin:8px 0;">')
+    .replace(/<li(?:\s[^>]*)?>/g, '<li style="padding:4px 0;color:#444;">')
+    .replace(/<a /g, '<a style="color:#E91E63;text-decoration:underline;" ')
+    .replace(/<strong(?:\s[^>]*)?>/g, '<strong style="font-weight:700;">')
+    .replace(/<em(?:\s[^>]*)?>/g, '<em style="font-style:italic;">')
+    .replace(/<u(?:\s[^>]*)?>/g, '<u style="text-decoration:underline;">');
+}
+
 export function getDynamicEmailHtml(subject: string, bodyContent: string, tokens: AdminEmailTokens): string {
   const processedBody = replaceTokens(bodyContent, tokens);
-  const bodyHtml = convertBodyToHtml(processedBody);
+  const bodyHtml = isHtml(processedBody) ? inlineEmailStyles(processedBody) : convertBodyToHtml(processedBody);
   return `
 <!DOCTYPE html>
 <html>
@@ -1577,12 +1609,28 @@ export function getDynamicEmailHtml(subject: string, bodyContent: string, tokens
 </html>`;
 }
 
+function stripHtmlToText(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n\n")
+    .replace(/<\/h[1-3]>/gi, "\n\n")
+    .replace(/<\/li>/gi, "\n")
+    .replace(/<li[^>]*>/gi, "- ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 export function getDynamicEmailText(bodyContent: string, tokens: AdminEmailTokens): string {
   const processedBody = replaceTokens(bodyContent, tokens);
-  return processedBody
+  const text = isHtml(processedBody) ? stripHtmlToText(processedBody) : processedBody
     .replace(/^#{1,3}\s/gm, "")
-    .replace(/^[•\-]\s/gm, "- ")
-    + "\n\nLog in to your dashboard: https://bakeriq.app/login\n\n— The BakerIQ Team";
+    .replace(/^[•\-]\s/gm, "- ");
+  return text + "\n\nLog in to your dashboard: https://bakeriq.app/login\n\n\u2014 The BakerIQ Team";
 }
 
 export async function sendDynamicAdminEmail(
