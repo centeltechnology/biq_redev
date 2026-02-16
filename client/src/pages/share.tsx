@@ -594,10 +594,9 @@ function renderBannerToCanvas(
   ctx.textAlign = "center";
   ctx.fillText(btnText, W / 2, btnY + 32);
 
-  const shortUrl = calculatorUrl.replace(/^https?:\/\//, "");
   ctx.font = "16px system-ui, -apple-system, sans-serif";
   ctx.fillStyle = accentColor;
-  ctx.fillText(shortUrl, W / 2, H - 30, W - 60);
+  ctx.fillText("Powered By BakerIQ", W / 2, H - 30, W - 60);
 }
 
 function SocialBannerGenerator({
