@@ -69,11 +69,11 @@ export interface IStorage {
 
   // Customers
   getCustomer(id: string): Promise<Customer | undefined>;
-  getCustomersByBaker(bakerId: string): Promise<Customer[]>;
+  getCustomersByBaker(bakerId: string, includeArchived?: boolean): Promise<Customer[]>;
   getCustomerByEmail(bakerId: string, email: string): Promise<Customer | undefined>;
   createCustomer(customer: InsertCustomer): Promise<Customer>;
   updateCustomer(id: string, data: Partial<InsertCustomer>): Promise<Customer | undefined>;
-  getCustomersWithQuotes(bakerId: string): Promise<(Customer & { quotes: Quote[] })[]>;
+  getCustomersWithQuotes(bakerId: string, includeArchived?: boolean): Promise<(Customer & { quotes: Quote[] })[]>;
 
   // Leads
   getLead(id: string): Promise<Lead | undefined>;
@@ -83,9 +83,9 @@ export interface IStorage {
 
   // Quotes
   getQuote(id: string): Promise<Quote | undefined>;
-  getQuotesByBaker(bakerId: string): Promise<Quote[]>;
+  getQuotesByBaker(bakerId: string, includeArchived?: boolean): Promise<Quote[]>;
   getQuoteWithItems(id: string): Promise<(Quote & { items: QuoteItem[] }) | undefined>;
-  getQuotesWithCustomer(bakerId: string): Promise<(Quote & { customer?: { name: string } })[]>;
+  getQuotesWithCustomer(bakerId: string, includeArchived?: boolean): Promise<(Quote & { customer?: { name: string } })[]>;
   createQuote(quote: InsertQuote): Promise<Quote>;
   updateQuote(id: string, data: Partial<InsertQuote>): Promise<Quote | undefined>;
   deleteQuote(id: string): Promise<void>;
@@ -272,8 +272,12 @@ export class DatabaseStorage implements IStorage {
     return customer || undefined;
   }
 
-  async getCustomersByBaker(bakerId: string): Promise<Customer[]> {
-    return db.select().from(customers).where(eq(customers.bakerId, bakerId)).orderBy(desc(customers.createdAt));
+  async getCustomersByBaker(bakerId: string, includeArchived = false): Promise<Customer[]> {
+    const conditions = [eq(customers.bakerId, bakerId)];
+    if (!includeArchived) {
+      conditions.push(isNull(customers.archivedAt));
+    }
+    return db.select().from(customers).where(and(...conditions)).orderBy(desc(customers.createdAt));
   }
 
   async getCustomerByEmail(bakerId: string, email: string): Promise<Customer | undefined> {
@@ -294,11 +298,15 @@ export class DatabaseStorage implements IStorage {
     return customer;
   }
 
-  async getCustomersWithQuotes(bakerId: string): Promise<(Customer & { quotes: Quote[] })[]> {
+  async getCustomersWithQuotes(bakerId: string, includeArchived = false): Promise<(Customer & { quotes: Quote[] })[]> {
+    const conditions = [eq(customers.bakerId, bakerId)];
+    if (!includeArchived) {
+      conditions.push(isNull(customers.archivedAt));
+    }
     const customersList = await db
       .select()
       .from(customers)
-      .where(eq(customers.bakerId, bakerId))
+      .where(and(...conditions))
       .orderBy(desc(customers.createdAt));
 
     const result = await Promise.all(
@@ -341,8 +349,12 @@ export class DatabaseStorage implements IStorage {
     return quote || undefined;
   }
 
-  async getQuotesByBaker(bakerId: string): Promise<Quote[]> {
-    return db.select().from(quotes).where(eq(quotes.bakerId, bakerId)).orderBy(desc(quotes.createdAt));
+  async getQuotesByBaker(bakerId: string, includeArchived = false): Promise<Quote[]> {
+    const conditions = [eq(quotes.bakerId, bakerId)];
+    if (!includeArchived) {
+      conditions.push(isNull(quotes.archivedAt));
+    }
+    return db.select().from(quotes).where(and(...conditions)).orderBy(desc(quotes.createdAt));
   }
 
   async getQuoteWithItems(id: string): Promise<(Quote & { items: QuoteItem[] }) | undefined> {
@@ -358,11 +370,15 @@ export class DatabaseStorage implements IStorage {
     return { ...quote, items };
   }
 
-  async getQuotesWithCustomer(bakerId: string): Promise<(Quote & { customer?: { name: string } })[]> {
+  async getQuotesWithCustomer(bakerId: string, includeArchived = false): Promise<(Quote & { customer?: { name: string } })[]> {
+    const conditions = [eq(quotes.bakerId, bakerId)];
+    if (!includeArchived) {
+      conditions.push(isNull(quotes.archivedAt));
+    }
     const quotesList = await db
       .select()
       .from(quotes)
-      .where(eq(quotes.bakerId, bakerId))
+      .where(and(...conditions))
       .orderBy(desc(quotes.createdAt));
 
     const result = await Promise.all(

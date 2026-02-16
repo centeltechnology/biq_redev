@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Sparkles, Bell, CreditCard, Clock, FileText, Share2, Copy } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -7,6 +7,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
 import { SupportChat } from "@/components/support-chat";
+import { StripeActivationModal } from "@/components/stripe-activation-modal";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -114,6 +115,15 @@ export function DashboardLayout({ children, title, actions }: DashboardLayoutPro
     },
   });
 
+  const [activationBannerDismissed, setActivationBannerDismissed] = useState(() => {
+    return sessionStorage.getItem("bakeriq_activation_banner_dismissed") === "true";
+  });
+
+  const handleDismissActivationBanner = useCallback(() => {
+    sessionStorage.setItem("bakeriq_activation_banner_dismissed", "true");
+    setActivationBannerDismissed(true);
+  }, []);
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       setLocation("/login");
@@ -150,6 +160,10 @@ export function DashboardLayout({ children, title, actions }: DashboardLayoutPro
 
   const needsStripeConnect = baker && !baker.stripeConnectedAt && baker.role !== "super_admin" && baker.role !== "admin";
   const showStripeBanner = needsStripeConnect && !snoozed;
+
+  const isNonAdmin = baker && baker.role !== "admin" && baker.role !== "super_admin";
+  const needsFirstQuote = isNonAdmin && baker.stripeConnectedAt && !baker.firstQuoteSentAt;
+  const showActivationBanner = needsFirstQuote && !activationBannerDismissed;
 
   useEffect(() => {
     if (showStripeBanner) {
@@ -244,10 +258,53 @@ export function DashboardLayout({ children, title, actions }: DashboardLayoutPro
               </div>
             </div>
           )}
+          {showActivationBanner && (
+            <div className="flex items-center justify-between gap-4 px-4 py-2.5 bg-green-50 dark:bg-green-900/20 border-b" data-testid="banner-activation-quote">
+              <div className="flex items-center gap-2 text-sm">
+                <FileText className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
+                <span>Payments are ready. Send 1 quote to activate your system.</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDismissActivationBanner}
+                  className="text-muted-foreground"
+                  data-testid="button-dismiss-activation-banner"
+                >
+                  <Clock className="h-3 w-3 mr-1" />
+                  Dismiss
+                </Button>
+                <Button
+                  size="sm"
+                  asChild
+                  data-testid="button-send-first-quote-banner"
+                >
+                  <Link href="/customers?new=true">Send First Quote</Link>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    const url = baker?.slug ? `${window.location.origin}/c/${baker.slug}` : "";
+                    if (url) {
+                      await navigator.clipboard.writeText(url);
+                      toast({ title: "Calculator link copied!" });
+                    }
+                  }}
+                  data-testid="button-copy-link-activation-banner"
+                >
+                  <Copy className="h-3 w-3 mr-1" />
+                  Copy Link
+                </Button>
+              </div>
+            </div>
+          )}
           <main className="flex-1 overflow-auto p-6">
             {children}
           </main>
           <SupportChat />
+          <StripeActivationModal />
         </div>
       </div>
     </SidebarProvider>

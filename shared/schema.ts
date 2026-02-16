@@ -168,6 +168,7 @@ export const customers = pgTable("customers", {
   name: text("name").notNull(),
   email: text("email").notNull(),
   phone: text("phone"),
+  archivedAt: timestamp("archived_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -235,6 +236,7 @@ export const quotes = pgTable("quotes", {
   paymentStatus: text("payment_status").default("unpaid"), // unpaid, deposit_paid, paid
   stripePaymentIntentId: text("stripe_payment_intent_id"),
   amountPaid: decimal("amount_paid", { precision: 10, scale: 2 }).default("0"),
+  archivedAt: timestamp("archived_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

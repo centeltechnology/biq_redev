@@ -798,7 +798,8 @@ export async function registerRoutes(
 
   // Quotes
   app.get("/api/quotes", requireAuth, async (req, res) => {
-    const quotes = await storage.getQuotesWithCustomer(req.session.bakerId!);
+    const includeArchived = req.query.includeArchived === "true";
+    const quotes = await storage.getQuotesWithCustomer(req.session.bakerId!, includeArchived);
     res.json(quotes);
   });
 
@@ -1022,6 +1023,24 @@ export async function registerRoutes(
     res.json({ message: "Quote deleted" });
   });
 
+  app.patch("/api/quotes/:id/archive", requireAuth, async (req, res) => {
+    const quote = await storage.getQuote(req.params.id);
+    if (!quote || quote.bakerId !== req.session.bakerId) {
+      return res.status(404).json({ message: "Quote not found" });
+    }
+    const updated = await storage.updateQuote(req.params.id, { archivedAt: new Date() } as any);
+    res.json(updated);
+  });
+
+  app.patch("/api/quotes/:id/unarchive", requireAuth, async (req, res) => {
+    const quote = await storage.getQuote(req.params.id);
+    if (!quote || quote.bakerId !== req.session.bakerId) {
+      return res.status(404).json({ message: "Quote not found" });
+    }
+    const updated = await storage.updateQuote(req.params.id, { archivedAt: null } as any);
+    res.json(updated);
+  });
+
   app.post("/api/quotes/test-quote", requireAuth, async (req, res) => {
     try {
       const bakerId = req.session.bakerId!;
@@ -1219,7 +1238,8 @@ export async function registerRoutes(
 
   // Customers
   app.get("/api/customers", requireAuth, async (req, res) => {
-    const customers = await storage.getCustomersWithQuotes(req.session.bakerId!);
+    const includeArchived = req.query.includeArchived === "true";
+    const customers = await storage.getCustomersWithQuotes(req.session.bakerId!, includeArchived);
     res.json(customers);
   });
 
@@ -1253,6 +1273,24 @@ export async function registerRoutes(
       }
       res.status(500).json({ message: "Failed to create customer" });
     }
+  });
+
+  app.patch("/api/customers/:id/archive", requireAuth, async (req, res) => {
+    const customer = await storage.getCustomer(req.params.id);
+    if (!customer || customer.bakerId !== req.session.bakerId) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+    const updated = await storage.updateCustomer(req.params.id, { archivedAt: new Date() } as any);
+    res.json(updated);
+  });
+
+  app.patch("/api/customers/:id/unarchive", requireAuth, async (req, res) => {
+    const customer = await storage.getCustomer(req.params.id);
+    if (!customer || customer.bakerId !== req.session.bakerId) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+    const updated = await storage.updateCustomer(req.params.id, { archivedAt: null } as any);
+    res.json(updated);
   });
 
   app.post("/api/customers/with-lead", requireAuth, async (req, res) => {

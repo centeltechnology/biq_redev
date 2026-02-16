@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, Search, Calendar, MoreHorizontal, Eye, Copy, Trash2, CreditCard } from "lucide-react";
+import { Plus, Search, Calendar, MoreHorizontal, Eye, Copy, Trash2, CreditCard, Archive, ArchiveRestore } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,12 +52,16 @@ interface QuoteWithCustomer extends Quote {
 export default function QuotesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [archiveFilter, setArchiveFilter] = useState<string>("active");
   const [deleteQuoteId, setDeleteQuoteId] = useState<string | null>(null);
   const { toast } = useToast();
   const formatCurrency = useFormatCurrency();
 
+  const includeArchived = archiveFilter === "archived" || archiveFilter === "all";
+  const quotesUrl = includeArchived ? "/api/quotes?includeArchived=true" : "/api/quotes";
+
   const { data: quotes, isLoading } = useQuery<QuoteWithCustomer[]>({
-    queryKey: ["/api/quotes"],
+    queryKey: [quotesUrl],
   });
 
   const deleteMutation = useMutation({
@@ -82,6 +86,26 @@ export default function QuotesPage() {
     },
   });
 
+  const archiveMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("PATCH", `/api/quotes/${id}/archive`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/quotes"] });
+      toast({ title: "Quote archived successfully" });
+    },
+  });
+
+  const unarchiveMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("PATCH", `/api/quotes/${id}/unarchive`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/quotes"] });
+      toast({ title: "Quote restored successfully" });
+    },
+  });
+
   const filteredQuotes = quotes?.filter((quote) => {
     const matchesSearch =
       searchQuery === "" ||
@@ -89,7 +113,15 @@ export default function QuotesPage() {
       quote.quoteNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       quote.customer?.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || quote.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    
+    // Filter by archive status
+    const isArchived = !!quote.archivedAt;
+    const matchesArchiveFilter = 
+      archiveFilter === "all" ||
+      (archiveFilter === "active" && !isArchived) ||
+      (archiveFilter === "archived" && isArchived);
+    
+    return matchesSearch && matchesStatus && matchesArchiveFilter;
   });
 
   return (
@@ -127,6 +159,16 @@ export default function QuotesPage() {
                   {status.label}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+          <Select value={archiveFilter} onValueChange={setArchiveFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]" data-testid="select-archive-filter">
+              <SelectValue placeholder="Filter by archive" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="archived">Archived</SelectItem>
+              <SelectItem value="all">All</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -170,6 +212,8 @@ export default function QuotesPage() {
                         quote={quote}
                         onDuplicate={() => duplicateMutation.mutate(quote.id)}
                         onDelete={() => setDeleteQuoteId(quote.id)}
+                        onArchive={() => archiveMutation.mutate(quote.id)}
+                        onUnarchive={() => unarchiveMutation.mutate(quote.id)}
                       />
                     ))}
                   </TableBody>
@@ -208,13 +252,16 @@ interface QuoteTableRowProps {
   quote: QuoteWithCustomer;
   onDuplicate: () => void;
   onDelete: () => void;
+  onArchive?: () => void;
+  onUnarchive?: () => void;
 }
 
-function QuoteTableRow({ quote, onDuplicate, onDelete }: QuoteTableRowProps) {
+function QuoteTableRow({ quote, onDuplicate, onDelete, onArchive, onUnarchive }: QuoteTableRowProps) {
   const formatCurrency = useFormatCurrency();
   const eventDate = quote.eventDate
     ? new Date(quote.eventDate).toLocaleDateString()
     : "-";
+  const isArchived = !!quote.archivedAt;
 
   return (
     <TableRow data-testid={`quote-row-${quote.id}`}>
@@ -231,7 +278,14 @@ function QuoteTableRow({ quote, onDuplicate, onDelete }: QuoteTableRowProps) {
         <span className="font-semibold">{formatCurrency(Number(quote.total))}</span>
       </TableCell>
       <TableCell>
-        <StatusBadge status={quote.status} type="quote" />
+        <div className="flex flex-col gap-2">
+          <StatusBadge status={quote.status} type="quote" />
+          {isArchived && (
+            <Badge variant="secondary" className="w-fit bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400" data-testid={`badge-archived-${quote.id}`}>
+              Archived
+            </Badge>
+          )}
+        </div>
       </TableCell>
       <TableCell className="hidden lg:table-cell">
         {quote.paymentStatus === "paid" ? (
@@ -264,6 +318,17 @@ function QuoteTableRow({ quote, onDuplicate, onDelete }: QuoteTableRowProps) {
               <Copy className="mr-2 h-4 w-4" />
               Duplicate
             </DropdownMenuItem>
+            {!isArchived ? (
+              <DropdownMenuItem onClick={onArchive} data-testid={`button-archive-${quote.id}`}>
+                <Archive className="mr-2 h-4 w-4" />
+                Archive
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onClick={onUnarchive} data-testid={`button-restore-${quote.id}`}>
+                <ArchiveRestore className="mr-2 h-4 w-4" />
+                Restore
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={onDelete} className="text-destructive">
               <Trash2 className="mr-2 h-4 w-4" />
               Delete

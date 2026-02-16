@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Search, Mail, Phone, FileText, Calendar, ChevronDown, ChevronRight, DollarSign, ArrowRight, Plus, Loader2, Trash2, Cake } from "lucide-react";
+import { Search, Mail, Phone, FileText, Calendar, ChevronDown, ChevronRight, DollarSign, ArrowRight, Plus, Loader2, Trash2, Cake, Archive, ArchiveRestore, MoreHorizontal } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,6 +35,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Accordion,
   AccordionContent,
@@ -93,6 +99,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function CustomersPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [archiveFilter, setArchiveFilter] = useState("active");
   const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [dialogStep, setDialogStep] = useState(1);
@@ -128,8 +135,9 @@ export default function CustomersPage() {
     setIncludeCakeDetails(false);
   };
 
+  const includeArchived = archiveFilter !== "active";
   const { data: customers, isLoading } = useQuery<CustomerWithQuotes[]>({
-    queryKey: ["/api/customers"],
+    queryKey: [includeArchived ? "/api/customers?includeArchived=true" : "/api/customers"],
   });
 
   const createCustomerWithLeadMutation = useMutation({
@@ -151,6 +159,28 @@ export default function CustomersPage() {
       } else {
         toast({ title: "Customer added successfully" });
       }
+    },
+  });
+
+  const archiveCustomerMutation = useMutation({
+    mutationFn: async (customerId: string) => {
+      const res = await apiRequest("PATCH", `/api/customers/${customerId}/archive`, {});
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"], exact: false });
+      toast({ title: "Customer archived successfully" });
+    },
+  });
+
+  const restoreCustomerMutation = useMutation({
+    mutationFn: async (customerId: string) => {
+      const res = await apiRequest("PATCH", `/api/customers/${customerId}/unarchive`, {});
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"], exact: false });
+      toast({ title: "Customer restored successfully" });
     },
   });
 
@@ -185,11 +215,16 @@ export default function CustomersPage() {
   };
 
   const filteredCustomers = customers?.filter((customer) => {
-    return (
+    const matchesSearch =
       searchQuery === "" ||
       customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      customer.email.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+      customer.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const isArchived = !!customer.archivedAt;
+    const matchesArchive =
+      archiveFilter === "all" ||
+      (archiveFilter === "active" && !isArchived) ||
+      (archiveFilter === "archived" && isArchived);
+    return matchesSearch && matchesArchive;
   });
 
   const toggleExpanded = (customerId: string) => {
@@ -448,15 +483,27 @@ export default function CustomersPage() {
       </Dialog>
 
       <div className="space-y-4">
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search customers..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-            data-testid="input-search-customers"
-          />
+        <div className="flex gap-3 items-end">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search customers..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+              data-testid="input-search-customers"
+            />
+          </div>
+          <Select value={archiveFilter} onValueChange={setArchiveFilter}>
+            <SelectTrigger className="w-40" data-testid="select-customer-archive-filter">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="archived">Archived</SelectItem>
+              <SelectItem value="all">All</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <Card>
@@ -486,6 +533,7 @@ export default function CustomersPage() {
                       <TableHead>Contact</TableHead>
                       <TableHead className="hidden md:table-cell">Quotes</TableHead>
                       <TableHead className="hidden lg:table-cell">Last Activity</TableHead>
+                      <TableHead className="w-[40px]"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -495,6 +543,10 @@ export default function CustomersPage() {
                         customer={customer} 
                         isExpanded={expandedCustomer === customer.id}
                         onToggle={() => toggleExpanded(customer.id)}
+                        onArchive={() => archiveCustomerMutation.mutate(customer.id)}
+                        onRestore={() => restoreCustomerMutation.mutate(customer.id)}
+                        isArchiving={archiveCustomerMutation.isPending}
+                        isRestoring={restoreCustomerMutation.isPending}
                       />
                     ))}
                   </TableBody>
@@ -511,11 +563,19 @@ export default function CustomersPage() {
 function CustomerTableRow({ 
   customer, 
   isExpanded, 
-  onToggle 
+  onToggle,
+  onArchive,
+  onRestore,
+  isArchiving,
+  isRestoring,
 }: { 
   customer: CustomerWithQuotes;
   isExpanded: boolean;
   onToggle: () => void;
+  onArchive: () => void;
+  onRestore: () => void;
+  isArchiving: boolean;
+  isRestoring: boolean;
 }) {
   const formatCurrency = useFormatCurrency();
   const quoteCount = customer.quotes?.length || 0;
@@ -540,7 +600,12 @@ function CustomerTableRow({
           )}
         </TableCell>
         <TableCell>
-          <p className="font-medium">{customer.name}</p>
+          <div className="flex items-center gap-2">
+            <p className="font-medium">{customer.name}</p>
+            {customer.archivedAt && (
+              <Badge data-testid={`badge-archived-customer-${customer.id}`}>Archived</Badge>
+            )}
+          </div>
         </TableCell>
         <TableCell>
           <div className="space-y-1">
@@ -568,10 +633,51 @@ function CustomerTableRow({
             {lastActivity}
           </span>
         </TableCell>
+        <TableCell className="w-[40px]">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                onClick={(e) => e.stopPropagation()}
+                aria-label="Customer actions"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {!customer.archivedAt ? (
+                <DropdownMenuItem 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onArchive();
+                  }}
+                  disabled={isArchiving}
+                  data-testid={`button-archive-customer-${customer.id}`}
+                >
+                  <Archive className="mr-2 h-4 w-4" />
+                  Archive
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRestore();
+                  }}
+                  disabled={isRestoring}
+                  data-testid={`button-restore-customer-${customer.id}`}
+                >
+                  <ArchiveRestore className="mr-2 h-4 w-4" />
+                  Restore
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </TableCell>
       </TableRow>
       {isExpanded && customer.quotes?.length > 0 && (
         <TableRow className="bg-muted/30">
-          <TableCell colSpan={5} className="p-0">
+          <TableCell colSpan={6} className="p-0">
             <div className="p-4 space-y-2">
               <p className="text-sm font-medium text-muted-foreground mb-3">Quotes for {customer.name}</p>
               <div className="space-y-2">
