@@ -140,7 +140,7 @@ export default function ReferralsPage() {
           <CardHeader>
             <CardTitle data-testid="text-referral-link-title">Your Affiliate Link</CardTitle>
             <CardDescription>
-              Share this link with other bakers. You earn {data.commissionRate}% of their subscription for the first {data.commissionMonths} months.
+              Share this link with other bakers. You earn {data.commissionRate}% of their subscription for the first {data.commissionMonths} months. Even if they start on the Free plan, you'll still earn commission when they upgrade to Basic or Pro.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
