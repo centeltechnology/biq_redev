@@ -1656,9 +1656,10 @@ export async function sendDynamicAdminEmail(
 }
 
 export async function sendAffiliateApplicationConfirmation(applicantEmail: string, applicantName: string): Promise<boolean> {
+  const safeName = applicantName.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <h2 style="color: #333;">Thanks for applying, ${applicantName}!</h2>
+      <h2 style="color: #333;">Thanks for applying, ${safeName}!</h2>
       <p>We've received your application to the BakerIQ Founding Partners Program.</p>
       <p>Our team reviews every application personally. You can expect to hear back from us within a few business days.</p>
       <p>In the meantime, feel free to explore <a href="https://bakeriq.app" style="color: #7c3aed;">BakerIQ</a> to learn more about the platform and what your audience will love about it.</p>
@@ -1685,17 +1686,26 @@ export async function sendAffiliateApplicationNotification(application: {
   niche: string | null;
   message: string | null;
 }, adminEmails: string[]): Promise<void> {
+  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const safeName = esc(application.name);
+  const safeEmail = esc(application.email);
+  const safeSocial = esc(application.socialMedia);
+  const safeFollowers = application.followers ? esc(application.followers) : "Not specified";
+  const safeNiche = application.niche ? esc(application.niche) : "Not specified";
+  const safeMessage = application.message ? esc(application.message) : "No message";
+  const socialUrl = application.socialMedia.startsWith("http") ? application.socialMedia : "https://" + application.socialMedia;
+
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <h2 style="color: #333;">New Partner Application</h2>
       <p>A new affiliate partner application has been submitted on BakerIQ.</p>
       <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
-        <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Name</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${application.name}</td></tr>
-        <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Email</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${application.email}</td></tr>
-        <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Social Media</td><td style="padding: 8px; border-bottom: 1px solid #eee;"><a href="${application.socialMedia.startsWith("http") ? application.socialMedia : "https://" + application.socialMedia}">${application.socialMedia}</a></td></tr>
-        <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Followers</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${application.followers || "Not specified"}</td></tr>
-        <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Niche</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${application.niche || "Not specified"}</td></tr>
-        <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Message</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${application.message || "No message"}</td></tr>
+        <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Name</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${safeName}</td></tr>
+        <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Email</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${safeEmail}</td></tr>
+        <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Social Media</td><td style="padding: 8px; border-bottom: 1px solid #eee;"><a href="${encodeURI(socialUrl)}">${safeSocial}</a></td></tr>
+        <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Followers</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${safeFollowers}</td></tr>
+        <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Niche</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${safeNiche}</td></tr>
+        <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Message</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${safeMessage}</td></tr>
       </table>
       <p>Review and respond in the <a href="https://bakeriq.app/admin" style="color: #7c3aed;">Admin Dashboard</a> under the Affiliates tab.</p>
     </div>
