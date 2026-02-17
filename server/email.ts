@@ -1658,16 +1658,35 @@ export async function sendDynamicAdminEmail(
 export async function sendAffiliateApplicationConfirmation(applicantEmail: string, applicantName: string): Promise<boolean> {
   const safeName = applicantName.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <h2 style="color: #333;">Thanks for applying, ${safeName}!</h2>
-      <p>We've received your application to the BakerIQ Founding Partners Program.</p>
-      <p>Our team reviews every application personally. You can expect to hear back from us within a few business days.</p>
-      <p>In the meantime, feel free to explore <a href="https://bakeriq.app" style="color: #7c3aed;">BakerIQ</a> to learn more about the platform and what your audience will love about it.</p>
-      <p style="margin-top: 24px;">Thanks for your interest,<br>The BakerIQ Team</p>
-      ${getCustomerEmailFooterHtml()}
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #E91E63, #F06292); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Application Received!</h1>
+      <p>BakerIQ Founding Partners Program</p>
     </div>
-  `;
-  const text = `Thanks for applying, ${applicantName}!\n\nWe've received your application to the BakerIQ Founding Partners Program.\n\nOur team reviews every application personally. You can expect to hear back from us within a few business days.\n\nIn the meantime, feel free to explore BakerIQ at https://bakeriq.app to learn more about the platform.\n\nThanks for your interest,\nThe BakerIQ Team`;
+    <div class="content">
+      <p>Hi ${safeName},</p>
+      <p>Thanks for applying to the BakerIQ Founding Partners Program! We've received your application and are excited to review it.</p>
+      <p>Our team reviews every application personally. You can expect to hear back from us within a few business days.</p>
+      <p>In the meantime, feel free to explore <a href="https://bakeriq.app" style="color: #E91E63; text-decoration: none;">BakerIQ</a> to learn more about the platform and what your audience will love about it.</p>
+      <p style="margin-top: 24px;">Thanks for your interest,<br><strong>The BakerIQ Team</strong></p>
+    </div>
+    ${getCustomerEmailFooterHtml()}
+  </div>
+</body>
+</html>`;
+  const text = `Thanks for applying, ${applicantName}!\n\nWe've received your application to the BakerIQ Founding Partners Program.\n\nOur team reviews every application personally. You can expect to hear back from us within a few business days.\n\nIn the meantime, feel free to explore BakerIQ at https://bakeriq.app to learn more about the platform.\n\nThanks for your interest,\nThe BakerIQ Team\n${getCustomerEmailFooterText()}`;
 
   return sendEmail({
     to: applicantEmail,
@@ -1696,23 +1715,64 @@ export async function sendAffiliateApplicationNotification(application: {
   const socialUrl = application.socialMedia.startsWith("http") ? application.socialMedia : "https://" + application.socialMedia;
 
   const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <h2 style="color: #333;">New Partner Application</h2>
-      <p>A new affiliate partner application has been submitted on BakerIQ.</p>
-      <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
-        <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Name</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${safeName}</td></tr>
-        <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Email</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${safeEmail}</td></tr>
-        <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Social Media</td><td style="padding: 8px; border-bottom: 1px solid #eee;"><a href="${encodeURI(socialUrl)}">${safeSocial}</a></td></tr>
-        <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Followers</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${safeFollowers}</td></tr>
-        <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Niche</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${safeNiche}</td></tr>
-        <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Message</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${safeMessage}</td></tr>
-      </table>
-      <p>Review and respond in the <a href="https://bakeriq.app/admin" style="color: #7c3aed;">Admin Dashboard</a> under the Affiliates tab.</p>
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #E91E63, #F06292); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px; }
+    .detail-row { display: flex; padding: 10px 0; border-bottom: 1px solid #e9ecef; }
+    .label { font-weight: 600; min-width: 120px; color: #666; }
+    .value { color: #333; }
+    .cta { display: inline-block; background: #E91E63; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 20px; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>New Partner Application</h1>
+      <p>Someone wants to join the BakerIQ affiliate program</p>
     </div>
-  `;
-  const text = `New Partner Application\n\nName: ${application.name}\nEmail: ${application.email}\nSocial Media: ${application.socialMedia}\nFollowers: ${application.followers || "Not specified"}\nNiche: ${application.niche || "Not specified"}\nMessage: ${application.message || "No message"}\n\nReview in the Admin Dashboard: https://bakeriq.app/admin`;
+    <div class="content">
+      <h2 style="margin-top: 0;">Application Details</h2>
+      <div class="detail-row">
+        <span class="label">Name:</span>
+        <span class="value">${safeName}</span>
+      </div>
+      <div class="detail-row">
+        <span class="label">Email:</span>
+        <span class="value">${safeEmail}</span>
+      </div>
+      <div class="detail-row">
+        <span class="label">Social Media:</span>
+        <span class="value"><a href="${encodeURI(socialUrl)}" style="color: #E91E63; text-decoration: none;">${safeSocial}</a></span>
+      </div>
+      <div class="detail-row">
+        <span class="label">Followers:</span>
+        <span class="value">${safeFollowers}</span>
+      </div>
+      <div class="detail-row">
+        <span class="label">Niche:</span>
+        <span class="value">${safeNiche}</span>
+      </div>
+      <div class="detail-row">
+        <span class="label">Message:</span>
+        <span class="value">${safeMessage}</span>
+      </div>
+      <div style="text-align: center;">
+        <a href="https://bakeriq.app/admin" class="cta">Review in Admin Dashboard</a>
+      </div>
+    </div>
+    ${getBakerEmailFooterHtml()}
+  </div>
+</body>
+</html>`;
+  const text = `New Partner Application\n\nName: ${application.name}\nEmail: ${application.email}\nSocial Media: ${application.socialMedia}\nFollowers: ${application.followers || "Not specified"}\nNiche: ${application.niche || "Not specified"}\nMessage: ${application.message || "No message"}\n\nReview in the Admin Dashboard: https://bakeriq.app/admin\n${getBakerEmailFooterText()}`;
 
-  for (const adminEmail of adminEmails) {
+  for (const adminEmail of adminEmails.filter(e => e && e.includes("@"))) {
     await sendEmail({
       to: adminEmail,
       subject: `New Partner Application: ${application.name}`,
