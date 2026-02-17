@@ -7,7 +7,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { pool } from "./db";
 import connectPgSimple from "connect-pg-simple";
-import { sendNewLeadNotification, sendLeadConfirmationToCustomer, sendPasswordResetEmail, sendEmailVerification, sendQuoteNotification, sendOnboardingEmail, sendQuoteResponseNotification, sendAdminPasswordReset, sendPaymentReceivedNotification, sendAnnouncementEmail, getAnnouncementEmailHtml, sendInvitationEmail, getDynamicEmailHtml, sendDynamicAdminEmail, type AdminEmailTokens } from "./email";
+import { sendEmail, sendNewLeadNotification, sendLeadConfirmationToCustomer, sendPasswordResetEmail, sendEmailVerification, sendQuoteNotification, sendOnboardingEmail, sendQuoteResponseNotification, sendAdminPasswordReset, sendPaymentReceivedNotification, sendAnnouncementEmail, getAnnouncementEmailHtml, sendInvitationEmail, getDynamicEmailHtml, sendDynamicAdminEmail, type AdminEmailTokens } from "./email";
 import crypto from "crypto";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { db } from "./db";
@@ -2795,23 +2795,72 @@ export async function registerRoutes(
         role: z.enum(["baker", "admin", "super_admin"]).optional(),
         businessName: z.string().optional(),
         email: z.string().email().optional(),
+        phone: z.string().optional(),
         plan: z.enum(["free", "basic", "pro"]).optional(),
       });
       const data = schema.parse(req.body);
-      
+
+      const existingBaker = await storage.getBaker(req.params.id);
+      if (!existingBaker) {
+        return res.status(404).json({ message: "Baker not found" });
+      }
+
       const updated = await storage.updateBaker(req.params.id, data);
       if (!updated) {
         return res.status(404).json({ message: "Baker not found" });
       }
-      if (data.role) {
-        await logAdminAction(req.session.bakerId!, "ROLE_CHANGE", req.params.id, { newRole: data.role });
+
+      const changes: Record<string, { from: any; to: any }> = {};
+      for (const key of Object.keys(data) as (keyof typeof data)[]) {
+        if (data[key] !== undefined && data[key] !== (existingBaker as any)[key]) {
+          changes[key] = { from: (existingBaker as any)[key], to: data[key] };
+        }
       }
+      if (Object.keys(changes).length > 0) {
+        await logAdminAction(req.session.bakerId!, "ACCOUNT_EDIT", req.params.id, changes);
+      }
+
       res.json({ ...updated, passwordHash: undefined });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: error.errors[0].message });
       }
       res.status(500).json({ message: "Failed to update baker" });
+    }
+  });
+
+  app.post("/api/admin/bakers/:id/send-email", requireSuperAdmin, async (req, res) => {
+    try {
+      const schema = z.object({
+        subject: z.string().min(1, "Subject is required"),
+        body: z.string().min(1, "Email body is required"),
+      });
+      const { subject, body } = schema.parse(req.body);
+
+      const baker = await storage.getBaker(req.params.id);
+      if (!baker) {
+        return res.status(404).json({ message: "Baker not found" });
+      }
+
+      const success = await sendEmail({
+        to: baker.email,
+        subject,
+        html: body,
+        text: body.replace(/<[^>]*>/g, ""),
+        senderType: "platform",
+      });
+
+      if (!success) {
+        return res.status(500).json({ message: "Failed to send email. Check AWS SES configuration." });
+      }
+
+      await logAdminAction(req.session.bakerId!, "DIRECT_EMAIL_SENT", req.params.id, { subject });
+      res.json({ message: "Email sent successfully" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      res.status(500).json({ message: "Failed to send email" });
     }
   });
 

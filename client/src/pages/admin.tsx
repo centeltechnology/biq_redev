@@ -45,6 +45,7 @@ import {
   Calculator,
   Download,
   Percent,
+  Pencil,
 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -2203,6 +2204,11 @@ export default function AdminDashboard() {
   const [activityDialogOpen, setActivityDialogOpen] = useState(false);
   const [resendEmailDialogOpen, setResendEmailDialogOpen] = useState(false);
   const [selectedEmailDay, setSelectedEmailDay] = useState<number>(0);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editForm, setEditForm] = useState({ email: "", businessName: "", phone: "" });
+  const [sendEmailDialogOpen, setSendEmailDialogOpen] = useState(false);
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
   const [selectedTicket, setSelectedTicket] = useState<SupportTicketWithBaker | null>(null);
   const [ticketReply, setTicketReply] = useState("");
   const [ticketFilter, setTicketFilter] = useState<"all" | "open" | "in_progress" | "resolved">("open");
@@ -2423,6 +2429,38 @@ export default function AdminDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/email-logs"] });
       setResendEmailDialogOpen(false);
       setSelectedBaker(null);
+      toast({ title: "Email sent successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to send email", variant: "destructive" });
+    },
+  });
+
+  const editBakerMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: typeof editForm }) => {
+      return apiRequest("PATCH", `/api/admin/bakers/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/bakers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/analytics"] });
+      setEditDialogOpen(false);
+      setSelectedBaker(null);
+      toast({ title: "Account updated successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update account", variant: "destructive" });
+    },
+  });
+
+  const sendDirectEmailMutation = useMutation({
+    mutationFn: async ({ id, subject, body }: { id: string; subject: string; body: string }) => {
+      return apiRequest("POST", `/api/admin/bakers/${id}/send-email`, { subject, body });
+    },
+    onSuccess: () => {
+      setSendEmailDialogOpen(false);
+      setSelectedBaker(null);
+      setEmailSubject("");
+      setEmailBody("");
       toast({ title: "Email sent successfully" });
     },
     onError: () => {
@@ -2663,6 +2701,37 @@ export default function AdminDashboard() {
                           </TableCell>
                           <TableCell>
                             <div className="flex justify-end gap-1">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => {
+                                  setSelectedBaker(baker);
+                                  setEditForm({
+                                    email: baker.email || "",
+                                    businessName: baker.businessName || "",
+                                    phone: baker.phone || "",
+                                  });
+                                  setEditDialogOpen(true);
+                                }}
+                                title="Edit Account"
+                                data-testid={`button-edit-${baker.id}`}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => {
+                                  setSelectedBaker(baker);
+                                  setEmailSubject("");
+                                  setEmailBody("");
+                                  setSendEmailDialogOpen(true);
+                                }}
+                                title="Send Email"
+                                data-testid={`button-send-email-${baker.id}`}
+                              >
+                                <Send className="h-4 w-4" />
+                              </Button>
                               <Button
                                 size="icon"
                                 variant="ghost"
@@ -3955,6 +4024,108 @@ export default function AdminDashboard() {
               disabled={resendEmailMutation.isPending}
             >
               {resendEmailMutation.isPending ? "Sending..." : "Send Email"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* EDIT ACCOUNT DIALOG */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Account</DialogTitle>
+            <DialogDescription>
+              Update details for {selectedBaker?.businessName}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-business-name">Business Name</Label>
+              <Input
+                id="edit-business-name"
+                value={editForm.businessName}
+                onChange={(e) => setEditForm(prev => ({ ...prev, businessName: e.target.value }))}
+                data-testid="input-edit-business-name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-email">Email</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                data-testid="input-edit-email"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-phone">Phone</Label>
+              <Input
+                id="edit-phone"
+                type="tel"
+                value={editForm.phone}
+                onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
+                data-testid="input-edit-phone"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)} data-testid="button-cancel-edit">
+              Cancel
+            </Button>
+            <Button
+              onClick={() => selectedBaker && editBakerMutation.mutate({ id: selectedBaker.id, data: editForm })}
+              disabled={editBakerMutation.isPending}
+              data-testid="button-save-edit"
+            >
+              {editBakerMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* SEND EMAIL DIALOG */}
+      <Dialog open={sendEmailDialogOpen} onOpenChange={setSendEmailDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send Email</DialogTitle>
+            <DialogDescription>
+              Send a direct email to {selectedBaker?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email-subject">Subject</Label>
+              <Input
+                id="email-subject"
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+                placeholder="Email subject..."
+                data-testid="input-email-subject"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email-body">Message</Label>
+              <Textarea
+                id="email-body"
+                value={emailBody}
+                onChange={(e) => setEmailBody(e.target.value)}
+                placeholder="Write your message..."
+                rows={6}
+                data-testid="input-email-body"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSendEmailDialogOpen(false)} data-testid="button-cancel-send-email">
+              Cancel
+            </Button>
+            <Button
+              onClick={() => selectedBaker && sendDirectEmailMutation.mutate({ id: selectedBaker.id, subject: emailSubject, body: emailBody })}
+              disabled={sendDirectEmailMutation.isPending || !emailSubject.trim() || !emailBody.trim()}
+              data-testid="button-send-direct-email"
+            >
+              {sendDirectEmailMutation.isPending ? "Sending..." : "Send Email"}
             </Button>
           </DialogFooter>
         </DialogContent>
