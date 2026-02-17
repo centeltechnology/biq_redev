@@ -7,7 +7,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { pool } from "./db";
 import connectPgSimple from "connect-pg-simple";
-import { sendEmail, sendNewLeadNotification, sendLeadConfirmationToCustomer, sendPasswordResetEmail, sendEmailVerification, sendQuoteNotification, sendOnboardingEmail, sendQuoteResponseNotification, sendAdminPasswordReset, sendPaymentReceivedNotification, sendAnnouncementEmail, getAnnouncementEmailHtml, sendInvitationEmail, getDynamicEmailHtml, sendDynamicAdminEmail, type AdminEmailTokens } from "./email";
+import { sendEmail, sendNewLeadNotification, sendLeadConfirmationToCustomer, sendPasswordResetEmail, sendEmailVerification, sendQuoteNotification, sendOnboardingEmail, sendQuoteResponseNotification, sendAdminPasswordReset, sendPaymentReceivedNotification, sendAnnouncementEmail, getAnnouncementEmailHtml, sendInvitationEmail, getDynamicEmailHtml, sendDynamicAdminEmail, sendAffiliateApplicationConfirmation, sendAffiliateApplicationNotification, type AdminEmailTokens } from "./email";
 import crypto from "crypto";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { db } from "./db";
@@ -4559,6 +4559,22 @@ Guidelines:
         niche: niche || null,
         message: message || null,
       });
+
+      sendAffiliateApplicationConfirmation(email, name).catch(err =>
+        console.error("Failed to send affiliate confirmation email:", err)
+      );
+
+      const allBakers = await storage.getAllBakers();
+      const superAdminEmails = allBakers
+        .filter(b => b.role === "super_admin")
+        .map(b => b.email);
+      if (superAdminEmails.length > 0) {
+        sendAffiliateApplicationNotification(
+          { name, email, socialMedia, followers: followers || null, niche: niche || null, message: message || null },
+          superAdminEmails,
+        ).catch(err => console.error("Failed to send affiliate notification to admins:", err));
+      }
+
       res.status(201).json(request);
     } catch (error) {
       console.error("Error creating affiliate request:", error);

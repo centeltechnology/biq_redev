@@ -1654,3 +1654,61 @@ export async function sendDynamicAdminEmail(
     text: getDynamicEmailText(bodyContent, tokens, emailPrefsToken),
   });
 }
+
+export async function sendAffiliateApplicationConfirmation(applicantEmail: string, applicantName: string): Promise<boolean> {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #333;">Thanks for applying, ${applicantName}!</h2>
+      <p>We've received your application to the BakerIQ Founding Partners Program.</p>
+      <p>Our team reviews every application personally. You can expect to hear back from us within a few business days.</p>
+      <p>In the meantime, feel free to explore <a href="https://bakeriq.app" style="color: #7c3aed;">BakerIQ</a> to learn more about the platform and what your audience will love about it.</p>
+      <p style="margin-top: 24px;">Thanks for your interest,<br>The BakerIQ Team</p>
+      ${getCustomerEmailFooterHtml()}
+    </div>
+  `;
+  const text = `Thanks for applying, ${applicantName}!\n\nWe've received your application to the BakerIQ Founding Partners Program.\n\nOur team reviews every application personally. You can expect to hear back from us within a few business days.\n\nIn the meantime, feel free to explore BakerIQ at https://bakeriq.app to learn more about the platform.\n\nThanks for your interest,\nThe BakerIQ Team`;
+
+  return sendEmail({
+    to: applicantEmail,
+    subject: "We received your BakerIQ partner application",
+    html,
+    text,
+    senderType: "platform",
+  });
+}
+
+export async function sendAffiliateApplicationNotification(application: {
+  name: string;
+  email: string;
+  socialMedia: string;
+  followers: string | null;
+  niche: string | null;
+  message: string | null;
+}, adminEmails: string[]): Promise<void> {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #333;">New Partner Application</h2>
+      <p>A new affiliate partner application has been submitted on BakerIQ.</p>
+      <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+        <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Name</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${application.name}</td></tr>
+        <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Email</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${application.email}</td></tr>
+        <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Social Media</td><td style="padding: 8px; border-bottom: 1px solid #eee;"><a href="${application.socialMedia.startsWith("http") ? application.socialMedia : "https://" + application.socialMedia}">${application.socialMedia}</a></td></tr>
+        <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Followers</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${application.followers || "Not specified"}</td></tr>
+        <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Niche</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${application.niche || "Not specified"}</td></tr>
+        <tr><td style="padding: 8px; font-weight: bold; border-bottom: 1px solid #eee;">Message</td><td style="padding: 8px; border-bottom: 1px solid #eee;">${application.message || "No message"}</td></tr>
+      </table>
+      <p>Review and respond in the <a href="https://bakeriq.app/admin" style="color: #7c3aed;">Admin Dashboard</a> under the Affiliates tab.</p>
+    </div>
+  `;
+  const text = `New Partner Application\n\nName: ${application.name}\nEmail: ${application.email}\nSocial Media: ${application.socialMedia}\nFollowers: ${application.followers || "Not specified"}\nNiche: ${application.niche || "Not specified"}\nMessage: ${application.message || "No message"}\n\nReview in the Admin Dashboard: https://bakeriq.app/admin`;
+
+  for (const adminEmail of adminEmails) {
+    await sendEmail({
+      to: adminEmail,
+      subject: `New Partner Application: ${application.name}`,
+      html,
+      text,
+      senderType: "platform",
+    });
+  }
+}
