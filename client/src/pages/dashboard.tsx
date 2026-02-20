@@ -1,14 +1,13 @@
-import { useState } from "react";
 import { Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { ClipboardList, FileText, Users, ArrowRight, Calendar, DollarSign, TrendingUp, CalendarCheck, Sparkles, AlertTriangle, Plus, UserPlus, Mail, Share2, X, Copy, BarChart3 } from "lucide-react";
+import { ClipboardList, Users, ArrowRight, Calendar, DollarSign, TrendingUp, CalendarCheck, Sparkles, AlertTriangle, Plus, UserPlus, Mail, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
-import { FirstQuoteModal } from "@/components/first-quote-modal";
+
 import { StatusBadge } from "@/components/status-badge";
 import { useFormatCurrency } from "@/hooks/use-baker-currency";
 import { apiRequest } from "@/lib/queryClient";
@@ -45,7 +44,7 @@ export default function DashboardPage() {
   const { baker } = useAuth();
   const formatCurrency = useFormatCurrency();
   const { toast } = useToast();
-  const [showFirstQuoteModal, setShowFirstQuoteModal] = useState(false);
+
 
   const { data: stats, isLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
@@ -102,21 +101,10 @@ export default function DashboardPage() {
     subscription.quoteLimit !== null && subscription.monthlyQuoteCount >= subscription.quoteLimit - 2;
 
   const isOnboarding = baker && baker.role !== "super_admin" && (!baker.stripeConnectedAt || !baker.firstQuoteSentAt);
-  const canShowTestQuote = baker && baker.stripeConnectedAt && !baker.firstQuoteSentAt && baker.role !== "super_admin";
-
-  const handleSendFirstQuote = () => {
-    apiRequest("POST", "/api/activity/track", { eventType: "first_quote_cta_used" }).catch(() => {});
-    if (canShowTestQuote) {
-      setShowFirstQuoteModal(true);
-    } else {
-      window.location.href = "/quotes/new";
-    }
-  };
 
   return (
     <DashboardLayout title="Dashboard">
       <div className="space-y-6">
-        <FirstQuoteModal open={showFirstQuoteModal} onOpenChange={setShowFirstQuoteModal} />
         {baker && !baker.emailVerified && (
           <Card className="border-amber-500/50 bg-amber-500/5">
             <CardContent className="flex items-center justify-between gap-4 py-4">
@@ -183,7 +171,6 @@ export default function DashboardPage() {
         <OnboardingChecklist
           onConnectStripe={() => connectMutation.mutate()}
           isConnecting={connectMutation.isPending}
-          onSendFirstQuote={handleSendFirstQuote}
         />
 
         {isOnboarding ? (

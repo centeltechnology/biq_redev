@@ -38,6 +38,7 @@ import PaymentsPage from "@/pages/payments";
 import ReferralsPage from "@/pages/referrals";
 import ReferPage from "@/pages/refer";
 import PartnersPage from "@/pages/partners";
+import OnboardingPage from "@/pages/onboarding";
 import EmailPreferences from "@/pages/email-preferences";
 import { CookieConsent } from "@/components/cookie-consent";
 
@@ -51,6 +52,9 @@ function Router() {
       <Route path="/signup" component={SignupPage} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/reset-password" component={ResetPasswordPage} />
+      <Route path="/onboarding">
+        <ProtectedRoute allowDuringOnboarding><OnboardingPage /></ProtectedRoute>
+      </Route>
       <Route path="/dashboard">
         <ProtectedRoute><DashboardPage /></ProtectedRoute>
       </Route>

@@ -33,7 +33,7 @@ export function useAuth() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
-      setLocation("/dashboard");
+      setLocation("/onboarding");
     },
   });
 

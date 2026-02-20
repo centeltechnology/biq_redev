@@ -1,55 +1,47 @@
-import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
-import { Check, CreditCard, FileText, Share2, ArrowRight, Copy, X, QrCode } from "lucide-react";
+import { useState } from "react";
+import { Link } from "wouter";
+import { Check, Store, FileText, Share2, CreditCard, ArrowRight, Copy, X, Rocket } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { downloadCalculatorQR } from "@/lib/qr-download";
 
-interface OnboardingChecklistProps {
+interface ActivationChecklistProps {
   onConnectStripe: () => void;
   isConnecting?: boolean;
-  onSendFirstQuote: () => void;
 }
 
-export function OnboardingChecklist({ onConnectStripe, isConnecting, onSendFirstQuote }: OnboardingChecklistProps) {
+export function OnboardingChecklist({ onConnectStripe, isConnecting }: ActivationChecklistProps) {
   const { baker } = useAuth();
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
+  if (!baker || baker.role === "super_admin") return null;
+
+  const bakerId = baker.id;
   const [dismissed, setDismissed] = useState(() => {
-    return localStorage.getItem("bakeriq_checklist_dismissed") === "true";
+    return localStorage.getItem(`bakeriq_activation_dismissed_${bakerId}`) === "true";
   });
-  const [linkShared, setLinkShared] = useState(() => {
-    return localStorage.getItem("bakeriq_calculator_link_shared") === "true";
+  const [linkCopied, setLinkCopied] = useState(() => {
+    return localStorage.getItem(`bakeriq_calculator_link_shared_${bakerId}`) === "true";
   });
 
-  const stripeConnected = !!baker?.stripeConnectedAt;
-  const firstQuoteSent = !!baker?.firstQuoteSentAt;
-  const isAdmin = baker?.role === "super_admin";
+  const hasBranding = !!(baker.businessName && baker.businessName.length > 0);
+  const hasQuote = !!baker.firstQuoteSentAt;
+  const hasSharedLink = linkCopied;
+  const hasStripe = !!baker.stripeConnectedAt;
 
-  useEffect(() => {
-    if (baker && !isAdmin && !dismissed) {
-      apiRequest("POST", "/api/activity/track", { eventType: "onboarding_checklist_seen" }).catch(() => {});
-    }
-  }, [baker, isAdmin, dismissed]);
+  const completedCount = [hasBranding, hasQuote, hasSharedLink, hasStripe].filter(Boolean).length;
+  const progressPercent = Math.round((completedCount / 4) * 100);
 
-  if (!baker || isAdmin) return null;
-
-  const allComplete = stripeConnected && firstQuoteSent && linkShared;
-  if (allComplete || dismissed) return null;
-
-  const currentStep = !stripeConnected ? 1 : !firstQuoteSent ? 2 : 3;
+  if (progressPercent === 100 || dismissed) return null;
 
   const handleCopyLink = async () => {
     if (!baker?.slug) return;
     const calculatorUrl = `${window.location.origin}/c/${baker.slug}`;
     try {
       await navigator.clipboard.writeText(calculatorUrl);
-      localStorage.setItem("bakeriq_calculator_link_shared", "true");
-      setLinkShared(true);
-      apiRequest("POST", "/api/activity/track", { eventType: "quick_quote_link_copied" }).catch(() => {});
+      localStorage.setItem(`bakeriq_calculator_link_shared_${bakerId}`, "true");
+      setLinkCopied(true);
       toast({
         title: "Link copied!",
         description: "Share it on social media, your website, or directly with customers.",
@@ -63,76 +55,58 @@ export function OnboardingChecklist({ onConnectStripe, isConnecting, onSendFirst
     }
   };
 
-  const handleDownloadQR = async () => {
-    if (!baker?.slug) return;
-    const calculatorUrl = `${window.location.origin}/c/${baker.slug}`;
-    try {
-      await downloadCalculatorQR(calculatorUrl, baker?.businessName || undefined);
-      toast({
-        title: "QR code downloaded",
-        description: "Tip: Add this QR to your packaging, pop-up booth, or business cards to get more orders.",
-      });
-    } catch {
-      toast({
-        title: "Download failed",
-        description: "Could not generate QR code. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleDismiss = () => {
-    localStorage.setItem("bakeriq_checklist_dismissed", "true");
+    localStorage.setItem(`bakeriq_activation_dismissed_${bakerId}`, "true");
     setDismissed(true);
   };
 
-  const steps: Array<{
-    step: number;
-    label: string;
-    description: string;
-    icon: typeof CreditCard;
-    complete: boolean;
-    action: () => void;
-    actionLabel: string;
-    actionDisabled?: boolean;
-    actionIcon?: typeof CreditCard;
-  }> = [
+  const contextMessage = hasQuote && !hasStripe
+    ? "You're almost ready to collect deposits."
+    : !baker.onboardingCompleted
+      ? "Complete setup to start getting orders."
+      : null;
+
+  const steps = [
     {
-      step: 1,
-      label: "Connect Stripe",
-      description: "Connect Stripe to start getting paid.",
-      icon: CreditCard,
-      complete: stripeConnected,
-      action: onConnectStripe,
-      actionLabel: isConnecting ? "Setting up..." : "Connect Stripe",
-      actionDisabled: isConnecting,
+      label: "Add bakery branding",
+      icon: Store,
+      complete: hasBranding,
+      href: "/settings",
+      actionLabel: "Settings",
     },
     {
-      step: 2,
-      label: "Send your first quote",
-      description: "See what your customers will see",
+      label: "Send your first test quote",
       icon: FileText,
-      complete: firstQuoteSent,
-      action: onSendFirstQuote,
-      actionLabel: "Send First Quote",
+      complete: hasQuote,
+      href: "/quotes/new",
+      actionLabel: "Create Quote",
     },
     {
-      step: 3,
       label: "Share your calculator link",
-      description: "Start getting inbound requests",
       icon: Share2,
-      complete: linkShared,
+      complete: hasSharedLink,
       action: handleCopyLink,
       actionLabel: "Copy Link",
       actionIcon: Copy,
     },
+    {
+      label: "Activate secure payments",
+      icon: CreditCard,
+      complete: hasStripe,
+      action: onConnectStripe,
+      actionLabel: isConnecting ? "Setting up..." : "Connect Stripe",
+      actionDisabled: isConnecting,
+    },
   ];
 
   return (
-    <Card className="border-primary/30 bg-primary/5" data-testid="card-onboarding-checklist">
-      <CardContent className="py-4">
-        <div className="flex items-center justify-between gap-4 mb-3">
-          <h3 className="font-semibold text-base">Let's Get You Paid</h3>
+    <Card className="border-primary/30 bg-primary/5" data-testid="card-activation-checklist">
+      <CardContent className="py-5">
+        <div className="flex items-center justify-between gap-4 mb-1">
+          <div className="flex items-center gap-2">
+            <Rocket className="h-5 w-5 text-primary" />
+            <h3 className="font-semibold text-base" data-testid="text-checklist-title">Launch Your Bakery</h3>
+          </div>
           <Button
             variant="ghost"
             size="icon"
@@ -143,77 +117,60 @@ export function OnboardingChecklist({ onConnectStripe, isConnecting, onSendFirst
             <X className="h-3.5 w-3.5" />
           </Button>
         </div>
-        <div className="space-y-2">
-          {steps.map((s) => {
-            const isActive = s.step === currentStep;
-            const isPast = s.step < currentStep;
 
-            return (
-              <div
-                key={s.step}
-                className={`flex items-center justify-between gap-3 rounded-md px-3 py-2.5 transition-colors ${
-                  isActive ? "bg-background border" : s.complete ? "opacity-70" : "opacity-50"
-                }`}
-                data-testid={`checklist-step-${s.step}`}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className={`flex items-center justify-center h-6 w-6 rounded-full shrink-0 ${
-                    s.complete || isPast
-                      ? "bg-green-500 text-white"
-                      : isActive
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground"
-                  }`}>
-                    {s.complete || isPast ? (
-                      <Check className="h-3.5 w-3.5" />
-                    ) : (
-                      <span className="text-xs font-medium">{s.step}</span>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className={`text-sm font-medium ${s.complete ? "line-through text-muted-foreground" : ""}`}>
-                      {s.label}
-                    </p>
-                    {isActive && (
-                      <p className="text-xs text-muted-foreground">{s.description}</p>
-                    )}
-                  </div>
+        <p className="text-sm text-muted-foreground mb-3" data-testid="text-checklist-progress">
+          You're {progressPercent}% ready to take orders.
+        </p>
+
+        <Progress value={progressPercent} className="h-2 mb-4" />
+
+        {contextMessage && (
+          <p className="text-xs text-primary font-medium mb-3" data-testid="text-checklist-context">{contextMessage}</p>
+        )}
+
+        <div className="space-y-1.5">
+          {steps.map((s, idx) => (
+            <div
+              key={idx}
+              className={`flex items-center justify-between gap-3 rounded-md px-3 py-2.5 transition-colors ${
+                s.complete ? "opacity-60" : "bg-background border"
+              }`}
+              data-testid={`checklist-item-${idx}`}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`flex items-center justify-center h-6 w-6 rounded-full shrink-0 ${
+                  s.complete ? "bg-green-500 text-white" : "bg-muted text-muted-foreground"
+                }`}>
+                  {s.complete ? <Check className="h-3.5 w-3.5" /> : <s.icon className="h-3.5 w-3.5" />}
                 </div>
-                {isActive && s.step !== 3 && (
+                <p className={`text-sm font-medium ${s.complete ? "line-through text-muted-foreground" : ""}`}>
+                  {s.label}
+                </p>
+              </div>
+              {!s.complete && (
+                s.href ? (
+                  <Button size="sm" variant="ghost" asChild data-testid={`button-checklist-action-${idx}`}>
+                    <Link href={s.href}>
+                      {s.actionLabel}
+                      <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
+                ) : (
                   <Button
                     size="sm"
+                    variant="ghost"
                     onClick={s.action}
                     disabled={s.actionDisabled}
-                    data-testid={`button-checklist-step-${s.step}`}
+                    data-testid={`button-checklist-action-${idx}`}
                   >
+                    {s.actionIcon ? <s.actionIcon className="mr-1 h-3.5 w-3.5" /> : null}
                     {s.actionLabel}
-                    {s.actionIcon ? <s.actionIcon className="ml-1 h-3.5 w-3.5" /> : <ArrowRight className="ml-1 h-3.5 w-3.5" />}
+                    {!s.actionIcon && <ArrowRight className="ml-1 h-3.5 w-3.5" />}
                   </Button>
-                )}
-                {isActive && s.step === 3 && (
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <Button
-                      size="sm"
-                      onClick={handleCopyLink}
-                      data-testid="button-checklist-copy-link"
-                    >
-                      <Copy className="mr-1 h-3.5 w-3.5" />
-                      Copy Link
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleDownloadQR}
-                      data-testid="button-checklist-download-qr"
-                    >
-                      <QrCode className="mr-1 h-3.5 w-3.5" />
-                      Download QR
-                    </Button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                )
+              )}
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>

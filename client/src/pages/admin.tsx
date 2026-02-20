@@ -46,6 +46,7 @@ import {
   Download,
   Percent,
   Pencil,
+  Trash2,
 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -2206,6 +2207,8 @@ export default function AdminDashboard() {
   const [selectedEmailDay, setSelectedEmailDay] = useState<number>(0);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editForm, setEditForm] = useState({ email: "", businessName: "", phone: "" });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [sendEmailDialogOpen, setSendEmailDialogOpen] = useState(false);
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
@@ -2377,6 +2380,24 @@ export default function AdminDashboard() {
     },
     onError: () => {
       toast({ title: "Failed to reactivate account", variant: "destructive" });
+    },
+  });
+
+  const deleteBakerMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("DELETE", `/api/admin/bakers/${id}`);
+    },
+    onSuccess: async (response: any) => {
+      const data = await response.json();
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/bakers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/analytics"] });
+      setDeleteDialogOpen(false);
+      setDeleteConfirmText("");
+      setSelectedBaker(null);
+      toast({ title: data.message || "Account deleted" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete account", variant: "destructive" });
     },
   });
 
@@ -2810,6 +2831,22 @@ export default function AdminDashboard() {
                                   data-testid={`button-suspend-${baker.id}`}
                                 >
                                   <Ban className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {baker.role !== "super_admin" && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setSelectedBaker(baker);
+                                    setDeleteConfirmText("");
+                                    setDeleteDialogOpen(true);
+                                  }}
+                                  title="Delete Account"
+                                  className="text-red-600 hover:text-red-700"
+                                  data-testid={`button-delete-${baker.id}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
                                 </Button>
                               )}
                             </div>
@@ -4126,6 +4163,54 @@ export default function AdminDashboard() {
               data-testid="button-send-direct-email"
             >
               {sendDirectEmailMutation.isPending ? "Sending..." : "Send Email"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* DELETE ACCOUNT DIALOG */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Account</DialogTitle>
+            <DialogDescription>
+              This will permanently delete <strong>{selectedBaker?.businessName}</strong> and all their data including customers, leads, quotes, orders, and payments. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-red-800 dark:text-red-200">This action is permanent</p>
+                  <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                    All data for this account will be permanently removed from the database.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="delete-confirm">Type <strong>DELETE</strong> to confirm</Label>
+              <Input
+                id="delete-confirm"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Type DELETE"
+                data-testid="input-delete-confirm"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} data-testid="button-cancel-delete">
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => selectedBaker && deleteBakerMutation.mutate(selectedBaker.id)}
+              disabled={deleteBakerMutation.isPending || deleteConfirmText !== "DELETE"}
+              data-testid="button-confirm-delete"
+            >
+              {deleteBakerMutation.isPending ? "Deleting..." : "Delete Account"}
             </Button>
           </DialogFooter>
         </DialogContent>

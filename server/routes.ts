@@ -678,6 +678,89 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/baker/onboarding-step", requireAuth, async (req, res) => {
+    try {
+      const schema = z.object({
+        step: z.number().min(1).max(4),
+      });
+      const { step } = schema.parse(req.body);
+      const baker = await storage.updateBaker(req.session.bakerId!, { onboardingStep: step });
+      if (!baker) return res.status(404).json({ message: "Baker not found" });
+      res.json({ success: true, onboardingStep: step });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) return res.status(400).json({ message: error.errors[0].message });
+      res.status(500).json({ message: "Update failed" });
+    }
+  });
+
+  app.post("/api/baker/onboarding-complete", requireAuth, async (req, res) => {
+    try {
+      const baker = await storage.updateBaker(req.session.bakerId!, { onboardingCompleted: true });
+      if (!baker) return res.status(404).json({ message: "Baker not found" });
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Update failed" });
+    }
+  });
+
+  app.post("/api/baker/demo-quote", requireAuth, async (req, res) => {
+    try {
+      const bakerId = req.session.bakerId!;
+      const baker = await storage.getBaker(bakerId);
+      if (!baker) return res.status(404).json({ message: "Baker not found" });
+
+      let testCustomer = await storage.getCustomerByEmail(bakerId, baker.email);
+      if (!testCustomer) {
+        testCustomer = await storage.createCustomer({
+          bakerId,
+          name: "Test Customer",
+          email: baker.email,
+          phone: baker.phone || undefined,
+        });
+      }
+
+      const quoteNumber = await storage.getNextQuoteNumber(bakerId);
+      const eventDate = new Date();
+      eventDate.setDate(eventDate.getDate() + 30);
+
+      const quote = await storage.createQuote({
+        bakerId,
+        customerId: testCustomer.id,
+        quoteNumber,
+        title: "Demo Quote - Sample Cake Order",
+        eventDate: eventDate.toISOString().split("T")[0],
+        notes: "This is a demo quote created during onboarding. Feel free to edit or delete it.",
+        status: "draft",
+        subtotal: "150.00",
+        taxAmount: "12.00",
+        total: "162.00",
+      });
+
+      await storage.createQuoteItem({
+        quoteId: quote.id,
+        name: "Two-Tier Birthday Cake",
+        description: "8\" + 6\" vanilla cake with buttercream frosting",
+        quantity: 1,
+        unitPrice: "120.00",
+        totalPrice: "120.00",
+      });
+
+      await storage.createQuoteItem({
+        quoteId: quote.id,
+        name: "Custom Cake Topper",
+        description: "Fondant name topper",
+        quantity: 1,
+        unitPrice: "30.00",
+        totalPrice: "30.00",
+      });
+
+      res.json({ quote, customerId: testCustomer.id });
+    } catch (error) {
+      console.error("Demo quote creation error:", error);
+      res.status(500).json({ message: "Failed to create demo quote" });
+    }
+  });
+
   // Onboarding Tour Status
   app.patch("/api/baker/onboarding-tour", requireAuth, async (req, res) => {
     try {
@@ -2865,15 +2948,54 @@ export async function registerRoutes(
   });
 
   app.delete("/api/admin/bakers/:id", requireSuperAdmin, async (req, res) => {
-    const baker = await storage.getBaker(req.params.id);
-    if (!baker) {
-      return res.status(404).json({ message: "Baker not found" });
+    try {
+      const baker = await storage.getBaker(req.params.id);
+      if (!baker) {
+        return res.status(404).json({ message: "Baker not found" });
+      }
+      if (baker.id === req.session.bakerId) {
+        return res.status(400).json({ message: "Cannot delete your own account" });
+      }
+      if (baker.role === "super_admin") {
+        return res.status(400).json({ message: "Cannot delete a super admin account" });
+      }
+
+      const bakerId = baker.id;
+
+      await pool.query(`DELETE FROM ticket_messages WHERE ticket_id IN (SELECT id FROM support_tickets WHERE baker_id = $1)`, [bakerId]);
+      await pool.query(`DELETE FROM support_tickets WHERE baker_id = $1`, [bakerId]);
+      await pool.query(`DELETE FROM quote_items WHERE quote_id IN (SELECT id FROM quotes WHERE baker_id = $1)`, [bakerId]);
+      await pool.query(`DELETE FROM quote_payments WHERE baker_id = $1`, [bakerId]);
+      await pool.query(`DELETE FROM orders WHERE baker_id = $1`, [bakerId]);
+      await pool.query(`DELETE FROM quotes WHERE baker_id = $1`, [bakerId]);
+      await pool.query(`DELETE FROM leads WHERE baker_id = $1`, [bakerId]);
+      await pool.query(`DELETE FROM customers WHERE baker_id = $1`, [bakerId]);
+      await pool.query(`DELETE FROM pricing_calculations WHERE baker_id = $1`, [bakerId]);
+      await pool.query(`DELETE FROM baker_onboarding_emails WHERE baker_id = $1`, [bakerId]);
+      await pool.query(`DELETE FROM onboarding_email_sends WHERE baker_id = $1`, [bakerId]);
+      await pool.query(`DELETE FROM password_reset_tokens WHERE baker_id = $1`, [bakerId]);
+      await pool.query(`DELETE FROM email_verification_tokens WHERE baker_id = $1`, [bakerId]);
+      await pool.query(`DELETE FROM user_activity_events WHERE baker_id = $1`, [bakerId]);
+      await pool.query(`DELETE FROM retention_email_sends WHERE baker_id = $1`, [bakerId]);
+      await pool.query(`DELETE FROM survey_responses WHERE baker_id = $1`, [bakerId]);
+      await pool.query(`DELETE FROM baker_referrals WHERE referring_baker_id = $1 OR referred_baker_id = $1`, [bakerId]);
+      await pool.query(`DELETE FROM referral_clicks WHERE baker_id = $1`, [bakerId]);
+      await pool.query(`DELETE FROM affiliate_commissions WHERE affiliate_baker_id = $1 OR referred_baker_id = $1`, [bakerId]);
+      await pool.query(`DELETE FROM admin_audit_logs WHERE admin_user_id = $1 OR target_id = $1`, [bakerId]);
+      await pool.query(`DELETE FROM bakers WHERE id = $1`, [bakerId]);
+
+      await db.insert(adminAuditLogs).values({
+        adminUserId: req.session.bakerId!,
+        actionKey: "ACCOUNT_DELETED",
+        targetId: bakerId,
+        metadata: { businessName: baker.businessName, email: baker.email },
+      });
+
+      res.json({ message: `Account "${baker.businessName}" has been permanently deleted` });
+    } catch (error) {
+      console.error("Delete baker error:", error);
+      res.status(500).json({ message: "Failed to delete account" });
     }
-    if (baker.id === req.session.bakerId) {
-      return res.status(400).json({ message: "Cannot delete your own account" });
-    }
-    // Note: In production, you'd want to handle cascading deletes properly
-    res.json({ message: "Baker deleted" });
   });
 
   app.get("/api/admin/stats", requireSuperAdmin, async (req, res) => {

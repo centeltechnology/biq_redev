@@ -56,6 +56,9 @@ export const bakers = pgTable("bakers", {
   emailPrefsToken: text("email_prefs_token"),
   // Onboarding tour status: "pending", "completed", "skipped"
   onboardingTourStatus: text("onboarding_tour_status").notNull().default("pending"),
+  // Onboarding wizard (activation-first flow)
+  onboardingCompleted: boolean("onboarding_completed").default(false).notNull(),
+  onboardingStep: integer("onboarding_step").default(1).notNull(),
   // Quick Order item limit (null = unlimited)
   quickOrderItemLimit: integer("quick_order_item_limit"),
   // Account status
