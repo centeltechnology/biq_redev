@@ -101,8 +101,8 @@ function useFormattedCurrency() {
 const contactSchema = z.object({
   name: z.string().min(2, "Name is required"),
   email: z.string().min(1, "Email is required").email("Please enter a valid email"),
-  phone: z.string().min(10, "Please enter a valid phone number"),
-  eventType: z.string().optional(),
+  phone: z.string().optional(),
+  eventType: z.string().min(1, "Event type is required"),
   eventDate: z.string().min(1, "Event date is required"),
   guestCount: z.string().optional(),
   deliveryAddress: z.string().optional(),
@@ -391,10 +391,46 @@ export default function CalculatorPage() {
     setCurrentStep(1);
   };
 
-  const nextStep = () => {
-    if (currentStep < STEPS.length - 1) {
-      setCurrentStep(currentStep + 1);
+  const nextStep = async () => {
+    if (currentStep >= STEPS.length - 1) return;
+
+    const stepName = STEPS[currentStep];
+
+    if (stepName === "Event Details") {
+      const valid = await form.trigger(["eventType", "eventDate"]);
+      if (!valid) {
+        const errors = form.formState.errors;
+        const messages: string[] = [];
+        if (errors.eventType) messages.push(errors.eventType.message || "Event type is required");
+        if (errors.eventDate) messages.push(errors.eventDate.message || "Event date is required");
+        if (messages.length > 0) {
+          toast({ title: "Please fill in required fields", description: messages.join(". "), variant: "destructive" });
+        }
+        return;
+      }
     }
+
+    if (stepName === "Contact Info") {
+      const fieldsToValidate: (keyof ContactFormData)[] = ["name", "email"];
+      if (fastQuoteMode) {
+        fieldsToValidate.push("eventType", "eventDate");
+      }
+      const valid = await form.trigger(fieldsToValidate);
+      if (!valid) {
+        const errors = form.formState.errors;
+        const messages: string[] = [];
+        if (errors.name) messages.push(errors.name.message || "Name is required");
+        if (errors.email) messages.push(errors.email.message || "Email is required");
+        if (errors.eventType) messages.push(errors.eventType.message || "Event type is required");
+        if (errors.eventDate) messages.push(errors.eventDate.message || "Event date is required");
+        if (messages.length > 0) {
+          toast({ title: "Please fill in required fields", description: messages.join(". "), variant: "destructive" });
+        }
+        return;
+      }
+    }
+
+    setCurrentStep(currentStep + 1);
   };
 
   const prevStep = () => {
@@ -1659,28 +1695,54 @@ function StepContactInfo({ form, showEventDate = false }: StepContactInfoProps) 
         />
 
         {showEventDate && (
-          <FormField
-            control={form.control}
-            name="eventDate"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Event Date</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      {...field}
-                      type="date"
-                      min={new Date().toISOString().split("T")[0]}
-                      className="pl-10"
-                      data-testid="input-event-date"
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <>
+            <FormField
+              control={form.control}
+              name="eventType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Event Type</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-event-type">
+                        <SelectValue placeholder="Select event type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {EVENT_TYPES.map((type) => (
+                        <SelectItem key={type.id} value={type.id} data-testid={`select-item-event-${type.id}`}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="eventDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Event Date</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        {...field}
+                        type="date"
+                        min={new Date().toISOString().split("T")[0]}
+                        className="pl-10"
+                        data-testid="input-event-date"
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
         )}
 
         <FormField
