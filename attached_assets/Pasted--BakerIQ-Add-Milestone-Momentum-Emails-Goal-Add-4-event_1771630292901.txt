@@ -1,0 +1,144 @@
+# BakerIQ – Add Milestone Momentum Emails
+
+## Goal
+Add 4 event-triggered milestone emails that celebrate key user actions.
+These must trigger once per user and never repeat.
+
+Do NOT modify:
+- Existing onboarding drip logic
+- Transactional quote/payment emails
+- Stripe/payment handling logic
+
+Only add milestone detection + email send logic.
+
+---
+
+## Milestone 1 — Pricing Confirmed
+
+Trigger:
+First time `pricing_reviewed` becomes true.
+
+Conditions:
+- User has never received `milestone_pricing_live_sent`
+
+Subject:
+Your order page is officially live 🎉
+
+Body:
+Hi {{businessName}},
+
+You did it.
+
+Your pricing is confirmed — which means your order page is ready to receive real requests.
+
+This is where most bakers hesitate. Don’t.
+
+Add your link to your bio and start routing inquiries through it.
+
+[Copy Your Order Page Link] → {{baseUrl}}/share
+
+Set:
+milestone_pricing_live_sent = true
+
+---
+
+## Milestone 2 — First Lead Received
+
+Trigger:
+When leads_count transitions from 0 → 1
+
+Conditions:
+- milestone_first_lead_sent = false
+
+Subject:
+You just got your first request 🚀
+
+Body:
+Hi {{businessName}},
+
+That wasn’t a test.
+
+Someone just used your order page to request a custom quote.
+
+This is the system working.
+
+Open the request, convert it to a quote, and keep the momentum going.
+
+[View Request] → {{baseUrl}}/leads
+
+Set:
+milestone_first_lead_sent = true
+
+---
+
+## Milestone 3 — First Quote Sent
+
+Trigger:
+When quotes_sent_count transitions from 0 → 1
+
+Conditions:
+- milestone_first_quote_sent = false
+
+Subject:
+You just sent your first professional quote 💪
+
+Body:
+Hi {{businessName}},
+
+You just moved from pricing in DMs to running a structured system.
+
+Clean quote. Clear breakdown. Deposit option.
+
+This is how serious businesses operate.
+
+Keep routing inquiries through your order page.
+
+Set:
+milestone_first_quote_sent = true
+
+---
+
+## Milestone 4 — First Payment Received
+
+Trigger:
+When successful Stripe payments_count transitions from 0 → 1
+
+Conditions:
+- milestone_first_payment_sent = false
+
+Subject:
+You just got paid through BakerIQ 💰
+
+Body:
+Hi {{businessName}},
+
+A deposit just landed.
+
+No chasing. No screenshots. No awkward follow-ups.
+
+This is what automated payments feel like.
+
+Keep using your order page — this is only the beginning.
+
+Set:
+milestone_first_payment_sent = true
+
+---
+
+## Implementation Notes
+
+1. Add milestone boolean flags to user model if not present.
+2. Ensure event detection occurs after database commit to avoid race conditions.
+3. Prevent duplicate sends.
+4. Log milestone sends for auditability.
+5. Ensure email sending uses existing SES/email utility system.
+
+---
+
+## Deliverable
+
+Provide:
+- File locations where logic was added
+- Schema updates (if any)
+- Confirmation that emails trigger once only
+- Confirmation no existing email behavior was modified
