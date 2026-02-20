@@ -2962,6 +2962,13 @@ export async function registerRoutes(
 
       const bakerId = baker.id;
 
+      await db.insert(adminAuditLogs).values({
+        adminUserId: req.session.bakerId!,
+        actionKey: "ACCOUNT_DELETED",
+        targetId: bakerId,
+        metadata: { businessName: baker.businessName, email: baker.email },
+      });
+
       await pool.query(`DELETE FROM ticket_messages WHERE ticket_id IN (SELECT id FROM support_tickets WHERE baker_id = $1)`, [bakerId]);
       await pool.query(`DELETE FROM support_tickets WHERE baker_id = $1`, [bakerId]);
       await pool.query(`DELETE FROM quote_items WHERE quote_id IN (SELECT id FROM quotes WHERE baker_id = $1)`, [bakerId]);
@@ -2979,17 +2986,9 @@ export async function registerRoutes(
       await pool.query(`DELETE FROM retention_email_sends WHERE baker_id = $1`, [bakerId]);
       await pool.query(`DELETE FROM survey_responses WHERE baker_id = $1`, [bakerId]);
       await pool.query(`DELETE FROM baker_referrals WHERE referring_baker_id = $1 OR referred_baker_id = $1`, [bakerId]);
-      await pool.query(`DELETE FROM referral_clicks WHERE baker_id = $1`, [bakerId]);
       await pool.query(`DELETE FROM affiliate_commissions WHERE affiliate_baker_id = $1 OR referred_baker_id = $1`, [bakerId]);
-      await pool.query(`DELETE FROM admin_audit_logs WHERE admin_user_id = $1 OR target_id = $1`, [bakerId]);
+      await pool.query(`DELETE FROM admin_audit_logs WHERE (admin_user_id = $1 OR target_id = $1) AND NOT (action_key = 'ACCOUNT_DELETED' AND target_id = $1 AND admin_user_id = $2)`, [bakerId, req.session.bakerId]);
       await pool.query(`DELETE FROM bakers WHERE id = $1`, [bakerId]);
-
-      await db.insert(adminAuditLogs).values({
-        adminUserId: req.session.bakerId!,
-        actionKey: "ACCOUNT_DELETED",
-        targetId: bakerId,
-        metadata: { businessName: baker.businessName, email: baker.email },
-      });
 
       res.json({ message: `Account "${baker.businessName}" has been permanently deleted` });
     } catch (error) {
