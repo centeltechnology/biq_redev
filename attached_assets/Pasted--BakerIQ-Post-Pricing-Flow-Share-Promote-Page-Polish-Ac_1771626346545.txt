@@ -1,0 +1,115 @@
+# BakerIQ – Post-Pricing Flow + Share & Promote Page Polish (Activation Focus)
+
+## Goal
+1) After Pricing Review is completed in onboarding, take the user to the Share & Promote page (launch moment), not the dashboard.
+2) Rework the Share & Promote page so it feels like a “Launch Your Order Page” command center:
+   - Make "Copy Link" the primary action
+   - Reduce the Social Banner preview section significantly (it is currently far too large)
+   - Push advanced/optional tools lower or behind collapsible sections
+IMPORTANT: Do NOT change pricing logic, quote logic, or Stripe logic. This is flow routing + UI layout/content.
+
+---
+
+# PART A — Flow Change: After Pricing Review → Share & Promote
+
+## Current (undesired)
+Onboarding / setup completes → user lands on Dashboard.
+
+## New (desired)
+When user completes the "Review Pricing" step (pricing reviewed OR user clicks "Mark Pricing as Reviewed"):
+→ redirect to Share & Promote page (Launch step)
+
+### Requirements
+- This redirect should happen ONLY once immediately after pricing review completion in the onboarding sequence.
+- If user later revisits pricing page manually, do NOT redirect them away.
+- Persist state so we don’t loop (e.g., `launch_share_seen = true` after first visit).
+
+### UI (transition screen optional, minimal)
+If there is a final onboarding screen after pricing, change primary CTA from:
+"Go to Dashboard" → "Launch Your Order Page"
+and route it to Share & Promote.
+
+---
+
+# PART B — Share & Promote Page Reframe (Copy + Layout)
+
+## Rename / Reframe (copy only)
+- Page title: "Launch Your Order Page" (or keep nav label but update page header)
+- Change "Your Calculator Link" → "Your Order Page Link"
+- Remove customer-facing use of the word “calculator” on this page.
+- Supporting text:
+  "Send customers here to request a custom quote and get an instant estimate."
+
+---
+
+# PART C — Make Copy Link the HERO action
+
+At top of page:
+- Primary button: "Copy Order Page Link"
+- Secondary: "Preview"
+- Keep QR code download but visually de-emphasize (secondary row)
+
+Add short “Best places to add this link” bullets under the buttons:
+- Instagram bio
+- Facebook pinned post
+- Link-in-bio tools
+- DM auto-replies
+
+When user clicks Copy:
+- Show toast: "✔ Order Page Launched"
+- Mark `order_page_launched = true` (used for micro-achievement / checklist completion)
+
+---
+
+# PART D — Fix the “Social Media Banners” section (too huge)
+
+## Problem
+The banner preview area is taking up excessive vertical space and feels like the main event.
+
+## Change
+- Shrink banner preview to a compact thumbnail card (max height ~160–220px on desktop; responsive on mobile).
+- Put the action buttons next to/below it:
+  - "Download Banner"
+  - "Save as Profile Banner"
+- Ensure the preview does not push key actions below the fold.
+
+If needed:
+- Move banner section BELOW the share caption/templates section.
+
+---
+
+# PART E — Reduce Noise: Collapse Advanced Tools
+
+Create collapsible sections (accordion or simple “Show more”) for non-critical items:
+1) “Caption Templates” (default OPEN, since it helps sharing)
+2) “Social Media Banners” (default CLOSED or compact)
+3) “Sharing Tips” (default CLOSED)
+4) “Featured Items” (default CLOSED)
+
+Priority order on page:
+1) Order Page Link + Copy
+2) Caption Templates + quick-use buttons
+3) Share buttons (Facebook/IG copy/etc.)
+4) Banners (compact)
+5) Featured items (collapsed)
+6) Tips (collapsed)
+
+---
+
+# PART F — Update Templates (remove “calculator” language)
+
+Replace existing quick templates to be order/quote-request oriented, e.g.:
+
+1) "Ready to order? Start your custom request here 👇"
+2) "Get an instant estimate and request your custom quote here:"
+3) "Custom cakes & treats made to order. Start your request here:"
+
+Ensure templates insert the link reliably.
+
+---
+
+# Deliverables
+- Implement the post-pricing redirect to Share & Promote (one-time).
+- Restructure Share & Promote page layout per above.
+- Confirm Social Media Banner preview is significantly smaller and no longer dominates the page.
+- Provide a short summary of files modified and how you prevented redirect loops.
