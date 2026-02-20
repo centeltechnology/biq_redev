@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Loader2, Trash2, Plus, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { InstructionModal } from "@/components/instruction-modal";
@@ -29,6 +30,7 @@ const defaultDeliveryIds = new Set<string>(DELIVERY_OPTIONS.map(d => d.id));
 export default function PricingPage() {
   const { baker } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [pricingConfig, setPricingConfig] = useState<CalculatorConfig>({});
 
   useEffect(() => {
@@ -56,6 +58,11 @@ export default function PricingPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
       toast({ title: "Pricing marked as reviewed" });
+      const launchSeen = sessionStorage.getItem("launch_share_seen");
+      if (!launchSeen) {
+        sessionStorage.setItem("launch_share_seen", "true");
+        setLocation("/share");
+      }
     },
   });
 
@@ -393,7 +400,7 @@ export default function PricingPage() {
               <div>
                 <p className="text-sm font-medium">We've set the foundation — you set the standard.</p>
                 <p className="text-xs text-muted-foreground">
-                  Review your pricing before sharing your calculator link.
+                  Review your pricing before sharing your order page link.
                 </p>
               </div>
             </div>
@@ -409,7 +416,7 @@ export default function PricingPage() {
               ) : (
                 <CheckCircle2 className="h-3 w-3 mr-1" />
               )}
-              Mark Pricing as Reviewed
+              Launch Your Order Page
             </Button>
           </div>
         )}

@@ -11,7 +11,7 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Copy, ExternalLink, Link2, QrCode, Share2, Check, Download, Upload, Save, Image as ImageIcon, Loader2 } from "lucide-react";
+import { Copy, ExternalLink, Link2, QrCode, Share2, Check, Download, Upload, Save, Image as ImageIcon, Loader2, ChevronDown, ChevronUp, Rocket, Zap } from "lucide-react";
 import { SiFacebook, SiX, SiPinterest, SiWhatsapp, SiInstagram, SiLinkedin } from "react-icons/si";
 import { downloadCalculatorQR } from "@/lib/qr-download";
 
@@ -26,21 +26,21 @@ interface FeaturedItem {
 
 const CAPTION_TEMPLATES = {
   general: [
-    "Custom cakes & treats made with love! Get an instant estimate for your next celebration.",
-    "Planning a party? Use my pricing calculator to design your dream cake or treats!",
-    "Order your custom cake or treats today! Quick estimates, beautiful results.",
+    "Ready to order? Start your custom request here 👇",
+    "Get an instant estimate and request your custom quote here:",
+    "Custom cakes & treats made to order. Start your request here:",
   ],
   wedding: [
-    "Your dream wedding cake starts here! Get a custom estimate in minutes.",
-    "Engaged? Let's design your perfect wedding cake together. Tap for instant pricing!",
-    "From elegant tiers to stunning toppers \u2014 I create wedding cakes as unique as your love story. Get your estimate now!",
-    "Wedding planning made easy! Use my calculator to price your dream cake, then let's chat about the details.",
+    "Your dream wedding cake starts here! Request a custom quote in minutes.",
+    "Engaged? Let's design your perfect wedding cake together. Tap to get started!",
+    "From elegant tiers to stunning toppers — I create wedding cakes as unique as your love story. Request your quote now!",
+    "Wedding planning made easy! Get an instant estimate for your dream cake, then we'll handle the rest.",
   ],
   events: [
-    "Birthday coming up? Let me make it extra sweet! Get an instant cake estimate.",
+    "Birthday coming up? Let me make it extra sweet! Get an instant estimate.",
     "Planning a corporate event, baby shower, or graduation? Custom cakes & treats for every occasion!",
-    "Make your next celebration unforgettable with a custom cake! Tap for pricing.",
-    "Hosting a party? From cupcakes to full dessert tables \u2014 I've got you covered. Get your estimate now!",
+    "Make your next celebration unforgettable with a custom order! Tap to get started.",
+    "Hosting a party? From cupcakes to full dessert tables — I've got you covered. Request your quote now!",
   ],
   featured: [
     "Check out my latest creation! Order yours today with an instant quote.",
@@ -115,6 +115,36 @@ function ShareButtons({ url, caption, onCopied }: { url: string; caption: string
   );
 }
 
+function CollapsibleSection({ title, icon, defaultOpen = false, children, testId }: {
+  title: string;
+  icon?: React.ReactNode;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+  testId?: string;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <Card>
+      <button
+        className="w-full text-left"
+        onClick={() => setOpen(!open)}
+        data-testid={testId ? `toggle-${testId}` : undefined}
+      >
+        <CardHeader className="cursor-pointer">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-base">
+              {icon}
+              {title}
+            </CardTitle>
+            {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+          </div>
+        </CardHeader>
+      </button>
+      {open && <CardContent>{children}</CardContent>}
+    </Card>
+  );
+}
+
 export default function SharePage() {
   const { baker } = useAuth();
   const { toast } = useToast();
@@ -146,7 +176,7 @@ export default function SharePage() {
     try {
       await navigator.clipboard.writeText(calculatorUrl);
       setCopiedLink(true);
-      toast({ title: "Link copied to clipboard!" });
+      toast({ title: "✔ Order Page Launched", description: "Link copied to clipboard!" });
       setTimeout(() => setCopiedLink(false), 2000);
     } catch {
       toast({ title: "Failed to copy link", variant: "destructive" });
@@ -188,14 +218,15 @@ export default function SharePage() {
   return (
     <DashboardLayout title="Share & Promote">
       <div className="space-y-6">
-        <Card>
+        {/* HERO: Order Page Link */}
+        <Card className="border-primary/30">
           <CardHeader>
             <CardTitle className="flex items-center gap-2" data-testid="text-share-link-title">
-              <Link2 className="h-5 w-5" />
-              Your Calculator Link
+              <Rocket className="h-5 w-5 text-primary" />
+              Launch Your Order Page
             </CardTitle>
             <CardDescription>
-              Share this link so customers can get instant estimates and place orders
+              Send customers here to request a custom quote and get an instant estimate.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -206,18 +237,15 @@ export default function SharePage() {
                 className="font-mono text-sm flex-1 min-w-0"
                 data-testid="input-calculator-url"
               />
-              <Button onClick={handleCopyLink} variant="outline" data-testid="button-copy-link">
-                {copiedLink ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
-                {copiedLink ? "Copied" : "Copy"}
-              </Button>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={handleDownloadQR} data-testid="button-download-qr">
-                <QrCode className="h-4 w-4 mr-2" />
-                Download QR Code
+              <Button onClick={handleCopyLink} data-testid="button-copy-link" size="lg">
+                {copiedLink ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+                {copiedLink ? "Copied!" : "Copy Order Page Link"}
               </Button>
               <Button
                 variant="outline"
+                size="lg"
                 onClick={() => window.open(calculatorUrl, "_blank")}
                 data-testid="button-preview-calculator"
               >
@@ -225,20 +253,27 @@ export default function SharePage() {
                 Preview
               </Button>
             </div>
+            <div className="flex flex-wrap gap-2 items-center">
+              <Button variant="ghost" size="sm" onClick={handleDownloadQR} data-testid="button-download-qr">
+                <QrCode className="h-4 w-4 mr-2" />
+                Download QR Code
+              </Button>
+            </div>
+            <div className="pt-3 border-t">
+              <p className="text-xs font-medium text-muted-foreground mb-2">Best places to add this link:</p>
+              <ul className="text-xs text-muted-foreground space-y-1">
+                <li>• Instagram bio</li>
+                <li>• Facebook pinned post</li>
+                <li>• Link-in-bio tools</li>
+                <li>• DM auto-replies</li>
+              </ul>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2" data-testid="text-share-social-title">
-              <Share2 className="h-5 w-5" />
-              Share on Social Media
-            </CardTitle>
-            <CardDescription>
-              Write or pick a caption, then share your calculator link directly to your favorite platforms
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        {/* CAPTION TEMPLATES — default OPEN */}
+        <CollapsibleSection title="Caption Templates" icon={<Share2 className="h-5 w-5" />} defaultOpen={true} testId="caption-templates">
+          <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Your caption</label>
               <Textarea
@@ -300,77 +335,69 @@ export default function SharePage() {
               <label className="text-sm font-medium">Share to platform</label>
               <ShareButtons
                 url={calculatorUrl}
-                caption={caption || "Check out my custom cakes & treats! Get an instant estimate:"}
+                caption={caption || "Custom cakes & treats made to order. Start your request here:"}
                 onCopied={handleShared}
               />
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </CollapsibleSection>
 
-        <Card>
-          <CardHeader>
-            <CardTitle data-testid="text-featured-share-title">Share Featured Items</CardTitle>
-            <CardDescription>
-              Share individual featured items to highlight special creations and promotions
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {featuredLoading ? (
-              <div className="space-y-3">
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
-              </div>
-            ) : !featuredItems || featuredItems.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground" data-testid="text-no-featured-items">
-                <p className="mb-2">You don't have any featured items yet.</p>
-                <p className="text-sm">
-                  Go to <strong>Pricing</strong> to mark items as featured for your public calculator.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {featuredItems.map((item) => (
-                  <FeaturedItemShare
-                    key={item.id}
-                    item={item}
-                    calculatorUrl={calculatorUrl}
-                  />
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* SOCIAL MEDIA BANNERS — default CLOSED, compact */}
+        <CollapsibleSection title="Social Media Banners" icon={<ImageIcon className="h-5 w-5" />} defaultOpen={false} testId="social-banners">
+          <SocialBannerGenerator
+            businessName={baker.businessName || "My Bakery"}
+            calculatorUrl={calculatorUrl}
+          />
+        </CollapsibleSection>
 
-        <SocialBannerGenerator
-          businessName={baker.businessName || "My Bakery"}
-          calculatorUrl={calculatorUrl}
-        />
-
-        <Card>
-          <CardHeader>
-            <CardTitle data-testid="text-tips-title">Sharing Tips</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <TipCard
-                title="Post at peak times"
-                description="Share between 10am-2pm and 6-9pm when people are browsing and planning."
-              />
-              <TipCard
-                title="Show your work"
-                description="Posts with photos of your creations get more engagement. Pair your link with your best shots."
-              />
-              <TipCard
-                title="Use stories & reels"
-                description="Short videos of your process or finished items perform great. Add your link sticker."
-              />
-              <TipCard
-                title="QR codes work offline"
-                description="Print your QR code on business cards, packaging, and booth displays for in-person events."
-              />
+        {/* FEATURED ITEMS — default CLOSED */}
+        <CollapsibleSection title="Share Featured Items" icon={<Zap className="h-5 w-5" />} defaultOpen={false} testId="featured-items">
+          {featuredLoading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
             </div>
-          </CardContent>
-        </Card>
+          ) : !featuredItems || featuredItems.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground" data-testid="text-no-featured-items">
+              <p className="mb-2">You don't have any featured items yet.</p>
+              <p className="text-sm">
+                Go to <strong>Pricing</strong> to mark items as featured for your order page.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {featuredItems.map((item) => (
+                <FeaturedItemShare
+                  key={item.id}
+                  item={item}
+                  calculatorUrl={calculatorUrl}
+                />
+              ))}
+            </div>
+          )}
+        </CollapsibleSection>
+
+        {/* SHARING TIPS — default CLOSED */}
+        <CollapsibleSection title="Sharing Tips" defaultOpen={false} testId="sharing-tips">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TipCard
+              title="Post at peak times"
+              description="Share between 10am-2pm and 6-9pm when people are browsing and planning."
+            />
+            <TipCard
+              title="Show your work"
+              description="Posts with photos of your creations get more engagement. Pair your link with your best shots."
+            />
+            <TipCard
+              title="Use stories & reels"
+              description="Short videos of your process or finished items perform great. Add your link sticker."
+            />
+            <TipCard
+              title="QR codes work offline"
+              description="Print your QR code on business cards, packaging, and booth displays for in-person events."
+            />
+          </div>
+        </CollapsibleSection>
       </div>
     </DashboardLayout>
   );
@@ -691,7 +718,7 @@ function SocialBannerGenerator({
       queryClient.invalidateQueries({ queryKey: ["/api/baker/me"] });
       toast({
         title: "Banner saved!",
-        description: "Your social media banner is now set as your profile banner and will appear when your calculator link is shared.",
+        description: "Your social media banner is now set as your profile banner and will appear when your order page link is shared.",
       });
     } catch (err) {
       console.error("Error saving banner:", err);
@@ -702,132 +729,124 @@ function SocialBannerGenerator({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2" data-testid="text-banner-title">
-          <ImageIcon className="h-5 w-5" />
-          Social Media Banners
-        </CardTitle>
-        <CardDescription>
-          Create professional social media banners with your business name. Choose a pre-made design or upload your own photo.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium" data-testid="label-choose-design">Choose a design</label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {BANNER_DESIGNS.map((design) => (
-              <div
-                key={design.id}
-                className={`p-3 rounded-md border cursor-pointer text-center space-y-1 hover-elevate ${
-                  selectedDesign === design.id && !customImage
-                    ? "border-primary ring-1 ring-primary"
-                    : ""
-                }`}
-                onClick={() => {
-                  setSelectedDesign(design.id);
-                  setCustomImage(null);
-                  setCustomImageName("");
-                }}
-                data-testid={`button-design-${design.id}`}
-              >
-                <div
-                  className="h-8 w-full rounded-md"
-                  style={{
-                    background: `linear-gradient(135deg, ${design.bgGradient.join(", ")})`,
-                  }}
-                />
-                <p className="text-xs font-medium">{design.name}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium" data-testid="label-upload-photo">Or use your own photo</label>
-          <div className="flex flex-wrap gap-2 items-center">
-            <Button
-              variant="outline"
-              onClick={() => fileInputRef.current?.click()}
-              data-testid="button-upload-image"
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Create a professional banner with your business name. Choose a design or upload your own photo.
+      </p>
+      <div className="space-y-2">
+        <label className="text-sm font-medium" data-testid="label-choose-design">Choose a design</label>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {BANNER_DESIGNS.map((design) => (
+            <div
+              key={design.id}
+              className={`p-3 rounded-md border cursor-pointer text-center space-y-1 hover-elevate ${
+                selectedDesign === design.id && !customImage
+                  ? "border-primary ring-1 ring-primary"
+                  : ""
+              }`}
+              onClick={() => {
+                setSelectedDesign(design.id);
+                setCustomImage(null);
+                setCustomImageName("");
+              }}
+              data-testid={`button-design-${design.id}`}
             >
-              <Upload className="h-4 w-4 mr-2" />
-              Upload Image
-            </Button>
-            {customImage && (
-              <>
-                <span className="text-sm text-muted-foreground truncate max-w-[200px]" data-testid="text-uploaded-filename">
-                  {customImageName}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleClearImage}
-                  data-testid="button-clear-image"
-                >
-                  Clear
-                </Button>
-              </>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleImageUpload}
-              data-testid="input-upload-image"
-            />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Upload a photo of your cakes or treats. Your business name and link will be overlaid on the image.
-          </p>
+              <div
+                className="h-8 w-full rounded-md"
+                style={{
+                  background: `linear-gradient(135deg, ${design.bgGradient.join(", ")})`,
+                }}
+              />
+              <p className="text-xs font-medium">{design.name}</p>
+            </div>
+          ))}
         </div>
+      </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium" data-testid="label-banner-preview">Preview</label>
-          <div className="border rounded-md overflow-hidden" data-testid="container-banner-preview">
-            <canvas
-              ref={canvasRef}
-              className="w-full h-auto"
-              style={{ aspectRatio: "1200/630" }}
-              data-testid="canvas-banner-preview"
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Button
-            onClick={handleDownloadBanner}
-            disabled={!calculatorUrl}
-            data-testid="button-download-banner"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Download Banner
-          </Button>
+      <div className="space-y-2">
+        <label className="text-sm font-medium" data-testid="label-upload-photo">Or use your own photo</label>
+        <div className="flex flex-wrap gap-2 items-center">
           <Button
             variant="outline"
-            onClick={handleSaveBanner}
-            disabled={!calculatorUrl || isSaving}
-            data-testid="button-save-banner"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            data-testid="button-upload-image"
           >
-            {isSaving ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
-            {isSaving ? "Saving..." : "Save as Profile Banner"}
+            <Upload className="h-4 w-4 mr-2" />
+            Upload Image
           </Button>
+          {customImage && (
+            <>
+              <span className="text-sm text-muted-foreground truncate max-w-[200px]" data-testid="text-uploaded-filename">
+                {customImageName}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearImage}
+                data-testid="button-clear-image"
+              >
+                Clear
+              </Button>
+            </>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleImageUpload}
+            data-testid="input-upload-image"
+          />
         </div>
-        <p className="text-xs text-muted-foreground">
-          Saving sets this banner as the image that appears when your calculator link is shared on social media.
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium" data-testid="label-banner-preview">Preview</label>
+        <div className="border rounded-md overflow-hidden max-h-[200px]" data-testid="container-banner-preview">
+          <canvas
+            ref={canvasRef}
+            className="w-full h-auto"
+            style={{ aspectRatio: "1200/630", maxHeight: "200px", objectFit: "contain" }}
+            data-testid="canvas-banner-preview"
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          onClick={handleDownloadBanner}
+          disabled={!calculatorUrl}
+          data-testid="button-download-banner"
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Download Banner
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleSaveBanner}
+          disabled={!calculatorUrl || isSaving}
+          data-testid="button-save-banner"
+        >
+          {isSaving ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4 mr-2" />
+          )}
+          {isSaving ? "Saving..." : "Save as Profile Banner"}
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Saving sets this banner as the image that appears when your order page link is shared on social media.
+      </p>
+      {!calculatorUrl && (
+        <p className="text-xs text-destructive" data-testid="text-banner-url-warning">
+          Set up your business name in Settings first so your banner includes your order page link.
         </p>
-        {!calculatorUrl && (
-          <p className="text-xs text-destructive" data-testid="text-banner-url-warning">
-            Set up your business name in Settings first so your banner includes your calculator link.
-          </p>
-        )}
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 }
 
