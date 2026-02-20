@@ -627,12 +627,12 @@ export default function CalculatorPage() {
                 <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
               </div>
               <h1 className="text-2xl font-bold mb-3" data-testid="text-success-title">
-                {isQuickOrder ? "Order Received!" : "Thank You!"}
+                ✔ Request Received
               </h1>
               <p className="text-muted-foreground mb-6">
-                {isQuickOrder 
-                  ? "Your order has been submitted! We'll send you an invoice with payment options via email shortly."
-                  : "We've received your request and will be in touch within 24 hours with your custom quote."}
+                Your custom order request has been sent successfully.
+                <br /><br />
+                Our team will review the details and send your official quote by email once availability and pricing are confirmed.
               </p>
               {isQuickOrder && submittedItemName && (
                 <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 mb-4">
@@ -644,15 +644,13 @@ export default function CalculatorPage() {
               )}
               <div className="p-4 rounded-lg bg-muted">
                 <p className="text-sm text-muted-foreground mb-1">
-                  {isQuickOrder ? "Order total" : "Your estimated total"}
+                  Estimated Total
                 </p>
                 <p className="text-3xl font-bold">{formatCurrency(displayPrice, bakerCurrency)}</p>
               </div>
-              {isQuickOrder && (
-                <p className="text-xs text-muted-foreground mt-4">
-                  Check your email for the invoice and payment instructions.
-                </p>
-              )}
+              <p className="text-xs text-muted-foreground mt-4">
+                If you need to add more details, you can reply directly to the quote email when it arrives.
+              </p>
             </CardContent>
           </Card>
         </main>
@@ -758,10 +756,10 @@ export default function CalculatorPage() {
         <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
           <div className="max-w-4xl mx-auto">
             <h1 className="text-3xl md:text-4xl font-bold mb-2">
-              Custom Order Calculator
+              Start Your Custom Order
             </h1>
             <p className="text-white/80">
-              Design your perfect order and get an instant estimate
+              Choose your items and receive an instant estimate
             </p>
           </div>
         </div>
