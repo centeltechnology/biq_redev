@@ -1,0 +1,150 @@
+# BakerIQ – Onboarding & Demo Quote Polish Pass
+
+## Goal
+Tighten activation experience for creative (DM-driven) bakers.
+Focus on emotional momentum, clarity, and reducing Stripe noise during early activation.
+
+Do NOT modify Stripe integration logic.
+Do NOT add new features beyond scope below.
+
+---
+
+# PART 1 – Onboarding Flow Improvements
+
+## 1. Step 2 (Try a Quote) Behavior
+
+After clicking "Create Demo Quote":
+
+- Immediately generate the demo quote.
+- Automatically display the preview inside Step 2.
+- Highlight the "Send this quote to yourself" section.
+- Do NOT allow “Continue” unless user:
+    - Sends the demo quote
+    - OR explicitly clicks a “Skip for now” link.
+
+Add confirmation message after sending:
+"🎉 This is what your customers will see when you send quotes."
+
+Persist demo quote ID in onboarding state so it can be reused later.
+
+---
+
+## 2. Step 3 Copy Update
+
+Replace first sentence with:
+"This link replaces pricing back-and-forth in your DMs."
+
+Keep Pro Tip box.
+
+---
+
+## 3. Activation Progress Logic
+
+After onboarding completion:
+
+- Set activation progress to 75%.
+- Remaining step = Stripe only.
+- Dashboard should NOT say 25% complete.
+
+---
+
+## 4. Stripe Noise Reduction
+
+Hide top global Stripe banner for users who:
+- Just completed onboarding
+- Have not sent a real quote yet
+
+Stripe should appear only inside:
+- Activation checklist
+- Get Paid step
+
+Also hide Stripe banner on demo quote edit page during onboarding flow.
+
+---
+
+# PART 2 – Demo Quote Email Improvements
+
+## 1. Greeting Adjustment
+
+Replace:
+"Hi Test Customer"
+
+With:
+"This is how your customer will receive their quote."
+
+OR
+"Here’s your custom quote preview 👇"
+
+Remove “Test Customer” language from demo emails.
+
+---
+
+## 2. Demo Note Visibility
+
+Reduce prominence of:
+"This is a demo quote created during onboarding."
+
+Move to:
+- Smaller footer text
+OR
+- Subtle gray note below CTA
+
+Do NOT let it interrupt professional appearance.
+
+---
+
+## 3. Email CTA Update
+
+Change:
+"View Full Quote & Payment Details"
+
+To:
+"Review & Approve Quote"
+
+OR
+"Review Your Custom Quote"
+
+---
+
+# PART 3 – External Quote Page Improvements
+
+## 1. Emotional Framing
+
+Replace:
+"Ready to Respond?"
+
+With:
+"Ready to lock in your date?"
+
+---
+
+## 2. Accept Button Label
+
+Change:
+"Accept Quote"
+
+To:
+"Accept & Pay Deposit"
+
+(If Stripe not connected, still allow label change but preserve existing behavior.)
+
+---
+
+## 3. After Accept (Demo Flow Only)
+
+If demo quote is accepted:
+- Show simulated success message:
+  "Deposit would be collected here once payments are activated."
+- Do NOT process real payment.
+- Do NOT alter Stripe logic.
+
+---
+
+# Deliverables
+
+Provide summary of:
+- Files modified
+- State logic updated
+- Any assumptions made
+- How demo quote ID is persisted
+- How Stripe banner visibility is controlled
