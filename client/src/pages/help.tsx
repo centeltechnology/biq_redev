@@ -24,7 +24,7 @@ import {
 const VIDEOS = [
   { id: "WHdEtrAWE2A", title: "Dashboard Walkthrough", description: "See how to navigate your dashboard and manage orders", testId: "dashboard" },
   { id: "dswX7yLHlN4", title: "Settings Overview", description: "Learn how to configure your account and preferences", testId: "settings" },
-  { id: "EByQ4x9wCQs", title: "Pricing Calculator", description: "Set up your pricing and share your calculator link", testId: "calculator" },
+  { id: "EByQ4x9wCQs", title: "Pricing Calculator", description: "Set up your pricing and share your order page link", testId: "calculator" },
 ];
 
 export default function HelpPage() {
@@ -125,13 +125,13 @@ export default function HelpPage() {
               <CardHeader>
                 <Calculator className="h-10 w-10 text-primary mb-2" />
                 <CardTitle>Getting Started</CardTitle>
-                <CardDescription>Set up your account and calculator</CardDescription>
+                <CardDescription>Set up your account and order page</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <h4 className="font-medium">1. Create Your Account</h4>
                   <p className="text-sm text-muted-foreground">
-                    Sign up with your email and business name. Your unique calculator URL will be created automatically based on your business name.
+                    Sign up with your email and business name. Your unique order page URL will be created automatically based on your business name.
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -141,9 +141,9 @@ export default function HelpPage() {
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">3. Share Your Calculator</h4>
+                  <h4 className="font-medium">3. Share Your Order Page</h4>
                   <p className="text-sm text-muted-foreground">
-                    Copy your unique calculator URL from Settings and share it on your website, social media, or with customers directly.
+                    Copy your unique order page URL from Settings and share it on your website, social media, or with customers directly.
                   </p>
                 </div>
               </CardContent>
@@ -165,7 +165,7 @@ export default function HelpPage() {
                 <div className="space-y-2">
                   <h4 className="font-medium">Lead Details</h4>
                   <p className="text-sm text-muted-foreground">
-                    Click on any lead to see their full cake design, contact info, and event details from the calculator.
+                    Click on any lead to see their full cake design, contact info, and event details from their order request.
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -358,7 +358,7 @@ export default function HelpPage() {
                 <div className="space-y-2">
                   <h4 className="font-medium">New Lead Alerts</h4>
                   <p className="text-sm text-muted-foreground">
-                    Receive an email whenever a customer submits an inquiry through your calculator.
+                    Receive an email whenever a customer submits an inquiry through your order page.
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -435,14 +435,14 @@ export default function HelpPage() {
             <Card className="hover-elevate">
               <CardHeader>
                 <Share2 className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>Share Your Calculator</CardTitle>
+                <CardTitle>Share Your Order Page</CardTitle>
                 <CardDescription>Promote your business on social media</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <h4 className="font-medium">Social Media Sharing</h4>
                   <p className="text-sm text-muted-foreground">
-                    Go to the Share page in your dashboard to share your calculator link on Facebook, Instagram, Twitter/X, Pinterest, WhatsApp, and LinkedIn with a single click.
+                    Go to the Share page in your dashboard to share your order page link on Facebook, Instagram, Twitter/X, Pinterest, WhatsApp, and LinkedIn with a single click.
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -460,7 +460,7 @@ export default function HelpPage() {
                 <div className="space-y-2">
                   <h4 className="font-medium">QR Code Download</h4>
                   <p className="text-sm text-muted-foreground">
-                    Download a QR code for your calculator link. Print it on business cards, flyers, or packaging so customers can scan and get an instant estimate.
+                    Download a QR code for your order page link. Print it on business cards, flyers, or packaging so customers can scan and get an instant estimate.
                   </p>
                 </div>
                 <div className="space-y-2">
