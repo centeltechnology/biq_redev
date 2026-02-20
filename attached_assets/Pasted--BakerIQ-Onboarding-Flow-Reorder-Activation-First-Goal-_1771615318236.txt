@@ -1,0 +1,127 @@
+# BakerIQ – Onboarding Flow Reorder (Activation-First)
+
+## Goal
+Increase activation + retention by removing Stripe from “Step 1” and guiding new users through a value-first onboarding sequence:
+1) Business/Profile setup → 2) Demo quote experience → 3) Share calculator link → 4) Connect Stripe
+
+Stripe setup stays available, but is no longer the first thing pushed on first login.
+
+## Constraints
+- Do NOT add new product features beyond onboarding flow + UI order changes described here.
+- Reuse existing components/pages where possible.
+- Keep design consistent with current dashboard (dark theme, existing UI kit).
+- Ensure no breaking changes to existing Stripe connection logic.
+
+---
+
+## Required UX Changes
+
+### A) Create a dedicated onboarding page/route
+Create route:
+- `/onboarding` (or equivalent based on current router)
+
+Behavior:
+- On first login (new user), redirect to `/onboarding`.
+- After onboarding completion, redirect to `/app` dashboard.
+
+How to detect “new user”:
+- Add minimal fields to user profile (or tenant/bakery profile) to track onboarding state:
+  - `onboarding_completed` boolean (default false)
+  - `onboarding_step` integer (optional, default 1)
+- Consider onboarding “complete” when Steps 1–3 are done (Stripe is Step 4 but optional to complete onboarding).
+
+### B) Onboarding steps (activation-first)
+On `/onboarding`, implement a 4-step wizard UI with progress indicator.
+
+**Step 1: Name & Branding**
+- Business/Bakery name (required)
+- Calculator page slug (required if you support it; otherwise auto-generate)
+- Logo upload (optional but recommended)
+- Banner upload (optional)
+
+**Step 2: See how quotes work (Demo quote)**
+- Button: “Create a demo quote”
+- Auto-create a sample quote (template) OR open quote creation with prefilled values.
+- Button: “Send test quote to myself” (use user email)
+- Provide a “View customer preview” link if you already have it.
+
+**Step 3: Share calculator link**
+- Display their calculator/public page link
+- Button: “Copy link”
+- Tip text: “Post this in your IG bio / FB page / link-in-bio”
+
+**Step 4: Activate payments (Stripe)**
+- Button: “Connect Stripe”
+- Keep existing Stripe connect flow exactly as-is.
+- Add microcopy: “You can do this now or later. Quotes still work without payments enabled.”
+
+### C) Dashboard changes
+Once onboarding exists:
+- Remove or demote the current dashboard “Let’s Get You Paid” block so it doesn’t compete on first login.
+- Replace with a smaller card or status widget:
+  - If onboarding not completed: “Finish setup” → link to `/onboarding`
+  - If onboarding completed but Stripe not connected: “Activate payments” → link to Stripe connect
+
+### D) Email verification banner
+Keep it, but do not let it block onboarding unless it truly must for security.
+- If you must require verified email for sending test quote, then:
+  - Allow Step 1
+  - In Step 2, show a clear message: “Verify email to send test quote” + “Resend email” button.
+
+---
+
+## Technical Tasks
+
+1) Data model
+- Add `onboarding_completed` (bool) and optionally `onboarding_step` to appropriate table (users or tenant profile).
+- Add migration + default values.
+
+2) Routing & middleware/guard
+- After auth, if `onboarding_completed = false`, redirect to `/onboarding` (except when already on onboarding routes).
+- Ensure existing deep links still work for returning users.
+
+3) UI Implementation
+- Build `/onboarding` page with:
+  - Progress bar / stepper UI (4 steps)
+  - “Back” and “Continue” buttons
+  - Save state after each step
+  - Skip option only for Step 4 (Stripe)
+
+4) Demo quote generation
+- Implement simplest path:
+  - Create quote using existing quote creation API with a “demo” flag OR prefilled payload.
+  - If quote system requires customer record, create a lightweight “Test Customer” record tied to the user.
+- Send test quote email to the logged-in user (only if your system supports sending quote emails).
+- If emailing is not wired, then at minimum generate the quote + show preview screen.
+
+5) Calculator link
+- Reuse existing calculator/public profile link generation.
+- Add “Copy to clipboard” button.
+
+6) Update dashboard widget
+- Replace the large “Let’s Get You Paid” sequence with an onboarding status card:
+  - Show next recommended action based on state.
+
+---
+
+## Acceptance Criteria (Must pass)
+
+- New user first login redirects to `/onboarding`.
+- Step 1 saves business name + (optional) logo/banner + slug.
+- Step 2 successfully creates a demo quote and shows a preview (and sends email if supported).
+- Step 3 displays a working calculator/public link + copy button.
+- Step 4 triggers existing Stripe connect flow unchanged.
+- After completing Step 3, user is marked `onboarding_completed = true` and is redirected to dashboard.
+- Dashboard no longer pushes Stripe as the first big call-to-action for users who aren’t onboarded.
+- No regression: existing users are not forced through onboarding again.
+
+---
+
+## Deliverables
+- PR-style summary in chat:
+  - Files changed
+  - Migrations added
+  - New routes/components created
+  - Any assumptions made
+- Update `TASK_BREAKDOWN.md` with a checkbox list of what was implemented.
+- Add a short note to `replit.md` describing the onboarding-first philosophy (Stripe moved to last step).
