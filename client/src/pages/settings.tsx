@@ -211,6 +211,18 @@ export default function SettingsPage() {
   const { baker } = useAuth();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
+  const [fromStripeSuccess] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("from") === "stripe_success") {
+      params.delete("from");
+      const newUrl = params.toString()
+        ? `${window.location.pathname}?${params.toString()}`
+        : window.location.pathname;
+      window.history.replaceState({}, "", newUrl);
+      return true;
+    }
+    return false;
+  });
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [portfolioImages, setPortfolioImages] = useState<string[]>([]);
   const [headerImage, setHeaderImage] = useState<string | null>(null);
@@ -634,6 +646,17 @@ export default function SettingsPage() {
   return (
     <DashboardLayout title="Settings" actions={<InstructionModal page="settings" />}>
       <div className="max-w-2xl space-y-6">
+        {fromStripeSuccess && (
+          <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-primary/5 border border-primary/20" data-testid="banner-calculator-guidance">
+            <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium">Payments are live</p>
+              <p className="text-xs text-muted-foreground">
+                Customers will use this page to request quotes. Make sure your pricing reflects what you want to sell.
+              </p>
+            </div>
+          </div>
+        )}
         <Card>
           <CardHeader>
             <CardTitle>Public Calculator Link</CardTitle>

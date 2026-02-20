@@ -1,18 +1,25 @@
 import { useState, useEffect, useCallback } from "react";
 import { useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Sparkles, Bell, CreditCard, Clock, FileText, Share2, Copy } from "lucide-react";
+import { Sparkles, Bell, CreditCard, Clock, FileText, Share2, Copy, CheckCircle } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
 import { SupportChat } from "@/components/support-chat";
 import { StripeActivationModal } from "@/components/stripe-activation-modal";
+import { StripeInterstitialModal } from "@/components/stripe-interstitial-modal";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { apiRequest } from "@/lib/queryClient";
 
 interface SubscriptionStatus {
@@ -50,33 +57,38 @@ export function DashboardLayout({ children, title, actions }: DashboardLayoutPro
   const { toast } = useToast();
   const { snoozed, snooze: snoozeBanner } = useStripeBannerSnooze();
 
+  const [showStripeSuccessModal, setShowStripeSuccessModal] = useState(false);
+  const [showSetupInterstitial, setShowSetupInterstitial] = useState(false);
+
   useEffect(() => {
     if (!baker) return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("stripe") === "connected") {
-      const alreadyShown = sessionStorage.getItem("stripeConnectToastShown");
-      if (alreadyShown) {
-        params.delete("stripe");
-        params.delete("connect");
-        const newUrl = params.toString()
-          ? `${window.location.pathname}?${params.toString()}`
-          : window.location.pathname;
-        window.history.replaceState({}, "", newUrl);
-      } else if (baker.stripeConnectedAt) {
-        toast({
-          title: "Stripe connected",
-          description: "You're ready to send your first quote.",
-        });
-        sessionStorage.setItem("stripeConnectToastShown", "true");
-        params.delete("stripe");
-        params.delete("connect");
-        const newUrl = params.toString()
-          ? `${window.location.pathname}?${params.toString()}`
-          : window.location.pathname;
-        window.history.replaceState({}, "", newUrl);
+
+    if (params.get("stripe_setup") === "1") {
+      params.delete("stripe_setup");
+      const newUrl = params.toString()
+        ? `${window.location.pathname}?${params.toString()}`
+        : window.location.pathname;
+      window.history.replaceState({}, "", newUrl);
+      if (!baker.stripeConnectedAt) {
+        setShowSetupInterstitial(true);
       }
     }
-  }, [baker, toast]);
+
+    if (params.get("stripe") === "connected") {
+      const alreadyShown = sessionStorage.getItem("stripeConnectSuccessShown");
+      params.delete("stripe");
+      params.delete("connect");
+      const newUrl = params.toString()
+        ? `${window.location.pathname}?${params.toString()}`
+        : window.location.pathname;
+      window.history.replaceState({}, "", newUrl);
+      if (!alreadyShown && baker.stripeConnectedAt) {
+        sessionStorage.setItem("stripeConnectSuccessShown", "true");
+        setShowStripeSuccessModal(true);
+      }
+    }
+  }, [baker]);
 
   const { data: subscription } = useQuery<SubscriptionStatus>({
     queryKey: ["/api/subscription/status"],
@@ -307,6 +319,57 @@ export function DashboardLayout({ children, title, actions }: DashboardLayoutPro
           </main>
           <SupportChat />
           <StripeActivationModal />
+
+          <Dialog open={showStripeSuccessModal} onOpenChange={setShowStripeSuccessModal}>
+            <DialogContent className="sm:max-w-md" data-testid="modal-stripe-success">
+              <DialogHeader>
+                <DialogTitle className="text-xl text-center" data-testid="text-stripe-success-title">
+                  Payments Activated
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-5 py-2">
+                <div className="flex justify-center">
+                  <div className="h-14 w-14 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                    <CheckCircle className="h-8 w-8 text-green-500" />
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground text-center">
+                  Stripe is connected and ready to collect deposits from your customers automatically.
+                </p>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      setShowStripeSuccessModal(false);
+                      setLocation("/settings?from=stripe_success");
+                    }}
+                    data-testid="button-review-calculator-pricing"
+                  >
+                    Review Calculator Pricing
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="w-full text-muted-foreground"
+                    onClick={() => setShowStripeSuccessModal(false)}
+                    data-testid="button-stripe-success-dismiss"
+                  >
+                    I'll do this later
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <StripeInterstitialModal
+            open={showSetupInterstitial}
+            onOpenChange={setShowSetupInterstitial}
+            onContinue={() => {
+              setShowSetupInterstitial(false);
+              connectMutation.mutate();
+            }}
+            onDismiss={() => setShowSetupInterstitial(false)}
+            isLoading={connectMutation.isPending}
+          />
         </div>
       </div>
     </SidebarProvider>

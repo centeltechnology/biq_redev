@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, Calendar, DollarSign, FileText, Cake, Printer, XCircle, Loader2, CreditCard } from "lucide-react";
+import { CheckCircle, Calendar, DollarSign, FileText, Cake, Printer, XCircle, Loader2, CreditCard, Lock, Star, Shield } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +20,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { StripeInterstitialModal } from "@/components/stripe-interstitial-modal";
 import type { Quote, QuoteItem } from "@shared/schema";
 import { formatCurrency } from "@/lib/calculator";
 
@@ -59,6 +66,8 @@ export default function QuoteViewPage() {
   const [showAcceptDialog, setShowAcceptDialog] = useState(false);
   const [showDeclineDialog, setShowDeclineDialog] = useState(false);
   const [demoAccepted, setDemoAccepted] = useState(false);
+  const [showDemoDepositModal, setShowDemoDepositModal] = useState(false);
+  const [showInterstitial, setShowInterstitial] = useState(false);
 
   const { data, isLoading, error, refetch } = useQuery<PublicQuoteData>({
     queryKey: ["/api/public/quote", id],
@@ -399,9 +408,6 @@ export default function QuoteViewPage() {
                 <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-3" />
                 <h3 className="font-semibold text-green-700 dark:text-green-400 mb-2">Demo Quote Accepted</h3>
                 <p className="text-sm text-muted-foreground mb-2">
-                  Deposit would be collected here once payments are activated.
-                </p>
-                <p className="text-xs text-muted-foreground">
                   This is a preview of what your customers will experience.
                 </p>
               </div>
@@ -423,7 +429,7 @@ export default function QuoteViewPage() {
                     onClick={() => {
                       if (data?.isDemoQuote) {
                         setDemoAccepted(true);
-                        toast({ title: "Demo quote accepted", description: "This is a preview of the customer experience." });
+                        setShowDemoDepositModal(true);
                       } else {
                         setShowAcceptDialog(true);
                       }
@@ -641,6 +647,89 @@ export default function QuoteViewPage() {
             BakerIQ
           </a>
         </p>
+
+        <Dialog open={showDemoDepositModal && !showInterstitial} onOpenChange={(v) => { if (!v) { setShowDemoDepositModal(false); } }}>
+          <DialogContent className="sm:max-w-md" data-testid="modal-demo-deposit">
+            <DialogHeader>
+              <DialogTitle className="text-xl text-center" data-testid="text-demo-deposit-title">
+                Demo Deposit Secured
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-5 py-2">
+              <p className="text-sm text-muted-foreground text-center">
+                This is how deposits are collected automatically.
+              </p>
+
+              <div className="bg-muted/50 border rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Deposit Amount</span>
+                  <span className="text-lg font-bold text-primary">
+                    {depositAmount > 0 ? fmt(depositAmount) : fmt(total)}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Would be deposited to your connected bank account.
+                </p>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Shield className="h-3 w-3" />
+                  <span>Secure payment via Stripe</span>
+                </div>
+                <Badge variant="secondary" className="text-xs">Demo Mode</Badge>
+              </div>
+
+              {!baker.onlinePaymentsEnabled && (
+                <div className="border border-primary/20 rounded-lg p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs gap-1 border-amber-300 text-amber-700 dark:text-amber-400">
+                      <Star className="h-3 w-3" />
+                      Pro Feature
+                    </Badge>
+                  </div>
+                  <p className="font-semibold text-sm">Unlock Automatic Deposits</p>
+                  <p className="text-xs text-muted-foreground">
+                    Stop chasing payments in your DMs. Let BakerIQ collect deposits instantly when customers accept quotes.
+                  </p>
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      setShowInterstitial(true);
+                    }}
+                    data-testid="button-unlock-deposits"
+                  >
+                    <Lock className="h-4 w-4 mr-2" />
+                    Unlock Automatic Deposits
+                  </Button>
+                </div>
+              )}
+
+              <Button
+                variant="ghost"
+                className="w-full text-muted-foreground"
+                onClick={() => {
+                  setShowDemoDepositModal(false);
+                  window.location.href = "/dashboard";
+                }}
+                data-testid="button-demo-deposit-later"
+              >
+                Maybe Later
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <StripeInterstitialModal
+          open={showInterstitial}
+          onOpenChange={(v) => { if (!v) { setShowInterstitial(false); setShowDemoDepositModal(false); } }}
+          onContinue={() => {
+            window.location.href = "/dashboard?stripe_setup=1";
+          }}
+          onDismiss={() => {
+            setShowInterstitial(false);
+            setShowDemoDepositModal(false);
+            window.location.href = "/dashboard";
+          }}
+        />
       </div>
     </div>
   );
