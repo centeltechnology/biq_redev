@@ -573,6 +573,7 @@ export async function registerRoutes(
         notifyRetention: z.number().min(0).max(1).optional(),
         notifyAnnouncements: z.number().min(0).max(1).optional(),
         calculatorConfig: z.any().optional(),
+        pricingReviewed: z.boolean().optional(),
         quickOrderItemLimit: z.number().min(1).max(100).optional().nullable(),
         profilePhoto: z.string().optional().nullable(),
         portfolioImages: z.array(z.string()).max(6).optional().nullable(),
@@ -605,11 +606,15 @@ export async function registerRoutes(
       }
 
       // Track calculator config update (quick quote configured)
+      let updatedBaker = baker;
       if (data.calculatorConfig) {
         trackEvent(req.session.bakerId!, "quick_quote_configured");
+        if (!baker.pricingReviewed) {
+          updatedBaker = await storage.updateBaker(req.session.bakerId!, { pricingReviewed: true }) || baker;
+        }
       }
 
-      res.json({ ...baker, passwordHash: undefined });
+      res.json({ ...updatedBaker, passwordHash: undefined });
     } catch (error: any) {
       console.error("Baker update error:", error);
       if (error instanceof z.ZodError) {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Loader2, Trash2, Plus } from "lucide-react";
+import { Loader2, Trash2, Plus, CheckCircle2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { InstructionModal } from "@/components/instruction-modal";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,17 @@ export default function PricingPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
       toast({ title: "Calculator pricing updated successfully" });
+    },
+  });
+
+  const markReviewedMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("PATCH", "/api/bakers/me", { pricingReviewed: true });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
+      toast({ title: "Pricing marked as reviewed" });
     },
   });
 
@@ -374,6 +386,33 @@ export default function PricingPage() {
   return (
     <DashboardLayout title="Calculator Pricing" actions={<InstructionModal page="pricing" />}>
       <div className="max-w-2xl space-y-6">
+        {baker && !baker.pricingReviewed && (
+          <div className="flex items-start justify-between gap-4 px-4 py-3 rounded-lg bg-primary/5 border border-primary/20" data-testid="banner-pricing-review">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium">We've set the foundation — you set the standard.</p>
+                <p className="text-xs text-muted-foreground">
+                  Review your pricing before sharing your calculator link.
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => markReviewedMutation.mutate()}
+              disabled={markReviewedMutation.isPending}
+              data-testid="button-mark-pricing-reviewed"
+            >
+              {markReviewedMutation.isPending ? (
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+              )}
+              Mark Pricing as Reviewed
+            </Button>
+          </div>
+        )}
         {/* CAKE SIZES */}
         <Card>
           <CardHeader>

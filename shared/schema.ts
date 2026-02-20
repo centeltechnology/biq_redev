@@ -100,6 +100,7 @@ export const bakers = pgTable("bakers", {
   firstQuoteSentAt: timestamp("first_quote_sent_at"),
   firstInvoiceCreatedAt: timestamp("first_invoice_created_at"),
   firstPaymentProcessedAt: timestamp("first_payment_processed_at"),
+  pricingReviewed: boolean("pricing_reviewed").default(false).notNull(),
   giftedPlan: text("gifted_plan"),
   giftedPlanExpiresAt: timestamp("gifted_plan_expires_at"),
   invitedByAdminId: varchar("invited_by_admin_id"),

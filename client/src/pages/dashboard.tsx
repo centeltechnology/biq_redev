@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { ClipboardList, Users, ArrowRight, Calendar, DollarSign, TrendingUp, CalendarCheck, Sparkles, AlertTriangle, Plus, UserPlus, Mail, BarChart3 } from "lucide-react";
+import { ClipboardList, Users, ArrowRight, Calendar, DollarSign, TrendingUp, CalendarCheck, Sparkles, AlertTriangle, Plus, UserPlus, Mail, BarChart3, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -172,6 +172,32 @@ export default function DashboardPage() {
           onConnectStripe={() => connectMutation.mutate()}
           isConnecting={connectMutation.isPending}
         />
+
+        {baker && !baker.pricingReviewed && baker.onboardingCompleted && (
+          <Card className="border-amber-500/30 bg-amber-50 dark:bg-amber-950/20">
+            <CardContent className="flex items-center justify-between gap-4 py-4">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                <div>
+                  <p className="font-medium text-sm" data-testid="text-pricing-not-reviewed">
+                    Pricing Not Reviewed
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Review your calculator pricing to make sure it reflects what you want to charge.
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                data-testid="button-review-pricing"
+              >
+                <Link href="/pricing">Review Pricing</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {isOnboarding ? (
           <Card>
