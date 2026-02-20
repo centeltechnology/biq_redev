@@ -30,8 +30,9 @@ export function OnboardingChecklist({ onConnectStripe, isConnecting }: Activatio
   const hasSharedLink = linkCopied;
   const hasStripe = !!baker.stripeConnectedAt;
 
-  const completedCount = [hasBranding, hasQuote, hasSharedLink, hasStripe].filter(Boolean).length;
-  const progressPercent = Math.round((completedCount / 4) * 100);
+  const weightedProgress = (hasBranding ? 25 : 0) + (hasQuote ? 25 : 0) + (hasSharedLink ? 25 : 0) + (hasStripe ? 25 : 0);
+  const justFinishedOnboarding = baker.onboardingCompleted && !hasStripe;
+  const progressPercent = justFinishedOnboarding ? Math.max(weightedProgress, 75) : weightedProgress;
 
   if (progressPercent === 100 || dismissed) return null;
 

@@ -159,7 +159,9 @@ export function DashboardLayout({ children, title, actions }: DashboardLayoutPro
   };
 
   const needsStripeConnect = baker && !baker.stripeConnectedAt && baker.role !== "super_admin" && baker.role !== "admin";
-  const showStripeBanner = needsStripeConnect && !snoozed;
+  const justCompletedOnboarding = baker?.onboardingCompleted && !baker?.firstQuoteSentAt;
+  const isDemoQuoteEditPage = baker?.demoQuoteId && window.location.pathname === `/quotes/${baker.demoQuoteId}`;
+  const showStripeBanner = needsStripeConnect && !snoozed && !justCompletedOnboarding && !isDemoQuoteEditPage;
 
   const isNonAdmin = baker && baker.role !== "admin" && baker.role !== "super_admin";
   const needsFirstQuote = isNonAdmin && baker.stripeConnectedAt && !baker.firstQuoteSentAt;

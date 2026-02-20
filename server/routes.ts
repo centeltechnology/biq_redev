@@ -1931,6 +1931,8 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Customer not found" });
       }
 
+      const isDemoQuote = baker.demoQuoteId === quoteWithItems.id;
+
       res.json({
         quote: quoteWithItems,
         baker: {
@@ -1951,6 +1953,7 @@ export async function registerRoutes(
           email: customer.email.replace(/(.{2}).*(@.*)/, "$1***$2"),
           phone: null,
         },
+        isDemoQuote,
       });
     } catch (error) {
       console.error("Error fetching public quote:", error);

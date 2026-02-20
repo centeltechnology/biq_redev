@@ -50,6 +50,7 @@ interface PublicQuoteData {
   quote: Quote & { items: QuoteItem[] };
   baker: PublicBaker;
   customer: PublicCustomer;
+  isDemoQuote?: boolean;
 }
 
 export default function QuoteViewPage() {
@@ -57,6 +58,7 @@ export default function QuoteViewPage() {
   const { toast } = useToast();
   const [showAcceptDialog, setShowAcceptDialog] = useState(false);
   const [showDeclineDialog, setShowDeclineDialog] = useState(false);
+  const [demoAccepted, setDemoAccepted] = useState(false);
 
   const { data, isLoading, error, refetch } = useQuery<PublicQuoteData>({
     queryKey: ["/api/public/quote", id],
@@ -390,12 +392,27 @@ export default function QuoteViewPage() {
           </Card>
         )}
 
-        {quote.status === "sent" ? (
+        {demoAccepted ? (
+          <Card className="border-green-500/30 bg-green-50 dark:bg-green-950/20">
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-3" />
+                <h3 className="font-semibold text-green-700 dark:text-green-400 mb-2">Demo Quote Accepted</h3>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Deposit would be collected here once payments are activated.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  This is a preview of what your customers will experience.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : quote.status === "sent" ? (
           <Card className="border-primary/20">
             <CardContent className="pt-6">
               <div className="text-center">
                 <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-3" />
-                <h3 className="font-semibold mb-2">Ready to Respond?</h3>
+                <h3 className="font-semibold mb-2">Ready to lock in your date?</h3>
                 <p className="text-sm text-muted-foreground mb-6">
                   Review the quote above and let us know if you'd like to proceed.
                 </p>
@@ -403,7 +420,14 @@ export default function QuoteViewPage() {
                   <Button
                     size="lg"
                     className="bg-green-600 hover:bg-green-700"
-                    onClick={() => setShowAcceptDialog(true)}
+                    onClick={() => {
+                      if (data?.isDemoQuote) {
+                        setDemoAccepted(true);
+                        toast({ title: "Demo quote accepted", description: "This is a preview of the customer experience." });
+                      } else {
+                        setShowAcceptDialog(true);
+                      }
+                    }}
                     disabled={respondMutation.isPending}
                     data-testid="button-accept-quote"
                   >
@@ -412,7 +436,7 @@ export default function QuoteViewPage() {
                     ) : (
                       <CheckCircle className="h-4 w-4 mr-2" />
                     )}
-                    Accept Quote
+                    Accept & Pay Deposit
                   </Button>
                   <Button
                     size="lg"
@@ -564,7 +588,7 @@ export default function QuoteViewPage() {
                 {respondMutation.isPending ? (
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...</>
                 ) : (
-                  "Yes, Accept Quote"
+                  "Yes, Accept & Pay Deposit"
                 )}
               </AlertDialogAction>
             </AlertDialogFooter>

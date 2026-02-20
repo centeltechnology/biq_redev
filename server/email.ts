@@ -425,8 +425,10 @@ export async function sendQuoteNotification(
       </div>
     </div>
     <div class="content">
-      <p>Hi ${customerName},</p>
-      <p>Great news! We've prepared a custom quote for your ${orderType}.</p>
+      ${quote.notes?.includes("demo quote created during onboarding") 
+        ? `<p>Here's your custom quote preview &#128071;</p>`
+        : `<p>Hi ${customerName},</p>
+      <p>Great news! We've prepared a custom quote for your ${orderType}.</p>`}
       
       <div class="quote-summary">
         <p class="quote-number">Quote #${quote.quoteNumber}</p>
@@ -484,11 +486,17 @@ export async function sendQuoteNotification(
         </table>
       </div>
       
-      ${quote.notes ? `<p style="background: #fff3cd; padding: 15px; border-radius: 6px;"><strong>Notes:</strong> ${quote.notes}</p>` : ""}
+      ${quote.notes?.includes("demo quote created during onboarding")
+        ? ""
+        : quote.notes ? `<p style="background: #fff3cd; padding: 15px; border-radius: 6px;"><strong>Notes:</strong> ${quote.notes}</p>` : ""}
       
       <p style="text-align: center;">
-        <a href="${quote.viewUrl}" class="cta">View Full Quote & Payment Details</a>
+        <a href="${quote.viewUrl}" class="cta">${quote.notes?.includes("demo quote created during onboarding") ? "Review Your Custom Quote" : "View Full Quote &amp; Payment Details"}</a>
       </p>
+      
+      ${quote.notes?.includes("demo quote created during onboarding") 
+        ? `<p style="text-align: center; color: #999; font-size: 11px; margin-top: 4px;">This is a demo quote created during onboarding setup.</p>` 
+        : ""}
       
       <p>To confirm your order, please respond to this email or contact us directly.</p>
       <p style="margin-top: 30px;">Sweet regards,<br><strong>${bakerBusinessName}</strong></p>
@@ -504,10 +512,12 @@ export async function sendQuoteNotification(
     .map(i => `  - ${i.name}: ${formatCurrency(parseFloat(i.totalPrice))}`)
     .join("\n");
 
-  const text = `
-Hi ${customerName},
+  const isDemoQuote = !!quote.notes?.includes("demo quote created during onboarding");
 
-Great news! We've prepared a custom quote for your ${orderType}.
+  const text = `
+${isDemoQuote ? "Here's your custom quote preview:" : `Hi ${customerName},
+
+Great news! We've prepared a custom quote for your ${orderType}.`}
 
 Quote #${quote.quoteNumber}
 ${quote.eventDate ? `Event Date: ${new Date(quote.eventDate).toLocaleDateString()}` : ""}
@@ -520,9 +530,10 @@ Tax (${(quote.taxRate * 100).toFixed(1)}%): ${formatCurrency(quote.taxAmount)}
 Total: ${formatCurrency(quote.total)}
 ${depositAmount > 0 ? `Deposit Required ${depositLabel}: ${formatCurrency(depositAmount)}` : ""}
 
-${quote.notes ? `Notes: ${quote.notes}` : ""}
+${isDemoQuote ? "" : quote.notes ? `Notes: ${quote.notes}` : ""}
 
-View your full quote with payment details: ${quote.viewUrl}
+${isDemoQuote ? `Review your custom quote: ${quote.viewUrl}` : `View your full quote with payment details: ${quote.viewUrl}`}
+${isDemoQuote ? "\n(This is a demo quote created during onboarding setup.)" : ""}
 
 To confirm your order, please respond to this email or contact us directly.
 

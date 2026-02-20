@@ -404,28 +404,19 @@ export default function OnboardingPage() {
                     Create Demo Quote
                   </Button>
                 </div>
-              ) : testQuoteSent ? (
-                <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-6 text-center space-y-4">
-                  <Check className="h-12 w-12 text-green-500 mx-auto" />
-                  <div>
-                    <p className="font-medium text-green-800 dark:text-green-200">Test quote sent!</p>
-                    <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                      Check your inbox at <span className="font-medium">{testEmailAddress}</span> to see exactly what your customers will receive.
-                    </p>
-                  </div>
-                  {demoQuoteId && (
-                    <Button
-                      variant="outline"
-                      onClick={() => window.open(`/q/${demoQuoteId}`, "_blank")}
-                      data-testid="button-view-demo-quote"
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      View Quote Page
-                    </Button>
-                  )}
-                </div>
               ) : (
                 <div className="space-y-4">
+                  {testQuoteSent && (
+                    <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4 text-center space-y-2">
+                      <p className="font-medium text-green-800 dark:text-green-200">
+                        This is what your customers will see when you send quotes.
+                      </p>
+                      <p className="text-sm text-green-700 dark:text-green-300">
+                        Check your inbox at <span className="font-medium">{testEmailAddress}</span>
+                      </p>
+                    </div>
+                  )}
+
                   <div className="border rounded-lg overflow-hidden">
                     <div className="bg-muted/50 px-4 py-3 border-b flex items-center justify-between">
                       <span className="font-medium text-sm">Demo Quote Preview</span>
@@ -458,43 +449,60 @@ export default function OnboardingPage() {
                     </div>
                   </div>
 
-                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-primary" />
-                      <p className="text-sm font-medium">Send this quote to yourself</p>
+                  {!testQuoteSent && (
+                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-primary" />
+                        <p className="text-sm font-medium">Send this quote to yourself</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">See exactly what your customers will receive in their inbox.</p>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="email"
+                          value={testEmailAddress}
+                          onChange={(e) => setTestEmailAddress(e.target.value)}
+                          placeholder="your@email.com"
+                          className="flex-1"
+                          data-testid="input-test-email"
+                        />
+                        <Button
+                          onClick={() => demoQuoteId && sendTestQuoteMutation.mutate(demoQuoteId)}
+                          disabled={sendTestQuoteMutation.isPending || !testEmailAddress}
+                          data-testid="button-send-test-quote"
+                        >
+                          {sendTestQuoteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
+                          Send
+                        </Button>
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">See exactly what your customers will receive in their inbox.</p>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="email"
-                        value={testEmailAddress}
-                        onChange={(e) => setTestEmailAddress(e.target.value)}
-                        placeholder="your@email.com"
-                        className="flex-1"
-                        data-testid="input-test-email"
-                      />
-                      <Button
-                        onClick={() => demoQuoteId && sendTestQuoteMutation.mutate(demoQuoteId)}
-                        disabled={sendTestQuoteMutation.isPending || !testEmailAddress}
-                        data-testid="button-send-test-quote"
-                      >
-                        {sendTestQuoteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
-                        Send
-                      </Button>
-                    </div>
-                  </div>
+                  )}
                 </div>
               )}
 
-              <div className="flex justify-between pt-2">
+              <div className="flex justify-between items-center pt-2">
                 <Button variant="ghost" onClick={() => setCurrentStep(1)} data-testid="button-step2-back">
                   <ChevronLeft className="h-4 w-4 mr-1" />
                   Back
                 </Button>
-                <Button onClick={handleStep2Continue} data-testid="button-step2-continue">
-                  Continue
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
+                <div className="flex items-center gap-3">
+                  {demoQuoteCreated && !testQuoteSent && (
+                    <button
+                      onClick={handleStep2Continue}
+                      className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2"
+                      data-testid="button-step2-skip"
+                    >
+                      Skip for now
+                    </button>
+                  )}
+                  <Button
+                    onClick={handleStep2Continue}
+                    disabled={!demoQuoteCreated || (!testQuoteSent && demoQuoteCreated)}
+                    data-testid="button-step2-continue"
+                  >
+                    Continue
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -505,7 +513,7 @@ export default function OnboardingPage() {
             <CardContent className="pt-6 space-y-6">
               <div>
                 <h2 className="text-lg font-semibold mb-1">Share your calculator link</h2>
-                <p className="text-sm text-muted-foreground">Customers use this link to get instant estimates and reach out to you.</p>
+                <p className="text-sm text-muted-foreground">This link replaces pricing back-and-forth in your DMs.</p>
               </div>
 
               <div className="bg-muted/50 border rounded-lg p-4 space-y-3">
