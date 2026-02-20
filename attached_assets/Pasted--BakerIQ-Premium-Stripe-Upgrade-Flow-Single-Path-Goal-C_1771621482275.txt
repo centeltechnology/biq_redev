@@ -1,0 +1,92 @@
+# BakerIQ – Premium Stripe Upgrade Flow (Single Path)
+
+## Goal
+Create a clean, premium-feeling Stripe upgrade path triggered only from the demo deposit simulation modal.
+
+Do NOT modify Stripe integration logic.
+Do NOT scatter Stripe upgrade CTAs across dashboard.
+
+---
+
+## PART 1 – Single Upgrade Path Rule
+
+- Remove or suppress other Stripe activation banners/CTAs during onboarding + early activation.
+- Stripe upgrade should be triggered primarily from:
+  - Demo Deposit Simulation Modal
+- Dashboard can show progress (75%) but should NOT aggressively push Stripe.
+
+---
+
+## PART 2 – Premium Deposit Simulation Modal
+
+When:
+- Demo quote is accepted
+- Stripe NOT connected
+
+Show modal:
+
+Header:
+🎉 Demo Deposit Secured
+
+Deposit Summary Card:
+- Deposit amount
+- Message: "Would be deposited to your connected bank account."
+- Label clearly: "Demo Mode"
+
+Upgrade Section:
+Badge: ⭐ Pro Feature
+Headline: Unlock Automatic Deposits
+Description:
+"Stop chasing payments in your DMs. Let BakerIQ collect deposits automatically."
+
+Primary CTA:
+🔓 Unlock Automatic Deposits
+
+Secondary:
+Maybe Later
+
+---
+
+## PART 3 – Interstitial Before Stripe
+
+When user clicks:
+🔓 Unlock Automatic Deposits
+
+Show interstitial screen:
+
+Title:
+Activate Automatic Deposits
+
+Subtitle:
+You’re about to complete a quick, secure setup with Stripe.
+
+Bullets:
+✅ Verify your identity  
+✅ Connect your payout account  
+✅ Start collecting deposits automatically  
+
+Microcopy:
+Usually takes 2–3 minutes. You can come back anytime.
+
+Primary Button:
+🔒 Continue to Secure Setup
+
+Secondary:
+Not right now
+
+---
+
+## PART 4 – Redirect Logic
+
+- Only redirect to Stripe after user clicks "Continue to Secure Setup"
+- If user closes interstitial, return to dashboard
+- If Stripe already connected, skip upgrade path entirely
+
+---
+
+## Deliverables
+
+- Files modified
+- How Stripe connection state is checked
+- Where upgrade path is triggered
+- Confirmation no other Stripe CTAs are competing
