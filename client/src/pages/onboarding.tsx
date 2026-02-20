@@ -512,7 +512,7 @@ export default function OnboardingPage() {
           <Card data-testid="card-step-3">
             <CardContent className="pt-6 space-y-6">
               <div>
-                <h2 className="text-lg font-semibold mb-1">Share your calculator link</h2>
+                <h2 className="text-lg font-semibold mb-1">Share Your Order Page</h2>
                 <p className="text-sm text-muted-foreground">This link replaces pricing back-and-forth in your DMs.</p>
               </div>
 

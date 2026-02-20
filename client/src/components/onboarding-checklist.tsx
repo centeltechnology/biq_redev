@@ -83,7 +83,7 @@ export function OnboardingChecklist({ onConnectStripe, isConnecting }: Activatio
       actionLabel: baker.demoQuoteId ? "View Quote" : "Create Quote",
     },
     {
-      label: "Share your calculator link",
+      label: "Share Your Order Page",
       icon: Share2,
       complete: hasSharedLink,
       action: handleCopyLink,

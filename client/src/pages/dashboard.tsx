@@ -378,7 +378,7 @@ export default function DashboardPage() {
               <div className="text-center py-8 text-muted-foreground">
                 <ClipboardList className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p className="font-medium">No leads yet</p>
-                <p className="text-sm">Share your calculator link to start receiving leads</p>
+                <p className="text-sm">Share Your Order Page to start receiving leads</p>
               </div>
             ) : (
               <div className="space-y-3">

@@ -120,7 +120,7 @@ export default function LeadsPage() {
                 <p className="font-medium">No leads found</p>
                 <p className="text-sm">
                   {leads?.length === 0
-                    ? "Share your calculator link to start receiving leads"
+                    ? "Share Your Order Page to start receiving leads"
                     : "Try adjusting your search or filters"}
                 </p>
               </div>
