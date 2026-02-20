@@ -78,8 +78,8 @@ export function OnboardingChecklist({ onConnectStripe, isConnecting }: Activatio
       label: "Send your first test quote",
       icon: FileText,
       complete: hasQuote,
-      href: "/quotes/new",
-      actionLabel: "Create Quote",
+      href: baker.demoQuoteId ? `/quotes/${baker.demoQuoteId}` : "/quotes/new",
+      actionLabel: baker.demoQuoteId ? "View Quote" : "Create Quote",
     },
     {
       label: "Share your calculator link",

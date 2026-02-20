@@ -754,7 +754,10 @@ export async function registerRoutes(
         totalPrice: "30.00",
       });
 
-      res.json({ quote, customerId: testCustomer.id });
+      await storage.updateBaker(bakerId, { demoQuoteId: quote.id });
+
+      const quoteWithItems = await storage.getQuoteWithItems(quote.id);
+      res.json({ quote: quoteWithItems, customerId: testCustomer.id });
     } catch (error) {
       console.error("Demo quote creation error:", error);
       res.status(500).json({ message: "Failed to create demo quote" });
@@ -1358,6 +1361,34 @@ export async function registerRoutes(
         return res.status(400).json({ message: error.errors[0].message });
       }
       res.status(500).json({ message: "Failed to create customer" });
+    }
+  });
+
+  app.patch("/api/customers/:id", requireAuth, async (req, res) => {
+    try {
+      const customer = await storage.getCustomer(req.params.id);
+      if (!customer || customer.bakerId !== req.session.bakerId) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+      const schema = z.object({
+        name: z.string().min(1).optional(),
+        email: z.string().email().optional(),
+        phone: z.string().optional().nullable(),
+      });
+      const data = schema.parse(req.body);
+      if (data.email && data.email !== customer.email) {
+        const existing = await storage.getCustomerByEmail(customer.bakerId, data.email);
+        if (existing && existing.id !== customer.id) {
+          return res.status(400).json({ message: "Another customer with this email already exists" });
+        }
+      }
+      const updated = await storage.updateCustomer(customer.id, data);
+      res.json(updated);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      res.status(500).json({ message: "Failed to update customer" });
     }
   });
 

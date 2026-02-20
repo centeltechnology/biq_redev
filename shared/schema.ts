@@ -59,6 +59,7 @@ export const bakers = pgTable("bakers", {
   // Onboarding wizard (activation-first flow)
   onboardingCompleted: boolean("onboarding_completed").default(false).notNull(),
   onboardingStep: integer("onboarding_step").default(1).notNull(),
+  demoQuoteId: text("demo_quote_id"),
   // Quick Order item limit (null = unlimited)
   quickOrderItemLimit: integer("quick_order_item_limit"),
   // Account status

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
-import { Check, ChevronRight, ChevronLeft, Store, FileText, Share2, CreditCard, Copy, Loader2, ExternalLink, Upload, Image } from "lucide-react";
+import { Check, ChevronRight, ChevronLeft, Store, FileText, Share2, CreditCard, Copy, Loader2, ExternalLink, Upload, Image, Send, Mail } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,10 @@ export default function OnboardingPage() {
   const [headerImage, setHeaderImage] = useState<string | null>(null);
   const [demoQuoteCreated, setDemoQuoteCreated] = useState(false);
   const [demoQuoteId, setDemoQuoteId] = useState<string | null>(null);
+  const [demoQuoteItems, setDemoQuoteItems] = useState<Array<{ name: string; description: string; quantity: number; unitPrice: string; totalPrice: string }>>([]);
+  const [demoQuoteTotal, setDemoQuoteTotal] = useState<string>("0");
+  const [testEmailAddress, setTestEmailAddress] = useState("");
+  const [testQuoteSent, setTestQuoteSent] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
 
   useEffect(() => {
@@ -41,6 +45,11 @@ export default function OnboardingPage() {
       setSlug(baker.slug || "");
       setProfilePhoto(baker.profilePhoto || null);
       setHeaderImage(baker.calculatorHeaderImage || null);
+      setTestEmailAddress(baker.email || "");
+      if (baker.demoQuoteId) {
+        setDemoQuoteId(baker.demoQuoteId);
+        setDemoQuoteCreated(true);
+      }
       if (baker.onboardingStep > 1) {
         setCurrentStep(baker.onboardingStep);
       }
@@ -84,10 +93,42 @@ export default function OnboardingPage() {
     onSuccess: (data: any) => {
       setDemoQuoteCreated(true);
       setDemoQuoteId(data.quote?.id);
-      toast({ title: "Demo quote created!", description: "You can view and edit it from your Quotes page." });
+      setDemoQuoteTotal(data.quote?.total || "0.00");
+      if (data.quote?.items && data.quote.items.length > 0) {
+        setDemoQuoteItems(data.quote.items.map((item: any) => ({
+          name: item.name,
+          description: item.description || "",
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: item.totalPrice,
+        })));
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
     },
     onError: () => {
       toast({ title: "Failed to create demo quote", variant: "destructive" });
+    },
+  });
+
+  const sendTestQuoteMutation = useMutation({
+    mutationFn: async (quoteId: string) => {
+      if (testEmailAddress && testEmailAddress !== baker?.email) {
+        const quoteRes = await apiRequest("GET", `/api/quotes/${quoteId}`);
+        const quoteData = await quoteRes.json();
+        if (quoteData.customerId) {
+          await apiRequest("PATCH", `/api/customers/${quoteData.customerId}`, { email: testEmailAddress });
+        }
+      }
+      const res = await apiRequest("POST", `/api/quotes/${quoteId}/send`);
+      return res.json();
+    },
+    onSuccess: () => {
+      setTestQuoteSent(true);
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
+      toast({ title: "Test quote sent!", description: `Check your inbox at ${testEmailAddress}` });
+    },
+    onError: () => {
+      toast({ title: "Failed to send test quote", variant: "destructive" });
     },
   });
 
@@ -342,7 +383,7 @@ export default function OnboardingPage() {
             <CardContent className="pt-6 space-y-6">
               <div>
                 <h2 className="text-lg font-semibold mb-1">See how quotes work</h2>
-                <p className="text-sm text-muted-foreground">Create a sample quote to see what your customers will experience.</p>
+                <p className="text-sm text-muted-foreground">Create a sample quote and send it to yourself to experience what your customers will see.</p>
               </div>
 
               {!demoQuoteCreated ? (
@@ -363,25 +404,85 @@ export default function OnboardingPage() {
                     Create Demo Quote
                   </Button>
                 </div>
-              ) : (
+              ) : testQuoteSent ? (
                 <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-6 text-center space-y-4">
                   <Check className="h-12 w-12 text-green-500 mx-auto" />
                   <div>
-                    <p className="font-medium text-green-800 dark:text-green-200">Demo quote created!</p>
+                    <p className="font-medium text-green-800 dark:text-green-200">Test quote sent!</p>
                     <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                      You can view and edit it anytime from your Quotes page.
+                      Check your inbox at <span className="font-medium">{testEmailAddress}</span> to see exactly what your customers will receive.
                     </p>
                   </div>
                   {demoQuoteId && (
                     <Button
                       variant="outline"
-                      onClick={() => window.open(`/quotes/${demoQuoteId}`, "_blank")}
+                      onClick={() => window.open(`/q/${demoQuoteId}`, "_blank")}
                       data-testid="button-view-demo-quote"
                     >
                       <ExternalLink className="h-4 w-4 mr-2" />
-                      View Quote
+                      View Quote Page
                     </Button>
                   )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="bg-muted/50 px-4 py-3 border-b flex items-center justify-between">
+                      <span className="font-medium text-sm">Demo Quote Preview</span>
+                      {demoQuoteId && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => window.open(`/q/${demoQuoteId}`, "_blank")}
+                          data-testid="button-view-demo-quote"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                          Open Full View
+                        </Button>
+                      )}
+                    </div>
+                    <div className="p-4 space-y-3">
+                      {demoQuoteItems.map((item, idx) => (
+                        <div key={idx} className="flex items-start justify-between gap-4" data-testid={`quote-item-${idx}`}>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium">{item.name}</p>
+                            <p className="text-xs text-muted-foreground">{item.description}</p>
+                          </div>
+                          <span className="text-sm font-medium whitespace-nowrap">${item.totalPrice}</span>
+                        </div>
+                      ))}
+                      <div className="border-t pt-3 flex items-center justify-between">
+                        <span className="text-sm font-semibold">Total</span>
+                        <span className="text-sm font-semibold">${demoQuoteTotal}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-primary" />
+                      <p className="text-sm font-medium">Send this quote to yourself</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">See exactly what your customers will receive in their inbox.</p>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="email"
+                        value={testEmailAddress}
+                        onChange={(e) => setTestEmailAddress(e.target.value)}
+                        placeholder="your@email.com"
+                        className="flex-1"
+                        data-testid="input-test-email"
+                      />
+                      <Button
+                        onClick={() => demoQuoteId && sendTestQuoteMutation.mutate(demoQuoteId)}
+                        disabled={sendTestQuoteMutation.isPending || !testEmailAddress}
+                        data-testid="button-send-test-quote"
+                      >
+                        {sendTestQuoteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
+                        Send
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -432,7 +533,7 @@ export default function OnboardingPage() {
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
                 <p className="text-sm font-medium">Pro tip</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Post this link in your Instagram bio, Facebook page, or any link-in-bio tool. Customers can get instant cake estimates 24/7!
+                  Drop this link in your DMs, bio, and replies to pricing questions. Add it to your Instagram bio, Facebook page, or any link-in-bio tool so customers can get instant estimates 24/7.
                 </p>
               </div>
 
