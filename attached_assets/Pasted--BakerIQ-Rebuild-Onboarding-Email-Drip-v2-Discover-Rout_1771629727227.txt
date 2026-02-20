@@ -1,0 +1,218 @@
+# BakerIQ – Rebuild Onboarding Email Drip v2 (Discover Routes + Update Templates)
+
+## Goal
+Update the onboarding email sequence (Days 0–6) to match the NEW activation-first product flow:
+Setup → Pricing Ownership → Launch Order Page → Get Requests → Convert to Quote → Payments as Upgrade.
+
+IMPORTANT:
+- Discover the correct in-app routes from the codebase and use those links in the email templates.
+- Do NOT change Stripe/payment logic, quote logic, or onboarding UI logic.
+- Only update onboarding/drip templates + documentation.
+
+---
+
+## Step 1 — Discover Routes (from codebase)
+Search the codebase for the real paths/URLs for:
+1) Onboarding page route (e.g., `/onboarding`)
+2) Pricing settings route (calculator settings / pricing config)
+3) Share & Promote route (launch/order page link sharing)
+4) Quotes list/new route (quotes workspace)
+5) Leads/Requests route (where customer requests land)
+6) Payments/Stripe connect entry route (where user starts the secure setup)
+
+Notes:
+- Prefer internal app URLs that the logged-in user can access.
+- If email links require absolute URLs, use the existing base URL/config used elsewhere in email templates.
+- If there are multiple environments, follow current pattern used in existing emails (e.g., `APP_URL` / `PUBLIC_URL` env).
+
+---
+
+## Step 2 — Create Documentation File
+Create a new markdown file:
+`/docs/email_sequences_v2.md`
+
+Include:
+- Email name (Day 0–Day 6)
+- Trigger (when it sends)
+- Recipient (baker)
+- Subject
+- Full body
+- The routes found and inserted (list at top)
+- Any assumptions
+
+---
+
+## Step 3 — Update the Actual Email Templates
+Locate where onboarding drip emails are defined (e.g., `/emails`, `/templates`, `sendy`, `resend`, `nodemailer`, etc.).
+Update ONLY the onboarding drip emails for Days 0–6 to match the copy below.
+
+Do not touch transactional emails (quote sent, inquiry received, payment receipt, etc.).
+
+Where the system supports segmentation/branching:
+- Use a Stripe Connected vs Not Connected variant for Day 4 (if supported).
+- If branching isn’t supported today, implement a single Day 4 that frames payments as optional upgrade and links to the payments entry route.
+
+---
+
+## Email Copy (v2)
+
+### Day 0 — Welcome (Activation first)
+Subject: "Your order page is getting set up"
+Body:
+Hi {{businessName}},
+Welcome to BakerIQ — this is your new system for turning DM inquiries into professional quotes (without the back-and-forth).
+
+Here’s the move: finish setup and launch your order page.
+
+In a few minutes you’ll have:
+- A public order page customers can use for instant estimates
+- A clean request that hits your dashboard (no messy DMs)
+- A professional quote you can send in one click
+
+Start here:
+Finish Setup → {{ONBOARDING_URL}}
+
+You’ll see payments later — but first, let’s get you live.
+
+---
+
+### Day 1 — Pricing ownership
+Subject: "We set the foundation — you set the standard"
+Body:
+Hi {{businessName}},
+Your order page comes with pricing and offerings preloaded as a starting point.
+
+Now make it yours. Take 3 minutes to review:
+- Sizes & tiers
+- Flavors & frosting options
+- Decorations + add-ons
+
+Review your pricing here:
+{{PRICING_URL}}
+
+Once pricing looks right, you’re ready to launch your link.
+
+---
+
+### Day 2 — Launch your order page
+Subject: "Put this link in your bio today"
+Body:
+Hi {{businessName}},
+Your order page is the whole game.
+
+When someone asks “how much?” you don’t explain pricing — you send the link.
+
+Best places to add it:
+- Instagram bio
+- Facebook pinned post
+- Link-in-bio tools
+- DM auto-replies
+
+Launch your order page here:
+{{SHARE_URL}}
+
+---
+
+### Day 3 — Get your first request (route DMs)
+Subject: "Stop typing prices — route them here"
+Body:
+Hi {{businessName}},
+Today’s goal is simple: get ONE real inquiry through your order page.
+
+Next time someone messages you:
+1) Reply with your link
+2) Let them build their request + get an estimate
+3) You receive the full details (no guessing)
+
+Copy your order page link here:
+{{SHARE_URL}}
+
+---
+
+### Day 4 — Deposits as an upgrade (Stripe)
+
+#### If Stripe connected (preferred variant)
+Subject: "You’re ready to collect deposits automatically"
+Body:
+Hi {{businessName}},
+You’re connected — that means when a customer accepts your quote, the deposit can be collected automatically.
+
+Next time a request comes in:
+- Open the request
+- Convert to a quote
+- Send the quote with a deposit option
+
+Go to quotes:
+{{QUOTES_URL}}
+
+This is the part where you stop chasing money in DMs.
+
+#### If Stripe NOT connected (preferred variant)
+Subject: "Want deposits to collect automatically?"
+Body:
+Hi {{businessName}},
+You can run BakerIQ without payments… but the upgrade is automatic deposits.
+
+When payments are enabled:
+- Customers can accept quotes and pay deposits online
+- No awkward follow-ups
+- No “did you send it?” messages
+
+Enable automatic deposits here:
+{{PAYMENTS_URL}}
+
+No rush — but once you’re getting real requests, this saves time fast.
+
+#### If system can’t branch today
+Use the NOT connected version but keep tone “optional upgrade”.
+
+---
+
+### Day 5 — Full workflow reinforcement
+Subject: "Here’s the full BakerIQ flow (the simple version)"
+Body:
+Hi {{businessName}},
+Here’s the clean workflow:
+1) Customer uses your order page
+2) You receive a detailed request
+3) You convert it into a quote
+4) Customer accepts (and pays deposit if enabled)
+
+If you’re still pricing in DMs, you’re working too hard.
+
+Go to requests:
+{{LEADS_URL}}
+
+---
+
+### Day 6 — Habit formation (set-and-forget)
+Subject: "The habit that makes this work"
+Body:
+Hi {{businessName}},
+BakerIQ works best when it becomes your default move:
+
+Every pricing question → send the link.
+
+Review pricing occasionally (only when ingredient costs change), but otherwise this is a set-and-forget system.
+
+Copy your order page link here:
+{{SHARE_URL}}
+
+---
+
+## Step 4 — Quality Checks
+- Verify all inserted URLs resolve correctly in the app.
+- Ensure businessName/variables match current templating system (use existing variables in the codebase).
+- Confirm no references to “calculator” remain in customer-facing language within these onboarding emails.
+- Confirm Day 4 behavior matches available branching logic (or fallback to single version).
+
+---
+
+## Deliverables
+1) `/docs/email_sequences_v2.md` created and filled out
+2) Updated Day 0–Day 6 email templates in code
+3) Short summary:
+   - where templates live
+   - what variables are used
+   - what routes were discovered and inserted
+   - whether Day 4 branching was implemented or fallback was used

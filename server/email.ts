@@ -857,192 +857,149 @@ interface OnboardingEmailTemplate {
 }
 
 function getConditionalOnboardingTemplate(day: number, stripeConnected: boolean): OnboardingEmailTemplate | undefined {
-  const stripePsHtml = `<p style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e9ecef; color: #666; font-size: 14px;"><strong>P.S.</strong> Haven't connected Stripe yet? Do that first so you're ready to collect payments when quotes start going out. <a href="{{baseUrl}}/settings" style="color: #E91E63;">Connect Stripe</a></p>`;
-  const stripePsText = `\nP.S. Haven't connected Stripe yet? Do that first so you're ready to collect payments.`;
-
   const templates: Record<string, OnboardingEmailTemplate> = {
     day0_welcome: {
       emailKey: "day0_welcome",
       day: 0,
-      subject: "You just upgraded how you get paid.",
+      subject: "Your order page is getting set up",
       content: `
-        <p>Welcome to BakerIQ. You now have a system that handles pricing, quotes, and payments — so you can stop doing it in DMs.</p>
-        <p>Here's what BakerIQ replaces:</p>
+        <p>Welcome to BakerIQ — this is your new system for turning DM inquiries into professional quotes (without the back-and-forth).</p>
+        <p>Here's the move: finish setup and launch your order page.</p>
+        <p>In a few minutes you'll have:</p>
         <ul style="padding-left: 20px;">
-          <li>Pricing conversations in text messages</li>
-          <li>Chasing deposits over Venmo or cash</li>
-          <li>Sending quotes as screenshots or PDFs nobody responds to</li>
+          <li>A public order page customers can use for instant estimates</li>
+          <li>A clean request that hits your dashboard (no messy DMs)</li>
+          <li>A professional quote you can send in one click</li>
         </ul>
-        <p>The first thing to do: <strong>connect Stripe</strong> so you can accept deposits and payments directly through your quotes. It takes about 5 minutes.</p>
-        <p>Once Stripe is connected, every quote you send can collect a deposit automatically. No awkward follow-ups.</p>
-        <p>We'll walk you through the rest this week.</p>
+        <p>You'll see payments later — but first, let's get you live.</p>
       `,
-      ctaText: "Connect Stripe Now",
-      ctaUrl: "/settings",
+      ctaText: "Finish Setup",
+      ctaUrl: "/onboarding",
     },
     day1_pricing: {
       emailKey: "day1_pricing",
       day: 1,
-      subject: "Stop quoting in text messages.",
+      subject: "We set the foundation — you set the standard",
       content: `
-        <p>Every time you price a cake in a DM, you're doing math that a system should handle for you.</p>
-        <p>BakerIQ's pricing calculator lets you set your prices once — by size, shape, flavor, frosting, and add-ons. Then your customers get an instant estimate without you typing a single message.</p>
-        <p>Today, set up your first product. Pick your most popular cake and add it to your calculator. It takes about 3 minutes.</p>
-        <p>Once it's live, you'll have a link you can share anywhere — Instagram bio, Facebook page, or directly to customers who ask "how much?"</p>
+        <p>Your order page comes with pricing and offerings preloaded as a starting point.</p>
+        <p>Now make it yours. Take 3 minutes to review:</p>
+        <ul style="padding-left: 20px;">
+          <li>Sizes & tiers</li>
+          <li>Flavors & frosting options</li>
+          <li>Decorations + add-ons</li>
+        </ul>
+        <p>Once pricing looks right, you're ready to launch your link.</p>
       `,
-      ctaText: "Set Up Your First Product",
-      ctaUrl: "/calculator-pricing",
-      ...(!stripeConnected ? { stripePsHtml, stripePsText } : {}),
+      ctaText: "Review Your Pricing",
+      ctaUrl: "/pricing",
     },
-    day2_quotes: {
-      emailKey: "day2_quotes",
+    day2_launch: {
+      emailKey: "day2_launch",
       day: 2,
-      subject: "A real quote gets a real deposit.",
+      subject: "Put this link in your bio today",
       content: `
-        <p>Bakers who send structured quotes with clear line items and a deposit request get paid faster. Customers take you more seriously when you look like a business, not a text thread.</p>
-        <p>BakerIQ quotes include:</p>
+        <p>Your order page is the whole game.</p>
+        <p>When someone asks "how much?" you don't explain pricing — you send the link.</p>
+        <p>Best places to add it:</p>
         <ul style="padding-left: 20px;">
-          <li>Itemized pricing your customer can review</li>
-          <li>A deposit request they can pay online</li>
-          <li>A professional look that builds trust</li>
+          <li>Instagram bio</li>
+          <li>Facebook pinned post</li>
+          <li>Link-in-bio tools</li>
+          <li>DM auto-replies</li>
         </ul>
-        <p>Try it today. Send your first quote — even to yourself as a test. See what your customers will see.</p>
-        <p>Once you see how clean it looks, you won't go back to screenshots.</p>
       `,
-      ctaText: "Send Your First Quote",
-      ctaUrl: "/quotes",
-      ...(!stripeConnected ? { stripePsHtml: `<p style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e9ecef; color: #666; font-size: 14px;"><strong>P.S.</strong> Stripe not connected yet? Your quotes can't collect payment without it. <a href="{{baseUrl}}/settings" style="color: #E91E63;">Connect Stripe</a></p>`, stripePsText: `\nP.S. Stripe not connected yet? Your quotes can't collect payment without it.` } : {}),
+      ctaText: "Launch Your Order Page",
+      ctaUrl: "/share",
     },
-    day3_stripe_push: {
-      emailKey: "day3_stripe_push",
+    day3_first_request: {
+      emailKey: "day3_first_request",
       day: 3,
-      subject: "You can't get paid if Stripe isn't connected.",
+      subject: "Stop typing prices — route them here",
       content: `
-        <p>Quick check: is your Stripe account connected?</p>
-        <p>Without it, your quotes are informational only. Customers can view them, but they can't pay you. That means you're still chasing deposits the old way.</p>
-        <p>Common hesitations:</p>
-        <ul style="padding-left: 20px;">
-          <li><strong>"Is it safe?"</strong> — Stripe handles billions in payments. Your data is encrypted and secure.</li>
-          <li><strong>"Does it cost money?"</strong> — There's no monthly fee for Stripe. Standard processing applies only when you get paid.</li>
-          <li><strong>"Is it complicated?"</strong> — It takes about 5 minutes. BakerIQ walks you through it.</li>
-        </ul>
-        <p>Once connected, every quote you send becomes a payment link. Deposits land in your bank account automatically.</p>
-        <p>This is the single most important step in your setup.</p>
+        <p>Today's goal is simple: get ONE real inquiry through your order page.</p>
+        <p>Next time someone messages you:</p>
+        <ol style="padding-left: 20px;">
+          <li>Reply with your link</li>
+          <li>Let them build their request + get an estimate</li>
+          <li>You receive the full details (no guessing)</li>
+        </ol>
       `,
-      ctaText: "Connect Stripe Now",
-      ctaUrl: "/settings",
+      ctaText: "Copy Your Order Page Link",
+      ctaUrl: "/share",
     },
-    day3_stripe_connected: {
-      emailKey: "day3_stripe_connected",
-      day: 3,
-      subject: "Stripe is connected. Now let's put it to work.",
+    day4_stripe_connected: {
+      emailKey: "day4_stripe_connected",
+      day: 4,
+      subject: "You're ready to collect deposits automatically",
       content: `
-        <p>Your Stripe account is live — that means every quote you send can collect a deposit or full payment automatically.</p>
-        <p>Here's what to do next:</p>
+        <p>You're connected — that means when a customer accepts your quote, the deposit can be collected automatically.</p>
+        <p>Next time a request comes in:</p>
         <ul style="padding-left: 20px;">
-          <li>Send a quote to a real customer (or yourself as a test)</li>
-          <li>Include a deposit request so they can pay right away</li>
-          <li>Watch the payment land in your Stripe dashboard</li>
+          <li>Open the request</li>
+          <li>Convert to a quote</li>
+          <li>Send the quote with a deposit option</li>
         </ul>
-        <p>No more chasing deposits over text. No more screenshots of Zelle confirmations. This is how professional bakers get paid.</p>
+        <p>This is the part where you stop chasing money in DMs.</p>
       `,
-      ctaText: "Send Your First Quote",
+      ctaText: "Go to Quotes",
       ctaUrl: "/quotes",
     },
-    day4_deposit: {
-      emailKey: "day4_deposit",
+    day4_stripe_not_connected: {
+      emailKey: "day4_stripe_not_connected",
       day: 4,
-      subject: "No deposit? No commitment.",
+      subject: "Want deposits to collect automatically?",
       content: `
-        <p>If you've ever had a customer ghost after you spent hours on a design, you already know: no deposit means no commitment.</p>
-        <p>BakerIQ lets you require a deposit right inside your quote. You set the amount — flat fee or percentage — and the customer pays it when they accept. No awkward conversations. No chasing.</p>
-        <p>Today, create a quote with a deposit requirement. Pick a real or recent order and build it out.</p>
-        <p>Your time is worth protecting. A deposit does that before you ever pick up a spatula.</p>
-      `,
-      ctaText: "Create a Quote with Deposit",
-      ctaUrl: "/quotes",
-    },
-    day4_stripe_reminder: {
-      emailKey: "day4_stripe_reminder",
-      day: 4,
-      subject: "Still haven't connected Stripe?",
-      content: `
-        <p>We've shown you the pricing calculator, the quote system, and how deposits work — but none of it collects real money without Stripe.</p>
-        <p>Right now, your quotes are informational. Customers see them, but they can't pay you through them. You're still handling payments the old way.</p>
-        <p>Connecting takes about 5 minutes:</p>
+        <p>You can run BakerIQ without payments… but the upgrade is automatic deposits.</p>
+        <p>When payments are enabled:</p>
         <ul style="padding-left: 20px;">
-          <li>Go to Settings</li>
-          <li>Click "Connect Stripe"</li>
-          <li>Follow the Stripe setup prompts</li>
+          <li>Customers can accept quotes and pay deposits online</li>
+          <li>No awkward follow-ups</li>
+          <li>No "did you send it?" messages</li>
         </ul>
-        <p>Once connected, deposits collect automatically when customers accept your quotes. That's the whole point.</p>
+        <p>No rush — but once you're getting real requests, this saves time fast.</p>
       `,
-      ctaText: "Connect Stripe Now",
+      ctaText: "Enable Automatic Deposits",
       ctaUrl: "/settings",
     },
     day5_workflow: {
       emailKey: "day5_workflow",
       day: 5,
-      subject: "What happens when a baker goes pro.",
+      subject: "Here's the full BakerIQ flow (the simple version)",
       content: `
-        <p>Here's what a typical BakerIQ workflow looks like:</p>
+        <p>Here's the clean workflow:</p>
         <ol style="padding-left: 20px;">
-          <li>Customer clicks your pricing calculator link</li>
-          <li>They get an instant estimate and submit their details</li>
-          <li>You get a lead notification with everything they selected</li>
-          <li>You send a professional quote with a deposit request</li>
-          <li>Customer accepts and pays — deposit hits your bank</li>
+          <li>Customer uses your order page</li>
+          <li>You receive a detailed request</li>
+          <li>You convert it into a quote</li>
+          <li>Customer accepts (and pays deposit if enabled)</li>
         </ol>
-        <p>No DMs. No back-and-forth. No chasing.</p>
-        <p>That's the system working for you instead of you working for the system.</p>
-        <p>If you haven't sent a real quote to a customer yet, today is the day.</p>
+        <p>If you're still pricing in DMs, you're working too hard.</p>
       `,
-      ctaText: "Send a Quote to a Customer",
-      ctaUrl: "/quotes",
-      ...(!stripeConnected ? { stripePsHtml: `<p style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e9ecef; color: #666; font-size: 14px;"><strong>P.S.</strong> Stripe not connected? That's the missing piece. <a href="{{baseUrl}}/settings" style="color: #E91E63;">Connect Stripe</a></p>`, stripePsText: `\nP.S. Stripe not connected? That's the missing piece.` } : {}),
+      ctaText: "Go to Requests",
+      ctaUrl: "/leads",
     },
     day6_habit: {
       emailKey: "day6_habit",
       day: 6,
-      subject: "Make this your new normal.",
+      subject: "The habit that makes this work",
       content: `
-        <p>You have a pricing calculator, a quote system, and a payment tool. The only thing left is to use it consistently.</p>
-        <p>Here's how to make the switch:</p>
-        <p><strong>Share your calculator link publicly.</strong> Add it to your Instagram bio, your Facebook page, or wherever customers find you. When someone asks "how much?", send the link instead of typing out prices.</p>
-        <p>Every inquiry that comes through your calculator becomes a lead you can convert into a quote — and a quote you can convert into a paid order.</p>
-        <p>Stop pricing in DMs. You have a better system now.</p>
+        <p>BakerIQ works best when it becomes your default move:</p>
+        <p><strong>Every pricing question → send the link.</strong></p>
+        <p>Review pricing occasionally (only when ingredient costs change), but otherwise this is a set-and-forget system.</p>
       `,
-      ctaText: "Copy Your Calculator Link",
-      ctaUrl: "/settings",
-    },
-    day6_final_stripe_push: {
-      emailKey: "day6_final_stripe_push",
-      day: 6,
-      subject: "Last chance: connect Stripe and start getting paid.",
-      content: `
-        <p>This is the last email in your getting-started series, and your Stripe account still isn't connected.</p>
-        <p>That means right now, you have a pricing calculator and a quote system — but no way to collect payment through them. Customers see your quotes but still have to pay you the old way.</p>
-        <p>Five minutes is all it takes. Once connected:</p>
-        <ul style="padding-left: 20px;">
-          <li>Deposits collect automatically through your quotes</li>
-          <li>Payments go straight to your bank account</li>
-          <li>No more chasing customers for money</li>
-        </ul>
-        <p>This is the one step that turns BakerIQ from a nice tool into a real payment system for your business.</p>
-      `,
-      ctaText: "Connect Stripe Now",
-      ctaUrl: "/settings",
+      ctaText: "Copy Your Order Page Link",
+      ctaUrl: "/share",
     },
   };
 
   switch (day) {
     case 0: return templates.day0_welcome;
     case 1: return templates.day1_pricing;
-    case 2: return templates.day2_quotes;
-    case 3: return stripeConnected ? templates.day3_stripe_connected : templates.day3_stripe_push;
-    case 4: return stripeConnected ? templates.day4_deposit : templates.day4_stripe_reminder;
+    case 2: return templates.day2_launch;
+    case 3: return templates.day3_first_request;
+    case 4: return stripeConnected ? templates.day4_stripe_connected : templates.day4_stripe_not_connected;
     case 5: return templates.day5_workflow;
-    case 6: return stripeConnected ? templates.day6_habit : templates.day6_final_stripe_push;
+    case 6: return templates.day6_habit;
     default: return undefined;
   }
 }
@@ -1051,11 +1008,11 @@ export function getEmailKeyForDay(day: number, stripeConnected: boolean): string
   switch (day) {
     case 0: return "day0_welcome";
     case 1: return "day1_pricing";
-    case 2: return "day2_quotes";
-    case 3: return stripeConnected ? "day3_stripe_connected" : "day3_stripe_push";
-    case 4: return stripeConnected ? "day4_deposit" : "day4_stripe_reminder";
+    case 2: return "day2_launch";
+    case 3: return "day3_first_request";
+    case 4: return stripeConnected ? "day4_stripe_connected" : "day4_stripe_not_connected";
     case 5: return "day5_workflow";
-    case 6: return stripeConnected ? "day6_habit" : "day6_final_stripe_push";
+    case 6: return "day6_habit";
     default: return `day${day}_unknown`;
   }
 }
