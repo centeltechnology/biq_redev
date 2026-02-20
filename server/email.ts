@@ -1097,6 +1097,121 @@ export async function sendOnboardingEmail(
   return { success, emailKey: template.emailKey };
 }
 
+type MilestoneType = "pricing_live" | "first_lead" | "first_quote" | "first_payment";
+
+interface MilestoneEmailConfig {
+  subject: string;
+  body: string;
+  ctaText: string;
+  ctaPath: string;
+}
+
+const MILESTONE_EMAILS: Record<MilestoneType, MilestoneEmailConfig> = {
+  pricing_live: {
+    subject: "Your order page is officially live \u{1F389}",
+    body: `<p>You did it.</p>
+<p>Your pricing is confirmed — which means your order page is ready to receive real requests.</p>
+<p>This is where most bakers hesitate. Don't.</p>
+<p>Add your link to your bio and start routing inquiries through it.</p>`,
+    ctaText: "Copy Your Order Page Link",
+    ctaPath: "/share",
+  },
+  first_lead: {
+    subject: "You just got your first request \u{1F680}",
+    body: `<p>That wasn't a test.</p>
+<p>Someone just used your order page to request a custom quote.</p>
+<p>This is the system working.</p>
+<p>Open the request, convert it to a quote, and keep the momentum going.</p>`,
+    ctaText: "View Request",
+    ctaPath: "/leads",
+  },
+  first_quote: {
+    subject: "You just sent your first professional quote \u{1F4AA}",
+    body: `<p>You just moved from pricing in DMs to running a structured system.</p>
+<p>Clean quote. Clear breakdown. Deposit option.</p>
+<p>This is how serious businesses operate.</p>
+<p>Keep routing inquiries through your order page.</p>`,
+    ctaText: "Go to Quotes",
+    ctaPath: "/quotes",
+  },
+  first_payment: {
+    subject: "You just got paid through BakerIQ \u{1F4B0}",
+    body: `<p>A deposit just landed.</p>
+<p>No chasing. No screenshots. No awkward follow-ups.</p>
+<p>This is what automated payments feel like.</p>
+<p>Keep using your order page — this is only the beginning.</p>`,
+    ctaText: "View Dashboard",
+    ctaPath: "/dashboard",
+  },
+};
+
+export async function sendMilestoneEmail(
+  bakerEmail: string,
+  businessName: string,
+  milestone: MilestoneType,
+  baseUrl: string,
+  emailPrefsToken?: string | null
+): Promise<boolean> {
+  const config = MILESTONE_EMAILS[milestone];
+  if (!config) return false;
+
+  const ctaUrl = `${baseUrl}${config.ctaPath}`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: 'Inter', Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #E91E63, #F06292); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px; }
+    .cta { display: inline-block; background: #E91E63; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0; font-size: 22px;">BakerIQ</h1>
+    </div>
+    <div class="content">
+      <p>Hi ${businessName},</p>
+      ${config.body}
+      <p style="text-align: center; margin-top: 24px;">
+        <a href="${ctaUrl}" class="cta">${config.ctaText}</a>
+      </p>
+    </div>
+    ${getBakerEmailFooterHtml(emailPrefsToken)}
+  </div>
+</body>
+</html>
+`;
+
+  const textBody = config.body
+    .replace(/<p[^>]*>/g, '\n')
+    .replace(/<\/p>/g, '')
+    .replace(/<[^>]+>/g, '')
+    .trim();
+
+  const text = `Hi ${businessName},\n\n${textBody}\n\n${config.ctaText}: ${ctaUrl}${getBakerEmailFooterText(emailPrefsToken)}`;
+
+  const success = await sendEmail({
+    to: bakerEmail,
+    subject: config.subject,
+    html,
+    text,
+  });
+
+  if (success) {
+    console.log(`[Milestone] Sent ${milestone} email to ${bakerEmail}`);
+  } else {
+    console.error(`[Milestone] Failed to send ${milestone} email to ${bakerEmail}`);
+  }
+
+  return success;
+}
+
 export async function sendRetentionEmail(
   bakerEmail: string,
   subject: string,

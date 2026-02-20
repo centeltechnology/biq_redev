@@ -7,7 +7,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { pool } from "./db";
 import connectPgSimple from "connect-pg-simple";
-import { sendEmail, sendNewLeadNotification, sendLeadConfirmationToCustomer, sendPasswordResetEmail, sendEmailVerification, sendQuoteNotification, sendOnboardingEmail, sendQuoteResponseNotification, sendAdminPasswordReset, sendPaymentReceivedNotification, sendAnnouncementEmail, getAnnouncementEmailHtml, sendInvitationEmail, getDynamicEmailHtml, sendDynamicAdminEmail, sendAffiliateApplicationConfirmation, sendAffiliateApplicationNotification, type AdminEmailTokens } from "./email";
+import { sendEmail, sendNewLeadNotification, sendLeadConfirmationToCustomer, sendPasswordResetEmail, sendEmailVerification, sendQuoteNotification, sendOnboardingEmail, sendQuoteResponseNotification, sendAdminPasswordReset, sendPaymentReceivedNotification, sendAnnouncementEmail, getAnnouncementEmailHtml, sendInvitationEmail, getDynamicEmailHtml, sendDynamicAdminEmail, sendAffiliateApplicationConfirmation, sendAffiliateApplicationNotification, sendMilestoneEmail, type AdminEmailTokens } from "./email";
 import crypto from "crypto";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { db } from "./db";
@@ -611,6 +611,15 @@ export async function registerRoutes(
         trackEvent(req.session.bakerId!, "quick_quote_configured");
         if (!baker.pricingReviewed) {
           updatedBaker = await storage.updateBaker(req.session.bakerId!, { pricingReviewed: true }) || baker;
+          if (!baker.milestonePricingLiveSent) {
+            const isProduction = process.env.NODE_ENV === "production";
+            const milestoneBaseUrl = isProduction
+              ? (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}` : "https://bakeriq.app")
+              : (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : "https://bakeriq.app");
+            storage.updateBaker(req.session.bakerId!, { milestonePricingLiveSent: true })
+              .then(() => sendMilestoneEmail(baker.email, baker.businessName, "pricing_live", milestoneBaseUrl, baker.emailPrefsToken))
+              .catch(err => console.error("[Milestone] pricing_live error:", err));
+          }
         }
       }
 
@@ -1316,6 +1325,17 @@ export async function registerRoutes(
       // Track quote sent
       trackEvent(bakerId, "quote_sent", { quoteId: quote.id, customerId: quote.customerId });
       await storage.setActivationTimestamp(bakerId, "firstQuoteSentAt");
+
+      // Milestone: first quote sent
+      if (!baker.milestoneFirstQuoteSent && !baker.firstQuoteSentAt) {
+        const isProduction = process.env.NODE_ENV === "production";
+        const milestoneBaseUrl = isProduction
+          ? (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}` : "https://bakeriq.app")
+          : (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : "https://bakeriq.app");
+        storage.updateBaker(bakerId, { milestoneFirstQuoteSent: true })
+          .then(() => sendMilestoneEmail(baker.email, baker.businessName, "first_quote", milestoneBaseUrl, baker.emailPrefsToken))
+          .catch(err => console.error("[Milestone] first_quote error:", err));
+      }
 
       // Auto-update linked lead status to "quoted"
       if (quote.leadId) {
@@ -2128,6 +2148,17 @@ export async function registerRoutes(
       // Track lead created
       trackEvent(baker.id, "lead_created", { leadId: lead.id, source: isQuickOrder ? "quick_order" : "calculator" });
 
+      // Milestone: first lead received (flag ensures one-time send)
+      if (!baker.milestoneFirstLeadSent) {
+        const isProduction = process.env.NODE_ENV === "production";
+        const milestoneBaseUrl = isProduction
+          ? (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}` : "https://bakeriq.app")
+          : (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : "https://bakeriq.app");
+        storage.updateBaker(baker.id, { milestoneFirstLeadSent: true })
+          .then(() => sendMilestoneEmail(baker.email, baker.businessName, "first_lead", milestoneBaseUrl, baker.emailPrefsToken))
+          .catch(err => console.error("[Milestone] first_lead error:", err));
+      }
+
       // Send email notifications (non-blocking)
       const estimatedTotal = parseFloat(data.estimatedTotal);
       const category = data.calculatorPayload?.category as "cake" | "treat" | undefined;
@@ -2739,6 +2770,17 @@ export async function registerRoutes(
                 totalQuoteAmount: total,
                 totalPaid,
               }, baker.emailPrefsToken).catch(err => console.error("Failed to send payment notification:", err));
+
+              // Milestone: first payment received
+              if (!baker.milestoneFirstPaymentSent && !baker.firstPaymentProcessedAt) {
+                const isProduction = process.env.NODE_ENV === "production";
+                const milestoneBaseUrl = isProduction
+                  ? (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}` : "https://bakeriq.app")
+                  : (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : "https://bakeriq.app");
+                storage.updateBaker(bakerId, { milestoneFirstPaymentSent: true })
+                  .then(() => sendMilestoneEmail(baker.email, baker.businessName, "first_payment", milestoneBaseUrl, baker.emailPrefsToken))
+                  .catch(err => console.error("[Milestone] first_payment error:", err));
+              }
             }
           }
         }
