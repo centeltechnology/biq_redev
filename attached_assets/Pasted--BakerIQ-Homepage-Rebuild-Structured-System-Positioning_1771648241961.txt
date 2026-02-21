@@ -1,0 +1,171 @@
+# BakerIQ Homepage Rebuild – Structured System Positioning
+
+## Objective
+Rebuild the homepage to reflect BakerIQ as a structured financial operating system for serious bakers.
+
+Key themes:
+- Business maturity
+- Revenue visibility
+- Processing-first model
+- System workflow
+- Calm authority
+
+Do NOT modify app logic.
+Homepage changes only.
+
+---
+
+# SECTION 1 – HERO
+
+## Layout
+Two-column layout:
+
+Left:
+- Headline
+- Subheadline
+- CTA buttons
+- Trust line
+
+Right:
+- Live /payments dashboard component rendered in fully activated state (Stripe connected)
+- Use mock/demo data only (not real user data)
+- High-resolution, production styling
+- No warnings, no dim states
+
+---
+
+## HERO COPY
+
+Headline:
+You’ve mastered the craft. Now master the business.
+
+Subheadline:
+Structure your orders. Automate deposits. See your real revenue — from inquiry to payout.
+
+Primary CTA:
+Start Free
+
+Secondary CTA:
+See How It Works
+
+Trust line (below buttons):
+Free to start. We only earn when you do.
+
+---
+
+## HERO DASHBOARD REQUIREMENTS
+
+Render /payments in “activated” state with:
+
+- Stripe connected
+- Deposit requirement visible (50%)
+- Total Received between $5,000–$8,000
+- Net Earnings slightly lower (reflecting platform fee)
+- 8–15 realistic transactions
+- Mix of "Deposit Paid" and "Paid"
+
+Must:
+- Use safe mock state
+- Not connect to live data
+- Be visually clean
+- Match production UI styling
+
+If needed, create a mockDashboardState specifically for marketing view.
+
+---
+
+# SECTION 2 – WORKFLOW (System Explanation)
+
+Title:
+From inquiry to deposit — all in one system.
+
+4-step horizontal layout:
+
+1. Share your Order Page  
+2. Customer requests a quote  
+3. Send structured quote with deposit  
+4. Get paid through Stripe  
+
+Use simple icons.
+No cartoon illustrations.
+Clean minimal styling.
+
+---
+
+# SECTION 3 – WHAT MAKES IT DIFFERENT
+
+Title:
+Built for serious baking businesses.
+
+Bullet points:
+
+✔ Unlimited quotes  
+✔ Express Items for featured specials  
+✔ Custom deposit policies  
+✔ Stripe-powered payments  
+✔ Real revenue dashboard  
+
+Keep layout structured and balanced.
+
+---
+
+# SECTION 4 – PRICING MODEL CLARITY
+
+Title:
+Free to start. Pay as you grow.
+
+Explain briefly:
+
+- No monthly quote limits
+- Platform fee only when you process
+- Upgrade to reduce your platform fee
+- Express Item limits by plan
+
+Include CTA:
+View Pricing
+
+---
+
+# SECTION 5 – FAQ
+
+Include 5–6 high-impact FAQs:
+
+- Do I need Stripe?
+- Can customers accept and pay later?
+- What if I don’t want deposits?
+- Can I change currency?
+- What does BakerIQ cost?
+- Is there a monthly fee?
+
+Keep answers short and direct.
+
+---
+
+# DESIGN REQUIREMENTS
+
+- Clean whitespace
+- No gradients or flashy effects
+- Minimal icon usage
+- Professional tone
+- Consistent typography scale
+- Responsive on mobile
+- Ensure hero dashboard scales correctly
+
+---
+
+# CONSTRAINTS
+
+- Do NOT modify existing routes.
+- Do NOT modify payment logic.
+- Do NOT break Stripe integration.
+- Homepage only.
+- Preserve current branding colors.
+
+---
+
+# DELIVERABLES
+
+1. Files modified.
+2. Explanation of how dashboard mock state is implemented safely.
+3. Confirmation homepage is responsive.
+4. Screenshot preview of hero section.
