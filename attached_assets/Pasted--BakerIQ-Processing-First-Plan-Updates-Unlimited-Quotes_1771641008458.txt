@@ -1,0 +1,109 @@
+# BakerIQ – Processing-First Plan Updates (Unlimited Quotes + Express Item Limits)
+
+## Goal
+Switch the platform to a processing-first model:
+- Remove quote limits for all plans (especially Free)
+- Enforce Express Items limits by plan
+- Update UI copy to match the new plan rules
+
+Do NOT change Stripe onboarding flow.
+Do NOT change payment logic.
+Do NOT change database schema unless needed to enforce limits reliably.
+
+---
+
+## Step 1 — Remove Quote Limits (All Plans)
+Find where quote limits are enforced (backend and/or frontend).
+Examples to look for:
+- `MAX_QUOTES`, `quoteLimit`, `remainingQuotes`, `monthlyQuotes`, etc.
+- checks in quote creation endpoints, middleware, or UI guards
+- “0/15 quotes” counters in UI (top bar)
+
+Required outcome:
+- Free, Basic, Pro all have **unlimited quotes**
+- If there is a UI “quotes remaining” indicator, either:
+  A) Remove it, OR
+  B) Replace it with something meaningful (e.g., “Quotes sent this month”) without blocking
+
+---
+
+## Step 2 — Express Items Limits by Plan (Enforced)
+Express Items (currently surfaced via "Price Calculator") must be limited like this:
+
+### Limits
+- Free: max **1 active** Express Item
+- Basic: max **5 active** Express Items
+- Pro: **unlimited active** Express Items
+
+### Enforce at:
+- Create Express Item
+- Activate/feature toggle (if items can be saved inactive)
+
+Rules:
+- If user tries to create/activate beyond their limit:
+  - Prevent action
+  - Show upgrade modal/message (Basic/Pro upsell)
+- Do not rely only on UI hiding; enforce in server/API layer too.
+
+---
+
+## Step 3 — Update Pricing Plan Copy (UI)
+Update pricing page and any plan summaries so they match:
+
+### Free
+- Unlimited quotes
+- 1 Express Item
+- 7% platform fee
+
+### Basic
+- Unlimited quotes
+- Up to 5 Express Items
+- 5% platform fee
+
+### Pro
+- Unlimited quotes
+- Unlimited Express Items
+- 3% platform fee
+
+Also update any labels that currently say:
+- “Featured Items” (if you’re standardizing on Express Items)
+- “15 quotes/month” or similar
+
+---
+
+## Step 4 — UI/Copy Cleanup Pass
+Search the codebase for outdated references:
+- “15 quotes”
+- “5 quotes”
+- “quote limit”
+- “Pricing Calculator” (ONLY change copy where it refers to Express Items; keep internal route names if changing would break things)
+
+Update tooltips + helper copy where relevant:
+- Express Items: “Ready-to-request offers that appear at the top of your Order Page.”
+
+---
+
+## Step 5 — QA Checklist
+Create a short test checklist and confirm:
+
+### Quotes
+- Free user can create quotes repeatedly (no cap)
+- Basic user same
+- Pro user same
+
+### Express Items
+- Free can have 1 active Express Item, blocked at 2
+- Basic can have up to 5 active, blocked at 6
+- Pro unlimited
+
+### Copy
+- Pricing page matches new rules
+- Any “quotes remaining” blocker is removed
+
+---
+
+## Deliverables
+1) List of files changed
+2) Where quote limits were enforced (and how you removed them)
+3) Where Express Item limits are enforced (API + UI)
+4) Screenshots or brief summary of updated pricing copy
