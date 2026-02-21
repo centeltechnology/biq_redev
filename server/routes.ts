@@ -746,6 +746,7 @@ export async function registerRoutes(
         subtotal: "150.00",
         taxAmount: "12.00",
         total: "162.00",
+        currencyCode: baker.currency || "USD",
       });
 
       await storage.createQuoteItem({
@@ -935,6 +936,7 @@ export async function registerRoutes(
 
       const data = schema.parse(req.body);
       const bakerId = req.session.bakerId!;
+      const baker = await storage.getBaker(bakerId);
 
       // Calculate totals
       const subtotal = data.items.reduce(
@@ -959,6 +961,7 @@ export async function registerRoutes(
         taxAmount: taxAmount.toFixed(2),
         total: total.toFixed(2),
         notes: data.notes || null,
+        currencyCode: baker?.currency || "USD",
       });
 
       // Create quote items
@@ -1182,6 +1185,7 @@ export async function registerRoutes(
         taxAmount: taxAmount.toFixed(2),
         total: total.toFixed(2),
         notes: null,
+        currencyCode: baker.currency || "USD",
       });
 
       await storage.createQuoteItem({
@@ -1223,6 +1227,7 @@ export async function registerRoutes(
         taxAmount: existingQuote.taxAmount,
         total: existingQuote.total,
         notes: existingQuote.notes,
+        currencyCode: existingQuote.currencyCode,
       });
 
       for (const item of existingQuote.items) {
@@ -2623,7 +2628,7 @@ export async function registerRoutes(
         line_items: [
           {
             price_data: {
-              currency: baker.currency?.toLowerCase() || "usd",
+              currency: (quote.currencyCode || baker.currency || "usd").toLowerCase(),
               product_data: {
                 name: `${quote.title} - ${paymentType === "deposit" ? "Deposit" : "Payment"}`,
                 description: `Quote #${quote.quoteNumber} from ${baker.businessName}`,
@@ -2726,6 +2731,7 @@ export async function registerRoutes(
               platformFee,
               status: "succeeded",
               paymentType,
+              currencyCode: (session.currency || quote.currencyCode || "usd").toUpperCase(),
             });
 
             await storage.setActivationTimestamp(bakerId, "firstPaymentProcessedAt");
@@ -2849,7 +2855,7 @@ export async function registerRoutes(
         mode: "payment",
         line_items: [{
           price_data: {
-            currency: (baker.currency || "usd").toLowerCase(),
+            currency: (quote.currencyCode || baker.currency || "usd").toLowerCase(),
             product_data: {
               name: `${quote.title} - ${paymentType === "deposit" ? "Deposit" : "Payment"}`,
               description: `Quote #${quote.quoteNumber} from ${baker.businessName}`,

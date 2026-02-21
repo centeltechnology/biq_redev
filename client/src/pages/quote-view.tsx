@@ -195,10 +195,10 @@ export default function QuoteViewPage() {
     }
   }
 
-  // Helper function to format currency with baker's currency
+  const quoteCurrency = quote.currencyCode || baker.currency || "USD";
   const fmt = (amount: number | string) => {
     const num = typeof amount === "string" ? parseFloat(amount) : amount;
-    return formatCurrency(num, baker.currency || "USD");
+    return formatCurrency(num, quoteCurrency);
   };
 
   const cakeItems = quote.items.filter(i => i.category === "cake");

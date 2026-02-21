@@ -13,7 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -28,12 +27,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { useFormatCurrency } from "@/hooks/use-baker-currency";
+import { useFormatCurrency, useBakerCurrency } from "@/hooks/use-baker-currency";
+import { formatCurrency as formatCurrencyFn } from "@/lib/calculator";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AVAILABLE_CURRENCIES } from "@/lib/calculator";
-import { DollarSign, TrendingUp, CreditCard, ArrowUpRight, Receipt, Shield, Globe, Loader2 } from "lucide-react";
+import { DollarSign, TrendingUp, CreditCard, ArrowUpRight, Receipt, Shield, Globe, Loader2, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "wouter";
 
@@ -44,6 +44,7 @@ interface PaymentRecord {
   platformFee: string;
   status: string;
   paymentType: string;
+  currencyCode: string | null;
   createdAt: string;
   quoteTitle: string;
   quoteNumber: string;
@@ -176,205 +177,201 @@ export default function PaymentsPage() {
     remaining: "Remaining Balance",
   };
 
+  const depositType = paymentForm.watch("defaultDepositType");
+
   return (
     <DashboardLayout title="Payments">
       <div className="space-y-6">
-        {!stripeConnected && (
-          <Card className="border-primary/30 bg-primary/5" data-testid="card-stripe-activation">
-            <CardHeader className="pb-3">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+          <Card className={stripeConnected ? "border-green-200 dark:border-green-800" : "border-primary/30 bg-primary/5"} data-testid="card-stripe-activation">
+            <CardHeader className="pb-2 pt-4 px-4">
               <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg" data-testid="text-activation-title">Enable online payments</CardTitle>
+                {stripeConnected ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                ) : (
+                  <Shield className="h-4 w-4 text-primary" />
+                )}
+                <CardTitle className="text-sm font-medium" data-testid="text-activation-title">
+                  {stripeConnected ? "Online Payments" : "Enable Online Payments"}
+                </CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Connect Stripe to start collecting deposits automatically from your quotes.
-              </p>
-              <div className="flex flex-wrap items-center gap-3">
-                <Button
-                  onClick={() => connectMutation.mutate()}
-                  disabled={connectMutation.isPending}
-                  data-testid="button-secure-payouts"
-                >
-                  <Shield className="h-4 w-4 mr-2" />
-                  {connectMutation.isPending ? "Setting up..." : "Secure Your Payouts"}
-                </Button>
-                <Button variant="ghost" size="sm" asChild data-testid="link-learn-payments">
-                  <Link href="/faq">
-                    Learn how payments work
-                  </Link>
-                </Button>
-              </div>
+            <CardContent className="px-4 pb-4 pt-1">
+              {stripeConnected ? (
+                <div className="space-y-1">
+                  <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-xs" data-testid="badge-stripe-connected">
+                    Stripe Connected
+                  </Badge>
+                  <p className="text-xs text-muted-foreground">
+                    Collecting deposits automatically from quotes.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    Connect Stripe to collect deposits automatically.
+                  </p>
+                  <Button
+                    size="sm"
+                    onClick={() => connectMutation.mutate()}
+                    disabled={connectMutation.isPending}
+                    className="w-full"
+                    data-testid="button-secure-payouts"
+                  >
+                    {connectMutation.isPending ? "Setting up..." : "Secure Your Payouts"}
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
-        )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Deposit Settings</CardTitle>
-            <CardDescription>
-              Configure deposit requirements for your quotes
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...paymentForm}>
-              <form
-                onSubmit={paymentForm.handleSubmit((data) =>
-                  updatePaymentMutation.mutate(data)
-                )}
-                className="space-y-4"
-              >
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Set how much deposit is required when customers accept quotes
-                  </p>
-                  
+          <Card data-testid="card-deposit-settings">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-sm font-medium">Deposit Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4 pt-1">
+              <Form {...paymentForm}>
+                <form
+                  onSubmit={paymentForm.handleSubmit((data) =>
+                    updatePaymentMutation.mutate(data)
+                  )}
+                  className="space-y-2"
+                >
                   <FormField
                     control={paymentForm.control}
                     name="defaultDepositType"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Deposit Type</FormLabel>
+                      <FormItem className="space-y-1">
+                        <FormLabel className="text-xs">Type</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
-                            <SelectTrigger data-testid="select-deposit-type">
-                              <SelectValue placeholder="Select deposit type" />
+                            <SelectTrigger className="h-8 text-xs" data-testid="select-deposit-type">
+                              <SelectValue placeholder="Select type" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="full">Full Payment Required</SelectItem>
-                            <SelectItem value="percentage">Percentage of Total</SelectItem>
+                            <SelectItem value="full">Full Payment</SelectItem>
+                            <SelectItem value="percentage">Percentage</SelectItem>
                             <SelectItem value="fixed">Fixed Amount</SelectItem>
                           </SelectContent>
                         </Select>
-                        <FormDescription>
-                          Choose whether to require full payment, a percentage, or a fixed deposit amount
-                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  {paymentForm.watch("defaultDepositType") === "percentage" && (
+                  {depositType === "percentage" && (
                     <FormField
                       control={paymentForm.control}
                       name="depositPercentage"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Deposit Percentage</FormLabel>
+                        <FormItem className="space-y-1">
+                          <FormLabel className="text-xs">Percentage</FormLabel>
                           <FormControl>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
                               <Input
                                 {...field}
                                 type="number"
                                 min={0}
                                 max={100}
-                                className="w-24"
+                                className="h-8 text-xs w-20"
                                 onChange={(e) => field.onChange(Number(e.target.value))}
                                 data-testid="input-deposit-percentage"
                               />
-                              <span className="text-muted-foreground">%</span>
+                              <span className="text-xs text-muted-foreground">%</span>
                             </div>
                           </FormControl>
-                          <FormDescription>
-                            Percentage of quote total required as deposit
-                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   )}
 
-                  {paymentForm.watch("defaultDepositType") === "fixed" && (
+                  {depositType === "fixed" && (
                     <FormField
                       control={paymentForm.control}
                       name="depositFixedAmount"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Fixed Deposit Amount</FormLabel>
+                        <FormItem className="space-y-1">
+                          <FormLabel className="text-xs">Amount</FormLabel>
                           <FormControl>
-                            <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground">$</span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-muted-foreground">$</span>
                               <Input
                                 {...field}
                                 type="number"
                                 min={0}
                                 step="0.01"
-                                className="w-32"
+                                className="h-8 text-xs w-24"
                                 placeholder="0.00"
                                 data-testid="input-deposit-fixed"
                               />
                             </div>
                           </FormControl>
-                          <FormDescription>
-                            Fixed dollar amount required as deposit
-                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   )}
-                </div>
 
-                <Button
-                  type="submit"
-                  disabled={updatePaymentMutation.isPending}
-                  data-testid="button-save-payment"
-                >
-                  {updatePaymentMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    "Save Payment Options"
-                  )}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    className="w-full h-8 text-xs"
+                    disabled={updatePaymentMutation.isPending}
+                    data-testid="button-save-payment"
+                  >
+                    {updatePaymentMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save"
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Globe className="h-5 w-5" />
-              Currency & Region
-            </CardTitle>
-            <CardDescription>
-              Choose the currency for all prices in your quotes and calculator
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="currency">Currency</Label>
-                <Select value={currency} onValueChange={handleCurrencyChange}>
-                  <SelectTrigger className="w-full mt-1.5" data-testid="select-currency">
-                    <SelectValue placeholder="Select currency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {AVAILABLE_CURRENCIES.map((curr) => (
-                      <SelectItem key={curr.code} value={curr.code} data-testid={`currency-option-${curr.code}`}>
-                        {curr.code} - {curr.name} ({curr.symbol})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-muted-foreground mt-1.5">
-                  This currency will be used for all prices displayed to your customers
-                </p>
+          <Card data-testid="card-currency-region">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4" />
+                <CardTitle className="text-sm font-medium">Currency & Region</CardTitle>
               </div>
-              {updateCurrencyMutation.isPending && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Saving...
+            </CardHeader>
+            <CardContent className="px-4 pb-4 pt-1">
+              <div className="space-y-2">
+                <div>
+                  <Label htmlFor="currency" className="text-xs">Currency</Label>
+                  <Select value={currency} onValueChange={handleCurrencyChange}>
+                    <SelectTrigger className="h-8 text-xs mt-1" data-testid="select-currency">
+                      <SelectValue placeholder="Select currency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AVAILABLE_CURRENCIES.map((curr) => (
+                        <SelectItem key={curr.code} value={curr.code} data-testid={`currency-option-${curr.code}`}>
+                          {curr.code} ({curr.symbol})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                <p className="text-xs text-muted-foreground leading-tight">
+                  Changes apply to future quotes. Past quotes keep their original currency.
+                </p>
+                {updateCurrencyMutation.isPending && (
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Saving...
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         <div className={`grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 ${!stripeConnected ? "opacity-60" : ""}`}>
           <Card>
@@ -506,7 +503,7 @@ export default function PaymentsPage() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right font-semibold">
-                          {formatCurrency(parseFloat(payment.amount))}
+                          {formatCurrencyFn(parseFloat(payment.amount), payment.currencyCode || baker?.currency || "USD")}
                         </TableCell>
                         <TableCell>
                           {payment.status === "succeeded" ? (

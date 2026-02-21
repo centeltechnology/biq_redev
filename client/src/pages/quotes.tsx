@@ -40,7 +40,8 @@ import {
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
-import { useFormatCurrency } from "@/hooks/use-baker-currency";
+import { useFormatCurrency, useBakerCurrency } from "@/hooks/use-baker-currency";
+import { formatCurrency } from "@/lib/calculator";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { QUOTE_STATUSES, type Quote } from "@shared/schema";
@@ -257,7 +258,11 @@ interface QuoteTableRowProps {
 }
 
 function QuoteTableRow({ quote, onDuplicate, onDelete, onArchive, onUnarchive }: QuoteTableRowProps) {
-  const formatCurrency = useFormatCurrency();
+  const bakerCurrency = useBakerCurrency();
+  const fmt = (amount: number | string) => {
+    const num = typeof amount === "string" ? parseFloat(amount) || 0 : amount;
+    return formatCurrency(num, quote.currencyCode || bakerCurrency);
+  };
   const eventDate = quote.eventDate
     ? new Date(quote.eventDate).toLocaleDateString()
     : "-";
@@ -275,7 +280,7 @@ function QuoteTableRow({ quote, onDuplicate, onDelete, onArchive, onUnarchive }:
         </span>
       </TableCell>
       <TableCell>
-        <span className="font-semibold">{formatCurrency(Number(quote.total))}</span>
+        <span className="font-semibold">{fmt(Number(quote.total))}</span>
       </TableCell>
       <TableCell>
         <div className="flex flex-col gap-2">

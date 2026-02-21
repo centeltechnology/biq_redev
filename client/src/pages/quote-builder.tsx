@@ -47,8 +47,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { calculateTierPrice } from "@/lib/calculator";
-import { useFormatCurrency } from "@/hooks/use-baker-currency";
+import { calculateTierPrice, formatCurrency as formatCurrencyFn } from "@/lib/calculator";
+import { useFormatCurrency, useBakerCurrency } from "@/hooks/use-baker-currency";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -124,7 +124,7 @@ export default function QuoteBuilderPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { baker } = useAuth();
-  const formatCurrency = useFormatCurrency();
+  const bakerCurrency = useBakerCurrency();
   
   // Detect if we're on quote edit route (/quotes/:id)
   const [isQuoteRoute, quoteRouteParams] = useRoute("/quotes/:id");
@@ -154,6 +154,12 @@ export default function QuoteBuilderPage() {
     queryKey: ["/api/quotes", editingQuoteId],
     enabled: !!editingQuoteId,
   });
+
+  const activeCurrency = (editingQuoteId && quote?.currencyCode) || bakerCurrency;
+  const formatCurrency = (amount: number | string) => {
+    const num = typeof amount === "string" ? parseFloat(amount) || 0 : amount;
+    return formatCurrencyFn(num, activeCurrency);
+  };
 
   const { data: lead, isLoading: isLoadingLead } = useQuery<Lead>({
     queryKey: ["/api/leads", leadId],

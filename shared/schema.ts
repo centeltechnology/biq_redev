@@ -250,6 +250,7 @@ export const quotes = pgTable("quotes", {
   paymentStatus: text("payment_status").default("unpaid"), // unpaid, deposit_paid, paid
   stripePaymentIntentId: text("stripe_payment_intent_id"),
   amountPaid: decimal("amount_paid", { precision: 10, scale: 2 }).default("0"),
+  currencyCode: text("currency_code"),
   archivedAt: timestamp("archived_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -335,6 +336,7 @@ export const quotePayments = pgTable("quote_payments", {
   platformFee: decimal("platform_fee", { precision: 10, scale: 2 }).notNull(),
   status: text("status").notNull().default("pending"), // pending, succeeded, failed, refunded
   paymentType: text("payment_type").notNull().default("deposit"), // deposit, full, remaining
+  currencyCode: text("currency_code"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
