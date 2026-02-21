@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Users, FileText, ClipboardList, Settings, LogOut, Cake, CalendarDays, DollarSign, Shield, CreditCard, Share2, Gift, Ticket, Globe } from "lucide-react";
+import { Home, Users, FileText, ClipboardList, Settings, LogOut, Cake, CalendarDays, DollarSign, Shield, CreditCard, Share2, Gift, Ticket, Globe, Sparkles } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -24,6 +24,7 @@ const coreItems = [
 
 const setupItems = [
   { title: "Pricing", url: "/pricing", icon: DollarSign },
+  { title: "Express Items", url: "/pricing-calculator", icon: Sparkles },
   { title: "Customers", url: "/customers", icon: Users },
   { title: "Calendar", url: "/calendar", icon: CalendarDays },
 ];
