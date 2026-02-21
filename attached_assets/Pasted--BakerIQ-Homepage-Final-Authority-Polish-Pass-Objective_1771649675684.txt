@@ -1,0 +1,136 @@
+# BakerIQ Homepage – Final Authority Polish Pass
+
+## Objective
+Tighten homepage copy, spacing, and visual rhythm to reinforce operator authority.
+
+Do NOT add new sections.
+Do NOT modify app logic.
+Do NOT touch other routes (/help, /faq, etc.).
+Homepage only.
+
+---
+
+## 1. HERO – Visual & Copy Calibration
+
+Keep existing structure and copy:
+
+Headline:
+"You’ve mastered the craft. Now master the business."
+
+Subheadline:
+"Structure your orders. Automate deposits. See your real revenue — from inquiry to payout."
+
+CTAs unchanged.
+
+### Polish Requirements:
+- Ensure headline has strong visual weight (larger size than sub).
+- Ensure subheadline width is controlled (not stretching too wide).
+- Maintain clean vertical spacing.
+- Ensure hero dashboard dominates visually on desktop.
+- On mobile, stack cleanly with dashboard below text.
+- No gradients or decorative effects added.
+- Remove any unnecessary UI noise around hero image.
+
+---
+
+## 2. WORKFLOW SECTION – Tighten Language
+
+Replace existing workflow content with:
+
+Title:
+"From inquiry to deposit — all in one system."
+
+Card 1:
+Share your Order Page  
+One link. Customers see your pricing and submit a complete request.
+
+Card 2:
+Receive a structured inquiry  
+No missing details. No back-and-forth.
+
+Card 3:
+Send a professional quote  
+Deposit built in. Clear terms. Ready to accept.
+
+Card 4:
+Collect payment through Stripe  
+Customer accepts. Funds processed securely to your account.
+
+### Visual Requirements:
+- Remove the word “Step.”
+- Use simple numeric markers (1, 2, 3, 4) or clean icons.
+- Ensure equal spacing between cards.
+- Maintain consistent line height and padding.
+
+---
+
+## 3. BUILT SECTION – Tone Tightening
+
+Keep title:
+"Built for serious baking businesses."
+
+Ensure bullet list:
+- Unlimited quotes  
+- Express Items for featured specials  
+- Custom deposit policies  
+- Stripe-powered payments  
+- Real revenue dashboard  
+
+Polish:
+- Equal icon spacing
+- No excess text
+- Balanced column layout
+
+---
+
+## 4. PRICING SECTION – Copy Tightening
+
+Replace body copy with:
+
+Unlimited quotes on every plan.  
+Platform fee only when you process payments.  
+Upgrade to reduce your rate.
+
+Ensure:
+- Clean spacing
+- No additional explanation text
+- CTA remains “View Pricing”
+
+---
+
+## 5. FINAL CTA SECTION – Authority Tone
+
+Replace headline with:
+
+"Run your bakery like a business."
+
+Subtext:
+"Structure. Clarity. Revenue visibility."
+
+Keep CTA unchanged.
+
+Ensure:
+- Strong visual hierarchy
+- Clean spacing
+- No decorative additions
+
+---
+
+## 6. GLOBAL DESIGN GUARDRAILS
+
+- Increase whitespace slightly between sections.
+- Maintain consistent vertical rhythm.
+- Avoid crowded layouts.
+- Keep icon styling minimal.
+- Maintain brand color palette.
+- Ensure full responsiveness.
+- Remove any redundant copy or repetition.
+
+---
+
+## Deliverables
+
+1. List of files modified.
+2. Confirmation no other routes were touched.
+3. Screenshot preview (desktop + mobile).
+4. Confirmation hero dashboard remains mock-state only.
