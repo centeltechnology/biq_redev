@@ -1,0 +1,96 @@
+# BakerIQ – Stripe Activation + Deposit Visibility + Quote Payment Clarity (Single Prompt)
+
+## Objective
+Improve Stripe activation and deposit clarity without changing core payment logic.
+- Customers can still accept quotes and pay later (do not change this).
+- Deposits can be configured without Stripe connected (keep this).
+- If Stripe is not connected, online payment is not available (keep this).
+
+---
+
+## Part A — /payments page: Add Stripe activation card + show deposit requirement
+
+### A1) Determine current state
+Identify how the app currently determines:
+- stripeConnected (boolean)
+- current deposit configuration (type + value)
+Examples:
+- depositType: FULL | PERCENTAGE | FIXED
+- depositValue: number (percent or amount)
+- also note currency symbol if needed
+
+### A2) When Stripe is NOT connected
+On /payments:
+1) Add a prominent card ABOVE the revenue stat cards.
+
+Card Title:
+"Start collecting payments"
+
+Card Body (dynamic):
+- Show deposit policy summary first:
+  - If FULL: "Deposit requirement: Full payment"
+  - If PERCENTAGE: "Deposit requirement: {X}% deposit"
+  - If FIXED: "Deposit requirement: ${X} deposit"
+- Then explanation:
+  "Connect Stripe to accept deposits and payments online directly from your quotes. Until then, customers can accept quotes and you can collect payment manually."
+
+Primary CTA button:
+"Secure Your Payouts" (routes to Stripe connect flow)
+
+Secondary text/link (optional):
+"Learn how payments work" (link to FAQ/help if exists; otherwise omit)
+
+2) Slightly dim the revenue stat cards while Stripe is not connected (visual only).
+3) Add a small helper line under the stat cards:
+"Payments will appear here once Stripe is connected."
+
+### A3) When Stripe IS connected
+On /payments:
+1) Remove the activation card.
+2) Add a compact "Deposit Settings" summary card near the top (above or beside stats) showing:
+- "Deposit requirement: ..." (same dynamic rules as above)
+- Include small "Edit" link/button that routes to the deposit settings section (Settings page anchor if possible)
+
+---
+
+## Part B — Quote builder (baker side): add non-blocking clarity when Stripe not connected
+
+Wherever the baker sends a quote (or in the quote summary panel):
+If:
+- Stripe is NOT connected
+Then show a subtle info/warning (non-blocking):
+"Online payments aren’t enabled yet. Customers can still accept quotes — you’ll collect deposits/payments manually until Stripe is connected."
+
+Do NOT block sending quotes.
+Do NOT change quote status flow.
+
+---
+
+## Part C — Customer quote page: clarify payment options based on Stripe status
+
+### C1) If Stripe NOT connected
+On the public/customer quote page:
+- Keep existing "Accept Quote" behavior.
+- Add short helper text near the accept action (below the button):
+"Online payment is not enabled for this business. You can accept the quote now — payment will be arranged directly."
+
+### C2) If Stripe IS connected
+Do NOT change the current behavior (customers can accept and pay later).
+But if a pay button exists, ensure copy does not imply payment is required to accept.
+Add helper text near actions if helpful:
+"Accept now and pay when you’re ready."
+
+---
+
+## Constraints / Safety
+- NO changes to payment logic, acceptance rules, or deposit calculation logic.
+- UX + copy + conditional rendering only.
+- Keep language consistent with current app tone ("Secure setup" / "Secure payouts" / "Order page" etc.)
+- Ensure all new UI is responsive and matches existing styling.
+
+---
+
+## Deliverables
+1) Implement the UI changes.
+2) Provide a short summary of files modified.
+3) Provide before/after notes for each part (A/B/C) so we can verify quickly.
