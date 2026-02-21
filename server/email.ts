@@ -1400,26 +1400,26 @@ export function getAnnouncementEmailHtml(bakerName: string, emailPrefsToken?: st
       </div>
 
       <div class="section">
-        <div class="section-title"><span class="section-icon">&#128200;</span> Updated Pricing &amp; Quote Limits</div>
-        <p style="color: #555; font-size: 14px; margin-bottom: 12px;">We've increased limits across the board so you can do more:</p>
+        <div class="section-title"><span class="section-icon">&#128200;</span> Plan Details</div>
+        <p style="color: #555; font-size: 14px; margin-bottom: 12px;">All plans now include unlimited quotes:</p>
         <div class="plan-grid">
           <div class="plan-card">
             <div class="plan-name">Free</div>
-            <div class="plan-quotes">15</div>
-            <div class="plan-label">quotes/month</div>
-            <div class="plan-fee">7% platform fee</div>
+            <div class="plan-quotes">&infin;</div>
+            <div class="plan-label">unlimited quotes</div>
+            <div class="plan-fee">1 Express Item &bull; 7% fee</div>
           </div>
           <div class="plan-card">
             <div class="plan-name">Basic</div>
             <div class="plan-quotes">&infin;</div>
-            <div class="plan-label">unlimited</div>
-            <div class="plan-fee">5% platform fee</div>
+            <div class="plan-label">unlimited quotes</div>
+            <div class="plan-fee">5 Express Items &bull; 5% fee</div>
           </div>
           <div class="plan-card">
             <div class="plan-name">Pro</div>
             <div class="plan-quotes">&infin;</div>
-            <div class="plan-label">unlimited</div>
-            <div class="plan-fee">3% platform fee</div>
+            <div class="plan-label">unlimited quotes</div>
+            <div class="plan-fee">Unlimited Express Items &bull; 3% fee</div>
           </div>
         </div>
       </div>
@@ -1467,10 +1467,10 @@ ACCEPT PAYMENTS WITH STRIPE
 - Connect your Stripe account in Settings (takes just a few minutes)
 - All payments are automatically tracked in your dashboard
 
-UPDATED PRICING & QUOTE LIMITS
-- Free: 15 quotes/month (7% platform fee)
-- Basic: Unlimited quotes (5% platform fee)
-- Pro: Unlimited quotes (3% platform fee)
+PLAN DETAILS
+- Free: Unlimited quotes, 1 Express Item (7% platform fee)
+- Basic: Unlimited quotes, 5 Express Items (5% platform fee)
+- Pro: Unlimited quotes, unlimited Express Items (3% platform fee)
 
 MORE NEW FEATURES
 - Custom calculator URL — personalize your pricing calculator link

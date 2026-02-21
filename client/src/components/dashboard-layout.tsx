@@ -200,26 +200,17 @@ export function DashboardLayout({ children, title, actions }: DashboardLayoutPro
                 subscription.plan === "pro" ? (
                   <Badge variant="outline" className="gap-1" data-testid="badge-pro-plan">
                     <Sparkles className="h-3 w-3" />
-                    Unlimited Quotes
+                    Pro
                   </Badge>
                 ) : subscription.plan === "basic" ? (
                   <Badge variant="secondary" className="gap-1" data-testid="badge-basic-plan">
-                    Basic: {subscription.monthlyQuoteCount}/{subscription.quoteLimit}
+                    Basic
                   </Badge>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground" data-testid="text-quote-count">
-                      {subscription.monthlyQuoteCount}/{subscription.quoteLimit} quotes
-                    </span>
-                    <Button 
-                      size="sm" 
-                      onClick={() => upgradeMutation.mutate("basic")}
-                      disabled={upgradeMutation.isPending}
-                      data-testid="button-header-upgrade"
-                    >
-                      <Sparkles className="h-3 w-3 mr-1" />
-                      Upgrade
-                    </Button>
+                    <Badge variant="secondary" className="gap-1" data-testid="badge-free-plan">
+                      Free
+                    </Badge>
                   </div>
                 )
               )}

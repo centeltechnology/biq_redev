@@ -164,7 +164,7 @@ const faqs = [
     questions: [
       {
         q: "How do I change my business name?",
-        a: "Go to Settings in your dashboard. You can update your business name, contact phone, and address. Note that changing your business name won't change your calculator URL - that stays the same for consistency."
+        a: "Go to Settings in your dashboard. You can update your business name, contact phone, and address. Note that changing your business name won't change your order page URL — you can customize that separately from Your Order Page."
       },
       {
         q: "Can I have multiple calculators?",
@@ -172,7 +172,7 @@ const faqs = [
       },
       {
         q: "How do I share my calculator?",
-        a: "The easiest way is to use the Share page in your dashboard. It gives you one-click sharing to Facebook, Instagram, Twitter/X, Pinterest, WhatsApp, and LinkedIn — with ready-made captions you can customize. You can also download a QR code to print on business cards or flyers. Your calculator URL is also shown in Settings if you just need to copy the link. The URL format is: /c/your-bakery-slug"
+        a: "The easiest way is to use the Your Order Page section in your dashboard. It gives you one-click sharing to Facebook, Instagram, Twitter/X, Pinterest, WhatsApp, and LinkedIn — with ready-made captions you can customize. You can also download a QR code to print on business cards or flyers, and customize your URL. The URL format is: /c/your-bakery-slug"
       },
       {
         q: "What is the Share page?",
@@ -205,11 +205,11 @@ const faqs = [
     questions: [
       {
         q: "What plans are available?",
-        a: "BakerIQ offers three plans: Free (15 quotes/month, 7% platform fee), Basic ($4.99/month for unlimited quotes + 5 express items, 5% fee), and Pro ($9.99/month for unlimited quotes + unlimited express items, 3% fee). All plans include unlimited leads and Stripe Connect for accepting payments."
+        a: "BakerIQ offers three plans: Free (unlimited quotes, 1 Express Item, 7% platform fee), Basic ($4.99/month, unlimited quotes, up to 5 Express Items, 5% fee), and Pro ($9.99/month, unlimited quotes, unlimited Express Items, 3% fee). All plans include unlimited leads and Stripe Connect for accepting payments."
       },
       {
-        q: "What counts toward my quote limit?",
-        a: "Only quotes you actually send to customers count toward your monthly limit. You can create unlimited draft quotes on any plan. Leads from your calculator are always unlimited."
+        q: "Are quotes limited?",
+        a: "No! All plans include unlimited quotes. You can create and send as many quotes as you need. Leads from your order page are always unlimited too."
       },
       {
         q: "What's the difference between Basic and Pro?",

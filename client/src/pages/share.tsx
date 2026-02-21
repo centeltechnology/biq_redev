@@ -11,7 +11,9 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Copy, ExternalLink, Link2, QrCode, Share2, Check, Download, Upload, Save, Image as ImageIcon, Loader2, ChevronDown, ChevronUp, Rocket, Zap } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { useUpload } from "@/hooks/use-upload";
+import { Copy, ExternalLink, Link2, QrCode, Share2, Check, Download, Upload, Save, Image as ImageIcon, Loader2, ChevronDown, ChevronUp, Rocket, Zap, Pencil, CheckCircle2, AlertCircle, Trash2 } from "lucide-react";
 import { SiFacebook, SiX, SiPinterest, SiWhatsapp, SiInstagram, SiLinkedin } from "react-icons/si";
 import { downloadCalculatorQR } from "@/lib/qr-download";
 
@@ -145,6 +147,139 @@ function CollapsibleSection({ title, icon, defaultOpen = false, children, testId
   );
 }
 
+function SlugEditor({ currentSlug }: { currentSlug: string }) {
+  const [editing, setEditing] = useState(false);
+  const [slug, setSlug] = useState(currentSlug);
+  const [status, setStatus] = useState<"idle" | "checking" | "available" | "unavailable">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+  const { toast } = useToast();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    setSlug(currentSlug);
+  }, [currentSlug]);
+
+  const checkAvailability = useCallback((value: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (!value || value.length < 3) {
+      setStatus("unavailable");
+      setErrorMsg("Must be at least 3 characters");
+      return;
+    }
+    if (value === currentSlug) {
+      setStatus("idle");
+      setErrorMsg("");
+      return;
+    }
+
+    setStatus("checking");
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/bakers/check-slug/${encodeURIComponent(value)}`);
+        const data = await res.json();
+        if (data.available) {
+          setStatus("available");
+          setErrorMsg("");
+        } else {
+          setStatus("unavailable");
+          setErrorMsg(data.reason || "Not available");
+        }
+      } catch {
+        setStatus("unavailable");
+        setErrorMsg("Could not check availability");
+      }
+    }, 400);
+  }, [currentSlug]);
+
+  const updateSlugMutation = useMutation({
+    mutationFn: async (newSlug: string) => {
+      const res = await apiRequest("PATCH", "/api/bakers/me/slug", { slug: newSlug });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to update URL");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      toast({ title: "Calculator URL updated" });
+      setEditing(false);
+      setStatus("idle");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to update URL", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleSlugChange = (value: string) => {
+    const sanitized = value.toLowerCase().replace(/[^a-z0-9-]/g, "").replace(/-+/g, "-");
+    setSlug(sanitized);
+    checkAvailability(sanitized);
+  };
+
+  const handleSave = () => {
+    if (status === "available" && slug !== currentSlug) {
+      updateSlugMutation.mutate(slug);
+    }
+  };
+
+  const handleCancel = () => {
+    setSlug(currentSlug);
+    setEditing(false);
+    setStatus("idle");
+    setErrorMsg("");
+  };
+
+  if (!editing) {
+    return (
+      <div className="mt-3 flex items-center gap-2">
+        <span className="text-sm text-muted-foreground">Custom URL:</span>
+        <code className="text-sm font-mono bg-muted px-2 py-1 rounded">/c/{currentSlug}</code>
+        <Button variant="ghost" size="icon" onClick={() => setEditing(true)} data-testid="button-edit-slug">
+          <Pencil className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-3 space-y-2">
+      <Label className="text-sm text-muted-foreground">Customize your calculator URL</Label>
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-muted-foreground whitespace-nowrap">/c/</span>
+        <div className="relative flex-1">
+          <Input
+            value={slug}
+            onChange={(e) => handleSlugChange(e.target.value)}
+            placeholder="your-bakery-name"
+            className="font-mono text-sm pr-8"
+            data-testid="input-slug"
+          />
+          <div className="absolute right-2 top-1/2 -translate-y-1/2">
+            {status === "checking" && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+            {status === "available" && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+            {status === "unavailable" && <AlertCircle className="h-4 w-4 text-destructive" />}
+          </div>
+        </div>
+        <Button
+          size="sm"
+          onClick={handleSave}
+          disabled={status !== "available" || updateSlugMutation.isPending}
+          data-testid="button-save-slug"
+        >
+          {updateSlugMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+        </Button>
+        <Button variant="ghost" size="sm" onClick={handleCancel} data-testid="button-cancel-slug">
+          Cancel
+        </Button>
+      </div>
+      {errorMsg && <p className="text-xs text-destructive">{errorMsg}</p>}
+      {status === "available" && <p className="text-xs text-green-600">This URL is available</p>}
+    </div>
+  );
+}
+
 export default function SharePage() {
   const { baker } = useAuth();
   const { toast } = useToast();
@@ -213,17 +348,70 @@ export default function SharePage() {
     toast({ title: "Caption & link copied for sharing!" });
   };
 
+  const [headerImage, setHeaderImage] = useState<string | null>(null);
+  const [uploadingHeader, setUploadingHeader] = useState(false);
+  const headerInputRef = useRef<HTMLInputElement>(null);
+  const { uploadFile } = useUpload({});
+
+  useEffect(() => {
+    if (baker) {
+      setHeaderImage(baker.calculatorHeaderImage || null);
+    }
+  }, [baker]);
+
+  const updateHeaderMutation = useMutation({
+    mutationFn: async (data: { calculatorHeaderImage: string | null }) => {
+      const res = await apiRequest("PATCH", "/api/bakers/me", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
+    },
+  });
+
+  const handleHeaderImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Please select an image file", variant: "destructive" });
+      return;
+    }
+
+    setUploadingHeader(true);
+    try {
+      const result = await uploadFile(file);
+      if (result) {
+        const newHeaderImage = result.objectPath;
+        setHeaderImage(newHeaderImage);
+        await updateHeaderMutation.mutateAsync({ calculatorHeaderImage: newHeaderImage });
+        toast({ title: "Header image updated" });
+      }
+    } catch (error) {
+      toast({ title: "Failed to upload header image", variant: "destructive" });
+    } finally {
+      setUploadingHeader(false);
+      if (headerInputRef.current) headerInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveHeaderImage = async () => {
+    setHeaderImage(null);
+    await updateHeaderMutation.mutateAsync({ calculatorHeaderImage: null });
+    toast({ title: "Header image removed" });
+  };
+
   if (!baker) return null;
 
   return (
-    <DashboardLayout title="Share & Promote">
+    <DashboardLayout title="Your Order Page">
       <div className="space-y-6">
         {/* HERO: Order Page Link */}
         <Card className="border-primary/30">
           <CardHeader>
             <CardTitle className="flex items-center gap-2" data-testid="text-share-link-title">
               <Rocket className="h-5 w-5 text-primary" />
-              Launch Your Order Page
+              Launch Your Landing Page
             </CardTitle>
             <CardDescription>
               Send customers here to request a custom quote and get an instant estimate.
@@ -259,6 +447,68 @@ export default function SharePage() {
                 Download QR Code
               </Button>
             </div>
+            <div className="pt-3 border-t">
+              <SlugEditor currentSlug={baker?.slug || ""} />
+            </div>
+
+            <div className="pt-3 border-t space-y-2">
+              <Label className="text-sm font-medium">Order Page Header Image</Label>
+              <p className="text-xs text-muted-foreground">This image appears at the top of your order page and in social media previews.</p>
+              <div className="mt-2">
+                {headerImage ? (
+                  <div className="relative rounded-md overflow-hidden border">
+                    <img
+                      src={headerImage}
+                      alt="Calculator header"
+                      className="w-full h-40 object-cover"
+                      data-testid="img-header-preview"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full h-40 rounded-md border border-dashed flex flex-col items-center justify-center gap-2 text-muted-foreground bg-muted/50">
+                    <ImageIcon className="h-8 w-8" />
+                    <span className="text-xs">No header image set</span>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <input
+                  ref={headerInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleHeaderImageUpload}
+                  data-testid="input-header-upload"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => headerInputRef.current?.click()}
+                  disabled={uploadingHeader}
+                  data-testid="button-upload-header"
+                >
+                  {uploadingHeader ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Upload className="h-4 w-4 mr-2" />
+                  )}
+                  {uploadingHeader ? "Uploading..." : "Upload Image"}
+                </Button>
+                {headerImage && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRemoveHeaderImage}
+                    disabled={updateHeaderMutation.isPending}
+                    data-testid="button-remove-header"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Remove
+                  </Button>
+                )}
+              </div>
+            </div>
+
             <div className="pt-3 border-t">
               <p className="text-xs font-medium text-muted-foreground mb-2">Best places to add this link:</p>
               <ul className="text-xs text-muted-foreground space-y-1">

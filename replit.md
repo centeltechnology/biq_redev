@@ -39,8 +39,8 @@ Preferred communication style: Simple, everyday language.
 ### Core Features & Design
 - **Calculator Categories**: Supports multi-tier cake builder and standalone treat items.
 - **Role-Based Admin Access**: `baker`, `admin`, `super_admin` roles with specific middleware for access control to routes and UI. Includes audit logging for critical actions and a baker context endpoint for support.
-- **Social Media Sharing**: `/share` page with integrated tools for Facebook, Twitter/X, Instagram, Pinterest, WhatsApp, LinkedIn. Features customizable caption templates, per-item sharing, QR code generation, and dynamic Open Graph tags for calculator pages.
-- **Subscription Model**: Tiered plans (Free, Basic, Pro) with varying quote limits and platform fees, managed via Stripe.
+- **Social Media Sharing**: `/share` page ("Your Order Page") with integrated tools for Facebook, Twitter/X, Instagram, Pinterest, WhatsApp, LinkedIn. Features customizable caption templates, per-item sharing, QR code generation, dynamic Open Graph tags, custom URL editor (SlugEditor), and header image upload. "Launch Your Landing Page" card centralizes all order page customization.
+- **Subscription Model**: Processing-first tiered plans (Free, Basic, Pro). All plans have unlimited quotes. Express Items limited by plan (Free=1, Basic=5, Pro=unlimited). Platform fees: Free=7%, Basic=5%, Pro=3%. Managed via Stripe.
 - **Shared Types**: Centralized schema definitions (`shared/`) for client and server.
 - **Storage Interface**: Abstracted database operations via `server/storage.ts`.
 - **Path Aliases**: `@/` for client, `@shared/` for shared code.

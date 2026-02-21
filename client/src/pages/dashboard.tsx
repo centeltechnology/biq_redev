@@ -97,9 +97,6 @@ export default function DashboardPage() {
     },
   });
 
-  const showUpgradePrompt = subscription && subscription.plan === "free" && 
-    subscription.quoteLimit !== null && subscription.monthlyQuoteCount >= subscription.quoteLimit - 2;
-
   const isOnboarding = baker && baker.role !== "super_admin" && (!baker.stripeConnectedAt || !baker.firstQuoteSentAt);
 
   return (
@@ -130,39 +127,6 @@ export default function DashboardPage() {
                   : resendVerificationMutation.isSuccess 
                     ? "Email Sent!" 
                     : "Resend Email"}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {showUpgradePrompt && (
-          <Card className={subscription.isAtLimit ? "border-destructive bg-destructive/5" : "border-primary/50 bg-primary/5"}>
-            <CardContent className="flex items-center justify-between gap-4 py-4">
-              <div className="flex items-center gap-3">
-                {subscription.isAtLimit ? (
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
-                ) : (
-                  <Sparkles className="h-5 w-5 text-primary" />
-                )}
-                <div>
-                  <p className="font-medium" data-testid="text-quote-limit-status">
-                    {subscription.isAtLimit 
-                      ? "You've reached your quote limit" 
-                      : `${subscription.monthlyQuoteCount}/${subscription.quoteLimit} quotes sent this month`}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {subscription.isAtLimit 
-                      ? "Upgrade to send more quotes" 
-                      : "Upgrade for more quotes per month"}
-                  </p>
-                </div>
-              </div>
-              <Button 
-                onClick={() => upgradeMutation.mutate("basic")} 
-                disabled={upgradeMutation.isPending}
-                data-testid="button-upgrade"
-              >
-                {upgradeMutation.isPending ? "Loading..." : "Upgrade Now"}
               </Button>
             </CardContent>
           </Card>

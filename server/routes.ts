@@ -48,7 +48,7 @@ QUOTES:
 - Add line items for tiers, decorations, delivery, and custom items
 - Track quote status: Draft, Sent, Accepted, Declined, or Expired
 - Convert accepted quotes to orders for calendar tracking
-- Only sent quotes count toward monthly limits (drafts are free)
+- All plans include unlimited quotes
 
 ORDERS & CALENDAR:
 - Orders appear on the calendar organized by date
@@ -61,9 +61,9 @@ EXPRESS ITEMS (All plans):
 - Free plan: 1 express item, Basic: up to 5, Pro: unlimited
 
 SUBSCRIPTION PLANS:
-- Free: 15 quotes per month, 1 express item, unlimited leads, 7% platform fee on payments
-- Basic ($4.99/month): unlimited quotes + 5 express items, 5% platform fee
-- Pro ($9.99/month): unlimited quotes + unlimited express items, 3% platform fee
+- Free: unlimited quotes, 1 express item, unlimited leads, 7% platform fee on payments
+- Basic ($4.99/month): unlimited quotes, 5 express items, 5% platform fee
+- Pro ($9.99/month): unlimited quotes, unlimited express items, 3% platform fee
 - Upgrade anytime in Settings
 
 PAYMENT METHODS:
@@ -83,9 +83,7 @@ COMMON ISSUES:
 `;
 
 
-// Quote limits per plan (monthly)
-const FREE_QUOTE_LIMIT = 15;
-// Basic and Pro plans have unlimited quotes
+// All plans have unlimited quotes (processing-first model)
 
 // Platform fee percentages per plan
 const PLATFORM_FEE_FREE = 7;
@@ -1257,26 +1255,6 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Baker not found" });
       }
 
-      // Check quote limit for the baker's plan (including survey trial)
-      const plan = getEffectivePlan(baker);
-      let quoteLimit: number | null = FREE_QUOTE_LIMIT;
-      if (plan === "basic" || plan === "pro") {
-        quoteLimit = null; // unlimited
-      }
-      
-      if (quoteLimit !== null) {
-        const monthlyQuoteCount = await storage.getMonthlyQuoteCount(bakerId);
-        if (monthlyQuoteCount >= quoteLimit) {
-          return res.status(403).json({
-            message: "Quote limit reached",
-            limitReached: true,
-            limit: quoteLimit,
-            count: monthlyQuoteCount,
-            plan,
-          });
-        }
-      }
-
       const quote = await storage.getQuoteWithItems(req.params.id);
       if (!quote || quote.bakerId !== bakerId) {
         return res.status(404).json({ message: "Quote not found" });
@@ -2210,19 +2188,11 @@ export async function registerRoutes(
     const monthlyQuoteCount = await storage.getMonthlyQuoteCount(baker.id);
     const plan = getEffectivePlan(baker);
     
-    // Determine quote limit based on plan
-    let quoteLimit: number | null = FREE_QUOTE_LIMIT;
-    if (plan === "basic" || plan === "pro") {
-      quoteLimit = null; // unlimited
-    }
-    
-    const isAtLimit = quoteLimit !== null && monthlyQuoteCount >= quoteLimit;
-    
     res.json({
       plan,
       monthlyQuoteCount,
-      quoteLimit,
-      isAtLimit,
+      quoteLimit: null,
+      isAtLimit: false,
     });
   });
 

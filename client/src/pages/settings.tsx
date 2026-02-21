@@ -1,9 +1,9 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Copy, Check, Loader2, ExternalLink, CreditCard, Sparkles, Bell, HelpCircle, Zap, Camera, Upload, X, Image as ImageIcon, Plus, Trash2, Globe, Pencil, AlertCircle, CheckCircle2, QrCode } from "lucide-react";
+import { Check, Loader2, ExternalLink, CreditCard, Sparkles, Bell, HelpCircle, Zap, Camera, Upload, X, Image as ImageIcon, Plus, Globe, CheckCircle2 } from "lucide-react";
 import { useUpload } from "@/hooks/use-upload";
 import { InstructionModal } from "@/components/instruction-modal";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +28,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AVAILABLE_CURRENCIES } from "@/lib/calculator";
-import { downloadCalculatorQR } from "@/lib/qr-download";
 
 
 const profileSchema = z.object({
@@ -74,143 +73,9 @@ const passwordSchema = z
 
 type PasswordFormData = z.infer<typeof passwordSchema>;
 
-function SlugEditor({ currentSlug }: { currentSlug: string }) {
-  const [editing, setEditing] = useState(false);
-  const [slug, setSlug] = useState(currentSlug);
-  const [status, setStatus] = useState<"idle" | "checking" | "available" | "unavailable">("idle");
-  const [errorMsg, setErrorMsg] = useState("");
-  const { toast } = useToast();
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
-
-  useEffect(() => {
-    setSlug(currentSlug);
-  }, [currentSlug]);
-
-  const checkAvailability = useCallback((value: string) => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-
-    if (!value || value.length < 3) {
-      setStatus("unavailable");
-      setErrorMsg("Must be at least 3 characters");
-      return;
-    }
-    if (value === currentSlug) {
-      setStatus("idle");
-      setErrorMsg("");
-      return;
-    }
-
-    setStatus("checking");
-    debounceRef.current = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/bakers/check-slug/${encodeURIComponent(value)}`);
-        const data = await res.json();
-        if (data.available) {
-          setStatus("available");
-          setErrorMsg("");
-        } else {
-          setStatus("unavailable");
-          setErrorMsg(data.reason || "Not available");
-        }
-      } catch {
-        setStatus("unavailable");
-        setErrorMsg("Could not check availability");
-      }
-    }, 400);
-  }, [currentSlug]);
-
-  const updateSlugMutation = useMutation({
-    mutationFn: async (newSlug: string) => {
-      const res = await apiRequest("PATCH", "/api/bakers/me/slug", { slug: newSlug });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "Failed to update URL");
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      toast({ title: "Calculator URL updated" });
-      setEditing(false);
-      setStatus("idle");
-    },
-    onError: (error: Error) => {
-      toast({ title: "Failed to update URL", description: error.message, variant: "destructive" });
-    },
-  });
-
-  const handleSlugChange = (value: string) => {
-    const sanitized = value.toLowerCase().replace(/[^a-z0-9-]/g, "").replace(/-+/g, "-");
-    setSlug(sanitized);
-    checkAvailability(sanitized);
-  };
-
-  const handleSave = () => {
-    if (status === "available" && slug !== currentSlug) {
-      updateSlugMutation.mutate(slug);
-    }
-  };
-
-  const handleCancel = () => {
-    setSlug(currentSlug);
-    setEditing(false);
-    setStatus("idle");
-    setErrorMsg("");
-  };
-
-  if (!editing) {
-    return (
-      <div className="mt-3 flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">Custom URL:</span>
-        <code className="text-sm font-mono bg-muted px-2 py-1 rounded">/c/{currentSlug}</code>
-        <Button variant="ghost" size="icon" onClick={() => setEditing(true)} data-testid="button-edit-slug">
-          <Pencil className="h-4 w-4" />
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-3 space-y-2">
-      <Label className="text-sm text-muted-foreground">Customize your calculator URL</Label>
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground whitespace-nowrap">/c/</span>
-        <div className="relative flex-1">
-          <Input
-            value={slug}
-            onChange={(e) => handleSlugChange(e.target.value)}
-            placeholder="your-bakery-name"
-            className="font-mono text-sm pr-8"
-            data-testid="input-slug"
-          />
-          <div className="absolute right-2 top-1/2 -translate-y-1/2">
-            {status === "checking" && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-            {status === "available" && <CheckCircle2 className="h-4 w-4 text-green-600" />}
-            {status === "unavailable" && <AlertCircle className="h-4 w-4 text-destructive" />}
-          </div>
-        </div>
-        <Button
-          size="sm"
-          onClick={handleSave}
-          disabled={status !== "available" || updateSlugMutation.isPending}
-          data-testid="button-save-slug"
-        >
-          {updateSlugMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
-        </Button>
-        <Button variant="ghost" size="sm" onClick={handleCancel} data-testid="button-cancel-slug">
-          Cancel
-        </Button>
-      </div>
-      {errorMsg && <p className="text-xs text-destructive">{errorMsg}</p>}
-      {status === "available" && <p className="text-xs text-green-600">This URL is available</p>}
-    </div>
-  );
-}
-
 export default function SettingsPage() {
   const { baker } = useAuth();
   const { toast } = useToast();
-  const [copied, setCopied] = useState(false);
   const [fromStripeSuccess] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("from") === "stripe_success") {
@@ -225,14 +90,11 @@ export default function SettingsPage() {
   });
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [portfolioImages, setPortfolioImages] = useState<string[]>([]);
-  const [headerImage, setHeaderImage] = useState<string | null>(null);
   const [uploadingProfile, setUploadingProfile] = useState(false);
   const [uploadingPortfolio, setUploadingPortfolio] = useState(false);
-  const [uploadingHeader, setUploadingHeader] = useState(false);
   const [currency, setCurrency] = useState("USD");
   const profileInputRef = useRef<HTMLInputElement>(null);
   const portfolioInputRef = useRef<HTMLInputElement>(null);
-  const headerInputRef = useRef<HTMLInputElement>(null);
   const { uploadFile } = useUpload({});
 
   const profileForm = useForm<ProfileFormData>({
@@ -286,7 +148,6 @@ export default function SettingsPage() {
       });
       setProfilePhoto(baker.profilePhoto || null);
       setPortfolioImages((baker.portfolioImages || []).slice(0, 6));
-      setHeaderImage(baker.calculatorHeaderImage || null);
       setCurrency(baker.currency || "USD");
     }
   }, [baker, profileForm, paymentForm]);
@@ -445,10 +306,6 @@ export default function SettingsPage() {
     },
   });
 
-  const calculatorUrl = baker?.slug
-    ? `${window.location.origin}/c/${baker.slug}`
-    : "";
-
   const { data: subscription } = useQuery<{
     plan: string;
     monthlyQuoteCount: number;
@@ -594,54 +451,6 @@ export default function SettingsPage() {
     await updatePhotosMutation.mutateAsync({ portfolioImages: newPortfolioImages });
   };
 
-  const handleHeaderImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    if (!file.type.startsWith("image/")) {
-      toast({ title: "Please select an image file", variant: "destructive" });
-      return;
-    }
-    
-    setUploadingHeader(true);
-    try {
-      const result = await uploadFile(file);
-      if (result) {
-        const newHeaderImage = result.objectPath;
-        setHeaderImage(newHeaderImage);
-        await updatePhotosMutation.mutateAsync({ calculatorHeaderImage: newHeaderImage });
-      }
-    } catch (error) {
-      toast({ title: "Failed to upload header image", variant: "destructive" });
-    } finally {
-      setUploadingHeader(false);
-      if (headerInputRef.current) headerInputRef.current.value = "";
-    }
-  };
-
-  const handleRemoveHeaderImage = async () => {
-    setHeaderImage(null);
-    await updatePhotosMutation.mutateAsync({ calculatorHeaderImage: null });
-  };
-
-  const copyCalculatorUrl = async () => {
-    navigator.clipboard.writeText(calculatorUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-    toast({ title: "Link copied to clipboard" });
-    
-    // Track event for retention segmentation
-    try {
-      await fetch("/api/track-event", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ eventType: "quick_quote_link_copied" }),
-      });
-    } catch {
-      // Silent fail - tracking is not critical
-    }
-  };
 
   return (
     <DashboardLayout title="Settings" actions={<InstructionModal page="settings" />}>
@@ -657,127 +466,6 @@ export default function SettingsPage() {
             </div>
           </div>
         )}
-        <Card>
-          <CardHeader>
-            <CardTitle>Order Page Link</CardTitle>
-            <CardDescription>
-              Share this link with customers to receive cake estimates
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2">
-              <Input
-                value={calculatorUrl}
-                readOnly
-                className="font-mono text-sm"
-                data-testid="input-calculator-url"
-              />
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={copyCalculatorUrl}
-                data-testid="button-copy-url"
-              >
-                {copied ? (
-                  <Check className="h-4 w-4 text-green-600" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </Button>
-              <Button variant="outline" size="icon" asChild>
-                <a
-                  href={calculatorUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-testid="link-open-calculator"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={async () => {
-                  try {
-                    await downloadCalculatorQR(calculatorUrl, baker?.businessName || undefined);
-                    toast({
-                      title: "QR code downloaded",
-                      description: "Tip: Add this QR to your packaging, pop-up booth, or business cards to get more orders.",
-                    });
-                  } catch {
-                    toast({
-                      title: "Download failed",
-                      description: "Could not generate QR code.",
-                      variant: "destructive",
-                    });
-                  }
-                }}
-                data-testid="button-download-qr"
-              >
-                <QrCode className="h-4 w-4" />
-              </Button>
-            </div>
-            <SlugEditor currentSlug={baker?.slug || ""} />
-
-            <div className="mt-4 space-y-2">
-              <Label className="text-sm font-medium">Order Page Header Image</Label>
-              <p className="text-xs text-muted-foreground">This image appears at the top of your order page and in social media previews.</p>
-              <div className="mt-2">
-                {headerImage ? (
-                  <div className="relative rounded-md overflow-hidden border">
-                    <img
-                      src={headerImage}
-                      alt="Calculator header"
-                      className="w-full h-40 object-cover"
-                      data-testid="img-header-preview"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-full h-40 rounded-md border border-dashed flex flex-col items-center justify-center gap-2 text-muted-foreground bg-muted/50">
-                    <ImageIcon className="h-8 w-8" />
-                    <span className="text-xs">No header image set</span>
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <input
-                  ref={headerInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleHeaderImageUpload}
-                  data-testid="input-header-upload"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => headerInputRef.current?.click()}
-                  disabled={uploadingHeader}
-                  data-testid="button-upload-header"
-                >
-                  {uploadingHeader ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Upload className="h-4 w-4 mr-2" />
-                  )}
-                  {uploadingHeader ? "Uploading..." : "Upload Image"}
-                </Button>
-                {headerImage && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRemoveHeaderImage}
-                    disabled={updatePhotosMutation.isPending}
-                    data-testid="button-remove-header"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Remove
-                  </Button>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-4">
@@ -853,7 +541,7 @@ export default function SettingsPage() {
             ) : (
               <div className="space-y-4">
                 <div className="text-sm text-muted-foreground">
-                  <p>You're on the free plan with <strong>{subscription?.monthlyQuoteCount || 0}/{subscription?.quoteLimit || 15}</strong> quotes sent this month.</p>
+                  <p>You're on the free plan with unlimited quotes. You've sent <strong>{subscription?.monthlyQuoteCount || 0}</strong> quotes this month.</p>
                 </div>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="bg-muted/50 border rounded-lg p-4">

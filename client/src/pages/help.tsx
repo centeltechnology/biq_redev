@@ -510,7 +510,7 @@ export default function HelpPage() {
                 <div className="space-y-2">
                   <h4 className="font-medium">Free Plan</h4>
                   <p className="text-sm text-muted-foreground">
-                    15 quotes per month, unlimited leads, 7% platform fee on payments. Perfect for getting started.
+                    Unlimited quotes, 1 Express Item, unlimited leads, 7% platform fee on payments. Perfect for getting started.
                   </p>
                 </div>
                 <div className="space-y-2">
