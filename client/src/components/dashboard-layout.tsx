@@ -345,7 +345,7 @@ export function DashboardLayout({ children, title, actions }: DashboardLayoutPro
                     }}
                     data-testid="button-review-calculator-pricing"
                   >
-                    Review Calculator Pricing
+                    Review Pricing
                   </Button>
                   <Button
                     variant="ghost"

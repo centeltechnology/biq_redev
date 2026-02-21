@@ -659,7 +659,7 @@ export default function SettingsPage() {
         )}
         <Card>
           <CardHeader>
-            <CardTitle>Public Calculator Link</CardTitle>
+            <CardTitle>Order Page Link</CardTitle>
             <CardDescription>
               Share this link with customers to receive cake estimates
             </CardDescription>
@@ -720,8 +720,8 @@ export default function SettingsPage() {
             <SlugEditor currentSlug={baker?.slug || ""} />
 
             <div className="mt-4 space-y-2">
-              <Label className="text-sm font-medium">Calculator Header Image</Label>
-              <p className="text-xs text-muted-foreground">This image appears at the top of your public calculator page and in social media previews.</p>
+              <Label className="text-sm font-medium">Order Page Header Image</Label>
+              <p className="text-xs text-muted-foreground">This image appears at the top of your order page and in social media previews.</p>
               <div className="mt-2">
                 {headerImage ? (
                   <div className="relative rounded-md overflow-hidden border">
@@ -808,7 +808,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Zap className="h-4 w-4 text-primary shrink-0" />
-                    <span>Unlimited Quick Order items</span>
+                    <span>Unlimited express items</span>
                   </div>
                 </div>
                 <Button 
@@ -829,7 +829,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Zap className="h-4 w-4 text-primary shrink-0" />
-                    <span>Up to 5 Quick Order items</span>
+                    <span>Up to 5 express items</span>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -860,7 +860,7 @@ export default function SettingsPage() {
                     <h4 className="font-medium">Basic - $4.99/month</h4>
                     <ul className="text-sm text-muted-foreground mt-2 space-y-1">
                       <li>Unlimited quotes</li>
-                      <li>Up to 5 Quick Order items</li>
+                      <li>Up to 5 express items</li>
                       <li>5% platform fee (vs 7% free)</li>
                       <li>Cancel anytime</li>
                     </ul>
@@ -881,7 +881,7 @@ export default function SettingsPage() {
                     </h4>
                     <ul className="text-sm text-muted-foreground mt-2 space-y-1">
                       <li>Unlimited quotes</li>
-                      <li>Unlimited Quick Order items</li>
+                      <li>Unlimited express items</li>
                       <li>Lowest 3% platform fee</li>
                       <li>Cancel anytime</li>
                     </ul>
@@ -1055,14 +1055,14 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle>Profile Photo & Portfolio</CardTitle>
             <CardDescription>
-              Upload your profile photo and showcase your work on your public calculator
+              Upload your profile photo and showcase your work on your order page
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
               <Label className="text-sm font-medium">Profile Photo</Label>
               <p className="text-sm text-muted-foreground mb-3">
-                This photo appears next to your business name on the calculator
+                This photo appears next to your business name on the order page
               </p>
               <div className="flex items-center gap-4">
                 {profilePhoto ? (
@@ -1122,7 +1122,7 @@ export default function SettingsPage() {
             <div className="border-t pt-6">
               <Label className="text-sm font-medium">Portfolio ({portfolioImages.length}/6)</Label>
               <p className="text-sm text-muted-foreground mb-3">
-                Showcase your best work - customers see this gallery on your calculator page
+                Showcase your best work - customers see this gallery on your order page
               </p>
               <div className="grid grid-cols-3 gap-3 mb-4">
                 {portfolioImages.map((image, index) => (
@@ -1629,7 +1629,7 @@ export default function SettingsPage() {
               Quick Order Settings
             </CardTitle>
             <CardDescription>
-              Control Quick Order display. You can also toggle visibility for each item in the Pricing Calculator.
+              Control Quick Order display. You can also toggle visibility for each item in Express Items.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1673,7 +1673,7 @@ export default function SettingsPage() {
               </div>
             )}
             <p className="text-xs text-muted-foreground">
-              This sets a global limit. You can also control visibility per-item from the Pricing Calculator page using the eye icon.
+              This sets a global limit. You can also control visibility per-item from the Express Items page using the eye icon.
             </p>
           </CardContent>
         </Card>

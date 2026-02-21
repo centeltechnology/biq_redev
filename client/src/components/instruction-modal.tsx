@@ -27,7 +27,7 @@ interface PageInstructions {
 
 const PAGE_INSTRUCTIONS: Record<PageKey, PageInstructions> = {
   "pricing-calculator": {
-    title: "Price Calculator",
+    title: "Express Items",
     icon: Calculator,
     description: "Calculate your costs and set profitable prices for any cake or treat.",
     sections: [
@@ -45,11 +45,11 @@ const PAGE_INSTRUCTIONS: Record<PageKey, PageInstructions> = {
       },
       {
         title: "Adding to Quotes",
-        content: "From the Quote Builder, use 'Add from Price Calculator' to search and add any of your saved calculations as line items, complete with cost breakdown tracking."
+        content: "From the Quote Builder, use 'Add from Express Items' to search and add any of your saved calculations as line items, complete with cost breakdown tracking."
       },
       {
-        title: "Featured Items (Basic & Pro)",
-        content: "Basic and Pro users can feature calculations on their public calculator. Customers can select these items directly for quick ordering. Basic: 10 items, Pro: unlimited. Use the eye icon to control visibility."
+        title: "Express Items",
+        content: "Showcase your best items on your order page. Customers can select these items directly for quick ordering. Free: 1 item, Basic: 5 items, Pro: unlimited. Use the eye icon to control visibility."
       }
     ],
     proTip: "Set up calculations for your most popular items to speed up your quoting process!"
@@ -65,11 +65,11 @@ const PAGE_INSTRUCTIONS: Record<PageKey, PageInstructions> = {
       },
       {
         title: "Line Items",
-        content: "Add items manually or pull them from your Price Calculator. Items from the calculator show a calculator icon with a cost breakdown tooltip when you hover over it."
+        content: "Add items manually or pull them from your Express Items. Items from the calculator show a calculator icon with a cost breakdown tooltip when you hover over it."
       },
       {
-        title: "From Price Calculator",
-        content: "Click 'Add from Price Calculator' to search your saved calculations. Select one to add it as a line item with all the pricing details preserved."
+        title: "From Express Items",
+        content: "Click 'Add from Express Items' to search your saved calculations. Select one to add it as a line item with all the pricing details preserved."
       },
       {
         title: "Sending Quotes",
@@ -89,7 +89,7 @@ const PAGE_INSTRUCTIONS: Record<PageKey, PageInstructions> = {
     sections: [
       {
         title: "Cake Pricing",
-        content: "Set base prices by cake size and shape. These prices appear on your public calculator when customers build their cake requests."
+        content: "Set base prices by cake size and shape. These prices appear on your order page when customers build their cake requests."
       },
       {
         title: "Flavor & Frosting",
@@ -117,11 +117,11 @@ const PAGE_INSTRUCTIONS: Record<PageKey, PageInstructions> = {
     sections: [
       {
         title: "Bakery Profile",
-        content: "Update your bakery name, contact information, and public calculator URL slug. Your slug appears in your public calculator link that you share with customers."
+        content: "Update your bakery name, contact information, and order page URL slug. Your slug appears in your order page link that you share with customers."
       },
       {
         title: "Subscription Plan",
-        content: "View your current plan and quote usage. Upgrade to Basic or Pro for more monthly quotes and premium features like Fast Quote."
+        content: "View your current plan and quote usage. Upgrade to Basic or Pro for more monthly quotes and premium features like Express Items."
       },
       {
         title: "Email Notifications",
@@ -136,7 +136,7 @@ const PAGE_INSTRUCTIONS: Record<PageKey, PageInstructions> = {
         content: "Export your customer data, quotes, and orders for backup or use in other systems."
       }
     ],
-    proTip: "Customize your public calculator URL to match your bakery brand!"
+    proTip: "Customize your order page URL to match your bakery brand!"
   }
 };
 

@@ -24,7 +24,7 @@ import {
 const VIDEOS = [
   { id: "WHdEtrAWE2A", title: "Dashboard Walkthrough", description: "See how to navigate your dashboard and manage orders", testId: "dashboard" },
   { id: "dswX7yLHlN4", title: "Settings Overview", description: "Learn how to configure your account and preferences", testId: "settings" },
-  { id: "EByQ4x9wCQs", title: "Pricing Calculator", description: "Set up your pricing and share your order page link", testId: "calculator" },
+  { id: "EByQ4x9wCQs", title: "Express Items", description: "Set up your pricing and share your order page link", testId: "calculator" },
 ];
 
 export default function HelpPage() {
@@ -137,7 +137,7 @@ export default function HelpPage() {
                 <div className="space-y-2">
                   <h4 className="font-medium">2. Configure Your Pricing</h4>
                   <p className="text-sm text-muted-foreground">
-                    Go to Calculator Pricing in the dashboard to set your prices for cake sizes, flavors, decorations, and addons.
+                    Go to Pricing in the dashboard to set your prices for cake sizes, flavors, decorations, and addons.
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -236,7 +236,7 @@ export default function HelpPage() {
             <Card className="hover-elevate">
               <CardHeader>
                 <Calculator className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>Price Calculator</CardTitle>
+                <CardTitle>Express Items</CardTitle>
                 <CardDescription>Calculate cost-based pricing</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -249,7 +249,7 @@ export default function HelpPage() {
                 <div className="space-y-2">
                   <h4 className="font-medium">Save Calculations</h4>
                   <p className="text-sm text-muted-foreground">
-                    Save your calculations for reference when setting prices in Calculator Pricing.
+                    Save your calculations for reference when setting prices in Pricing.
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -267,26 +267,26 @@ export default function HelpPage() {
                   <Zap className="h-10 w-10 text-primary mb-2" />
                   <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">Basic & Pro</span>
                 </div>
-                <CardTitle>Fast Quote</CardTitle>
+                <CardTitle>Express Items</CardTitle>
                 <CardDescription>Quick ordering for popular items</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <h4 className="font-medium">Feature Your Best Items</h4>
+                  <h4 className="font-medium">Showcase Your Best Items</h4>
                   <p className="text-sm text-muted-foreground">
-                    Save a pricing calculation, then click the star to feature it on your public calculator. Control visibility with the eye icon.
+                    Save a pricing calculation, then click the star to feature it on your order page. Control visibility with the eye icon.
                   </p>
                 </div>
                 <div className="space-y-2">
                   <h4 className="font-medium">Plan Limits</h4>
                   <p className="text-sm text-muted-foreground">
-                    Basic plan: up to 5 featured items. Pro plan: unlimited featured items. Free plan does not include Fast Quote.
+                    Basic plan: up to 5 express items. Pro plan: unlimited express items. Free plan does not include Express Items.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">Quick Quote Creation</h4>
+                  <h4 className="font-medium">Express Items</h4>
                   <p className="text-sm text-muted-foreground">
-                    Fast Quote leads show a special badge. Click "Quick Quote" to create a quote with the item name, price, and details pre-filled.
+                    Express Items leads show a special badge. Click "Quick Quote" to create a quote with the item name, price, and details pre-filled.
                   </p>
                 </div>
               </CardContent>
@@ -323,7 +323,7 @@ export default function HelpPage() {
             <Card className="hover-elevate">
               <CardHeader>
                 <Settings className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>Calculator Pricing</CardTitle>
+                <CardTitle>Pricing</CardTitle>
                 <CardDescription>Customize your prices</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -392,7 +392,7 @@ export default function HelpPage() {
                 <div className="space-y-2">
                   <h4 className="font-medium">Treats</h4>
                   <p className="text-sm text-muted-foreground">
-                    Cupcakes, cake pops, cookies, brownies, dipped strawberries, and more. Enable or disable items in Calculator Pricing.
+                    Cupcakes, cake pops, cookies, brownies, dipped strawberries, and more. Enable or disable items in Pricing.
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -448,7 +448,7 @@ export default function HelpPage() {
                 <div className="space-y-2">
                   <h4 className="font-medium">Caption Templates</h4>
                   <p className="text-sm text-muted-foreground">
-                    Choose from General, Wedding, Events, Featured Items, or Seasonal caption categories. Each comes with ready-to-use captions you can customize before posting.
+                    Choose from General, Wedding, Events, Express Items, or Seasonal caption categories. Each comes with ready-to-use captions you can customize before posting.
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -466,7 +466,7 @@ export default function HelpPage() {
                 <div className="space-y-2">
                   <h4 className="font-medium">Share Individual Items</h4>
                   <p className="text-sm text-muted-foreground">
-                    If you have featured items (Fast Quote), you can share each one individually on social media with its own link and caption.
+                    If you have express items (Express Items), you can share each one individually on social media with its own link and caption.
                   </p>
                 </div>
               </CardContent>
@@ -488,7 +488,7 @@ export default function HelpPage() {
                 <div className="space-y-2">
                   <h4 className="font-medium">How Rewards Work</h4>
                   <p className="text-sm text-muted-foreground">
-                    On a paid plan: earn 1 free month of your subscription for each baker who signs up and subscribes. On the free plan: earn 1 month of Fast Quote access per referral. Stack up to 12 months of credits.
+                    On a paid plan: earn 1 free month of your subscription for each baker who signs up and subscribes. On the free plan: earn 1 month of Express Items access per referral. Stack up to 12 months of credits.
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -516,13 +516,13 @@ export default function HelpPage() {
                 <div className="space-y-2">
                   <h4 className="font-medium">Basic - $4.99/month</h4>
                   <p className="text-sm text-muted-foreground">
-                    Unlimited quotes + Fast Quote with up to 5 featured items. Lower 5% platform fee.
+                    Unlimited quotes + Express Items with up to 5 express items. Lower 5% platform fee.
                   </p>
                 </div>
                 <div className="space-y-2">
                   <h4 className="font-medium">Pro - $9.99/month</h4>
                   <p className="text-sm text-muted-foreground">
-                    Unlimited quotes + unlimited Fast Quote featured items. Lowest 3% platform fee. Upgrade anytime in Settings.
+                    Unlimited quotes + unlimited express items. Lowest 3% platform fee. Upgrade anytime in Settings.
                   </p>
                 </div>
               </CardContent>

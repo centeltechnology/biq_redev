@@ -365,7 +365,7 @@ export default function HomePage() {
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                      <span className="text-sm text-muted-foreground">5 featured items (Fast Quote)</span>
+                      <span className="text-sm text-muted-foreground">5 express items</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
@@ -409,7 +409,7 @@ export default function HomePage() {
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                      <span className="text-sm text-muted-foreground">Unlimited featured items</span>
+                      <span className="text-sm text-muted-foreground">Unlimited express items</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />

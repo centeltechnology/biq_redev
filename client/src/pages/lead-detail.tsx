@@ -229,7 +229,7 @@ export default function LeadDetailPage() {
                       </div>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      This customer selected a featured item from your Quick Order options. 
+                      This customer selected an express item from your Quick Order options. 
                       Click "Quick Quote" above to create a quote with this item pre-filled.
                     </p>
                   </div>

@@ -299,7 +299,7 @@ export default function OnboardingPage() {
             <CardContent className="pt-6 space-y-6">
               <div>
                 <h2 className="text-lg font-semibold mb-1">Tell us about your bakery</h2>
-                <p className="text-sm text-muted-foreground">This info appears on your public calculator page.</p>
+                <p className="text-sm text-muted-foreground">This info appears on your order page.</p>
               </div>
 
               <div className="space-y-2">

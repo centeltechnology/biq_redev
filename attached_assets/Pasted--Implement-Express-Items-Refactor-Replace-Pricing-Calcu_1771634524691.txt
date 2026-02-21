@@ -1,0 +1,103 @@
+# Implement Express Items Refactor (Replace Pricing Calculator)
+
+## Goal
+Replace the "Pricing Calculator" feature name and navigation with "Express Items" and properly integrate it into the Pricing section.
+
+Do NOT change:
+- Calculation logic
+- Featured item rendering logic
+- Order page logic
+- Database schema (unless strictly required for gating enforcement)
+
+---
+
+## Step 1 — Locate Existing Pricing Calculator Route
+Identify:
+- Route path
+- Component file
+- Where featured items are stored in DB
+- Plan gating logic
+
+---
+
+## Step 2 — Rename UI Labels
+Replace all user-facing references:
+- "Pricing Calculator"
+- "Featured Items"
+- "Fast Quote"
+
+With:
+
+"Express Items"
+
+Ensure:
+- Nav labels updated
+- Page headers updated
+- Button text updated
+- Tooltips/help text updated
+
+Do NOT rename database tables unless necessary.
+
+---
+
+## Step 3 — Integrate Into Pricing Page
+
+### Preferred Approach:
+Convert Express Items into a tab/section inside the existing Pricing page.
+
+Pricing page structure:
+- Tab 1: Base Pricing
+- Tab 2: Express Items
+- Tab 3: Saved Calculations (if applicable)
+
+If tab integration is complex, acceptable fallback:
+- Keep Express Items as its own route
+- Add a prominent button inside Pricing:
+  "Manage Express Items →"
+
+---
+
+## Step 4 — Update Plan Gating Logic
+
+Free Plan:
+- Max 1 active Express Item
+
+Basic Plan:
+- Max 5 active Express Items
+
+Pro Plan:
+- Unlimited Express Items
+
+Enforce at:
+- Creation attempt
+- Activation toggle
+
+If limit exceeded:
+- Show upgrade prompt
+
+---
+
+## Step 5 — Update Helper Copy
+
+Express Items page header:
+"Create ready-to-request offers that appear at the top of your Order Page."
+
+Add short helper text:
+"Perfect for specials, bundles, and high-demand items."
+
+---
+
+## Step 6 — QA Checklist
+- Confirm Free users can create only 1 active Express Item
+- Confirm Basic/Pro limits enforced
+- Confirm Express Items still appear at top of public Order Page
+- Confirm quantity limits still work
+- Confirm no references to "Pricing Calculator" remain in UI
+
+---
+
+## Deliverables
+- Files changed
+- Confirmed route integration
+- Confirmed gating enforcement logic
+- Any legacy references found and updated

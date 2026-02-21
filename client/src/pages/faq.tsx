@@ -14,15 +14,15 @@ const faqs = [
     questions: [
       {
         q: "How do I create my calculator?",
-        a: "When you sign up for BakerIQ, your unique public calculator is created automatically. It's available at a URL based on your business name (e.g., /c/your-bakery-name). You can find your calculator URL in the Settings page of your dashboard."
+        a: "When you sign up for BakerIQ, your unique order page is created automatically. It's available at a URL based on your business name (e.g., /c/your-bakery-name). You can find your order page URL in the Settings page of your dashboard."
       },
       {
         q: "How do I set my pricing?",
-        a: "Go to 'Calculator Pricing' in your dashboard. There you can set prices for cake sizes, adjust pricing for premium flavors and frostings, configure decoration prices, and set up addons like dipped strawberries or delivery fees."
+        a: "Go to 'Pricing' in your dashboard. There you can set prices for cake sizes, adjust pricing for premium flavors and frostings, configure decoration prices, and set up addons like dipped strawberries or delivery fees."
       },
       {
         q: "Can I customize what options appear in my calculator?",
-        a: "Yes! For treats, you can enable or disable specific items (cupcakes, cake pops, cookies, etc.) from Calculator Pricing. For cakes, all options are available with fully customizable pricing."
+        a: "Yes! For treats, you can enable or disable specific items (cupcakes, cake pops, cookies, etc.) from Pricing. For cakes, all options are available with fully customizable pricing."
       },
       {
         q: "What can customers order through the calculator?",
@@ -64,7 +64,7 @@ const faqs = [
       },
       {
         q: "Can I track deposits and payments?",
-        a: "Yes! Each order tracks total amount, deposit paid, and balance due. You can configure your default deposit percentage and accepted payment methods in Calculator Pricing settings."
+        a: "Yes! Each order tracks total amount, deposit paid, and balance due. You can configure your default deposit percentage and accepted payment methods in Pricing settings."
       }
     ]
   },
@@ -73,23 +73,23 @@ const faqs = [
     questions: [
       {
         q: "How do I figure out what to charge for my baked goods?",
-        a: "Use the Price Calculator in your dashboard. Enter your material costs, estimated labor time, hourly rate, and overhead percentage to get a suggested price. You can save calculations for reference and use them to set your public calculator prices."
+        a: "Use the Express Items page in your dashboard. Enter your material costs, estimated labor time, hourly rate, and overhead percentage to get a suggested price. You can save calculations for reference and use them to set your order page prices."
       },
       {
-        q: "What is the Price Calculator?",
-        a: "The Price Calculator is an internal tool to help you determine fair prices. It calculates: Material Cost + (Labor Hours x Hourly Rate) + Overhead = Suggested Price. It also shows your profit margin so you can make informed pricing decisions."
+        q: "What is Express Items?",
+        a: "Express Items is an internal tool to help you determine fair prices. It calculates: Material Cost + (Labor Hours x Hourly Rate) + Overhead = Suggested Price. It also shows your profit margin so you can make informed pricing decisions."
       },
       {
         q: "What hourly rate should I use?",
-        a: "Most home bakers charge between $20-35 per hour. Consider your skill level, local market rates, and the complexity of your work. The Price Calculator tool shows tips to help you decide."
+        a: "Most home bakers charge between $20-35 per hour. Consider your skill level, local market rates, and the complexity of your work. The Express Items tool shows tips to help you decide."
       },
       {
         q: "How do I set up addons like dipped strawberries?",
-        a: "Go to Calculator Pricing, scroll to the Addons section. You can set prices for pre-configured addons. Some addons like Dipped Strawberries have a flat price, while others like Full Sweets Table are priced per attendee."
+        a: "Go to Pricing, scroll to the Addons section. You can set prices for pre-configured addons. Some addons like Dipped Strawberries have a flat price, while others like Full Sweets Table are priced per attendee."
       },
       {
         q: "Can I set up delivery fees?",
-        a: "Yes! In Calculator Pricing, there's a Delivery & Setup section where you can set prices for Standard Delivery, Express/Rush Delivery, and Full Setup Service options."
+        a: "Yes! In Pricing, there's a Delivery & Setup section where you can set prices for Standard Delivery, Express/Rush Delivery, and Full Setup Service options."
       },
       {
         q: "What payment methods can I accept?",
@@ -97,7 +97,7 @@ const faqs = [
       },
       {
         q: "How do deposits work?",
-        a: "Set your default deposit percentage in Calculator Pricing. When you create quotes and orders, the deposit amount is automatically calculated. You can track deposit status on each order."
+        a: "Set your default deposit percentage in Pricing. When you create quotes and orders, the deposit amount is automatically calculated. You can track deposit status on each order."
       }
     ]
   },
@@ -122,7 +122,7 @@ const faqs = [
       },
       {
         q: "How does BakerIQ compare to other platforms?",
-        a: "BakerIQ is an all-in-one tool that replaces separate subscriptions for a website builder, booking system, and invoicing software. For comparison: HoneyBook charges $19-$39/month plus 2.9% + $0.25 per transaction. 17hats charges $15-$60/month plus payment processing fees. Square charges 3.5% + $0.15 per online transaction with no quoting tools. With BakerIQ Pro at just $9.99/month and 3% platform fee, you get a public calculator, lead capture, quoting, order calendar, and payment processing — all in one place."
+        a: "BakerIQ is an all-in-one tool that replaces separate subscriptions for a website builder, booking system, and invoicing software. For comparison: HoneyBook charges $19-$39/month plus 2.9% + $0.25 per transaction. 17hats charges $15-$60/month plus payment processing fees. Square charges 3.5% + $0.15 per online transaction with no quoting tools. With BakerIQ Pro at just $9.99/month and 3% platform fee, you get an order page, lead capture, quoting, order calendar, and payment processing — all in one place."
       },
       {
         q: "Can customers pay a deposit instead of the full amount?",
@@ -168,7 +168,7 @@ const faqs = [
       },
       {
         q: "Can I have multiple calculators?",
-        a: "Currently, each BakerIQ account has one public calculator. If you need multiple calculators for different business lines, you would need separate accounts."
+        a: "Currently, each BakerIQ account has one order page. If you need multiple order pages for different business lines, you would need separate accounts."
       },
       {
         q: "How do I share my calculator?",
@@ -176,7 +176,7 @@ const faqs = [
       },
       {
         q: "What is the Share page?",
-        a: "The Share page is a built-in tool in your dashboard that makes it easy to promote your calculator on social media. It includes sharing buttons for all major platforms, caption templates organized by category (General, Wedding, Events, Featured Items, Seasonal), a social media banner creator with pre-made designs and custom photo upload, a downloadable QR code, and per-item sharing for featured items."
+        a: "The Share page is a built-in tool in your dashboard that makes it easy to promote your calculator on social media. It includes sharing buttons for all major platforms, caption templates organized by category (General, Wedding, Events, Express Items, Seasonal), a social media banner creator with pre-made designs and custom photo upload, a downloadable QR code, and per-item sharing for express items."
       },
       {
         q: "How do I create a social media banner?",
@@ -205,7 +205,7 @@ const faqs = [
     questions: [
       {
         q: "What plans are available?",
-        a: "BakerIQ offers three plans: Free (15 quotes/month, 7% platform fee), Basic ($4.99/month for unlimited quotes + 5 featured items, 5% fee), and Pro ($9.99/month for unlimited quotes + unlimited featured items, 3% fee). All plans include unlimited leads and Stripe Connect for accepting payments."
+        a: "BakerIQ offers three plans: Free (15 quotes/month, 7% platform fee), Basic ($4.99/month for unlimited quotes + 5 express items, 5% fee), and Pro ($9.99/month for unlimited quotes + unlimited express items, 3% fee). All plans include unlimited leads and Stripe Connect for accepting payments."
       },
       {
         q: "What counts toward my quote limit?",
@@ -213,7 +213,7 @@ const faqs = [
       },
       {
         q: "What's the difference between Basic and Pro?",
-        a: "Basic ($4.99/mo) gives you unlimited quotes, up to 5 featured items, and a 5% platform fee. Pro ($9.99/mo) gives you unlimited quotes, unlimited featured items, and the lowest 3% platform fee. Both plans include all core features like lead management, customer tracking, and email notifications."
+        a: "Basic ($4.99/mo) gives you unlimited quotes, up to 5 express items, and a 5% platform fee. Pro ($9.99/mo) gives you unlimited quotes, unlimited express items, and the lowest 3% platform fee. Both plans include all core features like lead management, customer tracking, and email notifications."
       },
       {
         q: "How do I upgrade my plan?",
@@ -230,7 +230,7 @@ const faqs = [
     questions: [
       {
         q: "How does the referral program work?",
-        a: "Every BakerIQ baker gets a unique referral link. When someone signs up using your link and subscribes to a paid plan, you earn a reward. Paid plan bakers get 1 free month of their subscription. Free plan bakers get 1 month of Fast Quote access. You can earn up to 12 months of stacked credits."
+        a: "Every BakerIQ baker gets a unique referral link. When someone signs up using your link and subscribes to a paid plan, you earn a reward. Paid plan bakers get 1 free month of their subscription. Free plan bakers get 1 month of Express Items access. You can earn up to 12 months of stacked credits."
       },
       {
         q: "Where do I find my referral link?",
@@ -242,7 +242,7 @@ const faqs = [
       },
       {
         q: "Is there a limit to how many referrals I can make?",
-        a: "You can refer as many bakers as you like. The credit cap is 12 months — once you've earned 12 months of free subscription (or Fast Quote access), additional referrals won't add more credits."
+        a: "You can refer as many bakers as you like. The credit cap is 12 months — once you've earned 12 months of free subscription (or Express Items access), additional referrals won't add more credits."
       },
       {
         q: "What's the difference between the referral program and the affiliate program?",
@@ -255,31 +255,31 @@ const faqs = [
     ]
   },
   {
-    category: "Fast Quote",
+    category: "Express Items",
     questions: [
       {
-        q: "What is Fast Quote?",
-        a: "Fast Quote lets you feature your pricing calculations on your public calculator. Customers can select a featured item and submit an inquiry in just a few clicks, skipping the full cake/treat builder. Available on Basic and Pro plans."
+        q: "What is Express Items?",
+        a: "Express Items lets you feature your pricing calculations on your order page. Customers can select an express item and submit an inquiry in just a few clicks, skipping the full cake/treat builder. Available on Basic and Pro plans."
       },
       {
         q: "How do I feature an item?",
-        a: "Go to Price Calculator in your dashboard and save a pricing calculation. Then click the star icon next to any saved calculation to feature it. Use the eye icon to control whether it appears in Quick Order. You can unfeature it anytime by clicking the star again."
+        a: "Go to Express Items in your dashboard and save a pricing calculation. Then click the star icon next to any saved calculation to feature it. Use the eye icon to control whether it appears in Quick Order. You can unfeature it anytime by clicking the star again."
       },
       {
-        q: "What are the plan limits for Fast Quote?",
-        a: "Free plan: Fast Quote is not available. Basic plan ($4.99/month): Up to 5 featured items. Pro plan ($9.99/month): Unlimited featured items. The limits only apply to how many items you can feature, not how many orders you receive."
+        q: "What are the plan limits for Express Items?",
+        a: "Free plan: Express Items is not available. Basic plan ($4.99/month): Up to 5 express items. Pro plan ($9.99/month): Unlimited express items. The limits only apply to how many items you can feature, not how many orders you receive."
       },
       {
-        q: "Where do featured items appear?",
-        a: "Featured items appear at the top of your public calculator page in a special 'Quick Order' section with a lightning bolt icon. Use the eye icon in Price Calculator to control which featured items show in Quick Order."
+        q: "Where do express items appear?",
+        a: "Express items appear at the top of your order page in a special 'Quick Order' section with a lightning bolt icon. Use the eye icon in Express Items to control which express items show in Quick Order."
       },
       {
-        q: "How do Fast Quote leads work?",
-        a: "When a customer orders through Fast Quote, the lead appears in your dashboard with a special lightning bolt badge. You can click 'Quick Quote' to instantly create a quote with the item name, price, and details pre-filled."
+        q: "How do Express Items leads work?",
+        a: "When a customer orders through Express Items, the lead appears in your dashboard with a special lightning bolt badge. You can click 'Quick Quote' to instantly create a quote with the item name, price, and details pre-filled."
       },
       {
         q: "Why can't I feature items?",
-        a: "Fast Quote requires at least the Basic plan ($4.99/month). If you're on the Free plan, upgrade in Settings to unlock Fast Quote. Basic allows 5 featured items, Pro allows unlimited."
+        a: "Express Items requires at least the Basic plan ($4.99/month). If you're on the Free plan, upgrade in Settings to unlock Express Items. Basic allows 5 express items, Pro allows unlimited."
       }
     ]
   },
@@ -305,7 +305,7 @@ const faqs = [
     questions: [
       {
         q: "Why isn't my calculator showing my updated prices?",
-        a: "Prices update immediately after you save them in Calculator Pricing. Try refreshing your browser or clearing your cache. If prices still don't appear, make sure you clicked 'Save Prices' after making changes."
+        a: "Prices update immediately after you save them in Pricing. Try refreshing your browser or clearing your cache. If prices still don't appear, make sure you clicked 'Save Prices' after making changes."
       },
       {
         q: "A customer says they didn't receive an email - what should I do?",

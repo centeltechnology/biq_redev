@@ -66,7 +66,7 @@ export default function PrivacyPage() {
                 <div>
                   <h3 className="font-medium mb-2">Customer Data</h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    When your customers use your public calculator, we collect their name, email, phone number, event details, and cake/treat preferences. This information is stored in your account and accessible only to you.
+                    When your customers use your order page, we collect their name, email, phone number, event details, and cake/treat preferences. This information is stored in your account and accessible only to you.
                   </p>
                 </div>
                 <div>

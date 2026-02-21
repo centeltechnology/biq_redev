@@ -28,15 +28,15 @@ const SUPPORT_KNOWLEDGE_BASE = `
 BakerIQ is a lead capture and quote management tool for custom cake bakers.
 
 GETTING STARTED:
-- When you sign up, your unique public calculator is created automatically at /c/your-bakery-slug
-- Configure pricing in "Calculator Pricing" in your dashboard
-- Share your calculator URL on your website, social media, or with customers
+- When you sign up, your unique order page is created automatically at /c/your-bakery-slug
+- Configure pricing in "Pricing" in your dashboard
+- Share your order page URL on your website, social media, or with customers
 
 PRICING:
-- Set prices for cake sizes in Calculator Pricing - these form the base of estimates
+- Set prices for cake sizes in Pricing - these form the base of estimates
 - Add price adjustments for premium flavors and specialty frostings
 - Configure decoration prices and addon pricing
-- Use the Price Calculator tool to calculate suggested prices based on costs
+- Use the Express Items tool to calculate suggested prices based on costs
 
 LEADS:
 - When customers complete your calculator and submit info, a lead is created automatically
@@ -55,15 +55,15 @@ ORDERS & CALENDAR:
 - Search by customer name, title, or event type
 - Track total amount, deposit paid, and balance due
 
-FAST QUOTE (Basic & Pro plans):
-- Feature popular items on your public calculator
+EXPRESS ITEMS (All plans):
+- Showcase popular items on your order page
 - Customers order in a few clicks with pre-filled quotes
-- Basic plan: up to 5 featured items, Pro: unlimited
+- Free plan: 1 express item, Basic: up to 5, Pro: unlimited
 
 SUBSCRIPTION PLANS:
-- Free: 5 quotes per month, unlimited leads, 7% platform fee on payments
-- Basic ($4.99/month): 15 quotes + 5 featured items, 5% platform fee
-- Pro ($9.99/month): unlimited quotes + unlimited featured items, 3% platform fee
+- Free: 15 quotes per month, 1 express item, unlimited leads, 7% platform fee on payments
+- Basic ($4.99/month): unlimited quotes + 5 express items, 5% platform fee
+- Pro ($9.99/month): unlimited quotes + unlimited express items, 3% platform fee
 - Upgrade anytime in Settings
 
 PAYMENT METHODS:
@@ -1798,14 +1798,6 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Unauthorized" });
       }
       
-      // Check if baker is on a paid plan (Basic or Pro)
-      if (!baker.plan || baker.plan === "free") {
-        return res.status(403).json({ 
-          message: "Fast Quote is available on paid plans. Upgrade to Basic or Pro to feature items on your public calculator.",
-          requiresUpgrade: true
-        });
-      }
-      
       const calculation = await storage.getPricingCalculation(req.params.id);
       if (!calculation || calculation.bakerId !== req.session.bakerId) {
         return res.status(404).json({ message: "Calculation not found" });
@@ -1824,19 +1816,29 @@ export async function registerRoutes(
         depositAmount
       } = req.body;
       
-      // Check featured item limit for Basic plan (10 items)
+      // Check express item limits per plan: Free=1, Basic=5, Pro=unlimited
       const effectivePlan = getEffectivePlan(baker);
-      if (effectivePlan === "basic" && (isFeatured ?? true)) {
-        const featuredItems = await storage.getFeaturedItemsByBaker(baker.id);
-        // Don't count the current item if it's already featured
-        const currentFeaturedCount = featuredItems.filter(item => item.id !== calculation.id).length;
-        if (currentFeaturedCount >= 5) {
-          return res.status(403).json({ 
-            message: "You've reached the 5 featured item limit on the Basic plan. Upgrade to Pro for unlimited featured items.",
-            limitReached: true,
-            currentCount: currentFeaturedCount,
-            limit: 5
-          });
+      if ((isFeatured ?? true)) {
+        const limit = effectivePlan === "free" ? 1 : effectivePlan === "basic" ? 5 : Infinity;
+        if (limit !== Infinity) {
+          const featuredItems = await storage.getFeaturedItemsByBaker(baker.id);
+          const currentFeaturedCount = featuredItems.filter(item => item.id !== calculation.id).length;
+          if (currentFeaturedCount >= limit) {
+            if (effectivePlan === "free") {
+              return res.status(403).json({ 
+                message: "Free plan allows 1 express item. Upgrade to Basic for up to 5 or Pro for unlimited.",
+                requiresUpgrade: true,
+                currentCount: currentFeaturedCount,
+                limit: limit
+              });
+            }
+            return res.status(403).json({ 
+              message: "You've reached the 5 express item limit on the Basic plan. Upgrade to Pro for unlimited express items.",
+              limitReached: true,
+              currentCount: currentFeaturedCount,
+              limit: limit
+            });
+          }
         }
       }
       

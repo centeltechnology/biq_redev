@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { useLocation } from "wouter";
-import { Loader2, Trash2, Plus, CheckCircle2 } from "lucide-react";
+import { useLocation, Link } from "wouter";
+import { Loader2, Trash2, Plus, CheckCircle2, Sparkles, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { InstructionModal } from "@/components/instruction-modal";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -391,7 +391,7 @@ export default function PricingPage() {
   };
 
   return (
-    <DashboardLayout title="Calculator Pricing" actions={<InstructionModal page="pricing" />}>
+    <DashboardLayout title="Pricing" actions={<InstructionModal page="pricing" />}>
       <div className="max-w-2xl space-y-6">
         {baker && !baker.pricingReviewed && (
           <div className="flex items-start justify-between gap-4 px-4 py-3 rounded-lg bg-primary/5 border border-primary/20" data-testid="banner-pricing-review">
@@ -420,6 +420,24 @@ export default function PricingPage() {
             </Button>
           </div>
         )}
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="flex items-center justify-between gap-4 py-4">
+            <div className="flex items-center gap-3">
+              <Sparkles className="h-5 w-5 text-primary shrink-0" />
+              <div>
+                <p className="font-medium text-sm">Manage Express Items</p>
+                <p className="text-xs text-muted-foreground">Create ready-to-request offers that appear at the top of your Order Page.</p>
+              </div>
+            </div>
+            <Button asChild variant="outline" size="sm" data-testid="button-manage-express-items">
+              <Link href="/pricing-calculator">
+                Manage
+                <ArrowRight className="h-4 w-4 ml-1" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* CAKE SIZES */}
         <Card>
           <CardHeader>

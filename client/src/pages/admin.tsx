@@ -149,7 +149,7 @@ interface SupportTicketWithBaker extends SupportTicket {
 
 const EMAIL_DAY_LABELS: Record<number, string> = {
   0: "Day 0: Welcome + Connect Stripe",
-  1: "Day 1: Pricing Calculator",
+  1: "Day 1: Express Items",
   2: "Day 2: Professional Quotes",
   3: "Day 3: Stripe Push / Connected",
   4: "Day 4: Deposits / Stripe Reminder",

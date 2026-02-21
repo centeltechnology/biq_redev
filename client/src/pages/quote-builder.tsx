@@ -813,7 +813,7 @@ export default function QuoteBuilderPage() {
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-lg">
                           <DialogHeader>
-                            <DialogTitle>Add from Price Calculator</DialogTitle>
+                            <DialogTitle>Add from Express Items</DialogTitle>
                             <DialogDescription>
                               Select a saved calculation to add as a line item
                             </DialogDescription>
@@ -834,7 +834,7 @@ export default function QuoteBuilderPage() {
                                 <div className="text-center py-6 text-muted-foreground">
                                   <Calculator className="h-8 w-8 mx-auto mb-2 opacity-50" />
                                   <p>No saved calculations yet</p>
-                                  <p className="text-sm">Create some in the Price Calculator</p>
+                                  <p className="text-sm">Create some in Express Items</p>
                                 </div>
                               ) : filteredCalculations?.length === 0 ? (
                                 <div className="text-center py-6 text-muted-foreground">

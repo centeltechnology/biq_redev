@@ -311,7 +311,7 @@ export default function SharePage() {
                     <SelectItem value="general">General</SelectItem>
                     <SelectItem value="wedding">Wedding</SelectItem>
                     <SelectItem value="events">Events</SelectItem>
-                    <SelectItem value="featured">Featured Items</SelectItem>
+                    <SelectItem value="featured">Express Items</SelectItem>
                     <SelectItem value="seasonal">Seasonal</SelectItem>
                   </SelectContent>
                 </Select>
@@ -351,7 +351,7 @@ export default function SharePage() {
         </CollapsibleSection>
 
         {/* FEATURED ITEMS — default CLOSED */}
-        <CollapsibleSection title="Share Featured Items" icon={<Zap className="h-5 w-5" />} defaultOpen={false} testId="featured-items">
+        <CollapsibleSection title="Share Express Items" icon={<Zap className="h-5 w-5" />} defaultOpen={false} testId="featured-items">
           {featuredLoading ? (
             <div className="space-y-3">
               <Skeleton className="h-16 w-full" />
@@ -359,9 +359,9 @@ export default function SharePage() {
             </div>
           ) : !featuredItems || featuredItems.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground" data-testid="text-no-featured-items">
-              <p className="mb-2">You don't have any featured items yet.</p>
+              <p className="mb-2">You don't have any express items yet.</p>
               <p className="text-sm">
-                Go to <strong>Pricing</strong> to mark items as featured for your order page.
+                Go to <strong>Pricing</strong> to mark items as express for your order page.
               </p>
             </div>
           ) : (

@@ -17,7 +17,7 @@ import { Sparkles, ArrowRight, X } from "lucide-react";
 const tourSteps: Step[] = [
   {
     target: '[data-testid="nav-pricing"]',
-    content: "Start here! Set up your pricing so your public calculator shows accurate estimates to customers.",
+    content: "Start here! Set up your pricing so your order page shows accurate estimates to customers.",
     title: "Set Your Prices",
     disableBeacon: true,
     placement: "right",
@@ -25,7 +25,7 @@ const tourSteps: Step[] = [
   {
     target: '[data-testid="nav-pricing-calculator"]',
     content: "Need help figuring out what to charge? Use this tool to calculate prices based on your costs and desired profit.",
-    title: "Price Calculator",
+    title: "Express Items",
     disableBeacon: true,
     placement: "right",
   },

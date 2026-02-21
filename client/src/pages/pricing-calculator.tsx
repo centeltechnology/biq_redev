@@ -219,8 +219,8 @@ export default function PricingCalculatorPage() {
       toast({
         title: isFeatured ? "Item featured" : "Item unfeatured",
         description: isFeatured 
-          ? "This item will now appear on your public calculator."
-          : "This item has been removed from your public calculator.",
+          ? "This item will now appear on your order page."
+          : "This item has been removed from your order page.",
       });
       setFeatureDialogOpen(false);
       setItemToFeature(null);
@@ -230,13 +230,13 @@ export default function PricingCalculatorPage() {
       if (errorData.requiresUpgrade) {
         toast({
           title: "Upgrade Required",
-          description: "Fast Quote is available on Basic and Pro plans. Upgrade to feature items on your public calculator.",
+          description: "Express Items is available on Basic and Pro plans. Upgrade to feature items on your order page.",
           variant: "destructive",
         });
       } else if (errorData.limitReached) {
         toast({
-          title: "Featured Item Limit Reached",
-          description: "You've reached the 5 featured item limit on the Basic plan. Upgrade to Pro for unlimited featured items.",
+          title: "Express Item Limit Reached",
+          description: "You've reached the 5 express item limit on the Basic plan. Upgrade to Pro for unlimited express items.",
           variant: "destructive",
         });
       } else {
@@ -256,19 +256,18 @@ export default function PricingCalculatorPage() {
 
   const handleFeatureClick = (calc: PricingCalculation) => {
     if (calc.isFeatured) {
-      // Preserve showOnQuickOrder when un-featuring
       featureMutation.mutate({ id: calc.id, isFeatured: false, showOnQuickOrder: calc.showOnQuickOrder ?? true });
     } else {
-      // Free plan cannot feature any items
-      if (!baker?.plan || baker.plan === "free") {
-        setShowUpgradeDialog(true);
-        return;
-      }
-      // Basic plan has a 5 item limit
-      if (baker.plan === "basic" && featuredCount >= 5) {
+      const effectivePlan = baker?.plan || "free";
+      const limit = effectivePlan === "free" ? 1 : effectivePlan === "basic" ? 5 : Infinity;
+      if (featuredCount >= limit) {
+        if (effectivePlan === "free" && limit === 1) {
+          setShowUpgradeDialog(true);
+          return;
+        }
         toast({
-          title: "Featured Item Limit Reached",
-          description: "You've reached the 5 featured item limit on the Basic plan. Upgrade to Pro for unlimited featured items.",
+          title: "Express Item Limit Reached",
+          description: "You've reached the 5 express item limit on the Basic plan. Upgrade to Pro for unlimited express items.",
           variant: "destructive",
         });
         return;
@@ -329,8 +328,9 @@ export default function PricingCalculatorPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div>
-              <h1 className="text-2xl font-semibold">Pricing Calculator</h1>
-              <p className="text-muted-foreground">Calculate cost-based pricing for your baked goods</p>
+              <h1 className="text-2xl font-semibold">Express Items</h1>
+              <p className="text-muted-foreground">Create ready-to-request offers that appear at the top of your Order Page.</p>
+              <p className="text-sm text-muted-foreground">Perfect for specials, bundles, and high-demand items.</p>
             </div>
             <InstructionModal page="pricing-calculator" />
           </div>
@@ -601,16 +601,22 @@ export default function PricingCalculatorPage() {
                   Reference your past calculations to maintain consistent pricing
                 </CardDescription>
               </div>
+              {(!baker?.plan || baker?.plan === "free") && featuredCount > 0 && (
+                <Badge variant="outline" className="shrink-0">
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  {featuredCount}/1 Express
+                </Badge>
+              )}
               {baker?.plan === "basic" && featuredCount > 0 && (
                 <Badge variant="outline" className="shrink-0">
                   <Sparkles className="h-3 w-3 mr-1" />
-                  {featuredCount}/10 Featured
+                  {featuredCount}/5 Express
                 </Badge>
               )}
               {baker?.plan === "pro" && featuredCount > 0 && (
                 <Badge variant="outline" className="shrink-0 border-primary/30 text-primary">
                   <Crown className="h-3 w-3 mr-1" />
-                  {featuredCount} Featured
+                  {featuredCount} Express
                 </Badge>
               )}
             </div>
@@ -652,7 +658,7 @@ export default function PricingCalculatorPage() {
                             <>
                               <Badge variant="secondary" className="text-xs">
                                 <Sparkles className="h-3 w-3 mr-1" />
-                                Featured
+                                Express
                               </Badge>
                               {calc.showOnQuickOrder === false && (
                                 <Tooltip>
@@ -691,7 +697,7 @@ export default function PricingCalculatorPage() {
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              {calc.isFeatured ? "Remove from public calculator" : "Feature on public calculator"}
+                              {calc.isFeatured ? "Remove from order page" : "Add to Order Page"}
                             </TooltipContent>
                           </Tooltip>
                           {calc.isFeatured && (
@@ -750,10 +756,10 @@ export default function PricingCalculatorPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
-              Feature on Public Calculator
+              Add to Order Page
             </DialogTitle>
             <DialogDescription>
-              This item will appear on your public calculator for customers to select directly. 
+              This item will appear on your order page for customers to select directly. 
               They can submit an inquiry and you can send them a quote instantly.
             </DialogDescription>
           </DialogHeader>
@@ -891,7 +897,7 @@ export default function PricingCalculatorPage() {
               
               <p className="text-sm text-muted-foreground">
                 The item will use its current name, description, and suggested price. 
-                {showOnQuickOrder && " Customers will see this on your public calculator page."}
+                {showOnQuickOrder && " Customers will see this on your order page."}
               </p>
             </div>
           )}
@@ -921,7 +927,7 @@ export default function PricingCalculatorPage() {
               ) : (
                 <>
                   <Star className="h-4 w-4 mr-2" />
-                  Feature Item
+                  Add Express Item
                 </>
               )}
             </Button>
@@ -938,10 +944,10 @@ export default function PricingCalculatorPage() {
               </div>
             </div>
             <DialogTitle className="text-center">
-              Unlock Fast Quote
+              Upgrade for More Express Items
             </DialogTitle>
             <DialogDescription className="text-center">
-              Feature your best items on your public calculator and let customers order with just a few clicks.
+              You've reached your limit. Upgrade to showcase more items on your order page.
             </DialogDescription>
           </DialogHeader>
           
@@ -950,7 +956,7 @@ export default function PricingCalculatorPage() {
               <div className="flex items-start gap-3">
                 <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                 <div>
-                  <p className="font-medium text-sm">Feature your pricing calculations</p>
+                  <p className="font-medium text-sm">Showcase your best items</p>
                   <p className="text-sm text-muted-foreground">Display your most popular items prominently</p>
                 </div>
               </div>
@@ -958,14 +964,14 @@ export default function PricingCalculatorPage() {
                 <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                 <div>
                   <p className="font-medium text-sm">Faster customer ordering</p>
-                  <p className="text-sm text-muted-foreground">Customers skip the builder for featured items</p>
+                  <p className="text-sm text-muted-foreground">Customers skip the builder for express items</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                 <div>
-                  <p className="font-medium text-sm">Quick Quote creation</p>
-                  <p className="text-sm text-muted-foreground">Convert featured item leads to quotes instantly</p>
+                  <p className="font-medium text-sm">Instant quote creation</p>
+                  <p className="text-sm text-muted-foreground">Convert express item leads to quotes instantly</p>
                 </div>
               </div>
             </div>
@@ -976,7 +982,7 @@ export default function PricingCalculatorPage() {
                   <span className="font-medium">Basic Plan</span>
                   <span className="text-primary font-bold">$4.99<span className="text-sm font-normal text-muted-foreground">/mo</span></span>
                 </div>
-                <p className="text-sm text-muted-foreground">Up to 5 featured items + unlimited quotes + 5% fee</p>
+                <p className="text-sm text-muted-foreground">Up to 5 express items + unlimited quotes + 5% fee</p>
               </div>
               <div className="border border-primary rounded-lg p-4 space-y-2 bg-primary/5">
                 <div className="flex items-center justify-between">
@@ -986,7 +992,7 @@ export default function PricingCalculatorPage() {
                   </span>
                   <span className="text-primary font-bold">$9.99<span className="text-sm font-normal text-muted-foreground">/mo</span></span>
                 </div>
-                <p className="text-sm text-muted-foreground">Unlimited featured items + unlimited quotes + 3% fee</p>
+                <p className="text-sm text-muted-foreground">Unlimited express items + unlimited quotes + 3% fee</p>
               </div>
             </div>
           </div>
