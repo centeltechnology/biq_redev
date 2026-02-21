@@ -1,7 +1,6 @@
 import { Link } from "wouter";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { MockPaymentsDashboard } from "@/components/mock-payments-dashboard";
 import {
@@ -48,14 +47,14 @@ export default function HomePage() {
 
       <main>
         {/* HERO */}
-        <section className="py-16 md:py-24">
+        <section className="py-20 md:py-28">
           <div className="container max-w-7xl mx-auto px-4">
-            <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
-              <div className="flex flex-col justify-center lg:pt-8">
-                <h1 className="text-4xl md:text-5xl lg:text-[3.25rem] font-bold tracking-tight leading-tight mb-6" data-testid="text-hero-heading">
+            <div className="grid lg:grid-cols-[1fr_1.2fr] gap-12 lg:gap-16 items-start">
+              <div className="flex flex-col justify-center lg:pt-6">
+                <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-extrabold tracking-tight leading-[1.1] mb-6" data-testid="text-hero-heading">
                   You've mastered the craft. Now master the business.
                 </h1>
-                <p className="text-lg text-muted-foreground mb-8 max-w-lg" data-testid="text-hero-subheading">
+                <p className="text-lg text-muted-foreground mb-10 max-w-md leading-relaxed" data-testid="text-hero-subheading">
                   Structure your orders. Automate deposits. See your real revenue — from inquiry to payout.
                 </p>
                 <div className="flex flex-col sm:flex-row items-start gap-3 mb-6">
@@ -88,48 +87,48 @@ export default function HomePage() {
         </section>
 
         {/* WORKFLOW */}
-        <section id="how-it-works" className="py-16 md:py-24 bg-muted/30">
+        <section id="how-it-works" className="py-20 md:py-28 bg-muted/30">
           <div className="container max-w-7xl mx-auto px-4">
-            <h2 className="text-3xl md:text-4xl font-bold mb-14 text-center" data-testid="text-workflow-heading">
+            <h2 className="text-3xl md:text-4xl font-bold mb-16 text-center" data-testid="text-workflow-heading">
               From inquiry to deposit — all in one system.
             </h2>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-5xl mx-auto">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-10 max-w-5xl mx-auto">
               <WorkflowStep
                 step={1}
                 icon={<Share2 className="h-6 w-6 text-primary" />}
                 title="Share your Order Page"
-                description="One link. Customers see your pricing and build their order."
+                description="One link. Customers see your pricing and submit a complete request."
               />
               <WorkflowStep
                 step={2}
                 icon={<MessageSquareText className="h-6 w-6 text-primary" />}
-                title="Customer requests a quote"
-                description="You get a structured lead with everything you need."
+                title="Receive a structured inquiry"
+                description="No missing details. No back-and-forth."
               />
               <WorkflowStep
                 step={3}
                 icon={<FileText className="h-6 w-6 text-primary" />}
-                title="Send structured quote with deposit"
-                description="Professional quote with built-in deposit requirement."
+                title="Send a professional quote"
+                description="Deposit built in. Clear terms. Ready to accept."
               />
               <WorkflowStep
                 step={4}
                 icon={<CreditCard className="h-6 w-6 text-primary" />}
-                title="Get paid through Stripe"
-                description="Customer pays securely. Money goes to your bank."
+                title="Collect payment through Stripe"
+                description="Customer accepts. Funds processed securely to your account."
               />
             </div>
           </div>
         </section>
 
         {/* WHAT MAKES IT DIFFERENT */}
-        <section className="py-16 md:py-24">
+        <section className="py-20 md:py-28">
           <div className="container max-w-7xl mx-auto px-4">
             <div className="max-w-3xl mx-auto">
-              <h2 className="text-3xl md:text-4xl font-bold mb-10 text-center" data-testid="text-different-heading">
+              <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center" data-testid="text-different-heading">
                 Built for serious baking businesses.
               </h2>
-              <div className="grid sm:grid-cols-2 gap-x-12 gap-y-4 max-w-xl mx-auto">
+              <div className="grid sm:grid-cols-2 gap-x-12 gap-y-5 max-w-xl mx-auto">
                 <Feature text="Unlimited quotes" />
                 <Feature text="Express Items for featured specials" />
                 <Feature text="Custom deposit policies" />
@@ -141,17 +140,16 @@ export default function HomePage() {
         </section>
 
         {/* PRICING MODEL CLARITY */}
-        <section className="py-16 md:py-24 bg-muted/30">
+        <section className="py-20 md:py-28 bg-muted/30">
           <div className="container max-w-7xl mx-auto px-4">
             <div className="max-w-2xl mx-auto text-center">
-              <h2 className="text-3xl md:text-4xl font-bold mb-6" data-testid="text-pricing-heading">
+              <h2 className="text-3xl md:text-4xl font-bold mb-8" data-testid="text-pricing-heading">
                 Free to start. Pay as you grow.
               </h2>
-              <div className="space-y-3 text-muted-foreground text-base mb-8">
-                <p>No monthly quote limits — every plan includes unlimited quotes.</p>
-                <p>Platform fee only when you process payments through Stripe.</p>
-                <p>Upgrade your plan to reduce your platform fee.</p>
-                <p>Express Item limits increase with each plan tier.</p>
+              <div className="space-y-2 text-muted-foreground text-base mb-10">
+                <p>Unlimited quotes on every plan.</p>
+                <p>Platform fee only when you process payments.</p>
+                <p>Upgrade to reduce your rate.</p>
               </div>
               <Link href="/faq">
                 <Button variant="outline" size="lg" className="gap-2" data-testid="button-view-pricing">
@@ -164,10 +162,10 @@ export default function HomePage() {
         </section>
 
         {/* FAQ */}
-        <section className="py-16 md:py-24">
+        <section className="py-20 md:py-28">
           <div className="container max-w-7xl mx-auto px-4">
             <div className="max-w-2xl mx-auto">
-              <h2 className="text-3xl md:text-4xl font-bold mb-10 text-center" data-testid="text-faq-heading">
+              <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center" data-testid="text-faq-heading">
                 Frequently Asked Questions
               </h2>
               <div className="space-y-0 divide-y">
@@ -201,13 +199,13 @@ export default function HomePage() {
         </section>
 
         {/* CLOSING CTA */}
-        <section className="py-16 md:py-24 bg-primary text-primary-foreground">
+        <section className="py-20 md:py-28 bg-primary text-primary-foreground">
           <div className="container max-w-3xl mx-auto px-4 text-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-closing-heading">
-              Ready to run your bakery like a business?
+              Run your bakery like a business.
             </h2>
-            <p className="text-lg opacity-90 mb-8 max-w-xl mx-auto">
-              Structure. Clarity. Revenue visibility. Start free — upgrade when you're ready.
+            <p className="text-lg opacity-90 mb-10">
+              Structure. Clarity. Revenue visibility.
             </p>
             <Link href="/signup">
               <Button size="lg" variant="secondary" className="gap-2 text-lg" data-testid="button-cta-signup">
@@ -259,16 +257,16 @@ function WorkflowStep({ step, icon, title, description }: { step: number; icon: 
       <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
         {icon}
       </div>
-      <div className="text-xs font-medium text-primary mb-1.5">Step {step}</div>
-      <h3 className="text-base font-semibold mb-1.5">{title}</h3>
-      <p className="text-sm text-muted-foreground">{description}</p>
+      <div className="text-sm font-semibold text-primary mb-2">{step}</div>
+      <h3 className="text-base font-semibold mb-2">{title}</h3>
+      <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
     </div>
   );
 }
 
 function Feature({ text }: { text: string }) {
   return (
-    <div className="flex items-center gap-2.5">
+    <div className="flex items-center gap-3">
       <Check className="h-4 w-4 text-primary shrink-0" />
       <span className="text-base">{text}</span>
     </div>
