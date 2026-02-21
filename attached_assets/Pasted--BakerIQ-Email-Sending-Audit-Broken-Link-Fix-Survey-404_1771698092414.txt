@@ -1,0 +1,83 @@
+# BakerIQ – Email Sending Audit + Broken Link Fix (Survey 404)
+
+## Goal
+Audit all outbound emails in the codebase:
+1) Identify every email template/type that can be sent
+2) Identify triggers + frequency rules (when they send, how often, any delays)
+3) Verify all URLs inside emails are valid in production (no 404s)
+4) Specifically investigate the “survey” email/link that is currently returning a 404
+
+---
+
+## Part A — Inventory All Emails
+Search the repo for:
+- Email templates (HTML/React/email MJML, etc.)
+- Email subjects
+- Any email “type” enums/constants
+- Send functions / providers (SendGrid, Postmark, Resend, SES, Nodemailer, etc.)
+
+Output a table:
+
+| Email Name/Type | Subject | Template File | Trigger (event) | Audience | Delay | Frequency/Throttle | Notes |
+|---|---|---|---|---|---|---|---|
+
+---
+
+## Part B — Map Sending Logic (Triggers + Frequency)
+Locate where emails are scheduled/sent:
+- On signup
+- After onboarding steps
+- After quote created/sent
+- After payment events
+- Cron/queues/workers (Bull, Cloud Tasks, cron jobs, scheduled functions)
+- “Survey” campaign logic
+
+For each email, document:
+- Exact trigger condition
+- Any required user state
+- Delay timing (e.g., “+1 day after signup”)
+- Throttle rules (e.g., “only once per user”, “not more than once every X days”)
+- How “already sent” is tracked (DB fields, logs, event table)
+
+---
+
+## Part C — Validate Links Inside Emails (Find 404s)
+Parse all templates for links and identify:
+- Hardcoded URLs
+- Environment-based URLs (APP_URL, MARKET_URL, etc.)
+- Route paths used in emails
+
+For each link, verify:
+- The corresponding route exists in the app
+- The production base URL is correct (bakeriq.app vs app.bakeriq.app etc.)
+- No stale paths (renamed routes)
+- Add safe fallbacks if needed
+
+Create a “broken link list” with:
+- Email type
+- The URL
+- Where it’s generated
+- Proposed fix
+
+---
+
+## Part D — Survey Email 404 (Priority Fix)
+Find the email that mentions a survey:
+- Identify template + send trigger
+- Identify where the survey URL is generated
+
+Then:
+1) Confirm the route/page exists (or not).
+2) If the route doesn’t exist:
+   - Implement the missing route OR
+   - Update the link to the correct existing route OR
+   - Replace with an external survey link (if that’s the intended behavior).
+3) Add a basic test (or at least a runtime check) to prevent sending survey emails with broken URLs.
+
+---
+
+## Deliverables
+1) Email inventory table (templates + triggers + timing)
+2) Frequency map (who gets what and how often)
+3) Broken links report + fixes
+4) Confirmed fix for the survey 404, with files changed

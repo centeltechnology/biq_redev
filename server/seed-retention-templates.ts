@@ -152,7 +152,7 @@ View your calendar: {{dashboard_url}}/calendar`,
       <p><strong>Featured Items:</strong> Upgrade to a paid plan and add seasonal specials to your calculator. Customers can order directly without going through the full quote process.</p>
       <p>Thanks for being part of BakerIQ. Keep up the great work!</p>
       <p style="text-align: center; margin: 24px 0;">
-        <a href="{{dashboard_url}}" class="cta" style="display: inline-block; background: #E91E63; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">Go to Dashboard</a>
+        <a href="{{dashboard_url}}/dashboard" class="cta" style="display: inline-block; background: #E91E63; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">Go to Dashboard</a>
       </p>
     `,
     bodyText: `Hi {{first_name}},
@@ -163,7 +163,7 @@ Featured Items: Upgrade to a paid plan and add seasonal specials to your calcula
 
 Thanks for being part of BakerIQ. Keep up the great work!
 
-Go to dashboard: {{dashboard_url}}`,
+Go to dashboard: {{dashboard_url}}/dashboard`,
     ctaText: "Go to Dashboard",
     ctaRoute: "/dashboard",
     isActive: true,
@@ -204,7 +204,7 @@ Log back in: {{login_url}}`,
       <p>Just checking in! If you've run into any issues or have questions about using BakerIQ, we're here to help.</p>
       <p>You can reach out through our support chat anytime. We want to make sure you get the most out of your account.</p>
       <p style="text-align: center; margin: 24px 0;">
-        <a href="{{dashboard_url}}/support" class="cta" style="display: inline-block; background: #E91E63; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">Get Support</a>
+        <a href="{{dashboard_url}}/settings" class="cta" style="display: inline-block; background: #E91E63; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">Get Support</a>
       </p>
     `,
     bodyText: `Hi {{first_name}},
@@ -213,9 +213,9 @@ Just checking in! If you've run into any issues or have questions about using Ba
 
 You can reach out through our support chat anytime. We want to make sure you get the most out of your account.
 
-Get support: {{dashboard_url}}/support`,
+Get support: {{dashboard_url}}/settings`,
     ctaText: "Get Support",
-    ctaRoute: "/support",
+    ctaRoute: "/settings",
     isActive: true,
     priority: 0,
   },

@@ -50,7 +50,7 @@ export async function sendRetentionEmailToUser(
     first_name: user.firstName,
     business_name: user.businessName,
     quick_quote_url: `${baseUrl}/c/${user.slug}`,
-    dashboard_url: `${baseUrl}/dashboard`,
+    dashboard_url: baseUrl,
     login_url: `${baseUrl}/login`,
     unsubscribe_url: `${baseUrl}/unsubscribe?email=${encodeURIComponent(user.email)}`,
   };
@@ -58,7 +58,6 @@ export async function sendRetentionEmailToUser(
   const subject = renderTemplate(template.subject, tokens);
   const bodyHtml = renderTemplate(template.bodyHtml, tokens);
   const bodyText = renderTemplate(template.bodyText, tokens);
-  const ctaUrl = `${baseUrl}${template.ctaRoute}`;
 
   const bakerRecord = await storage.getBaker(user.bakerId);
   const emailPrefsToken = bakerRecord?.emailPrefsToken;
