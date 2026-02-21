@@ -1,0 +1,103 @@
+# BakerIQ – Implement V2 Navigation (IA-first, no logic changes)
+
+## Goal
+Restructure the in-app navigation to match the core revenue workflow:
+Dashboard → Requests → Quotes → Payments → Orders → (Setup) Pricing → Customers → Calendar → (Growth) Order Page → Refer
+
+This task is NAV/IA ONLY:
+- Update nav labels, ordering, and grouping
+- Add missing nav item(s) if routes already exist
+- Do NOT change business logic, Stripe logic, quote logic, pricing logic, or database schemas (unless absolutely required to add a nav link)
+
+---
+
+## Step 1 — Locate Navigation Source
+Find where the sidebar/top-nav is defined (e.g., `nav.ts`, `sidebar.tsx`, `layout.tsx`, etc).
+Identify:
+- Current nav items and ordering
+- Any gating/visibility rules (plan, role, feature flags)
+- Active-route highlighting logic
+
+---
+
+## Step 2 — Discover Existing Routes
+Scan route definitions (router config / pages directory) and confirm real paths for:
+- Dashboard
+- Leads/Requests
+- Quotes
+- Payments/Stripe
+- Orders (if exists as a page/route)
+- Pricing settings / calculator settings (should be a single “Pricing” nav entry)
+- Customers
+- Calendar
+- Share & Promote page (rename to “Your Order Page”)
+- Refer/Affiliate page (if exists)
+- Settings
+Also identify any admin/super-admin routes and keep them separate/conditional.
+
+If a route does not exist, DO NOT create the feature. Only link to existing routes.
+
+---
+
+## Step 3 — Implement V2 Navigation Order + Labels
+
+### CORE (Revenue Path)
+1. Dashboard
+2. Requests  (rename from Leads everywhere in nav UI)
+3. Quotes
+4. Payments
+5. Orders  (add ONLY if an Orders route exists)
+
+### SETUP
+6. Pricing   (single entry that links to the main pricing configuration page)
+7. Customers
+8. Calendar
+
+### GROW
+9. Your Order Page (rename from Share & Promote; link to existing share page route)
+10. Refer a Friend (link to existing affiliate/referral page; keep gating rules if required)
+
+### ACCOUNT
+11. Settings
+
+### ADMIN (conditional)
+- Super Admin / Admin tools remain separate and only visible to authorized roles.
+
+---
+
+## Step 4 — Naming / Copy Rules
+- Replace customer-facing “Calculator” wording in nav labels with “Order Page” where appropriate.
+- Replace “Leads” with “Requests” in nav labels (do not rename database tables).
+- Keep internal code identifiers as-is if renaming would cause breakage; only adjust display labels.
+
+---
+
+## Step 5 — Pricing Navigation Unification (Nav only)
+If there are multiple nav links related to pricing (e.g., “Price Calculator” and “Pricing”):
+- Choose ONE nav item called “Pricing”
+- Point it to the most appropriate pricing settings page (where toggles/sizes/flavors/add-ons live)
+- Do NOT remove pages; just remove duplicates from nav.
+
+---
+
+## Step 6 — QA Checklist
+After changes:
+- Click every nav item to confirm route resolves
+- Confirm active state highlighting works
+- Confirm plan gating/role gating still behaves correctly
+- Confirm mobile nav (if exists) mirrors the same order
+- Confirm no dead links
+
+---
+
+## Deliverables
+1) List of files changed
+2) Screenshot(s) or short description of new nav structure
+3) Confirmed routes used for each nav item
+4) Notes on any routes that did NOT exist (and were therefore excluded)
+
+## Hard Constraints
+- No new features
+- No schema changes (unless the app *requires* it purely for nav state)
+- No Stripe flow changes
+- No onboarding flow changes
