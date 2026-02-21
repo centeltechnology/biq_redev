@@ -1,0 +1,115 @@
+# BakerIQ – Feature Inventory + Overview (for Planning & Re-Arrangement)
+
+## Goal
+Create a clear, up-to-date feature overview of the current BakerIQ product so we can decide:
+1) What features exist today (and where they live in the UI)
+2) Which ones are core vs optional
+3) How to rearrange navigation + onboarding around the “order page → request → quote → payment” flow
+
+Do NOT implement any product changes in this task.
+This is READ/ANALYZE/DOCUMENT ONLY.
+
+---
+
+## Step 1 — Scan the Codebase for Features
+
+### A) Routes + Pages
+- Enumerate all app routes (React router / Next routes / server routes).
+- For each route, capture:
+  - Path (e.g. `/quotes`, `/share`, `/pricing`)
+  - Page/component file location
+  - Visible title in UI
+  - Access requirements (auth, plan gating, Stripe required, etc.)
+
+### B) Navigation / Sidebar / Header
+- Locate where the sidebar/nav items are defined.
+- List each nav item:
+  - Label
+  - Route
+  - Icon
+  - Conditional visibility logic (plan, role, etc.)
+  - Current order
+
+### C) Core Feature Modules
+Identify modules/features by folder or domain boundaries:
+- Pricing / Price Calculator
+- Public Order Page (calculator flow)
+- Leads/Requests intake
+- Quotes creation/sending
+- Orders (if exists)
+- Payments / Stripe connect & payouts
+- Customers/CRM
+- Share & Promote / QR / social templates / banners
+- Analytics / Dashboard metrics
+- Settings (profile, branding, business info)
+- Referral / Affiliate (if exists)
+- Admin/Super-admin (if exists)
+
+For each module, capture:
+- What it does (1–2 sentences)
+- Primary user goal it supports
+- Where user finds it in the UI (nav + deep links)
+- Key screens (list)
+- Data model tables used (if applicable)
+- Dependencies (Stripe, email provider, etc.)
+- Plan gating rules (Free/Basic/Pro)
+- Status/quality notes (working / partially working / TODO)
+
+---
+
+## Step 2 — Produce a Downloadable Markdown Report
+
+Create this file:
+`/docs/FEATURE_OVERVIEW.md`
+
+Include these sections:
+
+1) **Product Summary (1 page)**
+   - The core flow as implemented today
+   - What the platform is optimized for (order page → request → quote → payment)
+
+2) **Feature Map (Table)**
+   Columns:
+   - Feature
+   - Route(s)
+   - Nav Location
+   - Plan Gate (Free/Basic/Pro)
+   - Stripe Required? (Y/N)
+   - Primary Outcome (e.g., “get inquiry”, “send quote”, “collect deposit”)
+   - Notes / Risks
+
+3) **Navigation Tree (Current)**
+   - List current nav items in order
+
+4) **Onboarding Alignment Notes**
+   - Which screens support onboarding steps:
+     - Setup branding
+     - Review pricing
+     - Share link
+     - Receive request
+     - Send quote
+     - Connect Stripe
+   - Identify gaps/misalignment
+
+5) **Recommendations (NO CODE CHANGES)**
+   - Suggest a reorganized nav order and “core vs advanced” grouping
+   - Suggest which features should be surfaced earlier vs later
+   - Keep this to bullets only
+
+---
+
+## Step 3 — Quick Validation Checklist
+Before finalizing the report:
+- Click through key flows in the dev environment (if available) OR infer from route structure
+- Confirm that “Share & Promote”, “Pricing”, “Quotes”, “Leads” routes exist and match UI labels
+- Confirm plan gating for Fast Quote / featured items / quote limits / platform fee tiers
+
+---
+
+## Deliverables
+1) `/docs/FEATURE_OVERVIEW.md` created and filled
+2) Short console summary:
+   - Total routes found
+   - Total nav items found
+   - Any missing or dead links detected
+   - Any features present in code but not in nav
