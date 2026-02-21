@@ -1,10 +1,9 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Check, Loader2, ExternalLink, CreditCard, Sparkles, Bell, HelpCircle, Zap, Camera, Upload, X, Image as ImageIcon, Plus, Globe, CheckCircle2 } from "lucide-react";
-import { useUpload } from "@/hooks/use-upload";
+import { Check, Loader2, ExternalLink, CreditCard, Sparkles, Bell, HelpCircle, Zap, Plus, Globe, CheckCircle2 } from "lucide-react";
 import { InstructionModal } from "@/components/instruction-modal";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -88,14 +87,7 @@ export default function SettingsPage() {
     }
     return false;
   });
-  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
-  const [portfolioImages, setPortfolioImages] = useState<string[]>([]);
-  const [uploadingProfile, setUploadingProfile] = useState(false);
-  const [uploadingPortfolio, setUploadingPortfolio] = useState(false);
   const [currency, setCurrency] = useState("USD");
-  const profileInputRef = useRef<HTMLInputElement>(null);
-  const portfolioInputRef = useRef<HTMLInputElement>(null);
-  const { uploadFile } = useUpload({});
 
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -146,8 +138,6 @@ export default function SettingsPage() {
         defaultDepositType: (baker.defaultDepositType as "full" | "percentage" | "fixed") || "full",
         depositFixedAmount: baker.depositFixedAmount || "",
       });
-      setProfilePhoto(baker.profilePhoto || null);
-      setPortfolioImages((baker.portfolioImages || []).slice(0, 6));
       setCurrency(baker.currency || "USD");
     }
   }, [baker, profileForm, paymentForm]);
@@ -367,89 +357,6 @@ export default function SettingsPage() {
       toast({ title: "Tour reset! Refresh the page to start the tour." });
     },
   });
-
-  const updatePhotosMutation = useMutation({
-    mutationFn: async (data: { profilePhoto?: string | null; portfolioImages?: string[] | null; calculatorHeaderImage?: string | null }) => {
-      const res = await apiRequest("PATCH", "/api/bakers/me", data);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
-      toast({ title: "Photos updated successfully" });
-    },
-  });
-
-  const handleProfilePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    if (!file.type.startsWith("image/")) {
-      toast({ title: "Please select an image file", variant: "destructive" });
-      return;
-    }
-    
-    setUploadingProfile(true);
-    try {
-      const result = await uploadFile(file);
-      if (result) {
-        const newProfilePhoto = result.objectPath;
-        setProfilePhoto(newProfilePhoto);
-        await updatePhotosMutation.mutateAsync({ profilePhoto: newProfilePhoto });
-      }
-    } catch (error) {
-      toast({ title: "Failed to upload photo", variant: "destructive" });
-    } finally {
-      setUploadingProfile(false);
-      if (profileInputRef.current) profileInputRef.current.value = "";
-    }
-  };
-
-  const handleRemoveProfilePhoto = async () => {
-    setProfilePhoto(null);
-    await updatePhotosMutation.mutateAsync({ profilePhoto: null });
-  };
-
-  const handlePortfolioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    
-    const remainingSlots = 6 - portfolioImages.length;
-    if (remainingSlots <= 0) {
-      toast({ title: "Portfolio is full (max 6 images)", variant: "destructive" });
-      return;
-    }
-    
-    const filesToUpload = Array.from(files).slice(0, remainingSlots);
-    
-    setUploadingPortfolio(true);
-    try {
-      const uploadedPaths: string[] = [];
-      for (const file of filesToUpload) {
-        if (!file.type.startsWith("image/")) continue;
-        const result = await uploadFile(file);
-        if (result) {
-          uploadedPaths.push(result.objectPath);
-        }
-      }
-      
-      if (uploadedPaths.length > 0) {
-        const newPortfolioImages = [...portfolioImages, ...uploadedPaths];
-        setPortfolioImages(newPortfolioImages);
-        await updatePhotosMutation.mutateAsync({ portfolioImages: newPortfolioImages });
-      }
-    } catch (error) {
-      toast({ title: "Failed to upload images", variant: "destructive" });
-    } finally {
-      setUploadingPortfolio(false);
-      if (portfolioInputRef.current) portfolioInputRef.current.value = "";
-    }
-  };
-
-  const handleRemovePortfolioImage = async (index: number) => {
-    const newPortfolioImages = portfolioImages.filter((_, i) => i !== index);
-    setPortfolioImages(newPortfolioImages);
-    await updatePhotosMutation.mutateAsync({ portfolioImages: newPortfolioImages });
-  };
 
 
   return (
@@ -739,143 +646,6 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Profile Photo & Portfolio</CardTitle>
-            <CardDescription>
-              Upload your profile photo and showcase your work on your order page
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div>
-              <Label className="text-sm font-medium">Profile Photo</Label>
-              <p className="text-sm text-muted-foreground mb-3">
-                This photo appears next to your business name on the order page
-              </p>
-              <div className="flex items-center gap-4">
-                {profilePhoto ? (
-                  <div className="relative">
-                    <img
-                      src={profilePhoto}
-                      alt="Profile"
-                      className="h-20 w-20 rounded-full object-cover border"
-                      data-testid="img-profile-photo"
-                    />
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute -top-2 -right-2 h-6 w-6"
-                      onClick={handleRemoveProfilePhoto}
-                      data-testid="button-remove-profile-photo"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center border-2 border-dashed">
-                    <Camera className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                )}
-                <div>
-                  <input
-                    ref={profileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleProfilePhotoUpload}
-                    data-testid="input-profile-photo"
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={() => profileInputRef.current?.click()}
-                    disabled={uploadingProfile}
-                    data-testid="button-upload-profile-photo"
-                  >
-                    {uploadingProfile ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Uploading...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="mr-2 h-4 w-4" />
-                        {profilePhoto ? "Change Photo" : "Upload Photo"}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            <div className="border-t pt-6">
-              <Label className="text-sm font-medium">Portfolio ({portfolioImages.length}/6)</Label>
-              <p className="text-sm text-muted-foreground mb-3">
-                Showcase your best work - customers see this gallery on your order page
-              </p>
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                {portfolioImages.map((image, index) => (
-                  <div key={index} className="relative aspect-square">
-                    <img
-                      src={image}
-                      alt={`Portfolio ${index + 1}`}
-                      className="h-full w-full object-cover rounded-lg border"
-                      data-testid={`img-portfolio-${index}`}
-                    />
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute -top-2 -right-2 h-6 w-6"
-                      onClick={() => handleRemovePortfolioImage(index)}
-                      data-testid={`button-remove-portfolio-${index}`}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
-                {portfolioImages.length < 6 && (
-                  <button 
-                    type="button"
-                    className="aspect-square border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => portfolioInputRef.current?.click()}
-                    data-testid="button-add-portfolio-tile"
-                  >
-                    <div className="text-center">
-                      <ImageIcon className="h-8 w-8 text-muted-foreground mx-auto mb-1" />
-                      <span className="text-xs text-muted-foreground">Add</span>
-                    </div>
-                  </button>
-                )}
-              </div>
-              <input
-                ref={portfolioInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={handlePortfolioUpload}
-                data-testid="input-portfolio-images"
-              />
-              <Button
-                variant="outline"
-                onClick={() => portfolioInputRef.current?.click()}
-                disabled={uploadingPortfolio || portfolioImages.length >= 6}
-                data-testid="button-upload-portfolio"
-              >
-                {uploadingPortfolio ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Images
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
 
         <Card>
           <CardHeader>

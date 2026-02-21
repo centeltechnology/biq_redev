@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Label } from "@/components/ui/label";
 import { useUpload } from "@/hooks/use-upload";
-import { Copy, ExternalLink, Link2, QrCode, Share2, Check, Download, Upload, Save, Image as ImageIcon, Loader2, ChevronDown, ChevronUp, Rocket, Zap, Pencil, CheckCircle2, AlertCircle, Trash2 } from "lucide-react";
+import { Copy, ExternalLink, Link2, QrCode, Share2, Check, Download, Upload, Save, Image as ImageIcon, Loader2, ChevronDown, ChevronUp, Rocket, Zap, Pencil, CheckCircle2, AlertCircle, Trash2, Camera, X } from "lucide-react";
 import { SiFacebook, SiX, SiPinterest, SiWhatsapp, SiInstagram, SiLinkedin } from "react-icons/si";
 import { downloadCalculatorQR } from "@/lib/qr-download";
 
@@ -351,16 +351,24 @@ export default function SharePage() {
   const [headerImage, setHeaderImage] = useState<string | null>(null);
   const [uploadingHeader, setUploadingHeader] = useState(false);
   const headerInputRef = useRef<HTMLInputElement>(null);
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  const [portfolioImages, setPortfolioImages] = useState<string[]>([]);
+  const [uploadingProfile, setUploadingProfile] = useState(false);
+  const [uploadingPortfolio, setUploadingPortfolio] = useState(false);
+  const profileInputRef = useRef<HTMLInputElement>(null);
+  const portfolioInputRef = useRef<HTMLInputElement>(null);
   const { uploadFile } = useUpload({});
 
   useEffect(() => {
     if (baker) {
       setHeaderImage(baker.calculatorHeaderImage || null);
+      setProfilePhoto(baker.profilePhoto || null);
+      setPortfolioImages((baker.portfolioImages || []).slice(0, 6));
     }
   }, [baker]);
 
-  const updateHeaderMutation = useMutation({
-    mutationFn: async (data: { calculatorHeaderImage: string | null }) => {
+  const updatePhotosMutation = useMutation({
+    mutationFn: async (data: { profilePhoto?: string | null; portfolioImages?: string[] | null; calculatorHeaderImage?: string | null }) => {
       const res = await apiRequest("PATCH", "/api/bakers/me", data);
       return res.json();
     },
@@ -384,7 +392,7 @@ export default function SharePage() {
       if (result) {
         const newHeaderImage = result.objectPath;
         setHeaderImage(newHeaderImage);
-        await updateHeaderMutation.mutateAsync({ calculatorHeaderImage: newHeaderImage });
+        await updatePhotosMutation.mutateAsync({ calculatorHeaderImage: newHeaderImage });
         toast({ title: "Header image updated" });
       }
     } catch (error) {
@@ -397,8 +405,80 @@ export default function SharePage() {
 
   const handleRemoveHeaderImage = async () => {
     setHeaderImage(null);
-    await updateHeaderMutation.mutateAsync({ calculatorHeaderImage: null });
+    await updatePhotosMutation.mutateAsync({ calculatorHeaderImage: null });
     toast({ title: "Header image removed" });
+  };
+
+  const handleProfilePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Please select an image file", variant: "destructive" });
+      return;
+    }
+
+    setUploadingProfile(true);
+    try {
+      const result = await uploadFile(file);
+      if (result) {
+        const newProfilePhoto = result.objectPath;
+        setProfilePhoto(newProfilePhoto);
+        await updatePhotosMutation.mutateAsync({ profilePhoto: newProfilePhoto });
+      }
+    } catch (error) {
+      toast({ title: "Failed to upload photo", variant: "destructive" });
+    } finally {
+      setUploadingProfile(false);
+      if (profileInputRef.current) profileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveProfilePhoto = async () => {
+    setProfilePhoto(null);
+    await updatePhotosMutation.mutateAsync({ profilePhoto: null });
+  };
+
+  const handlePortfolioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const remainingSlots = 6 - portfolioImages.length;
+    if (remainingSlots <= 0) {
+      toast({ title: "Portfolio is full (max 6 images)", variant: "destructive" });
+      return;
+    }
+
+    const filesToUpload = Array.from(files).slice(0, remainingSlots);
+
+    setUploadingPortfolio(true);
+    try {
+      const uploadedPaths: string[] = [];
+      for (const file of filesToUpload) {
+        if (!file.type.startsWith("image/")) continue;
+        const result = await uploadFile(file);
+        if (result) {
+          uploadedPaths.push(result.objectPath);
+        }
+      }
+
+      if (uploadedPaths.length > 0) {
+        const newPortfolioImages = [...portfolioImages, ...uploadedPaths];
+        setPortfolioImages(newPortfolioImages);
+        await updatePhotosMutation.mutateAsync({ portfolioImages: newPortfolioImages });
+      }
+    } catch (error) {
+      toast({ title: "Failed to upload images", variant: "destructive" });
+    } finally {
+      setUploadingPortfolio(false);
+      if (portfolioInputRef.current) portfolioInputRef.current.value = "";
+    }
+  };
+
+  const handleRemovePortfolioImage = async (index: number) => {
+    const newPortfolioImages = portfolioImages.filter((_, i) => i !== index);
+    setPortfolioImages(newPortfolioImages);
+    await updatePhotosMutation.mutateAsync({ portfolioImages: newPortfolioImages });
   };
 
   if (!baker) return null;
@@ -451,61 +531,191 @@ export default function SharePage() {
               <SlugEditor currentSlug={baker?.slug || ""} />
             </div>
 
-            <div className="pt-3 border-t space-y-2">
-              <Label className="text-sm font-medium">Order Page Header Image</Label>
-              <p className="text-xs text-muted-foreground">This image appears at the top of your order page and in social media previews.</p>
-              <div className="mt-2">
-                {headerImage ? (
-                  <div className="relative rounded-md overflow-hidden border">
-                    <img
-                      src={headerImage}
-                      alt="Calculator header"
-                      className="w-full h-40 object-cover"
-                      data-testid="img-header-preview"
+            <div className="pt-3 border-t space-y-4">
+              <Label className="text-sm font-medium">Profile Photo & Banner</Label>
+              <p className="text-xs text-muted-foreground">Your profile photo appears next to your business name. The banner shows at the top of your order page and in social media previews.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Profile Photo</Label>
+                  <div className="flex items-center gap-4">
+                    {profilePhoto ? (
+                      <div className="relative">
+                        <img
+                          src={profilePhoto}
+                          alt="Profile"
+                          className="h-20 w-20 rounded-full object-cover border"
+                          data-testid="img-profile-photo"
+                        />
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute -top-2 -right-2 h-6 w-6"
+                          onClick={handleRemoveProfilePhoto}
+                          data-testid="button-remove-profile-photo"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center border-2 border-dashed">
+                        <Camera className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div>
+                      <input
+                        ref={profileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleProfilePhotoUpload}
+                        data-testid="input-profile-photo"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => profileInputRef.current?.click()}
+                        disabled={uploadingProfile}
+                        data-testid="button-upload-profile-photo"
+                      >
+                        {uploadingProfile ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="mr-2 h-4 w-4" />
+                            {profilePhoto ? "Change" : "Upload"}
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Order Page Banner</Label>
+                  <div>
+                    {headerImage ? (
+                      <div className="relative rounded-md overflow-hidden border">
+                        <img
+                          src={headerImage}
+                          alt="Banner"
+                          className="w-full h-24 object-cover"
+                          data-testid="img-header-preview"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-full h-24 rounded-md border border-dashed flex flex-col items-center justify-center gap-1 text-muted-foreground bg-muted/50">
+                        <ImageIcon className="h-6 w-6" />
+                        <span className="text-xs">No banner set</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <input
+                      ref={headerInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleHeaderImageUpload}
+                      data-testid="input-header-upload"
                     />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => headerInputRef.current?.click()}
+                      disabled={uploadingHeader}
+                      data-testid="button-upload-header"
+                    >
+                      {uploadingHeader ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Upload className="h-4 w-4 mr-2" />
+                      )}
+                      {uploadingHeader ? "Uploading..." : headerImage ? "Change" : "Upload"}
+                    </Button>
+                    {headerImage && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRemoveHeaderImage}
+                        disabled={updatePhotosMutation.isPending}
+                        data-testid="button-remove-header"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Remove
+                      </Button>
+                    )}
                   </div>
-                ) : (
-                  <div className="w-full h-40 rounded-md border border-dashed flex flex-col items-center justify-center gap-2 text-muted-foreground bg-muted/50">
-                    <ImageIcon className="h-8 w-8" />
-                    <span className="text-xs">No header image set</span>
-                  </div>
-                )}
+                </div>
               </div>
-              <div className="flex items-center gap-2 flex-wrap">
+
+              <div className="border-t pt-4 space-y-2">
+                <Label className="text-sm font-medium">Portfolio ({portfolioImages.length}/6)</Label>
+                <p className="text-xs text-muted-foreground">Showcase your best work — customers see this gallery on your order page</p>
+                <div className="grid grid-cols-3 gap-3">
+                  {portfolioImages.map((image, index) => (
+                    <div key={index} className="relative aspect-square">
+                      <img
+                        src={image}
+                        alt={`Portfolio ${index + 1}`}
+                        className="h-full w-full object-cover rounded-lg border"
+                        data-testid={`img-portfolio-${index}`}
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -right-2 h-6 w-6"
+                        onClick={() => handleRemovePortfolioImage(index)}
+                        data-testid={`button-remove-portfolio-${index}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                  {portfolioImages.length < 6 && (
+                    <button
+                      type="button"
+                      className="aspect-square border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => portfolioInputRef.current?.click()}
+                      data-testid="button-add-portfolio-tile"
+                    >
+                      <div className="text-center">
+                        <ImageIcon className="h-8 w-8 text-muted-foreground mx-auto mb-1" />
+                        <span className="text-xs text-muted-foreground">Add</span>
+                      </div>
+                    </button>
+                  )}
+                </div>
                 <input
-                  ref={headerInputRef}
+                  ref={portfolioInputRef}
                   type="file"
                   accept="image/*"
+                  multiple
                   className="hidden"
-                  onChange={handleHeaderImageUpload}
-                  data-testid="input-header-upload"
+                  onChange={handlePortfolioUpload}
+                  data-testid="input-portfolio-images"
                 />
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => headerInputRef.current?.click()}
-                  disabled={uploadingHeader}
-                  data-testid="button-upload-header"
+                  onClick={() => portfolioInputRef.current?.click()}
+                  disabled={uploadingPortfolio || portfolioImages.length >= 6}
+                  data-testid="button-upload-portfolio"
                 >
-                  {uploadingHeader ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  {uploadingPortfolio ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
                   ) : (
-                    <Upload className="h-4 w-4 mr-2" />
+                    <>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload Images
+                    </>
                   )}
-                  {uploadingHeader ? "Uploading..." : "Upload Image"}
                 </Button>
-                {headerImage && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRemoveHeaderImage}
-                    disabled={updateHeaderMutation.isPending}
-                    data-testid="button-remove-header"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Remove
-                  </Button>
-                )}
               </div>
             </div>
 
