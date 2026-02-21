@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, Calendar, DollarSign, FileText, Cake, Printer, XCircle, Loader2, CreditCard, Lock, Star, Shield } from "lucide-react";
+import { CheckCircle, Calendar, DollarSign, FileText, Cake, Printer, XCircle, Loader2, CreditCard, Lock, Star, Shield, Info } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -442,7 +442,7 @@ export default function QuoteViewPage() {
                     ) : (
                       <CheckCircle className="h-4 w-4 mr-2" />
                     )}
-                    Accept & Pay Deposit
+                    {baker.onlinePaymentsEnabled ? "Accept & Pay Deposit" : "Accept Quote"}
                   </Button>
                   <Button
                     size="lg"
@@ -456,6 +456,17 @@ export default function QuoteViewPage() {
                     Decline Quote
                   </Button>
                 </div>
+                {!baker.onlinePaymentsEnabled && (
+                  <p className="text-xs text-muted-foreground mt-3 flex items-center justify-center gap-1" data-testid="text-no-online-payment">
+                    <Info className="h-3 w-3 shrink-0" />
+                    Online payment is not enabled for this business. You can accept the quote now — payment will be arranged directly.
+                  </p>
+                )}
+                {baker.onlinePaymentsEnabled && (
+                  <p className="text-xs text-muted-foreground mt-3" data-testid="text-pay-later-hint">
+                    Accept now and pay when you're ready.
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground mt-4">
                   Questions? Contact {baker.businessName}{baker.phone ? ` at ${baker.phone}` : ""}{baker.email ? ` or ${baker.email}` : ""}
                 </p>
@@ -594,7 +605,7 @@ export default function QuoteViewPage() {
                 {respondMutation.isPending ? (
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...</>
                 ) : (
-                  "Yes, Accept & Pay Deposit"
+                  baker.onlinePaymentsEnabled ? "Yes, Accept & Pay Deposit" : "Yes, Accept Quote"
                 )}
               </AlertDialogAction>
             </AlertDialogFooter>

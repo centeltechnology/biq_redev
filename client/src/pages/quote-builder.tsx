@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Plus, Trash2, Loader2, Save, CreditCard, CheckCircle, Calendar, Send, Calculator, Search } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Loader2, Save, CreditCard, CheckCircle, Calendar, Send, Calculator, Search, Info } from "lucide-react";
 import { InstructionModal } from "@/components/instruction-modal";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1132,6 +1132,13 @@ export default function QuoteBuilderPage() {
                         <div className="text-center text-sm text-muted-foreground py-2">
                           <CheckCircle className="inline-block mr-1 h-4 w-4 text-green-500" />
                           Quote sent to customer
+                        </div>
+                      )}
+
+                      {!baker?.stripeConnectedAt && (
+                        <div className="flex items-start gap-2 rounded-md border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/20 px-3 py-2.5 text-xs text-amber-800 dark:text-amber-300" data-testid="banner-no-stripe-info">
+                          <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                          <span>Online payments aren't enabled yet. Customers can still accept quotes — you'll collect payments manually until Stripe is connected.</span>
                         </div>
                       )}
                       
