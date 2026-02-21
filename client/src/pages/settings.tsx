@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Check, Loader2, ExternalLink, CreditCard, Sparkles, Bell, HelpCircle, Zap, Plus, Globe, CheckCircle2 } from "lucide-react";
+import { Loader2, CreditCard, Sparkles, Bell, HelpCircle, Zap } from "lucide-react";
 import { InstructionModal } from "@/components/instruction-modal";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -26,7 +26,6 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { AVAILABLE_CURRENCIES } from "@/lib/calculator";
 
 
 const profileSchema = z.object({
@@ -41,23 +40,6 @@ const profileSchema = z.object({
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
-
-const paymentSchema = z.object({
-  depositPercentage: z.number().min(0).max(100),
-  defaultDepositType: z.enum(["full", "percentage", "fixed"]),
-  depositFixedAmount: z.string().optional(),
-}).refine((data) => {
-  if (data.defaultDepositType === "fixed") {
-    const amount = parseFloat(data.depositFixedAmount || "0");
-    return amount > 0;
-  }
-  return true;
-}, {
-  message: "Fixed deposit amount must be greater than 0",
-  path: ["depositFixedAmount"],
-});
-
-type PaymentFormData = z.infer<typeof paymentSchema>;
 
 const passwordSchema = z
   .object({
@@ -75,20 +57,6 @@ type PasswordFormData = z.infer<typeof passwordSchema>;
 export default function SettingsPage() {
   const { baker } = useAuth();
   const { toast } = useToast();
-  const [fromStripeSuccess] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("from") === "stripe_success") {
-      params.delete("from");
-      const newUrl = params.toString()
-        ? `${window.location.pathname}?${params.toString()}`
-        : window.location.pathname;
-      window.history.replaceState({}, "", newUrl);
-      return true;
-    }
-    return false;
-  });
-  const [currency, setCurrency] = useState("USD");
-
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -112,15 +80,6 @@ export default function SettingsPage() {
     },
   });
 
-  const paymentForm = useForm<PaymentFormData>({
-    resolver: zodResolver(paymentSchema),
-    defaultValues: {
-      depositPercentage: 50,
-      defaultDepositType: "full",
-      depositFixedAmount: "",
-    },
-  });
-
   useEffect(() => {
     if (baker) {
       profileForm.reset({
@@ -133,14 +92,8 @@ export default function SettingsPage() {
         socialTiktok: baker.socialTiktok || "",
         socialPinterest: baker.socialPinterest || "",
       });
-      paymentForm.reset({
-        depositPercentage: baker.depositPercentage ?? 50,
-        defaultDepositType: (baker.defaultDepositType as "full" | "percentage" | "fixed") || "full",
-        depositFixedAmount: baker.depositFixedAmount || "",
-      });
-      setCurrency(baker.currency || "USD");
     }
-  }, [baker, profileForm, paymentForm]);
+  }, [baker, profileForm]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: ProfileFormData) => {
@@ -160,130 +113,6 @@ export default function SettingsPage() {
       toast({ title: "Failed to update profile", description: error.message, variant: "destructive" });
     },
   });
-
-  const updatePaymentMutation = useMutation({
-    mutationFn: async (data: PaymentFormData) => {
-      const res = await apiRequest("PATCH", "/api/bakers/me", data);
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to update payment options");
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
-      toast({ title: "Payment options updated successfully" });
-    },
-    onError: (error: Error) => {
-      console.error("Payment options update error:", error);
-      toast({ title: "Failed to update payment options", description: error.message, variant: "destructive" });
-    },
-  });
-
-  // Stripe Connect
-  const { data: connectStatus, isLoading: connectLoading } = useQuery<{
-    connected: boolean;
-    onboarded: boolean;
-    payoutsEnabled: boolean;
-    accountId?: string;
-  }>({
-    queryKey: ["/api/stripe-connect/status"],
-  });
-
-  const createConnectAccountMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/stripe-connect/create-account");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/stripe-connect/status"] });
-      generateOnboardingLinkMutation.mutate();
-    },
-    onError: (error: Error) => {
-      toast({ title: "Failed to set up Stripe", description: error.message, variant: "destructive" });
-    },
-  });
-
-  const generateOnboardingLinkMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/stripe-connect/onboarding-link");
-      return res.json();
-    },
-    onSuccess: (data) => {
-      if (data.url) {
-        window.open(data.url, "_blank");
-      }
-    },
-    onError: (error: Error) => {
-      toast({ title: "Failed to generate onboarding link", description: error.message, variant: "destructive" });
-    },
-  });
-
-  const openStripeDashboardMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/stripe-connect/dashboard-link");
-      return res.json();
-    },
-    onSuccess: (data) => {
-      if (data.url) {
-        window.open(data.url, "_blank");
-      }
-    },
-    onError: (error: Error) => {
-      toast({ title: "Failed to open Stripe Dashboard", description: error.message, variant: "destructive" });
-    },
-  });
-
-  // Check for connect return
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("connect") === "complete") {
-      queryClient.invalidateQueries({ queryKey: ["/api/stripe-connect/status"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
-      const alreadyShown = sessionStorage.getItem("stripeConnectToastShown");
-      if (!alreadyShown) {
-        toast({
-          title: "Stripe connected",
-          description: "You can now collect deposits and payments.",
-        });
-        sessionStorage.setItem("stripeConnectToastShown", "true");
-      }
-      const cleanParams = new URLSearchParams(window.location.search);
-      cleanParams.delete("connect");
-      cleanParams.delete("stripe");
-      const cleanUrl = cleanParams.toString()
-        ? `${window.location.pathname}?${cleanParams.toString()}`
-        : window.location.pathname;
-      window.history.replaceState({}, "", cleanUrl);
-    } else if (params.get("connect") === "refresh") {
-      generateOnboardingLinkMutation.mutate();
-    }
-  }, []);
-
-  const updateCurrencyMutation = useMutation({
-    mutationFn: async (newCurrency: string) => {
-      const res = await apiRequest("PATCH", "/api/bakers/me", { currency: newCurrency });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to update currency");
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
-      toast({ title: "Currency updated successfully" });
-    },
-    onError: (error: Error) => {
-      console.error("Currency update error:", error);
-      toast({ title: "Failed to update currency", description: error.message, variant: "destructive" });
-    },
-  });
-
-  const handleCurrencyChange = (newCurrency: string) => {
-    setCurrency(newCurrency);
-    updateCurrencyMutation.mutate(newCurrency);
-  };
-
 
   const updatePasswordMutation = useMutation({
     mutationFn: async (data: PasswordFormData) => {
@@ -362,18 +191,6 @@ export default function SettingsPage() {
   return (
     <DashboardLayout title="Settings" actions={<InstructionModal page="settings" />}>
       <div className="max-w-2xl space-y-6">
-        {fromStripeSuccess && (
-          <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-primary/5 border border-primary/20" data-testid="banner-calculator-guidance">
-            <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium">Payments are live</p>
-              <p className="text-xs text-muted-foreground">
-                Customers will use this page to request quotes. Make sure your pricing reflects what you want to sell.
-              </p>
-            </div>
-          </div>
-        )}
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <div>
@@ -646,245 +463,6 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Globe className="h-5 w-5" />
-              Currency & Region
-            </CardTitle>
-            <CardDescription>
-              Choose the currency for all prices in your quotes and calculator
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="currency">Currency</Label>
-                <Select value={currency} onValueChange={handleCurrencyChange}>
-                  <SelectTrigger className="w-full mt-1.5" data-testid="select-currency">
-                    <SelectValue placeholder="Select currency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {AVAILABLE_CURRENCIES.map((curr) => (
-                      <SelectItem key={curr.code} value={curr.code} data-testid={`currency-option-${curr.code}`}>
-                        {curr.code} - {curr.name} ({curr.symbol})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-muted-foreground mt-1.5">
-                  This currency will be used for all prices displayed to your customers
-                </p>
-              </div>
-              {updateCurrencyMutation.isPending && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Saving...
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Online Payments</CardTitle>
-            <CardDescription>
-              Accept payments directly from customers through your quotes
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {connectLoading ? (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Checking payment status...</span>
-              </div>
-            ) : connectStatus?.onboarded && connectStatus?.payoutsEnabled ? (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400 p-3 rounded-md">
-                  <Check className="h-4 w-4" />
-                  <span>Stripe account connected and ready to accept payments</span>
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openStripeDashboardMutation.mutate()}
-                    disabled={openStripeDashboardMutation.isPending}
-                    data-testid="button-stripe-dashboard"
-                  >
-                    <ExternalLink className="h-4 w-4 mr-1" />
-                    {openStripeDashboardMutation.isPending ? "Opening..." : "Stripe Dashboard"}
-                  </Button>
-                </div>
-              </div>
-            ) : connectStatus?.connected ? (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400 p-3 rounded-md">
-                  <HelpCircle className="h-4 w-4" />
-                  <span>Stripe account created but onboarding is not complete</span>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => generateOnboardingLinkMutation.mutate()}
-                  disabled={generateOnboardingLinkMutation.isPending}
-                  data-testid="button-complete-stripe-onboarding"
-                >
-                  <ExternalLink className="h-4 w-4 mr-1" />
-                  {generateOnboardingLinkMutation.isPending ? "Loading..." : "Complete Stripe Setup"}
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Connect your Stripe account to accept deposits and payments directly from customers when they view their quotes. A small platform fee ({baker?.platformFeePercent || "3.00"}%) applies per transaction.
-                </p>
-                <Button
-                  onClick={() => createConnectAccountMutation.mutate()}
-                  disabled={createConnectAccountMutation.isPending}
-                  data-testid="button-connect-stripe"
-                >
-                  <CreditCard className="h-4 w-4 mr-1" />
-                  {createConnectAccountMutation.isPending ? "Setting up..." : "Connect Stripe Account"}
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Deposit Settings</CardTitle>
-            <CardDescription>
-              Configure deposit requirements for your quotes
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {!connectStatus?.onboarded && (
-              <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400 p-3 rounded-md mb-4" data-testid="notice-stripe-required-deposits">
-                <CreditCard className="h-4 w-4 shrink-0" />
-                <span>Connect Stripe above to collect deposits and payments from customers.</span>
-              </div>
-            )}
-            <Form {...paymentForm}>
-              <form
-                onSubmit={paymentForm.handleSubmit((data) =>
-                  updatePaymentMutation.mutate(data)
-                )}
-                className="space-y-4"
-              >
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Set how much deposit is required when customers accept quotes
-                  </p>
-                  
-                  <FormField
-                    control={paymentForm.control}
-                    name="defaultDepositType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Deposit Type</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-deposit-type">
-                              <SelectValue placeholder="Select deposit type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="full">Full Payment Required</SelectItem>
-                            <SelectItem value="percentage">Percentage of Total</SelectItem>
-                            <SelectItem value="fixed">Fixed Amount</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          Choose whether to require full payment, a percentage, or a fixed deposit amount
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {paymentForm.watch("defaultDepositType") === "percentage" && (
-                    <FormField
-                      control={paymentForm.control}
-                      name="depositPercentage"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Deposit Percentage</FormLabel>
-                          <FormControl>
-                            <div className="flex items-center gap-2">
-                              <Input
-                                {...field}
-                                type="number"
-                                min={0}
-                                max={100}
-                                className="w-24"
-                                onChange={(e) => field.onChange(Number(e.target.value))}
-                                data-testid="input-deposit-percentage"
-                              />
-                              <span className="text-muted-foreground">%</span>
-                            </div>
-                          </FormControl>
-                          <FormDescription>
-                            Percentage of quote total required as deposit
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-
-                  {paymentForm.watch("defaultDepositType") === "fixed" && (
-                    <FormField
-                      control={paymentForm.control}
-                      name="depositFixedAmount"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Fixed Deposit Amount</FormLabel>
-                          <FormControl>
-                            <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground">$</span>
-                              <Input
-                                {...field}
-                                type="number"
-                                min={0}
-                                step="0.01"
-                                className="w-32"
-                                placeholder="0.00"
-                                data-testid="input-deposit-fixed"
-                              />
-                            </div>
-                          </FormControl>
-                          <FormDescription>
-                            Fixed dollar amount required as deposit
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={updatePaymentMutation.isPending}
-                  data-testid="button-save-payment"
-                >
-                  {updatePaymentMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    "Save Payment Options"
-                  )}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
 
         <Card>
           <CardHeader>

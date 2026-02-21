@@ -1,8 +1,24 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import {
   Table,
   TableBody,
@@ -14,7 +30,10 @@ import {
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useFormatCurrency } from "@/hooks/use-baker-currency";
 import { useAuth } from "@/hooks/use-auth";
-import { DollarSign, TrendingUp, CreditCard, ArrowUpRight, Receipt, Shield, Settings, Pencil } from "lucide-react";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { AVAILABLE_CURRENCIES } from "@/lib/calculator";
+import { DollarSign, TrendingUp, CreditCard, ArrowUpRight, Receipt, Shield, Globe, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "wouter";
 
@@ -44,33 +63,118 @@ interface PaymentData {
   stats: PaymentStats;
 }
 
-function getDepositLabel(baker: any, formatCurrency: (n: number) => string): string {
-  const type = baker?.defaultDepositType || "full";
-  if (type === "percentage") {
-    return `${baker?.depositPercentage || 50}% deposit`;
+const paymentSchema = z.object({
+  depositPercentage: z.number().min(0).max(100),
+  defaultDepositType: z.enum(["full", "percentage", "fixed"]),
+  depositFixedAmount: z.string().optional(),
+}).refine((data) => {
+  if (data.defaultDepositType === "fixed") {
+    const amount = parseFloat(data.depositFixedAmount || "0");
+    return amount > 0;
   }
-  if (type === "fixed") {
-    return `${formatCurrency(parseFloat(baker?.depositFixedAmount || "0"))} deposit`;
-  }
-  return "Full payment";
-}
+  return true;
+}, {
+  message: "Fixed deposit amount must be greater than 0",
+  path: ["depositFixedAmount"],
+});
+
+type PaymentFormData = z.infer<typeof paymentSchema>;
 
 export default function PaymentsPage() {
   const { baker } = useAuth();
+  const { toast } = useToast();
   const formatCurrency = useFormatCurrency();
   const stripeConnected = !!baker?.stripeConnectedAt;
+  const [currency, setCurrency] = useState("USD");
 
   const { data, isLoading } = useQuery<PaymentData>({
     queryKey: ["/api/payments"],
   });
+
+  const paymentForm = useForm<PaymentFormData>({
+    resolver: zodResolver(paymentSchema),
+    defaultValues: {
+      depositPercentage: 50,
+      defaultDepositType: "full",
+      depositFixedAmount: "",
+    },
+  });
+
+  useEffect(() => {
+    if (baker) {
+      paymentForm.reset({
+        depositPercentage: baker.depositPercentage ?? 50,
+        defaultDepositType: (baker.defaultDepositType as "full" | "percentage" | "fixed") || "full",
+        depositFixedAmount: baker.depositFixedAmount || "",
+      });
+      setCurrency(baker.currency || "USD");
+    }
+  }, [baker, paymentForm]);
+
+  const updatePaymentMutation = useMutation({
+    mutationFn: async (data: PaymentFormData) => {
+      const res = await apiRequest("PATCH", "/api/bakers/me", data);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to update payment options");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
+      toast({ title: "Payment options updated successfully" });
+    },
+    onError: (error: Error) => {
+      console.error("Payment options update error:", error);
+      toast({ title: "Failed to update payment options", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateCurrencyMutation = useMutation({
+    mutationFn: async (newCurrency: string) => {
+      const res = await apiRequest("PATCH", "/api/bakers/me", { currency: newCurrency });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to update currency");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
+      toast({ title: "Currency updated successfully" });
+    },
+    onError: (error: Error) => {
+      console.error("Currency update error:", error);
+      toast({ title: "Failed to update currency", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const connectMutation = useMutation({
+    mutationFn: async () => {
+      let accountId = baker?.stripeConnectAccountId;
+      if (!accountId) {
+        const res = await apiRequest("POST", "/api/stripe-connect/create-account");
+        const data = await res.json();
+        accountId = data.accountId;
+      }
+      const linkRes = await apiRequest("POST", "/api/stripe-connect/onboarding-link");
+      return linkRes.json();
+    },
+    onSuccess: (data) => {
+      if (data.url) window.location.href = data.url;
+    },
+  });
+
+  const handleCurrencyChange = (newCurrency: string) => {
+    setCurrency(newCurrency);
+    updateCurrencyMutation.mutate(newCurrency);
+  };
 
   const paymentTypeLabels: Record<string, string> = {
     deposit: "Deposit",
     full: "Full Payment",
     remaining: "Remaining Balance",
   };
-
-  const depositLabel = getDepositLabel(baker, formatCurrency);
 
   return (
     <DashboardLayout title="Payments">
@@ -80,24 +184,21 @@ export default function PaymentsPage() {
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
                 <Shield className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg" data-testid="text-activation-title">Start collecting payments</CardTitle>
+                <CardTitle className="text-lg" data-testid="text-activation-title">Enable online payments</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="text-sm space-y-2">
-                <p className="font-medium" data-testid="text-deposit-requirement">
-                  Deposit requirement: {depositLabel}
-                </p>
-                <p className="text-muted-foreground">
-                  Connect Stripe to accept deposits and payments online directly from your quotes. Until then, customers can accept quotes and you can collect payment manually.
-                </p>
-              </div>
+              <p className="text-sm text-muted-foreground">
+                Connect Stripe to start collecting deposits automatically from your quotes.
+              </p>
               <div className="flex flex-wrap items-center gap-3">
-                <Button asChild data-testid="button-secure-payouts">
-                  <Link href="/settings">
-                    <Shield className="h-4 w-4 mr-2" />
-                    Secure Your Payouts
-                  </Link>
+                <Button
+                  onClick={() => connectMutation.mutate()}
+                  disabled={connectMutation.isPending}
+                  data-testid="button-secure-payouts"
+                >
+                  <Shield className="h-4 w-4 mr-2" />
+                  {connectMutation.isPending ? "Setting up..." : "Secure Your Payouts"}
                 </Button>
                 <Button variant="ghost" size="sm" asChild data-testid="link-learn-payments">
                   <Link href="/faq">
@@ -109,23 +210,171 @@ export default function PaymentsPage() {
           </Card>
         )}
 
-        {stripeConnected && (
-          <Card data-testid="card-deposit-settings">
-            <CardContent className="flex items-center justify-between py-3 px-4">
-              <div className="flex items-center gap-2 text-sm">
-                <Settings className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Deposit requirement:</span>
-                <span className="font-medium" data-testid="text-deposit-summary">{depositLabel}</span>
+        <Card>
+          <CardHeader>
+            <CardTitle>Deposit Settings</CardTitle>
+            <CardDescription>
+              Configure deposit requirements for your quotes
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...paymentForm}>
+              <form
+                onSubmit={paymentForm.handleSubmit((data) =>
+                  updatePaymentMutation.mutate(data)
+                )}
+                className="space-y-4"
+              >
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Set how much deposit is required when customers accept quotes
+                  </p>
+                  
+                  <FormField
+                    control={paymentForm.control}
+                    name="defaultDepositType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Deposit Type</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-deposit-type">
+                              <SelectValue placeholder="Select deposit type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="full">Full Payment Required</SelectItem>
+                            <SelectItem value="percentage">Percentage of Total</SelectItem>
+                            <SelectItem value="fixed">Fixed Amount</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Choose whether to require full payment, a percentage, or a fixed deposit amount
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {paymentForm.watch("defaultDepositType") === "percentage" && (
+                    <FormField
+                      control={paymentForm.control}
+                      name="depositPercentage"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Deposit Percentage</FormLabel>
+                          <FormControl>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                {...field}
+                                type="number"
+                                min={0}
+                                max={100}
+                                className="w-24"
+                                onChange={(e) => field.onChange(Number(e.target.value))}
+                                data-testid="input-deposit-percentage"
+                              />
+                              <span className="text-muted-foreground">%</span>
+                            </div>
+                          </FormControl>
+                          <FormDescription>
+                            Percentage of quote total required as deposit
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
+                  {paymentForm.watch("defaultDepositType") === "fixed" && (
+                    <FormField
+                      control={paymentForm.control}
+                      name="depositFixedAmount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Fixed Deposit Amount</FormLabel>
+                          <FormControl>
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground">$</span>
+                              <Input
+                                {...field}
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                className="w-32"
+                                placeholder="0.00"
+                                data-testid="input-deposit-fixed"
+                              />
+                            </div>
+                          </FormControl>
+                          <FormDescription>
+                            Fixed dollar amount required as deposit
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={updatePaymentMutation.isPending}
+                  data-testid="button-save-payment"
+                >
+                  {updatePaymentMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Payment Options"
+                  )}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5" />
+              Currency & Region
+            </CardTitle>
+            <CardDescription>
+              Choose the currency for all prices in your quotes and calculator
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="currency">Currency</Label>
+                <Select value={currency} onValueChange={handleCurrencyChange}>
+                  <SelectTrigger className="w-full mt-1.5" data-testid="select-currency">
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AVAILABLE_CURRENCIES.map((curr) => (
+                      <SelectItem key={curr.code} value={curr.code} data-testid={`currency-option-${curr.code}`}>
+                        {curr.code} - {curr.name} ({curr.symbol})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground mt-1.5">
+                  This currency will be used for all prices displayed to your customers
+                </p>
               </div>
-              <Button variant="ghost" size="sm" asChild data-testid="button-edit-deposit">
-                <Link href="/settings">
-                  <Pencil className="h-3 w-3 mr-1" />
-                  Edit
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+              {updateCurrencyMutation.isPending && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Saving...
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         <div className={`grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 ${!stripeConnected ? "opacity-60" : ""}`}>
           <Card>

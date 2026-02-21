@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { ClipboardList, Users, ArrowRight, Calendar, DollarSign, TrendingUp, CalendarCheck, Sparkles, AlertTriangle, Plus, UserPlus, Mail, BarChart3, AlertCircle } from "lucide-react";
+import { ClipboardList, Users, ArrowRight, Calendar, DollarSign, TrendingUp, CalendarCheck, Sparkles, AlertTriangle, Plus, UserPlus, Mail, BarChart3, AlertCircle, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -136,6 +136,30 @@ export default function DashboardPage() {
           onConnectStripe={() => connectMutation.mutate()}
           isConnecting={connectMutation.isPending}
         />
+
+        {baker && !baker.stripeConnectedAt && baker.role !== "super_admin" && baker.role !== "admin" && baker.onboardingCompleted && (
+          <Card className="border-muted" data-testid="card-stripe-dashboard-nudge">
+            <CardContent className="flex items-center justify-between gap-4 py-4">
+              <div className="flex items-center gap-3">
+                <Shield className="h-5 w-5 text-muted-foreground shrink-0" />
+                <div>
+                  <p className="font-medium text-sm" data-testid="text-enable-payments">Enable online payments</p>
+                  <p className="text-xs text-muted-foreground">
+                    Connect Stripe to start collecting deposits automatically from your quotes.
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => connectMutation.mutate()}
+                disabled={connectMutation.isPending}
+                data-testid="button-dashboard-connect-stripe"
+              >
+                {connectMutation.isPending ? "Setting up..." : "Secure Your Payouts"}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {baker && !baker.pricingReviewed && baker.onboardingCompleted && (
           <Card className="border-amber-500/30 bg-amber-50 dark:bg-amber-950/20">

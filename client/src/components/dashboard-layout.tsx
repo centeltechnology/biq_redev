@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Sparkles, Bell, CreditCard, Clock, FileText, Share2, Copy, CheckCircle } from "lucide-react";
+import { Sparkles, Bell, Clock, FileText, Copy, CheckCircle } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -35,27 +35,10 @@ interface DashboardLayoutProps {
   actions?: React.ReactNode;
 }
 
-function useStripeBannerSnooze() {
-  const [snoozed, setSnoozed] = useState(() => {
-    const snoozedUntil = localStorage.getItem("stripeBannerSnoozedUntil");
-    if (!snoozedUntil) return false;
-    return Date.now() < parseInt(snoozedUntil, 10);
-  });
-
-  const snooze = useCallback(() => {
-    const snoozedUntil = Date.now() + 24 * 60 * 60 * 1000;
-    localStorage.setItem("stripeBannerSnoozedUntil", snoozedUntil.toString());
-    setSnoozed(true);
-  }, []);
-
-  return { snoozed, snooze };
-}
-
 export function DashboardLayout({ children, title, actions }: DashboardLayoutProps) {
   const { isAuthenticated, isLoading, baker } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { snoozed, snooze: snoozeBanner } = useStripeBannerSnooze();
 
   const [showStripeSuccessModal, setShowStripeSuccessModal] = useState(false);
   const [showSetupInterstitial, setShowSetupInterstitial] = useState(false);
@@ -170,20 +153,9 @@ export function DashboardLayout({ children, title, actions }: DashboardLayoutPro
     "--sidebar-width-icon": "3rem",
   };
 
-  const needsStripeConnect = baker && !baker.stripeConnectedAt && baker.role !== "super_admin" && baker.role !== "admin";
-  const justCompletedOnboarding = baker?.onboardingCompleted && !baker?.firstQuoteSentAt;
-  const isDemoQuoteEditPage = baker?.demoQuoteId && window.location.pathname === `/quotes/${baker.demoQuoteId}`;
-  const showStripeBanner = needsStripeConnect && !snoozed && !justCompletedOnboarding && !isDemoQuoteEditPage;
-
   const isNonAdmin = baker && baker.role !== "admin" && baker.role !== "super_admin";
   const needsFirstQuote = isNonAdmin && baker.stripeConnectedAt && !baker.firstQuoteSentAt;
   const showActivationBanner = needsFirstQuote && !activationBannerDismissed;
-
-  useEffect(() => {
-    if (showStripeBanner) {
-      apiRequest("POST", "/api/activation/stripe-prompt-shown").catch(() => {});
-    }
-  }, [showStripeBanner]);
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
@@ -235,34 +207,6 @@ export function DashboardLayout({ children, title, actions }: DashboardLayoutPro
               <ThemeToggle />
             </div>
           </header>
-          {showStripeBanner && (
-            <div className="flex items-center justify-between gap-4 px-4 py-2.5 bg-primary/10 border-b" data-testid="banner-stripe-connect">
-              <div className="flex items-center gap-2 text-sm">
-                <CreditCard className="h-4 w-4 text-primary shrink-0" />
-                <span>Connect Stripe to collect deposits and payments.</span>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={snoozeBanner}
-                  className="text-muted-foreground"
-                  data-testid="button-stripe-remind-later"
-                >
-                  <Clock className="h-3 w-3 mr-1" />
-                  Remind me later
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => connectMutation.mutate()}
-                  disabled={connectMutation.isPending}
-                  data-testid="button-stripe-connect-banner"
-                >
-                  {connectMutation.isPending ? "Setting up..." : "Connect Stripe"}
-                </Button>
-              </div>
-            </div>
-          )}
           {showActivationBanner && (
             <div className="flex items-center justify-between gap-4 px-4 py-2.5 bg-green-50 dark:bg-green-900/20 border-b" data-testid="banner-activation-quote">
               <div className="flex items-center gap-2 text-sm">
