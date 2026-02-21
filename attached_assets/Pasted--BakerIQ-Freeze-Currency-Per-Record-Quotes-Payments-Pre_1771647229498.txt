@@ -1,0 +1,79 @@
+# BakerIQ – Freeze Currency Per Record (Quotes + Payments) & Prevent Retroactive Display Issues
+
+## Goal
+Ensure changing "Currency & Region" does NOT retroactively change the currency shown on existing quotes/payments/transactions.
+Currency setting should affect FUTURE records only.
+
+This is a data integrity fix to prevent mismatches between BakerIQ UI totals and Stripe exports.
+
+---
+
+## Step 1 — Audit Current Currency Handling
+Find where currency is currently sourced for:
+- Quotes (creation + sending + viewing)
+- Payments/Transactions (list + totals)
+- Invoices (if applicable)
+- Express Items (if they store prices)
+
+Determine if the app:
+A) stores currency_code per record, OR
+B) only uses business-level currency everywhere (problem)
+
+---
+
+## Step 2 — Implement Per-Record Currency (If Missing)
+
+### Required fields (add only if not already present):
+- Quotes table/model: `currency_code` (e.g., "USD") and optionally `currency_symbol`
+- Payments/Transactions table/model: `currency_code` (must match Stripe charge currency)
+- Invoices (if exists): `currency_code`
+
+Rules:
+- On record creation, set `currency_code` = current business currency at that time.
+- For Stripe payments, set `currency_code` from Stripe response (source of truth).
+
+Migration requirement:
+- Backfill existing records:
+  - Set `currency_code` to current business currency for that business (best available default).
+  - Do NOT recalculate amounts.
+
+---
+
+## Step 3 — Update Display Logic
+Wherever amounts are rendered:
+- Use record.currency_code if present
+- Fall back to business currency only if record currency is missing (legacy)
+
+Ensure:
+- Quote view shows the quote’s stored currency, even if business currency changes later.
+- Payments list/totals show currencies correctly and do not mix symbols incorrectly.
+
+If totals aggregate across multiple currencies (edge case):
+- Keep current behavior but add a small note if mixed currencies are detected:
+  "Totals may include multiple currencies. See transactions for details."
+(Only implement this note if the codebase already supports multi-currency detection easily; otherwise skip.)
+
+---
+
+## Step 4 — UX Copy
+On /payments (Currency & Region section), add helper text:
+"Currency changes apply to future quotes. Past quotes and payments keep their original currency."
+
+---
+
+## Step 5 — QA Checklist
+1) Create a quote in USD, then change business currency to CAD:
+   - Old quote still displays USD
+   - New quote displays CAD
+2) Process a Stripe payment in USD:
+   - Payment record shows USD
+   - Dashboard totals match Stripe export
+3) Ensure no runtime errors on old records without currency_code (fallback works)
+
+---
+
+## Deliverables
+- Files changed
+- Schema/migration changes (if any)
+- Confirmation of backfill strategy
+- Screenshots or brief verification notes from QA
