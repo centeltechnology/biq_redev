@@ -6,7 +6,7 @@ const KNOWN_ROUTE_PREFIXES = [
   "/calendar", "/pricing", "/pricing-calculator", "/payments", "/referrals",
   "/refer", "/share", "/settings", "/admin", "/c/", "/q/", "/verify-email",
   "/terms", "/privacy", "/feedback", "/partners", "/email-preferences/",
-  "/help", "/faq", "/onboarding", "/forgot-password", "/reset-password",
+  "/help", "/support", "/faq", "/onboarding", "/forgot-password", "/reset-password",
   "/join/", "/unsubscribe",
 ];
 

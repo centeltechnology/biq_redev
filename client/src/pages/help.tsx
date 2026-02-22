@@ -3,6 +3,12 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { 
   Cake, 
   Calculator, 
@@ -18,7 +24,10 @@ import {
   CreditCard,
   Play,
   Gift,
-  Share2
+  Share2,
+  Rocket,
+  Globe,
+  Wallet
 } from "lucide-react";
 
 const VIDEOS = [
@@ -525,6 +534,207 @@ export default function HelpPage() {
                     Unlimited quotes + unlimited express items. Lowest 3% platform fee. Upgrade anytime in Settings.
                   </p>
                 </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div id="onboarding" className="mb-12" data-testid="section-help-onboarding">
+            <div className="flex items-center gap-2 mb-6">
+              <Rocket className="h-6 w-6 text-primary" />
+              <h2 className="text-2xl font-bold">Onboarding &amp; Getting Set Up</h2>
+            </div>
+            <Card>
+              <CardContent className="pt-6 space-y-4">
+                <p className="text-muted-foreground">
+                  When you first sign up, BakerIQ walks you through a quick setup wizard so your account is ready to receive orders. Here's what each step does:
+                </p>
+                <div className="space-y-3">
+                  <div className="flex gap-3">
+                    <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">1</span>
+                    <div>
+                      <h4 className="font-medium">Profile &amp; Branding</h4>
+                      <p className="text-sm text-muted-foreground">Add your business name, upload a logo or banner, and set your location. This personalizes your order page for customers.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">2</span>
+                    <div>
+                      <h4 className="font-medium">Review Your Pricing</h4>
+                      <p className="text-sm text-muted-foreground">Confirm or adjust your cake sizes, flavors, and treat prices so estimates match what you actually charge.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">3</span>
+                    <div>
+                      <h4 className="font-medium">Share Your Order Page</h4>
+                      <p className="text-sm text-muted-foreground">Copy your unique link and share it on social media or with customers. This is how people find you and request quotes.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">4</span>
+                    <div>
+                      <h4 className="font-medium">Try a Demo Quote</h4>
+                      <p className="text-sm text-muted-foreground">Send yourself a test quote to see exactly what your customers will receive. You can skip this step if you prefer.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">5</span>
+                    <div>
+                      <h4 className="font-medium">Connect Stripe (Optional)</h4>
+                      <p className="text-sm text-muted-foreground">Link your Stripe account to collect deposits and payments online. You can always do this later from the Payments page.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <Accordion type="single" collapsible className="w-full mt-4">
+                  <AccordionItem value="onboarding-q1" data-testid="accordion-onboarding-q1">
+                    <AccordionTrigger>Why can't I accept payments yet?</AccordionTrigger>
+                    <AccordionContent>
+                      <p className="text-sm text-muted-foreground">
+                        Online payment collection requires a connected Stripe account. Go to your <strong>Payments</strong> page and click "Connect with Stripe" to complete the setup. Once connected, customers will see a "Pay Now" button on your quotes. You can still create and send quotes without Stripe — customers just won't be able to pay online.
+                      </p>
+                    </AccordionContent>
+                  </AccordionItem>
+                  <AccordionItem value="onboarding-q2" data-testid="accordion-onboarding-q2">
+                    <AccordionTrigger>Where do I edit my order page URL?</AccordionTrigger>
+                    <AccordionContent>
+                      <p className="text-sm text-muted-foreground">
+                        Go to the <strong>Share</strong> page in your dashboard. You'll find the "Launch Your Landing Page" card where you can customize your URL slug (the part after bakeriq.app/c/). You can also upload a header image and preview how your page looks to customers.
+                      </p>
+                    </AccordionContent>
+                  </AccordionItem>
+                  <AccordionItem value="onboarding-q3" data-testid="accordion-onboarding-q3">
+                    <AccordionTrigger>What does "processing-first" mean?</AccordionTrigger>
+                    <AccordionContent>
+                      <p className="text-sm text-muted-foreground">
+                        BakerIQ uses a processing-first pricing model. Instead of charging a monthly fee for basic features, you only pay a small percentage when you actually collect a payment through the platform. Free plan: 7%, Basic: 5%, Pro: 3%. All plans include unlimited quotes — the platform fee is only applied when a customer pays through your quote link.
+                      </p>
+                    </AccordionContent>
+                  </AccordionItem>
+                  <AccordionItem value="onboarding-q4" data-testid="accordion-onboarding-q4">
+                    <AccordionTrigger>Can I redo onboarding or change my answers later?</AccordionTrigger>
+                    <AccordionContent>
+                      <p className="text-sm text-muted-foreground">
+                        Yes. Everything you set during onboarding can be updated anytime. Change your branding in <strong>Settings</strong>, adjust pricing in <strong>Pricing</strong>, and customize your order page link from the <strong>Share</strong> page.
+                      </p>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div id="order-page" className="mb-12" data-testid="section-help-order-page">
+            <div className="flex items-center gap-2 mb-6">
+              <Globe className="h-6 w-6 text-primary" />
+              <h2 className="text-2xl font-bold">Your Order Page &amp; Sharing</h2>
+            </div>
+            <Card>
+              <CardContent className="pt-6 space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium">What is your Order Page?</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Your order page is a public link (like bakeriq.app/c/your-bakery) where customers can browse your menu, see pricing, and submit a quote request. It's your online storefront — no website needed.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Where to Find Your Link</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Go to the <strong>Share</strong> page in your dashboard. Your order page URL is displayed at the top and can be copied with one click.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">How to Share in DMs (Facebook &amp; Instagram)</h4>
+                  <p className="text-sm text-muted-foreground">
+                    When someone asks "how much?" in your DMs, paste your order page link. They'll see your menu with live pricing and can submit a request with their event details. No more back-and-forth messages about sizes and flavors.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">What Customers See</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Customers see your branding (logo, banner, business name), your cake and treat menu with prices, and any Express Items you've featured. They fill out their event details and submit a quote request. You receive the lead in your dashboard and by email.
+                  </p>
+                </div>
+
+                <Accordion type="single" collapsible className="w-full mt-4">
+                  <AccordionItem value="sharing-q1" data-testid="accordion-sharing-q1">
+                    <AccordionTrigger>What are Express Items?</AccordionTrigger>
+                    <AccordionContent>
+                      <p className="text-sm text-muted-foreground">
+                        Express Items are your featured specials — popular items you want to highlight on your order page. Create them in the <strong>Pricing Calculator</strong>, then star them to feature on your public page. Customers can order them with one click. Plan limits: Free = 1 item, Basic = up to 5, Pro = unlimited.
+                      </p>
+                    </AccordionContent>
+                  </AccordionItem>
+                  <AccordionItem value="sharing-q2" data-testid="accordion-sharing-q2">
+                    <AccordionTrigger>How do I customize my branding and URL?</AccordionTrigger>
+                    <AccordionContent>
+                      <p className="text-sm text-muted-foreground">
+                        From the <strong>Share</strong> page, use the "Launch Your Landing Page" card to: upload a header/banner image, change your URL slug, and preview your page. Your business name and logo come from <strong>Settings</strong>. All changes are reflected immediately on your public order page.
+                      </p>
+                    </AccordionContent>
+                  </AccordionItem>
+                  <AccordionItem value="sharing-q3" data-testid="accordion-sharing-q3">
+                    <AccordionTrigger>Can I share individual items on social media?</AccordionTrigger>
+                    <AccordionContent>
+                      <p className="text-sm text-muted-foreground">
+                        Yes. If you have Express Items, each one gets its own shareable link. On the <strong>Share</strong> page, you'll see sharing buttons for each featured item with pre-written captions you can customize before posting to Facebook, Instagram, Twitter/X, Pinterest, WhatsApp, or LinkedIn.
+                      </p>
+                    </AccordionContent>
+                  </AccordionItem>
+                  <AccordionItem value="sharing-q4" data-testid="accordion-sharing-q4">
+                    <AccordionTrigger>How do I get a QR code for my order page?</AccordionTrigger>
+                    <AccordionContent>
+                      <p className="text-sm text-muted-foreground">
+                        On the <strong>Share</strong> page, click "Download QR Code." Print it on business cards, flyers, packaging, or booth displays so customers can scan and land directly on your order page.
+                      </p>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div id="payments-basics" className="mb-12" data-testid="section-help-payments">
+            <div className="flex items-center gap-2 mb-6">
+              <Wallet className="h-6 w-6 text-primary" />
+              <h2 className="text-2xl font-bold">Payments Basics</h2>
+            </div>
+            <Card>
+              <CardContent className="pt-6 space-y-4">
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="payments-q1" data-testid="accordion-payments-q1">
+                    <AccordionTrigger>Can I set up deposits without Stripe?</AccordionTrigger>
+                    <AccordionContent>
+                      <p className="text-sm text-muted-foreground">
+                        Yes. Go to <strong>Payments</strong> and configure your deposit settings (percentage or flat amount). These will appear on your quotes so customers know how much is due upfront. Without Stripe, they'll see the amount but will need to pay you directly (cash, Venmo, Zelle, etc.). Connect Stripe to let them pay the deposit online.
+                      </p>
+                    </AccordionContent>
+                  </AccordionItem>
+                  <AccordionItem value="payments-q2" data-testid="accordion-payments-q2">
+                    <AccordionTrigger>What does connecting Stripe do?</AccordionTrigger>
+                    <AccordionContent>
+                      <p className="text-sm text-muted-foreground">
+                        Stripe lets your customers pay deposits or full amounts directly on your quotes through a secure checkout page. Money goes to your Stripe account (minus the platform fee for your plan). You can track all payments on your <strong>Payments</strong> page and get email notifications for each one.
+                      </p>
+                    </AccordionContent>
+                  </AccordionItem>
+                  <AccordionItem value="payments-q3" data-testid="accordion-payments-q3">
+                    <AccordionTrigger>How does "accept now, pay later" work?</AccordionTrigger>
+                    <AccordionContent>
+                      <p className="text-sm text-muted-foreground">
+                        When you send a quote, your customer can accept it right away even if they're not ready to pay. Accepting locks in the price and confirms the order. They can come back and pay the deposit (or full amount) later using the same quote link. You'll see the quote status update in your dashboard as they accept and pay.
+                      </p>
+                    </AccordionContent>
+                  </AccordionItem>
+                  <AccordionItem value="payments-q4" data-testid="accordion-payments-q4">
+                    <AccordionTrigger>What are platform fees?</AccordionTrigger>
+                    <AccordionContent>
+                      <p className="text-sm text-muted-foreground">
+                        BakerIQ charges a small percentage only when a customer pays through your quote link. Free plan: 7%, Basic ($4.99/mo): 5%, Pro ($9.99/mo): 3%. The fee is deducted automatically — you receive the rest in your Stripe account. No payments through the platform means no fees.
+                      </p>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </CardContent>
             </Card>
           </div>
