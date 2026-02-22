@@ -59,7 +59,8 @@ export default function AffiliateJoinPage() {
           <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
             <div className="space-y-6">
               <h1 className="text-4xl md:text-5xl font-bold tracking-tight leading-tight" data-testid="text-affiliate-headline">
-                The system I recommend for serious bakers.
+                I don't recommend many tools.<br />
+                This one earns it.
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground leading-relaxed" data-testid="text-affiliate-subheadline">
                 If you're learning from me and planning to sell professionally, you need structure — not DMs.
