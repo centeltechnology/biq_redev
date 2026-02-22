@@ -38,6 +38,7 @@ import PaymentsPage from "@/pages/payments";
 import ReferralsPage from "@/pages/referrals";
 import ReferPage from "@/pages/refer";
 import PartnersPage from "@/pages/partners";
+import LaShellPage from "@/pages/lashell";
 import OnboardingPage from "@/pages/onboarding";
 import EmailPreferences from "@/pages/email-preferences";
 import { CookieConsent } from "@/components/cookie-consent";
@@ -116,6 +117,7 @@ function Router() {
       <Route path="/privacy" component={PrivacyPage} />
       <Route path="/feedback" component={FeedbackPage} />
       <Route path="/partners" component={PartnersPage} />
+      <Route path="/lashell" component={LaShellPage} />
       <Route path="/email-preferences/:token" component={EmailPreferences} />
       <Route path="/support">{() => <Redirect to="/help" />}</Route>
       <Route path="/dashboard/feedback">{() => <Redirect to="/feedback" />}</Route>
