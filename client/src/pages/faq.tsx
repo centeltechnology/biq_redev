@@ -13,20 +13,20 @@ const faqs = [
     category: "Getting Started",
     questions: [
       {
-        q: "How do I create my calculator?",
-        a: "When you sign up for BakerIQ, your unique order page is created automatically. It's available at a URL based on your business name (e.g., /c/your-bakery-name). You can find your order page URL in the Settings page of your dashboard."
+        q: "How do I create my order page?",
+        a: "Your order page is created automatically when you sign up. It lives at bakeriq.app/c/your-bakery. Find the link in Share."
       },
       {
         q: "How do I set my pricing?",
-        a: "Go to 'Pricing' in your dashboard. There you can set prices for cake sizes, adjust pricing for premium flavors and frostings, configure decoration prices, and set up addons like dipped strawberries or delivery fees."
+        a: "Go to Pricing. Set base prices for cake sizes, flavors, frostings, treats, decorations, and delivery."
       },
       {
-        q: "Can I customize what options appear in my calculator?",
-        a: "Yes! For treats, you can enable or disable specific items (cupcakes, cake pops, cookies, etc.) from Pricing. For cakes, all options are available with fully customizable pricing."
+        q: "Can I customize what appears on my order page?",
+        a: "Yes. Enable or disable treats in Pricing. Feature Express Items for fast ordering. Upload branding in Settings."
       },
       {
-        q: "What can customers order through the calculator?",
-        a: "The calculator supports two categories: Cakes (multi-tier custom cakes with sizes, shapes, flavors, frostings, decorations, and addons) and Treats (cupcakes, cake pops, cookies, brownies, dipped strawberries, and more)."
+        q: "What can customers order?",
+        a: "Two categories: Cakes (multi-tier with sizes, shapes, flavors, frostings, decorations, add-ons) and Treats (cupcakes, cake pops, cookies, brownies, dipped strawberries)."
       }
     ]
   },
@@ -34,20 +34,20 @@ const faqs = [
     category: "Leads & Quotes",
     questions: [
       {
-        q: "What happens when someone uses my calculator?",
-        a: "When a customer completes your calculator and submits their information, a new lead is automatically created in your dashboard. You'll receive an email notification, and the customer receives a confirmation email with their estimate."
+        q: "What happens when someone uses my order page?",
+        a: "You receive a structured lead in your dashboard and by email. The customer receives a confirmation with their estimate."
       },
       {
         q: "How do I convert a lead to a quote?",
-        a: "Open any lead from your Leads page, then click 'Create Quote'. The quote builder will open with the customer's information and cake details pre-filled. You can add, edit, or remove line items, then save or send the quote."
+        a: "Open the lead. Click 'Create Quote'. Customer info and selections are pre-filled. Adjust line items, save, and send."
       },
       {
         q: "What's the difference between a lead and a quote?",
-        a: "A lead is an initial inquiry from a customer, containing their contact info and cake preferences. A quote is a formal price estimate you create and send to the customer. One lead can have multiple quotes if the customer requests changes."
+        a: "Lead = inquiry from a customer. Quote = professional estimate you send back. One lead can have multiple quotes."
       },
       {
         q: "How do I track quote status?",
-        a: "Quotes can have several statuses: Draft (being worked on), Sent (delivered to customer), Accepted (customer approved), Declined (customer rejected), or Expired (past the expiration date). Update the status as you work with the customer."
+        a: "Statuses: Draft, Sent, Accepted, Declined, Expired. Acceptance locks pricing. Customers can pay online if Stripe is connected."
       }
     ]
   },
@@ -56,106 +56,90 @@ const faqs = [
     questions: [
       {
         q: "How do I create an order?",
-        a: "Orders can be created from accepted quotes, or you can create them directly from the Orders page. Orders appear on your calendar so you can track upcoming deliveries and pickups."
+        a: "Convert an accepted quote to an order, or create one directly from Orders. Orders appear on your calendar."
       },
       {
         q: "How does the calendar work?",
-        a: "The Order Calendar shows all your confirmed orders organized by date. Use the search bar to find specific orders by customer name, title, or event type. Click on any order to view full details."
+        a: "Confirmed orders displayed by event date. Color-coded by status. Search by customer name, title, or event type."
       },
       {
         q: "Can I track deposits and payments?",
-        a: "Yes! Each order tracks total amount, deposit paid, and balance due. You can configure your default deposit percentage and accepted payment methods in Pricing settings."
+        a: "Yes. Each order tracks total, deposit paid, and balance due. Configure deposit settings in Payments."
       }
     ]
   },
   {
-    category: "Pricing & Payments",
+    category: "Pricing & Cost",
     questions: [
       {
-        q: "How do I figure out what to charge for my baked goods?",
-        a: "Use the Express Items page in your dashboard. Enter your material costs, estimated labor time, hourly rate, and overhead percentage to get a suggested price. You can save calculations for reference and use them to set your order page prices."
+        q: "What does BakerIQ cost?",
+        a: "Free to start. Platform fee only when you process payments. Upgrade to reduce your fee. Free: 7%. Basic ($4.99/mo): 5%. Pro ($9.99/mo): 3%."
       },
       {
-        q: "What is Express Items?",
-        a: "Express Items is an internal tool to help you determine fair prices. It calculates: Material Cost + (Labor Hours x Hourly Rate) + Overhead = Suggested Price. It also shows your profit margin so you can make informed pricing decisions."
+        q: "How do I figure out what to charge?",
+        a: "Use the cost calculator in Express Items. Enter material costs, labor hours, hourly rate, and overhead. It outputs a suggested price and profit margin."
       },
       {
         q: "What hourly rate should I use?",
-        a: "Most home bakers charge between $20-35 per hour. Consider your skill level, local market rates, and the complexity of your work. The Express Items tool shows tips to help you decide."
+        a: "Most home bakers charge $20-35/hour. Factor in skill level, local market, and complexity."
       },
       {
-        q: "How do I set up addons like dipped strawberries?",
-        a: "Go to Pricing, scroll to the Addons section. You can set prices for pre-configured addons. Some addons like Dipped Strawberries have a flat price, while others like Full Sweets Table are priced per attendee."
-      },
-      {
-        q: "Can I set up delivery fees?",
-        a: "Yes! In Pricing, there's a Delivery & Setup section where you can set prices for Standard Delivery, Express/Rush Delivery, and Full Setup Service options."
-      },
-      {
-        q: "What payment methods can I accept?",
-        a: "You can accept credit/debit card payments directly through your quotes by connecting Stripe in Settings. Once connected, customers will see a 'Pay Now' button on quotes you send."
+        q: "How do I set up add-ons and delivery?",
+        a: "Go to Pricing. Add-ons section for extras (dipped strawberries, sweets tables). Delivery & Setup section for delivery tiers."
       },
       {
         q: "How do deposits work?",
-        a: "Set your default deposit percentage in Pricing. When you create quotes and orders, the deposit amount is automatically calculated. You can track deposit status on each order."
+        a: "Set deposit percentage or flat amount in Payments → Deposit Settings. Deposits are calculated automatically on quotes. Customers can accept now and pay later."
       }
     ]
   },
   {
-    category: "Stripe Connect & Payments",
+    category: "Stripe & Payments",
     questions: [
       {
-        q: "How do I accept payments from customers?",
-        a: "Go to Settings in your dashboard and click 'Connect with Stripe' to link your Stripe account. Once connected, customers will see a 'Pay Now' button on quotes you send them. They can pay a deposit or the full amount using credit/debit cards through Stripe's secure checkout."
+        q: "Do I need Stripe to use BakerIQ?",
+        a: "No. Stripe is optional and only required for online payments. All other features work without it."
       },
       {
-        q: "What is Stripe Connect?",
-        a: "Stripe Connect lets you accept payments directly into your own Stripe account. BakerIQ uses it so your customers can pay you securely online. You keep control of your funds, and payouts go straight to your bank account through Stripe."
+        q: "How do I connect Stripe?",
+        a: "Go to Payments → Connect Stripe. Once connected, customers see a 'Pay Now' button on your quotes. Money goes to your Stripe account."
       },
       {
-        q: "Is there a fee for accepting payments?",
-        a: "BakerIQ charges a platform fee that varies by plan: 7% on Free, 5% on Basic, and 3% on Pro. Stripe also charges their standard processing fee (2.9% + $0.30 per transaction). Upgrading your plan lowers your total cost per transaction."
+        q: "What are the fees?",
+        a: "Platform fee: Free 7%, Basic 5%, Pro 3%. Stripe also charges 2.9% + $0.30 per transaction. Upgrading your plan lowers total cost."
       },
       {
-        q: "What are the total fees on a typical order?",
-        a: "On a $300 cake order, here's what the total fees look like by plan: Free plan: $21.00 BakerIQ fee (7%) + $9.00 Stripe fee (2.9% + $0.30) = $30.00 total, you receive $270.00. Basic plan ($4.99/mo): $15.00 BakerIQ fee (5%) + $9.00 Stripe fee = $24.00 total, you receive $276.00. Pro plan ($9.99/mo): $9.00 BakerIQ fee (3%) + $9.00 Stripe fee = $18.00 total, you receive $282.00."
+        q: "What are the total fees on a $300 order?",
+        a: "Free: $21 BakerIQ + $9 Stripe = $30 total, you receive $270. Basic: $15 + $9 = $24, you receive $276. Pro: $9 + $9 = $18, you receive $282."
       },
       {
-        q: "How does BakerIQ compare to other platforms?",
-        a: "BakerIQ is an all-in-one tool that replaces separate subscriptions for a website builder, booking system, and invoicing software. For comparison: HoneyBook charges $19-$39/month plus 2.9% + $0.25 per transaction. 17hats charges $15-$60/month plus payment processing fees. Square charges 3.5% + $0.15 per online transaction with no quoting tools. With BakerIQ Pro at just $9.99/month and 3% platform fee, you get an order page, lead capture, quoting, order calendar, and payment processing — all in one place."
+        q: "Can customers pay a deposit instead of full amount?",
+        a: "Yes. Customers choose deposit or full amount at checkout. Track partial payments and balances in Payments."
       },
       {
-        q: "Can customers pay a deposit instead of the full amount?",
-        a: "Yes! When viewing a quote, customers can choose to pay a deposit or the full amount. The deposit percentage is based on your settings. You can track partial payments and remaining balances on the Payments page."
+        q: "How do I track payments?",
+        a: "Go to Payments. View total revenue, transaction count, and per-payment details. Email notifications sent for every payment."
       },
       {
-        q: "How do I track payments I've received?",
-        a: "Go to the Payments page in your dashboard. You'll see your total revenue, number of transactions, and a detailed list of every payment with customer name, quote details, amount, and date. You also receive an email notification for each payment."
-      },
-      {
-        q: "Do I need a Stripe account to use BakerIQ?",
-        a: "A Stripe account is only needed if you want to accept online payments through your quotes. You can use all other BakerIQ features (calculator, leads, quotes, calendar) without Stripe."
-      },
-      {
-        q: "How do I disconnect my Stripe account?",
-        a: "You can manage your Stripe connection from the Settings page. If you need to disconnect, contact support. Note that disconnecting will remove the 'Pay Now' button from your quotes."
+        q: "How do I disconnect Stripe?",
+        a: "Contact support. Disconnecting removes the 'Pay Now' button from quotes."
       }
     ]
   },
   {
-    category: "Email Notifications",
+    category: "Notifications",
     questions: [
       {
         q: "What emails does BakerIQ send?",
-        a: "BakerIQ sends automatic emails for: new lead notifications (to you), lead confirmation (to the customer), and quote notifications (to the customer). All emails use your business name and branding."
+        a: "Lead alerts (to you), customer confirmations (to them), quote notifications (to them), and payment receipts (both). All branded with your business name."
       },
       {
-        q: "Can I customize the email templates?",
-        a: "Email templates currently use BakerIQ's professional design with your business name. Custom email templates are on our roadmap for a future update."
+        q: "Can I customize email templates?",
+        a: "Emails use BakerIQ's professional design with your business name. Custom templates are on the roadmap."
       },
       {
-        q: "What if I don't receive email notifications?",
-        a: "Make sure you've verified your email address and check your spam folder. Email notifications require proper AWS SES configuration. If issues persist, contact support."
+        q: "What if I don't receive notifications?",
+        a: "Verify your email address in Settings. Check your spam folder. If issues persist, contact support."
       }
     ]
   },
@@ -164,64 +148,56 @@ const faqs = [
     questions: [
       {
         q: "How do I change my business name?",
-        a: "Go to Settings in your dashboard. You can update your business name, contact phone, and address. Note that changing your business name won't change your order page URL — you can customize that separately from Your Order Page."
+        a: "Go to Settings. Update business name, phone, and address. Changing the name does not change your order page URL — edit that in Share."
       },
       {
-        q: "Can I have multiple calculators?",
-        a: "Currently, each BakerIQ account has one order page. If you need multiple order pages for different business lines, you would need separate accounts."
+        q: "Can I have multiple order pages?",
+        a: "One order page per account. Multiple business lines require separate accounts."
       },
       {
-        q: "How do I share my calculator?",
-        a: "The easiest way is to use the Your Order Page section in your dashboard. It gives you one-click sharing to Facebook, Instagram, Twitter/X, Pinterest, WhatsApp, and LinkedIn — with ready-made captions you can customize. You can also download a QR code to print on business cards or flyers, and customize your URL. The URL format is: /c/your-bakery-slug"
-      },
-      {
-        q: "What is the Share page?",
-        a: "The Share page is a built-in tool in your dashboard that makes it easy to promote your calculator on social media. It includes sharing buttons for all major platforms, caption templates organized by category (General, Wedding, Events, Express Items, Seasonal), a social media banner creator with pre-made designs and custom photo upload, a downloadable QR code, and per-item sharing for express items."
+        q: "How do I share my order page?",
+        a: "Go to Share. One-click sharing to Facebook, Instagram, Twitter/X, Pinterest, WhatsApp, LinkedIn. Download a QR code. Customize your URL slug."
       },
       {
         q: "How do I create a social media banner?",
-        a: "Go to the Share page and scroll to Social Media Banners. Choose from four pre-made designs (Elegant Wedding, Fun Birthday, Clean Modern, or Holiday Seasonal) or upload your own cake photo. Your business name is automatically added to the banner. Click 'Download Banner' to save it as a ready-to-post image. The banner is 1200x630 pixels, which is the ideal size for Facebook and LinkedIn posts. For Instagram, you can crop the downloaded image to a square."
+        a: "Go to Share → Social Media Banners. Pick a design or upload your own photo. Your business name is added automatically. Downloads at 1200x630 (Facebook/LinkedIn size)."
       },
       {
-        q: "What size photo should I upload for a social banner?",
-        a: "Any photo will work — the banner maker automatically crops and fits your image to 1200x630 pixels. For best results, use a landscape (horizontal) photo that's at least 1200 pixels wide. Photos of your finished cakes, treats, or your workspace work great."
+        q: "Can I change my currency?",
+        a: "Yes. Go to Payments → Currency & Region."
       },
       {
         q: "How do I reset my password?",
-        a: "Click 'Forgot password?' on the login page and enter your email address. You'll receive a password reset link that's valid for 1 hour. Follow the link to set a new password."
+        a: "Click 'Forgot password?' on the login page. Enter your email. Reset link valid for 1 hour."
       },
       {
-        q: "How do I verify my email address?",
-        a: "When you sign up, we send a verification email to your address. Click the link in that email to verify. If you didn't receive it, you can request a new verification email from your Settings page."
-      },
-      {
-        q: "How do I add my social media links?",
-        a: "Go to Settings and scroll to the Social Media section. You can add your Facebook, Instagram, TikTok, and Pinterest handles or URLs. These will appear in your calculator header so customers can find you."
+        q: "How do I add social media links?",
+        a: "Go to Settings → Social Media. Add Facebook, Instagram, TikTok, Pinterest. These appear on your order page header."
       }
     ]
   },
   {
-    category: "Subscription & Plans",
+    category: "Plans & Subscriptions",
     questions: [
       {
         q: "What plans are available?",
-        a: "BakerIQ offers three plans: Free (unlimited quotes, 1 Express Item, 7% platform fee), Basic ($4.99/month, unlimited quotes, up to 5 Express Items, 5% fee), and Pro ($9.99/month, unlimited quotes, unlimited Express Items, 3% fee). All plans include unlimited leads and Stripe Connect for accepting payments."
+        a: "Free: unlimited quotes, 1 Express Item, 7% fee. Basic ($4.99/mo): up to 5 Express Items, 5% fee. Pro ($9.99/mo): unlimited Express Items, 3% fee. All plans include unlimited leads."
       },
       {
         q: "Are quotes limited?",
-        a: "No! All plans include unlimited quotes. You can create and send as many quotes as you need. Leads from your order page are always unlimited too."
+        a: "No. All plans include unlimited quotes."
       },
       {
         q: "What's the difference between Basic and Pro?",
-        a: "Basic ($4.99/mo) gives you unlimited quotes, up to 5 express items, and a 5% platform fee. Pro ($9.99/mo) gives you unlimited quotes, unlimited express items, and the lowest 3% platform fee. Both plans include all core features like lead management, customer tracking, and email notifications."
+        a: "Basic: 5 Express Items, 5% fee. Pro: unlimited Express Items, 3% fee. Both include all core features."
       },
       {
-        q: "How do I upgrade my plan?",
-        a: "Go to Settings in your dashboard and scroll to the Subscription section. You can upgrade to Basic or Pro, and manage your subscription through Stripe's secure portal."
+        q: "How do I upgrade?",
+        a: "Go to Settings → Subscription. Upgrade to Basic or Pro through Stripe's secure portal."
       },
       {
-        q: "Can I cancel or downgrade my subscription?",
-        a: "Yes! Click 'Manage Subscription' in Settings to access the Stripe portal. You can cancel anytime, and your paid features will remain active until the end of your billing period."
+        q: "Can I cancel?",
+        a: "Yes. Click 'Manage Subscription' in Settings. Cancel anytime. Paid features remain active through the end of your billing period."
       }
     ]
   },
@@ -230,27 +206,27 @@ const faqs = [
     questions: [
       {
         q: "How does the referral program work?",
-        a: "Every BakerIQ baker gets a unique referral link. When someone signs up using your link and subscribes to a paid plan, you earn a reward. Paid plan bakers get 1 free month of their subscription. Free plan bakers get 1 month of Express Items access. You can earn up to 12 months of stacked credits."
+        a: "Share your unique referral link. When a baker signs up and subscribes, you earn a reward. Paid plan: 1 free month. Free plan: 1 month Express Items access. Stack up to 12 months."
       },
       {
         q: "Where do I find my referral link?",
-        a: "Go to 'Refer a Friend' in your dashboard sidebar. Your unique referral link is displayed there and ready to copy. Share it on social media, in group chats, or anywhere bakers hang out."
+        a: "Go to Refer a Friend in your dashboard. Your link is displayed and ready to copy."
       },
       {
-        q: "When do I get my referral credit?",
-        a: "Your credit is awarded automatically when the baker you referred subscribes to a paid plan (Basic or Pro). You'll see the credit reflected on your Refer a Friend page."
+        q: "When do I get my credit?",
+        a: "Automatically, when the referred baker subscribes to a paid plan."
       },
       {
-        q: "Is there a limit to how many referrals I can make?",
-        a: "You can refer as many bakers as you like. The credit cap is 12 months — once you've earned 12 months of free subscription (or Express Items access), additional referrals won't add more credits."
+        q: "Is there a cap?",
+        a: "12 months maximum. Unlimited referrals, but credits cap at 12 months."
       },
       {
-        q: "What's the difference between the referral program and the affiliate program?",
-        a: "The referral program is available to every baker and rewards you with free months of service. The affiliate program is an invite-only program for influencers and content creators who earn cash commissions (20% of subscription revenue) for referring new bakers. You can apply for the affiliate program on our Partners page."
+        q: "What's the difference between referral and affiliate?",
+        a: "Referral: available to all bakers, rewards with free months. Affiliate: invite-only for influencers, earns cash commissions (20% of subscription revenue). Apply at the Partners page."
       },
       {
-        q: "Do I get credit if the person I referred stays on the free plan?",
-        a: "No — referral credits are awarded when the referred baker subscribes to a paid plan. If they stay on the free plan, the referral is tracked but no credit is awarded yet. You'll receive the credit automatically if they upgrade later."
+        q: "Do I get credit if they stay on Free?",
+        a: "No. Credits awarded when the referred baker subscribes to a paid plan. If they upgrade later, the credit applies automatically."
       }
     ]
   },
@@ -259,27 +235,23 @@ const faqs = [
     questions: [
       {
         q: "What is Express Items?",
-        a: "Express Items lets you feature your pricing calculations on your order page. Customers can select an express item and submit an inquiry in just a few clicks, skipping the full cake/treat builder. Available on Basic and Pro plans."
+        a: "Featured items at the top of your order page for fast ordering. Customers select and submit in a few clicks. Free: 1 item. Basic: 5. Pro: unlimited."
       },
       {
         q: "How do I feature an item?",
-        a: "Go to Express Items in your dashboard and save a pricing calculation. Then click the star icon next to any saved calculation to feature it. Use the eye icon to control whether it appears in Quick Order. You can unfeature it anytime by clicking the star again."
+        a: "Go to Express Items. Save a pricing calculation. Click the star icon to feature it. Use the eye icon to control visibility."
       },
       {
-        q: "What are the plan limits for Express Items?",
-        a: "Free plan: Express Items is not available. Basic plan ($4.99/month): Up to 5 express items. Pro plan ($9.99/month): Unlimited express items. The limits only apply to how many items you can feature, not how many orders you receive."
+        q: "Where do Express Items appear?",
+        a: "At the top of your order page in the Quick Order section. Lightning bolt icon."
       },
       {
-        q: "Where do express items appear?",
-        a: "Express items appear at the top of your order page in a special 'Quick Order' section with a lightning bolt icon. Use the eye icon in Express Items to control which express items show in Quick Order."
-      },
-      {
-        q: "How do Express Items leads work?",
-        a: "When a customer orders through Express Items, the lead appears in your dashboard with a special lightning bolt badge. You can click 'Quick Quote' to instantly create a quote with the item name, price, and details pre-filled."
+        q: "How do Express Item leads work?",
+        a: "Orders appear in Leads with a lightning bolt badge. Click 'Quick Quote' to create a quote with item details pre-filled."
       },
       {
         q: "Why can't I feature items?",
-        a: "Express Items requires at least the Basic plan ($4.99/month). If you're on the Free plan, upgrade in Settings to unlock Express Items. Basic allows 5 express items, Pro allows unlimited."
+        a: "Express Items requires Basic ($4.99/mo) or Pro ($9.99/mo). Upgrade in Settings."
       }
     ]
   },
@@ -287,16 +259,16 @@ const faqs = [
     category: "Customers",
     questions: [
       {
-        q: "How do I manage my customers?",
-        a: "Go to Customers in your dashboard to view, add, and edit customer records. Each customer has contact info, notes, and links to their quotes and orders."
+        q: "How do I manage customers?",
+        a: "Go to Customers. View, add, and edit records. Each customer has contact info, notes, and linked quotes/orders."
       },
       {
         q: "Are customers created automatically?",
-        a: "When you create a quote from a lead, BakerIQ will try to match the customer by email. If no match is found, you can create a new customer record with one click from the quote builder."
+        a: "When you create a quote from a lead, BakerIQ matches by email. If no match, create a new record with one click."
       },
       {
-        q: "Can I see a customer's order history?",
-        a: "Yes! Click on any customer to view their profile, which shows all associated quotes and orders. This helps you track repeat customers and their preferences."
+        q: "Can I see order history?",
+        a: "Yes. Click any customer to view all associated quotes and orders."
       }
     ]
   },
@@ -304,24 +276,24 @@ const faqs = [
     category: "Troubleshooting",
     questions: [
       {
-        q: "Why isn't my calculator showing my updated prices?",
-        a: "Prices update immediately after you save them in Pricing. Try refreshing your browser or clearing your cache. If prices still don't appear, make sure you clicked 'Save Prices' after making changes."
+        q: "Prices aren't updating on my order page.",
+        a: "Prices update immediately after saving in Pricing. Refresh your browser. Make sure you clicked 'Save Prices'."
       },
       {
-        q: "A customer says they didn't receive an email - what should I do?",
-        a: "Ask them to check their spam/junk folder first. Customer confirmation emails are sent automatically when they submit the calculator. If emails consistently aren't being delivered, contact support to check your email configuration."
+        q: "Customer didn't receive an email.",
+        a: "Have them check spam/junk. Confirmations are sent automatically on submission. If persistent, contact support."
       },
       {
         q: "How do I delete a lead or quote?",
-        a: "You can delete leads from the lead detail page and quotes from the quote builder. Look for the delete button (trash icon) in the page header. Note that deleting is permanent and cannot be undone."
+        a: "Open the lead or quote. Click the trash icon in the header. Deletion is permanent."
       },
       {
-        q: "My calendar isn't showing all my orders - why?",
-        a: "Only orders with an event date appear on the calendar. Make sure your orders have event dates set. Also check that the order status isn't 'Cancelled' - cancelled orders are hidden from the calendar."
+        q: "Calendar isn't showing all orders.",
+        a: "Only orders with an event date appear. Check that event dates are set and status isn't 'Cancelled'."
       },
       {
-        q: "Can I recover a deleted lead or quote?",
-        a: "Unfortunately, deleted items cannot be recovered. We recommend updating the status to 'Lost' instead of deleting if you might need to reference the information later."
+        q: "Can I recover a deleted item?",
+        a: "No. Use status 'Lost' instead of deleting if you may need the record later."
       }
     ]
   }
@@ -363,7 +335,7 @@ export default function FAQPage() {
             </Link>
             <h1 className="text-3xl md:text-4xl font-bold mb-4">Frequently Asked Questions</h1>
             <p className="text-lg text-muted-foreground">
-              Find answers to the most common questions about BakerIQ.
+              Short answers. No fluff.
             </p>
           </div>
 
@@ -397,9 +369,9 @@ export default function FAQPage() {
           </div>
 
           <div className="mt-12 bg-muted/30 rounded-2xl p-8 text-center">
-            <h2 className="text-2xl font-bold mb-2">Didn't find your answer?</h2>
+            <h2 className="text-2xl font-bold mb-2">Need more detail?</h2>
             <p className="text-muted-foreground mb-6">
-              Check out our detailed Help Center or contact support directly.
+              Check the Help Center or contact support directly.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href="/help">
