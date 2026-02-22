@@ -34,7 +34,7 @@ export function SupportChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
-      content: "Hi! I'm your BakerIQ support assistant. How can I help you today? Ask me about pricing, leads, quotes, orders, or any other features!",
+      content: "Ask me about pricing, leads, deposits, or sharing your order page.",
     },
   ]);
   const [inputValue, setInputValue] = useState("");
@@ -115,7 +115,7 @@ export function SupportChat() {
         ...prev.filter(m => !m.content.includes("[CREATE_TICKET]")),
         {
           role: "assistant",
-          content: "I've created a support ticket for you. Our team will review it and get back to you soon. You can continue using the platform while you wait!",
+          content: "Support ticket created. Our team will review it and follow up.",
         },
       ]);
       queryClient.invalidateQueries({ queryKey: ["/api/support/tickets"] });
@@ -145,13 +145,13 @@ export function SupportChat() {
         ...prev,
         {
           role: "assistant",
-          content: "Your support ticket has been closed. Feel free to ask more questions anytime!",
+          content: "Ticket closed. You can open a new one anytime.",
         },
       ]);
       queryClient.invalidateQueries({ queryKey: ["/api/support/tickets"] });
       toast({
         title: "Ticket closed",
-        description: "Thanks for using support!",
+        description: "Ticket closed.",
       });
     },
     onError: () => {
@@ -313,7 +313,7 @@ export function SupportChat() {
   };
 
   const handleCreateTicket = () => {
-    const lastUserMessage = [...messages].reverse().find(m => m.role === "user")?.content || "Need help with BakerIQ";
+    const lastUserMessage = [...messages].reverse().find(m => m.role === "user")?.content || "Support request";
     createTicketMutation.mutate({ subject: "Support Request", message: lastUserMessage });
   };
 
