@@ -1,0 +1,167 @@
+🔒 BakerIQ Affiliate Canonicalization Audit + Consolidation
+Objective
+
+Standardize LaShell’s paid affiliate link so that:
+
+/join/artbylashell becomes the single canonical affiliate entry point
+
+Affiliate tracking is guaranteed and persistent
+
+/lashell redirects to /join/artbylashell
+
+No commission logic is modified
+
+No referral systems are rebuilt
+
+No existing tracking is broken
+
+This is a routing + tracking validation task only.
+
+DO NOT rewrite the affiliate system.
+DO NOT modify payout percentages.
+DO NOT alter commission duration logic.
+DO NOT change Stripe webhook logic unless necessary.
+
+PART 1 — Full Audit (Report Before Changing Anything)
+
+Analyze and return findings clearly.
+
+1. Visiting /join/artbylashell
+
+Does the slug validate against the affiliate table?
+
+Is a cookie set?
+
+What is the cookie name?
+
+Expiration length?
+
+Is it stored in cookie, localStorage, or session?
+
+Is click count incremented?
+
+2. Visiting /lashell
+
+Is this a static landing page?
+
+Does it set affiliate tracking?
+
+Does it redirect?
+
+If user signs up from this page, is tracking preserved?
+
+3. Signup Flow
+
+Where is affiliate_ref checked?
+
+How is it attached to the user record?
+
+What DB fields are used?
+
+What is the default referral status?
+
+4. Subscription / Conversion
+
+What event triggers affiliate conversion?
+
+Is it tied to Stripe webhook?
+
+Where is conversion recorded?
+
+What table tracks commissions?
+
+Return findings before implementation.
+
+PART 2 — Canonical Route Implementation
+
+Make /join/:slug the canonical affiliate entry.
+
+Behavior must be:
+
+Validate slug
+
+If valid:
+
+Set affiliate cookie (minimum 30 days, 90 preferred)
+
+Increment click count
+
+Render affiliate landing page
+
+CTA → /signup
+
+Tracking must persist through navigation and signup
+
+No duplicate landing systems.
+
+PART 3 — Redirect Personal Page
+
+Implement:
+
+/lashell → 301 redirect → /join/artbylashell
+
+Do NOT duplicate page logic.
+
+Do NOT create separate tracking behavior.
+
+One source of truth only.
+
+PART 4 — Tracking Validation
+
+Simulate and confirm:
+
+Visit /join/artbylashell
+
+Navigate to signup
+
+Create test account
+
+Confirm:
+
+affiliate_ref attached to new user
+
+referral status = pending
+
+Simulate subscription event
+
+Confirm:
+
+conversion recorded
+
+commission triggered
+
+visible in Super Admin
+
+Return:
+
+Files modified
+
+Cookie name + expiration
+
+DB fields used
+
+Confirmation conversion still works
+
+Confirmation no duplicate routes remain
+
+Constraints
+
+Do NOT modify commission percentages
+
+Do NOT modify affiliate payout duration
+
+Do NOT rebuild referral systems
+
+Do NOT alter general referral system
+
+Preserve all existing affiliate data
+
+Deliverables
+
+Audit summary
+
+Route updates
+
+Tracking confirmation
+
+Final affiliate flow explanation

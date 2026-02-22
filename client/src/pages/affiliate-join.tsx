@@ -1,10 +1,12 @@
-import { Link } from "wouter";
+import { Link, useParams } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Share2, MessageSquareText, FileText, CreditCard, ArrowRight, Mail, HelpCircle } from "lucide-react";
+import { Share2, MessageSquareText, FileText, CreditCard, ArrowRight, HelpCircle, Loader2 } from "lucide-react";
+import { getQueryFn } from "@/lib/queryClient";
 
 function WorkflowStep({ step, icon, title, description }: { step: number; icon: React.ReactNode; title: string; description: string }) {
   return (
-    <div className="text-center" data-testid={`lashell-workflow-step-${step}`}>
+    <div className="text-center" data-testid={`affiliate-workflow-step-${step}`}>
       <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
         {icon}
       </div>
@@ -14,26 +16,56 @@ function WorkflowStep({ step, icon, title, description }: { step: number; icon: 
   );
 }
 
-export default function LaShellPage() {
+export default function AffiliateJoinPage() {
+  const { slug } = useParams<{ slug: string }>();
+
+  const { data: affiliate, isLoading, error } = useQuery<{ businessName: string; slug: string }>({
+    queryKey: ["/api/affiliate/join", slug],
+    queryFn: getQueryFn({ on401: "returnNull" }),
+    retry: false,
+  });
+
   const scrollToWorkflow = () => {
     document.getElementById("workflow-section")?.scrollIntoView({ behavior: "smooth" });
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error || !affiliate) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <h1 className="text-2xl font-bold">Page not found</h1>
+          <p className="text-muted-foreground">This affiliate link is no longer active.</p>
+          <Link href="/signup">
+            <Button data-testid="button-affiliate-fallback-signup">Sign Up</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      <section className="py-16 md:py-24" data-testid="section-lashell-hero">
+      <section className="py-16 md:py-24" data-testid="section-affiliate-hero">
         <div className="container max-w-7xl mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
             <div className="space-y-6">
-              <h1 className="text-4xl md:text-5xl font-bold tracking-tight leading-tight" data-testid="text-lashell-headline">
+              <h1 className="text-4xl md:text-5xl font-bold tracking-tight leading-tight" data-testid="text-affiliate-headline">
                 The system I recommend for serious bakers.
               </h1>
-              <p className="text-lg md:text-xl text-muted-foreground leading-relaxed" data-testid="text-lashell-subheadline">
+              <p className="text-lg md:text-xl text-muted-foreground leading-relaxed" data-testid="text-affiliate-subheadline">
                 If you're learning from me and planning to sell professionally, you need structure — not DMs.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <Link href="/signup">
-                  <Button size="lg" className="w-full sm:w-auto" data-testid="button-lashell-start-free">
+                  <Button size="lg" className="w-full sm:w-auto" data-testid="button-affiliate-start-free">
                     Start Free
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
@@ -43,18 +75,18 @@ export default function LaShellPage() {
                   variant="outline"
                   className="w-full sm:w-auto"
                   onClick={scrollToWorkflow}
-                  data-testid="button-lashell-see-how"
+                  data-testid="button-affiliate-see-how"
                 >
                   See How It Works
                 </Button>
               </div>
-              <p className="text-sm text-muted-foreground" data-testid="text-lashell-trust-line">
+              <p className="text-sm text-muted-foreground" data-testid="text-affiliate-trust-line">
                 Free to start. You only pay when you process.
               </p>
             </div>
 
             <div className="space-y-6">
-              <div className="aspect-[4/5] max-w-sm mx-auto bg-muted rounded-2xl flex items-center justify-center overflow-hidden" data-testid="img-lashell-photo">
+              <div className="aspect-[4/5] max-w-sm mx-auto bg-muted rounded-2xl flex items-center justify-center overflow-hidden" data-testid="img-affiliate-photo">
                 <div className="text-center text-muted-foreground p-8">
                   <div className="h-24 w-24 rounded-full bg-muted-foreground/10 flex items-center justify-center mx-auto mb-4">
                     <span className="text-3xl font-bold text-muted-foreground/40">LH</span>
@@ -62,7 +94,7 @@ export default function LaShellPage() {
                   <p className="text-sm">lashell.jpg</p>
                 </div>
               </div>
-              <blockquote className="border-l-4 border-primary pl-4 py-2" data-testid="text-lashell-quote">
+              <blockquote className="border-l-4 border-primary pl-4 py-2" data-testid="text-affiliate-quote">
                 <p className="text-base italic text-foreground/90 leading-relaxed">
                   "I don't believe in running a business through DMs. If you're serious about selling, you need a structured system."
                 </p>
@@ -75,7 +107,7 @@ export default function LaShellPage() {
         </div>
       </section>
 
-      <section className="py-16 md:py-20 bg-muted/30" data-testid="section-lashell-baton">
+      <section className="py-16 md:py-20 bg-muted/30" data-testid="section-affiliate-baton">
         <div className="container max-w-3xl mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6" data-testid="text-baton-title">
             Built for serious baking businesses.
@@ -92,7 +124,7 @@ export default function LaShellPage() {
         </div>
       </section>
 
-      <section id="workflow-section" className="py-20 md:py-28 bg-background" data-testid="section-lashell-workflow">
+      <section id="workflow-section" className="py-20 md:py-28 bg-background" data-testid="section-affiliate-workflow">
         <div className="container max-w-7xl mx-auto px-4">
           <h2 className="text-3xl md:text-4xl font-bold mb-16 text-center" data-testid="text-workflow-title">
             From inquiry to deposit — one system.
@@ -126,7 +158,7 @@ export default function LaShellPage() {
         </div>
       </section>
 
-      <section className="py-16 md:py-20 bg-muted/30" data-testid="section-lashell-pricing">
+      <section className="py-16 md:py-20 bg-muted/30" data-testid="section-affiliate-pricing">
         <div className="container max-w-3xl mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-pricing-title">
             Free to start. Built to scale.
@@ -152,7 +184,7 @@ export default function LaShellPage() {
             </div>
           </div>
           <Link href="/signup">
-            <Button size="lg" data-testid="button-lashell-pricing-cta">
+            <Button size="lg" data-testid="button-affiliate-pricing-cta">
               Start Free
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
@@ -160,7 +192,7 @@ export default function LaShellPage() {
         </div>
       </section>
 
-      <section className="py-12 md:py-16 bg-background" data-testid="section-lashell-support">
+      <section className="py-12 md:py-16 bg-background" data-testid="section-affiliate-support">
         <div className="container max-w-2xl mx-auto px-4 text-center">
           <div className="flex items-center justify-center gap-2 mb-3">
             <HelpCircle className="h-5 w-5 text-muted-foreground" />
@@ -170,11 +202,11 @@ export default function LaShellPage() {
           </div>
           <p className="text-sm text-muted-foreground">
             Visit our{" "}
-            <Link href="/help" className="text-primary hover:underline" data-testid="link-lashell-help">
+            <Link href="/help" className="text-primary hover:underline" data-testid="link-affiliate-help">
               Help Center
             </Link>
             {" "}or contact{" "}
-            <a href="mailto:support@bakeriq.app" className="text-primary hover:underline" data-testid="link-lashell-email">
+            <a href="mailto:support@bakeriq.app" className="text-primary hover:underline" data-testid="link-affiliate-email">
               support@bakeriq.app
             </a>
             .

@@ -4787,6 +4787,11 @@ Guidelines:
   // PRETTY AFFILIATE / REFERRAL JOIN ROUTES
   // ============================================
 
+  // 301 redirect: /lashell → /join/artbylashell
+  app.get("/lashell", (_req, res) => {
+    res.redirect(301, "/join/artbylashell");
+  });
+
   // GET /join/r/:code - Baker referral link
   app.get("/join/r/:code", async (req, res) => {
     try {
@@ -4810,12 +4815,33 @@ Guidelines:
     }
   });
 
+  // API endpoint to fetch affiliate info for the landing page
+  app.get("/api/affiliate/join/:slug", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      let affiliate = await storage.getAffiliateBySlug(slug);
+      if (!affiliate) {
+        affiliate = await storage.getAffiliateByCode(slug);
+      }
+      if (!affiliate || !affiliate.isAffiliate) {
+        return res.status(404).json({ message: "Affiliate not found" });
+      }
+      res.json({
+        businessName: affiliate.businessName,
+        slug: affiliate.affiliateSlug || affiliate.affiliateCode,
+      });
+    } catch (error) {
+      console.error("Affiliate join info error:", error);
+      res.status(500).json({ message: "Failed to fetch affiliate info" });
+    }
+  });
+
   // GET /join/:slug - Affiliate/influencer referral link
-  app.get("/join/:slug", async (req, res) => {
+  // Sets tracking cookie + records click, then serves the SPA for client-side rendering
+  app.get("/join/:slug", async (req, res, next) => {
     try {
       const { slug } = req.params;
 
-      // Look up affiliate by slug first, then fall back to affiliateCode
       let affiliate = await storage.getAffiliateBySlug(slug);
       if (!affiliate) {
         affiliate = await storage.getAffiliateByCode(slug);
@@ -4826,7 +4852,6 @@ Guidelines:
 
       const affiliateCode = affiliate.affiliateCode!;
 
-      // Hash IP for privacy
       const ipHash = crypto.createHash("sha256").update(req.ip || "unknown").digest("hex").substring(0, 16);
 
       await storage.createReferralClick({
@@ -4843,7 +4868,7 @@ Guidelines:
         sameSite: "lax",
       });
 
-      res.redirect("/signup");
+      next();
     } catch (error) {
       console.error("Affiliate join link error:", error);
       res.redirect("/signup");
