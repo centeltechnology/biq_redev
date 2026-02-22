@@ -171,22 +171,22 @@ Go to dashboard: {{dashboard_url}}/dashboard`,
   },
   {
     segment: "at_risk",
-    name: "We Miss You",
+    name: "Order Page Active",
     subject: "Your customers are looking for you",
-    preheader: "Get back to growing your business",
+    preheader: "Your order page is still live",
     bodyHtml: `
       <p>Hi {{first_name}},</p>
-      <p>It's been a little while since you logged in. Just a friendly reminder that your calculator link is still active and ready for customers.</p>
-      <p>If you're getting busy with orders (which is great!), we're here when you need us. Your leads, quotes, and calendar are all waiting for you.</p>
+      <p>Your order page is still active and ready for customers. Leads, quotes, and your calendar are waiting.</p>
+      <p>Log in to check for new activity.</p>
       <p style="text-align: center; margin: 24px 0;">
         <a href="{{login_url}}" class="cta" style="display: inline-block; background: #E91E63; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">Log Back In</a>
       </p>
     `,
     bodyText: `Hi {{first_name}},
 
-It's been a little while since you logged in. Just a friendly reminder that your calculator link is still active and ready for customers.
+Your order page is still active and ready for customers. Leads, quotes, and your calendar are waiting.
 
-If you're getting busy with orders (which is great!), we're here when you need us. Your leads, quotes, and calendar are all waiting for you.
+Log in to check for new activity.
 
 Log back in: {{login_url}}`,
     ctaText: "Log Back In",
@@ -197,24 +197,24 @@ Log back in: {{login_url}}`,
   {
     segment: "at_risk",
     name: "Quick Check-In",
-    subject: "Need help with anything?",
-    preheader: "We're here if you have questions",
+    subject: "Have a question about setup or payments?",
+    preheader: "Support resources for your account",
     bodyHtml: `
       <p>Hi {{first_name}},</p>
-      <p>Just checking in! If you've run into any issues or have questions about using BakerIQ, we're here to help.</p>
-      <p>You can reach out through our support chat anytime. We want to make sure you get the most out of your account.</p>
+      <p>If you have questions about setting up your order page, configuring pricing, or connecting Stripe, the Help Center covers it.</p>
+      <p>You can also contact support directly.</p>
       <p style="text-align: center; margin: 24px 0;">
-        <a href="{{dashboard_url}}/help" class="cta" style="display: inline-block; background: #E91E63; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">Get Support</a>
+        <a href="{{dashboard_url}}/help" class="cta" style="display: inline-block; background: #E91E63; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">Visit Help Center</a>
       </p>
     `,
     bodyText: `Hi {{first_name}},
 
-Just checking in! If you've run into any issues or have questions about using BakerIQ, we're here to help.
+If you have questions about setting up your order page, configuring pricing, or connecting Stripe, the Help Center covers it.
 
-You can reach out through our support chat anytime. We want to make sure you get the most out of your account.
+You can also contact support directly.
 
-Get support: {{dashboard_url}}/help`,
-    ctaText: "Get Support",
+Visit Help Center: {{dashboard_url}}/help`,
+    ctaText: "Visit Help Center",
     ctaRoute: "/help",
     isActive: true,
     priority: 0,

@@ -298,7 +298,7 @@ export async function sendLeadConfirmationToCustomer(
         <p><strong>Estimated Total:</strong> <span style="color: #E91E63; font-size: 1.2em;">${formatCurrency(lead.estimatedTotal)}</span></p>
       </div>
       <p>This is an estimate based on the options you selected. Final pricing may vary based on design complexity and specific requirements.</p>
-      <p>We typically respond within 24-48 hours. If you have any urgent questions, feel free to reach out directly.</p>
+      <p>Your baker will review your request and respond soon.</p>
       <p style="margin-top: 30px;">Sweet regards,<br><strong>${bakerBusinessName}</strong></p>
     </div>
     ${getCustomerEmailFooterHtml()}
@@ -320,7 +320,7 @@ Estimated Total: ${formatCurrency(lead.estimatedTotal)}
 
 This is an estimate based on the options you selected. Final pricing may vary based on design complexity and specific requirements.
 
-We typically respond within 24-48 hours.
+Your baker will review your request and respond soon.
 
 Sweet regards,
 ${bakerBusinessName}

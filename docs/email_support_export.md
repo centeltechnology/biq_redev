@@ -39,7 +39,7 @@ _Sources: server/email.ts, server/seed-retention-templates.ts_
 ## Customer Confirmation Email (server/email.ts)
 
 "This is an estimate based on the options you selected. Final pricing may vary based on design complexity and specific requirements."
-"We typically respond within 24-48 hours. If you have any urgent questions, feel free to reach out directly."
+"Your baker will review your request and respond soon."
 
 ---
 
@@ -143,17 +143,17 @@ _Sources: server/email.ts, server/seed-retention-templates.ts_
 **Body:** "You're doing great! We noticed you've been active and wanted to share a quick tip: Featured Items: Upgrade to a paid plan and add seasonal specials to your calculator. Customers can order directly without going through the full quote process. Thanks for being part of BakerIQ. Keep up the great work!"
 **CTA:** "Go to Dashboard"
 
-### Segment: at_risk — "We Miss You"
+### Segment: at_risk — "Order Page Active"
 **Subject:** "Your customers are looking for you"
-**Preheader:** "Get back to growing your business"
-**Body:** "It's been a little while since you logged in. Just a friendly reminder that your calculator link is still active and ready for customers. If you're getting busy with orders (which is great!), we're here when you need us. Your leads, quotes, and calendar are all waiting for you."
+**Preheader:** "Your order page is still live"
+**Body:** "Your order page is still active and ready for customers. Leads, quotes, and your calendar are waiting. Log in to check for new activity."
 **CTA:** "Log Back In"
 
 ### Segment: at_risk — "Quick Check-In"
-**Subject:** "Need help with anything?"
-**Preheader:** "We're here if you have questions"
-**Body:** "Just checking in! If you've run into any issues or have questions about using BakerIQ, we're here to help. You can reach out through our support chat anytime. We want to make sure you get the most out of your account."
-**CTA:** "Get Support"
+**Subject:** "Have a question about setup or payments?"
+**Preheader:** "Support resources for your account"
+**Body:** "If you have questions about setting up your order page, configuring pricing, or connecting Stripe, the Help Center covers it. You can also contact support directly."
+**CTA:** "Visit Help Center"
 
 ### Segment: new_but_inactive — "Survey Invitation - Free Pro Month"
 **Subject:** "Quick question + free Pro upgrade"

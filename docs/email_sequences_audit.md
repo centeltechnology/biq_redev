@@ -425,7 +425,7 @@ The onboarding sequence is a 7-day drip campaign sent to bakers after registrati
 >
 > This is an estimate based on the options you selected. Final pricing may vary based on design complexity and specific requirements.
 >
-> We typically respond within 24-48 hours. If you have any urgent questions, feel free to reach out directly.
+> Your baker will review your request and respond soon.
 >
 > Sweet regards,
 > **[Business Name]**
@@ -785,17 +785,17 @@ Bakers can opt out via `notifyRetention` preference.
 
 ---
 
-### 6.7 We Miss You
+### 6.7 Order Page Active
 
 | Field | Value |
 |---|---|
-| **Email Name** | We Miss You |
+| **Email Name** | Order Page Active |
 | **Segment** | `at_risk` |
 | **Priority** | 1 |
 | **Trigger** | Weekly scheduler, baker hasn't logged in for an extended period |
 | **Recipient** | Baker |
 | **Subject** | `Your customers are looking for you` |
-| **Preheader** | Get back to growing your business |
+| **Preheader** | Your order page is still live |
 | **Status** | Active |
 | **Related Flow** | Re-engagement |
 
@@ -803,9 +803,9 @@ Bakers can opt out via `notifyRetention` preference.
 
 > Hi {{first_name}},
 >
-> It's been a little while since you logged in. Just a friendly reminder that your calculator link is still active and ready for customers.
+> Your order page is still active and ready for customers. Leads, quotes, and your calendar are waiting.
 >
-> If you're getting busy with orders (which is great!), we're here when you need us. Your leads, quotes, and calendar are all waiting for you.
+> Log in to check for new activity.
 >
 > [Log Back In] → /login
 
@@ -820,8 +820,8 @@ Bakers can opt out via `notifyRetention` preference.
 | **Priority** | 0 |
 | **Trigger** | Weekly scheduler, baker at risk of churning |
 | **Recipient** | Baker |
-| **Subject** | `Need help with anything?` |
-| **Preheader** | We're here if you have questions |
+| **Subject** | `Have a question about setup or payments?` |
+| **Preheader** | Support resources for your account |
 | **Status** | Active |
 | **Related Flow** | Re-engagement, Support |
 
@@ -829,11 +829,11 @@ Bakers can opt out via `notifyRetention` preference.
 
 > Hi {{first_name}},
 >
-> Just checking in! If you've run into any issues or have questions about using BakerIQ, we're here to help.
+> If you have questions about setting up your order page, configuring pricing, or connecting Stripe, the Help Center covers it.
 >
-> You can reach out through our support chat anytime. We want to make sure you get the most out of your account.
+> You can also contact support directly.
 >
-> [Get Support] → /support
+> [Visit Help Center] → /help
 
 ---
 
@@ -1062,8 +1062,8 @@ Bakers can opt out via `notifyRetention` preference.
 | 22 | Retention: Leads→Quotes | Baker | Weekly, leads_no_quotes | You have leads waiting for quotes | Active |
 | 23 | Retention: Track Quotes | Baker | Weekly, quotes_no_orders | Keep your orders organized | Active |
 | 24 | Retention: Power User | Baker | Weekly, active_power_user | Tips from the BakerIQ team | Active |
-| 25 | Retention: We Miss You | Baker | Weekly, at_risk | Your customers are looking for you | Active |
-| 26 | Retention: Check-In | Baker | Weekly, at_risk | Need help with anything? | Active |
+| 25 | Retention: Order Page Active | Baker | Weekly, at_risk | Your customers are looking for you | Active |
+| 26 | Retention: Check-In | Baker | Weekly, at_risk | Have a question about setup or payments? | Active |
 | 27 | Retention: Survey | Baker | Weekly, new_but_inactive | Quick question + free Pro upgrade | Active |
 | 28 | Admin Invitation | New User | Admin sends invite | You've been invited to join BakerIQ | Active |
 | 29 | Platform Announcement | Baker | Admin sends manually | What's New at BakerIQ... | Active |
