@@ -1,0 +1,76 @@
+# BakerIQ – Email Link Hardening (Safe + Reversible)
+
+## Goal
+Make ALL outbound email links:
+1) Always point to the correct BakerIQ domain (never replit.dev/localhost)
+2) Never produce broken routes due to bad concatenation
+3) Easy to switch domains later by changing ONE env var
+
+Do NOT change business logic.
+Do NOT modify onboarding flows.
+Email + URL plumbing only.
+
+---
+
+## Step 0 — Canonical URL Config (Single Source of Truth)
+Add environment variable:
+APP_CANONICAL_URL=https://app.bakeriq.app
+
+Create helper:
+getCanonicalAppUrl(): string
+- returns APP_CANONICAL_URL (trim trailing slash)
+- if missing in production: throw + log loudly (fail-safe)
+
+Create helper:
+buildAppUrl(pathname: string): string
+- ensures pathname starts with "/"
+- returns `${getCanonicalAppUrl()}${pathname}`
+
+Replace any existing tokens like dashboard_url/app_url/etc to use buildAppUrl().
+
+---
+
+## Step 1 — Pre-send Link Validator (Stop Bad Emails)
+Before sending any email:
+1) Render the template (subject + html/text)
+2) Extract all URLs from output
+3) If any URL host is NOT app.bakeriq.app (or not equal to APP_CANONICAL_URL host), block sending + log:
+   - email template name
+   - offending URL
+
+Also block if URL contains:
+- replit.dev
+- localhost
+- 127.0.0.1
+
+---
+
+## Step 2 — Audit Script
+Create a script:
+npm run audit:emails
+
+It should:
+1) Render every email template using mock tokens
+2) Extract URLs
+3) Print a report:
+   - template name
+   - urls found
+   - host OK? (matches APP_CANONICAL_URL)
+   - path looks valid? (pattern check against known route prefixes)
+
+No network calls required.
+
+---
+
+## Step 3 — Database Templates Consistency
+If templates are stored in DB:
+- run a one-time migration to replace any replit.dev / localhost / old base URLs
+- ensure future sends always render using buildAppUrl() tokens (not saved absolute URLs)
+
+---
+
+## Deliverables
+1) List of files changed
+2) Where APP_CANONICAL_URL is set/used
+3) Proof validator blocks bad hosts
+4) Output of npm run audit:emails

@@ -1,5 +1,6 @@
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import sanitizeHtml from "sanitize-html";
+import { buildAppUrl, validateEmailUrls } from "./url";
 
 function getAwsRegion(): string {
   const regionValue = process.env.AWS_SES_REGION || process.env.AWS_REGION || "us-east-1";
@@ -45,29 +46,29 @@ function formatSender(senderType: EmailSenderType, businessName?: string): strin
 
 export function getBakerEmailFooterHtml(emailPrefsToken?: string | null): string {
   const prefsUrl = emailPrefsToken 
-    ? `https://bakeriq.app/email-preferences/${emailPrefsToken}`
-    : "https://bakeriq.app/settings";
+    ? buildAppUrl(`/email-preferences/${emailPrefsToken}`)
+    : buildAppUrl("/settings");
   return `<div class="footer" style="text-align: center; padding: 20px; color: #666; font-size: 12px;">
-      <p>You're receiving this email because you have a <a href="https://bakeriq.app/" style="color: #E91E63; text-decoration: none;">BakerIQ</a> account.</p>
+      <p>You're receiving this email because you have a <a href="${buildAppUrl("/")}" style="color: #E91E63; text-decoration: none;">BakerIQ</a> account.</p>
       <p><a href="${prefsUrl}" style="color: #E91E63; text-decoration: none;">Manage email preferences</a></p>
     </div>`;
 }
 
 export function getBakerEmailFooterText(emailPrefsToken?: string | null): string {
   const prefsUrl = emailPrefsToken 
-    ? `https://bakeriq.app/email-preferences/${emailPrefsToken}`
-    : "https://bakeriq.app/settings";
+    ? buildAppUrl(`/email-preferences/${emailPrefsToken}`)
+    : buildAppUrl("/settings");
   return `\n---\nYou're receiving this email because you have a BakerIQ account.\nManage email preferences: ${prefsUrl}\n`;
 }
 
 export function getCustomerEmailFooterHtml(): string {
   return `<div class="footer" style="text-align: center; padding: 20px; color: #666; font-size: 12px;">
-      <p>Powered by <a href="https://bakeriq.app/" style="color: #E91E63; text-decoration: none;">BakerIQ</a></p>
+      <p>Powered by <a href="${buildAppUrl("/")}" style="color: #E91E63; text-decoration: none;">BakerIQ</a></p>
     </div>`;
 }
 
 export function getCustomerEmailFooterText(): string {
-  return `\n---\nPowered by BakerIQ - https://bakeriq.app\n`;
+  return `\n---\nPowered by BakerIQ - ${buildAppUrl("/")}\n`;
 }
 
 export async function sendEmail({
@@ -94,9 +95,14 @@ export async function sendEmail({
     return false;
   }
   
-  // Warn if customer email is requested but businessName is missing
   if (senderType === "customer" && !businessName) {
     console.warn("Customer email requested without businessName, falling back to platform sender");
+  }
+
+  const validation = validateEmailUrls(html + (text || ""), subject);
+  if (!validation.valid) {
+    console.error(`[Email Blocked] Email to ${to} blocked due to invalid URLs in "${subject}":`, validation.offendingUrls);
+    return false;
   }
 
   const source = formatSender(senderType, businessName);
@@ -856,7 +862,7 @@ interface OnboardingEmailTemplate {
   stripePsText?: string;
 }
 
-function getConditionalOnboardingTemplate(day: number, stripeConnected: boolean): OnboardingEmailTemplate | undefined {
+export function getConditionalOnboardingTemplate(day: number, stripeConnected: boolean): OnboardingEmailTemplate | undefined {
   const templates: Record<string, OnboardingEmailTemplate> = {
     day0_welcome: {
       emailKey: "day0_welcome",
@@ -1445,7 +1451,7 @@ export function getAnnouncementEmailHtml(bakerName: string, emailPrefsToken?: st
       </div>
 
       <div class="cta-section">
-        <a href="https://bakeriq.app/login" class="cta-button">Log In to Your Dashboard</a>
+        <a href="${buildAppUrl("/login")}" class="cta-button">Log In to Your Dashboard</a>
       </div>
 
       <p style="color: #888; font-size: 13px; text-align: center; margin-top: 24px;">Thank you for being part of the BakerIQ community. We're here to help you succeed.</p>
@@ -1482,7 +1488,7 @@ TIP: Share your calculator link on social media to start receiving leads!
 
 REFER A FRIEND: Love BakerIQ? Share your referral link with fellow bakers. When they sign up and subscribe, you earn a free month — stack up to 12! Find your link on the Refer a Friend page in your dashboard.
 
-Log in to your dashboard: https://bakeriq.app/login
+Log in to your dashboard: ${buildAppUrl("/login")}
 
 Thank you for being part of the BakerIQ community!
 — The BakerIQ Team
@@ -1690,7 +1696,7 @@ export function getDynamicEmailHtml(subject: string, bodyContent: string, tokens
     <div class="content">
       ${bodyHtml}
       <div class="cta-section">
-        <a href="https://bakeriq.app/login" class="cta-button">Log In to Your Dashboard</a>
+        <a href="${buildAppUrl("/login")}" class="cta-button">Log In to Your Dashboard</a>
       </div>
     </div>
     ${getBakerEmailFooterHtml(emailPrefsToken)}
@@ -1720,7 +1726,7 @@ export function getDynamicEmailText(bodyContent: string, tokens: AdminEmailToken
   const text = isHtml(processedBody) ? stripHtmlToText(processedBody) : processedBody
     .replace(/^#{1,3}\s/gm, "")
     .replace(/^[•\-]\s/gm, "- ");
-  return text + "\n\nLog in to your dashboard: https://bakeriq.app/login\n\n\u2014 The BakerIQ Team" + getBakerEmailFooterText(emailPrefsToken);
+  return text + `\n\nLog in to your dashboard: ${buildAppUrl("/login")}\n\n\u2014 The BakerIQ Team` + getBakerEmailFooterText(emailPrefsToken);
 }
 
 export async function sendDynamicAdminEmail(
@@ -1762,14 +1768,14 @@ export async function sendAffiliateApplicationConfirmation(applicantEmail: strin
       <p>Hi ${safeName},</p>
       <p>Thanks for applying to the BakerIQ Founding Partners Program! We've received your application and are excited to review it.</p>
       <p>Our team reviews every application personally. You can expect to hear back from us within a few business days.</p>
-      <p>In the meantime, feel free to explore <a href="https://bakeriq.app" style="color: #E91E63; text-decoration: none;">BakerIQ</a> to learn more about the platform and what your audience will love about it.</p>
+      <p>In the meantime, feel free to explore <a href="${buildAppUrl("/")}" style="color: #E91E63; text-decoration: none;">BakerIQ</a> to learn more about the platform and what your audience will love about it.</p>
       <p style="margin-top: 24px;">Thanks for your interest,<br><strong>The BakerIQ Team</strong></p>
     </div>
     ${getCustomerEmailFooterHtml()}
   </div>
 </body>
 </html>`;
-  const text = `Thanks for applying, ${applicantName}!\n\nWe've received your application to the BakerIQ Founding Partners Program.\n\nOur team reviews every application personally. You can expect to hear back from us within a few business days.\n\nIn the meantime, feel free to explore BakerIQ at https://bakeriq.app to learn more about the platform.\n\nThanks for your interest,\nThe BakerIQ Team\n${getCustomerEmailFooterText()}`;
+  const text = `Thanks for applying, ${applicantName}!\n\nWe've received your application to the BakerIQ Founding Partners Program.\n\nOur team reviews every application personally. You can expect to hear back from us within a few business days.\n\nIn the meantime, feel free to explore BakerIQ at ${buildAppUrl("/")} to learn more about the platform.\n\nThanks for your interest,\nThe BakerIQ Team\n${getCustomerEmailFooterText()}`;
 
   return sendEmail({
     to: applicantEmail,
@@ -1846,14 +1852,14 @@ export async function sendAffiliateApplicationNotification(application: {
         <span class="value">${safeMessage}</span>
       </div>
       <div style="text-align: center;">
-        <a href="https://bakeriq.app/admin" class="cta">Review in Admin Dashboard</a>
+        <a href="${buildAppUrl("/admin")}" class="cta">Review in Admin Dashboard</a>
       </div>
     </div>
     ${getBakerEmailFooterHtml()}
   </div>
 </body>
 </html>`;
-  const text = `New Partner Application\n\nName: ${application.name}\nEmail: ${application.email}\nSocial Media: ${application.socialMedia}\nFollowers: ${application.followers || "Not specified"}\nNiche: ${application.niche || "Not specified"}\nMessage: ${application.message || "No message"}\n\nReview in the Admin Dashboard: https://bakeriq.app/admin\n${getBakerEmailFooterText()}`;
+  const text = `New Partner Application\n\nName: ${application.name}\nEmail: ${application.email}\nSocial Media: ${application.socialMedia}\nFollowers: ${application.followers || "Not specified"}\nNiche: ${application.niche || "Not specified"}\nMessage: ${application.message || "No message"}\n\nReview in the Admin Dashboard: ${buildAppUrl("/admin")}\n${getBakerEmailFooterText()}`;
 
   for (const adminEmail of adminEmails.filter(e => e && e.includes("@"))) {
     await sendEmail({

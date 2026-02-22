@@ -4,6 +4,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { getBakersEligibleForRetentionEmail, type UserSegmentResult } from "./segmentation";
 import { sendRetentionEmail } from "./email";
 import { storage } from "./storage";
+import { getCanonicalAppUrl } from "./url";
 
 interface PersonalizationTokens {
   first_name: string;
@@ -102,13 +103,7 @@ export async function runRetentionEmailScheduler(): Promise<{
 }> {
   console.log("[Retention Scheduler] Starting weekly retention email run...");
 
-  const baseUrl = process.env.NODE_ENV === "production"
-    ? (process.env.REPLIT_DOMAINS
-        ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
-        : "https://bakeriq.app")
-    : (process.env.REPLIT_DEV_DOMAIN
-        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-        : "https://bakeriq.app");
+  const baseUrl = getCanonicalAppUrl();
 
   const eligibleUsers = await getBakersEligibleForRetentionEmail();
   console.log(`[Retention Scheduler] Found ${eligibleUsers.length} eligible users`);
@@ -157,10 +152,9 @@ export async function runRetentionEmailScheduler(): Promise<{
 const RETENTION_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000; // Weekly (7 days)
 const INITIAL_DELAY_MS = 60 * 60 * 1000; // 1 hour after server start
 
-export function startRetentionScheduler(baseUrl: string) {
+export function startRetentionScheduler() {
   console.log("[Retention] Starting retention email scheduler");
   
-  // Run once after initial delay
   setTimeout(async () => {
     console.log("[Retention] Running initial retention email check...");
     try {
@@ -170,7 +164,6 @@ export function startRetentionScheduler(baseUrl: string) {
       console.error("[Retention] Initial check failed:", error);
     }
     
-    // Then run on weekly interval
     setInterval(async () => {
       console.log("[Retention] Running weekly retention email check...");
       try {

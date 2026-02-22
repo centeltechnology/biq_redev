@@ -1,5 +1,6 @@
 import { storage } from "./storage";
 import { sendOnboardingEmail, getEmailKeyForDay } from "./email";
+import { getCanonicalAppUrl } from "./url";
 
 const ONBOARDING_DAYS = [0, 1, 2, 3, 4, 5, 6];
 
@@ -13,7 +14,8 @@ function getOnboardingDay(createdAt: Date): number {
   return Math.floor(hoursSinceSignup / 24);
 }
 
-export async function processOnboardingEmails(baseUrl: string): Promise<void> {
+export async function processOnboardingEmails(baseUrl?: string): Promise<void> {
+  const resolvedBaseUrl = baseUrl || getCanonicalAppUrl();
   if (!isFeatureEnabled()) {
     console.log("[Onboarding] Conditional onboarding emails disabled (ONBOARDING_CONDITIONALS_ENABLED !== 'true')");
     return;
@@ -65,7 +67,7 @@ export async function processOnboardingEmails(baseUrl: string): Promise<void> {
             baker.email,
             baker.businessName,
             day,
-            baseUrl,
+            resolvedBaseUrl,
             stripeConnected,
             baker.emailPrefsToken
           );
@@ -95,7 +97,7 @@ export async function processOnboardingEmails(baseUrl: string): Promise<void> {
 
 let schedulerInterval: NodeJS.Timeout | null = null;
 
-export function startOnboardingScheduler(baseUrl: string): void {
+export function startOnboardingScheduler(): void {
   if (schedulerInterval) {
     console.log("[Onboarding] Scheduler already running");
     return;
@@ -103,10 +105,10 @@ export function startOnboardingScheduler(baseUrl: string): void {
 
   console.log("[Onboarding] Starting onboarding email scheduler");
 
-  processOnboardingEmails(baseUrl).catch(console.error);
+  processOnboardingEmails().catch(console.error);
 
   schedulerInterval = setInterval(() => {
-    processOnboardingEmails(baseUrl).catch(console.error);
+    processOnboardingEmails().catch(console.error);
   }, 60 * 60 * 1000);
 }
 

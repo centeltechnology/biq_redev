@@ -45,3 +45,4 @@ integrations = ["javascript_database:1.0.0", "stripe:2.0.0", "javascript_object_
 
 [userenv.shared]
 ONBOARDING_CONDITIONALS_ENABLED = "false"
+APP_CANONICAL_URL = "https://bakeriq.app"

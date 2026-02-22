@@ -68,4 +68,5 @@ Preferred communication style: Simple, everyday language.
 - **Utility Libraries**: class-variance-authority, clsx, date-fns
 - **Build Tools**: Vite (frontend), esbuild (server), TypeScript
 - **Email Service**: AWS SES (requires `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SES_REGION`, `AWS_SES_FROM_EMAIL`, `AWS_SES_PLATFORM_EMAIL`, `AWS_SES_CUSTOMER_EMAIL`)
+- **Email URL Management**: Centralized in `server/url.ts` via `getCanonicalAppUrl()` and `buildAppUrl()`. All email links built through these helpers using `APP_CANONICAL_URL` env var (defaults to `https://bakeriq.app`). Pre-send validator in `sendEmail()` blocks emails containing replit.dev/localhost URLs. Audit script at `scripts/audit-emails.ts` (run with `APP_CANONICAL_URL=https://bakeriq.app npx tsx scripts/audit-emails.ts`).
 - **Payment Processing**: Stripe Connect (for subscription management and customer payments)

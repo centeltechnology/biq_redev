@@ -8,6 +8,7 @@ import { z } from "zod";
 import { pool } from "./db";
 import connectPgSimple from "connect-pg-simple";
 import { sendEmail, sendNewLeadNotification, sendLeadConfirmationToCustomer, sendPasswordResetEmail, sendEmailVerification, sendQuoteNotification, sendOnboardingEmail, sendQuoteResponseNotification, sendAdminPasswordReset, sendPaymentReceivedNotification, sendAnnouncementEmail, getAnnouncementEmailHtml, sendInvitationEmail, getDynamicEmailHtml, sendDynamicAdminEmail, sendAffiliateApplicationConfirmation, sendAffiliateApplicationNotification, sendMilestoneEmail, type AdminEmailTokens } from "./email";
+import { getCanonicalAppUrl, buildAppUrl } from "./url";
 import crypto from "crypto";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { db } from "./db";
@@ -610,12 +611,8 @@ export async function registerRoutes(
         if (!baker.pricingReviewed) {
           updatedBaker = await storage.updateBaker(req.session.bakerId!, { pricingReviewed: true }) || baker;
           if (!baker.milestonePricingLiveSent) {
-            const isProduction = process.env.NODE_ENV === "production";
-            const milestoneBaseUrl = isProduction
-              ? (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}` : "https://bakeriq.app")
-              : (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : "https://bakeriq.app");
             storage.updateBaker(req.session.bakerId!, { milestonePricingLiveSent: true })
-              .then(() => sendMilestoneEmail(baker.email, baker.businessName, "pricing_live", milestoneBaseUrl, baker.emailPrefsToken))
+              .then(() => sendMilestoneEmail(baker.email, baker.businessName, "pricing_live", getCanonicalAppUrl(), baker.emailPrefsToken))
               .catch(err => console.error("[Milestone] pricing_live error:", err));
           }
         }
@@ -1270,16 +1267,6 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Customer not found" });
       }
 
-      // In production, use REPLIT_DOMAINS or custom domain; only use dev domain in development
-      const isProduction = process.env.NODE_ENV === "production";
-      const baseUrl = isProduction
-        ? (process.env.REPLIT_DOMAINS 
-            ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
-            : "https://bakeriq.app")
-        : (process.env.REPLIT_DEV_DOMAIN 
-            ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-            : "https://bakeriq.app");
-      
       await sendQuoteNotification(
         customer.email,
         customer.name,
@@ -1299,7 +1286,7 @@ export async function registerRoutes(
           notes: quote.notes || undefined,
           items: quote.items || [],
           depositPercentage: baker.depositPercentage || undefined,
-          viewUrl: `${baseUrl}/q/${quote.id}`,
+          viewUrl: buildAppUrl(`/q/${quote.id}`),
         }
       );
 
@@ -1309,14 +1296,9 @@ export async function registerRoutes(
       trackEvent(bakerId, "quote_sent", { quoteId: quote.id, customerId: quote.customerId });
       await storage.setActivationTimestamp(bakerId, "firstQuoteSentAt");
 
-      // Milestone: first quote sent
       if (!baker.milestoneFirstQuoteSent && !baker.firstQuoteSentAt) {
-        const isProduction = process.env.NODE_ENV === "production";
-        const milestoneBaseUrl = isProduction
-          ? (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}` : "https://bakeriq.app")
-          : (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : "https://bakeriq.app");
         storage.updateBaker(bakerId, { milestoneFirstQuoteSent: true })
-          .then(() => sendMilestoneEmail(baker.email, baker.businessName, "first_quote", milestoneBaseUrl, baker.emailPrefsToken))
+          .then(() => sendMilestoneEmail(baker.email, baker.businessName, "first_quote", getCanonicalAppUrl(), baker.emailPrefsToken))
           .catch(err => console.error("[Milestone] first_quote error:", err));
       }
 
@@ -2133,14 +2115,9 @@ export async function registerRoutes(
       // Track lead created
       trackEvent(baker.id, "lead_created", { leadId: lead.id, source: isQuickOrder ? "quick_order" : "calculator" });
 
-      // Milestone: first lead received (flag ensures one-time send)
       if (!baker.milestoneFirstLeadSent) {
-        const isProduction = process.env.NODE_ENV === "production";
-        const milestoneBaseUrl = isProduction
-          ? (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}` : "https://bakeriq.app")
-          : (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : "https://bakeriq.app");
         storage.updateBaker(baker.id, { milestoneFirstLeadSent: true })
-          .then(() => sendMilestoneEmail(baker.email, baker.businessName, "first_lead", milestoneBaseUrl, baker.emailPrefsToken))
+          .then(() => sendMilestoneEmail(baker.email, baker.businessName, "first_lead", getCanonicalAppUrl(), baker.emailPrefsToken))
           .catch(err => console.error("[Milestone] first_lead error:", err));
       }
 
@@ -2749,14 +2726,9 @@ export async function registerRoutes(
                 totalPaid,
               }, baker.emailPrefsToken).catch(err => console.error("Failed to send payment notification:", err));
 
-              // Milestone: first payment received
               if (!baker.milestoneFirstPaymentSent && !baker.firstPaymentProcessedAt) {
-                const isProduction = process.env.NODE_ENV === "production";
-                const milestoneBaseUrl = isProduction
-                  ? (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}` : "https://bakeriq.app")
-                  : (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : "https://bakeriq.app");
                 storage.updateBaker(bakerId, { milestoneFirstPaymentSent: true })
-                  .then(() => sendMilestoneEmail(baker.email, baker.businessName, "first_payment", milestoneBaseUrl, baker.emailPrefsToken))
+                  .then(() => sendMilestoneEmail(baker.email, baker.businessName, "first_payment", getCanonicalAppUrl(), baker.emailPrefsToken))
                   .catch(err => console.error("[Milestone] first_payment error:", err));
               }
             }
@@ -4442,10 +4414,10 @@ Guidelines:
     return {
       bakerName: baker.businessName.split(" ")[0],
       businessName: baker.businessName,
-      calculatorLink: `https://bakeriq.app/c/${baker.slug}`,
+      calculatorLink: buildAppUrl(`/c/${baker.slug}`),
       email: baker.email,
       plan: (baker.plan || "free").charAt(0).toUpperCase() + (baker.plan || "free").slice(1),
-      referralLink: baker.referralCode ? `https://bakeriq.app/join/r/${baker.referralCode}` : "https://bakeriq.app",
+      referralLink: baker.referralCode ? buildAppUrl(`/join/r/${baker.referralCode}`) : buildAppUrl("/"),
     };
   }
 
@@ -4457,10 +4429,10 @@ Guidelines:
       const sampleTokens: AdminEmailTokens = {
         bakerName: "Jane",
         businessName: "Jane's Sweet Creations",
-        calculatorLink: "https://bakeriq.app/c/janes-sweet-creations",
+        calculatorLink: buildAppUrl("/c/janes-sweet-creations"),
         email: "jane@example.com",
         plan: "Free",
-        referralLink: "https://bakeriq.app/join/r/abc123",
+        referralLink: buildAppUrl("/join/r/abc123"),
       };
       const html = getDynamicEmailHtml(email.subject, email.bodyContent, sampleTokens);
       res.json({ html });

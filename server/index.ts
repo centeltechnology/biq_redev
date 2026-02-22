@@ -191,14 +191,8 @@ app.use((req, res, next) => {
         console.error("Stripe initialization error (non-fatal):", err);
       });
       
-      // Start onboarding email scheduler
-      const baseUrl = process.env.REPLIT_DOMAINS
-        ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
-        : `http://localhost:${port}`;
-      startOnboardingScheduler(baseUrl);
-      
-      // Start retention email scheduler (weekly)
-      startRetentionScheduler(baseUrl);
+      startOnboardingScheduler();
+      startRetentionScheduler();
     },
   );
 })();
