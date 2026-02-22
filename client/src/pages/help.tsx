@@ -65,9 +65,9 @@ export default function HelpPage() {
       <main className="py-12 md:py-20">
         <div className="container max-w-5xl mx-auto px-4">
           <div className="text-center mb-12">
-            <h1 className="text-3xl md:text-4xl font-bold mb-4">Help Center</h1>
+            <h1 className="text-3xl md:text-4xl font-bold mb-4">Run your bakery like a business.</h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Learn how to get the most out of BakerIQ for your bakery business.
+              BakerIQ is your operating system for structured orders, deposits, and revenue visibility.
             </p>
           </div>
 
@@ -133,26 +133,26 @@ export default function HelpPage() {
             <Card className="hover-elevate">
               <CardHeader>
                 <Calculator className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>Getting Started</CardTitle>
-                <CardDescription>Set up your account and order page</CardDescription>
+                <CardTitle>System Workflow</CardTitle>
+                <CardDescription>How orders move through BakerIQ</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <h4 className="font-medium">1. Create Your Account</h4>
+                  <h4 className="font-medium">1. Customer visits your order page</h4>
                   <p className="text-sm text-muted-foreground">
-                    Sign up with your email and business name. Your unique order page URL will be created automatically based on your business name.
+                    They browse your pricing, select options, and submit a structured request.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">2. Configure Your Pricing</h4>
+                  <h4 className="font-medium">2. Lead appears in your dashboard</h4>
                   <p className="text-sm text-muted-foreground">
-                    Go to Pricing in the dashboard to set your prices for cake sizes, flavors, decorations, and addons.
+                    You receive an email alert and the lead shows in <strong>Leads</strong> with full details.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">3. Share Your Order Page</h4>
+                  <h4 className="font-medium">3. You send a professional quote</h4>
                   <p className="text-sm text-muted-foreground">
-                    Copy your unique order page URL from Settings and share it on your website, social media, or with customers directly.
+                    Convert the lead to a quote, adjust pricing, and send it. Customer receives an email with payment options.
                   </p>
                 </div>
               </CardContent>
@@ -161,26 +161,26 @@ export default function HelpPage() {
             <Card className="hover-elevate">
               <CardHeader>
                 <Users className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>Managing Leads</CardTitle>
-                <CardDescription>Track and convert your inquiries</CardDescription>
+                <CardTitle>Lead Management</CardTitle>
+                <CardDescription>Every inquiry is captured and tracked</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <h4 className="font-medium">Lead Statuses</h4>
+                  <h4 className="font-medium">Structured Intake</h4>
                   <p className="text-sm text-muted-foreground">
-                    Track leads through stages: New, Contacted, Quoted, Won, or Lost. Update status as you work with each customer.
+                    Every order page submission creates a lead with contact info, event details, and itemized selections.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">Lead Details</h4>
+                  <h4 className="font-medium">Status Tracking</h4>
                   <p className="text-sm text-muted-foreground">
-                    Click on any lead to see their full cake design, contact info, and event details from their order request.
+                    Track leads through stages: New, Contacted, Quoted, Won, or Lost.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">Converting to Quotes</h4>
+                  <h4 className="font-medium">Convert to Quote</h4>
                   <p className="text-sm text-muted-foreground">
-                    Click "Create Quote" on any lead to start a professional quote with their details pre-filled.
+                    Click "Create Quote" on any lead. Customer details and selections are pre-filled.
                   </p>
                 </div>
               </CardContent>
@@ -189,26 +189,26 @@ export default function HelpPage() {
             <Card className="hover-elevate">
               <CardHeader>
                 <FileText className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>Creating Quotes</CardTitle>
-                <CardDescription>Build professional estimates</CardDescription>
+                <CardTitle>Quoting</CardTitle>
+                <CardDescription>Send professional, payment-ready quotes</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <h4 className="font-medium">Quote Builder</h4>
                   <p className="text-sm text-muted-foreground">
-                    Add line items for each part of the order: tiers, decorations, delivery, and custom items.
+                    Itemized line items for tiers, decorations, delivery, and custom charges. Pull from Express Items or add manually.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">Quote Status</h4>
+                  <h4 className="font-medium">Quote Lifecycle</h4>
                   <p className="text-sm text-muted-foreground">
-                    Track quotes as Draft, Sent, Accepted, Declined, or Expired. Update as customers respond.
+                    Draft → Sent → Accepted or Declined. Acceptance locks pricing. Customers can pay online if Stripe is connected.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">Converting to Orders</h4>
+                  <h4 className="font-medium">Convert to Order</h4>
                   <p className="text-sm text-muted-foreground">
-                    Once a quote is accepted, convert it to an order to track in your calendar.
+                    Accepted quotes convert to orders. Orders appear on your calendar for delivery tracking.
                   </p>
                 </div>
               </CardContent>
@@ -218,25 +218,25 @@ export default function HelpPage() {
               <CardHeader>
                 <CalendarCheck className="h-10 w-10 text-primary mb-2" />
                 <CardTitle>Order Calendar</CardTitle>
-                <CardDescription>View your upcoming orders</CardDescription>
+                <CardDescription>Delivery and fulfillment tracking</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <h4 className="font-medium">Calendar View</h4>
                   <p className="text-sm text-muted-foreground">
-                    See all your confirmed orders displayed by date. Different colors indicate order status.
+                    Confirmed orders displayed by event date. Color-coded by status.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">Search Orders</h4>
+                  <h4 className="font-medium">Search</h4>
                   <p className="text-sm text-muted-foreground">
-                    Use the search bar to find orders by customer name, title, or event type.
+                    Find orders by customer name, title, or event type.
                   </p>
                 </div>
                 <div className="space-y-2">
                   <h4 className="font-medium">Order Details</h4>
                   <p className="text-sm text-muted-foreground">
-                    Click on any order to view full details including customer contact info and delivery requirements.
+                    Click any order to view customer contact, delivery requirements, and payment status.
                   </p>
                 </div>
               </CardContent>
@@ -246,25 +246,25 @@ export default function HelpPage() {
               <CardHeader>
                 <Calculator className="h-10 w-10 text-primary mb-2" />
                 <CardTitle>Express Items</CardTitle>
-                <CardDescription>Calculate cost-based pricing</CardDescription>
+                <CardDescription>Feature popular items on your order page</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <h4 className="font-medium">Cost-Based Pricing</h4>
+                  <h4 className="font-medium">What They Are</h4>
                   <p className="text-sm text-muted-foreground">
-                    Enter your material costs, labor hours, hourly rate, and overhead to calculate suggested prices.
+                    Express Items let you feature popular or seasonal offers at the top of your order page. Customers order in a few clicks.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">Save Calculations</h4>
+                  <h4 className="font-medium">Examples</h4>
                   <p className="text-sm text-muted-foreground">
-                    Save your calculations for reference when setting prices in Pricing.
+                    1 Dozen Dipped Strawberries, Seasonal Pound Cake Special, Custom Cupcake Box.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">Profit Margins</h4>
+                  <h4 className="font-medium">Plan Limits</h4>
                   <p className="text-sm text-muted-foreground">
-                    See your profit margin for each item to ensure your pricing covers costs and supports growth.
+                    Free: 1 item. Basic: 5 items. Pro: Unlimited.
                   </p>
                 </div>
               </CardContent>
@@ -276,26 +276,26 @@ export default function HelpPage() {
                   <Zap className="h-10 w-10 text-primary mb-2" />
                   <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">Basic & Pro</span>
                 </div>
-                <CardTitle>Express Items</CardTitle>
-                <CardDescription>Quick ordering for popular items</CardDescription>
+                <CardTitle>Express Items Setup</CardTitle>
+                <CardDescription>How to feature and manage items</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <h4 className="font-medium">Showcase Your Best Items</h4>
+                  <h4 className="font-medium">Feature an Item</h4>
                   <p className="text-sm text-muted-foreground">
-                    Save a pricing calculation, then click the star to feature it on your order page. Control visibility with the eye icon.
+                    Go to Express Items, save a pricing calculation, then click the star icon to feature it. Control visibility with the eye icon.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">Plan Limits</h4>
+                  <h4 className="font-medium">Express Item Leads</h4>
                   <p className="text-sm text-muted-foreground">
-                    Basic plan: up to 5 express items. Pro plan: unlimited express items. Free plan does not include Express Items.
+                    Express Item orders appear in <strong>Leads</strong> with a lightning bolt badge. Click "Quick Quote" to create a quote with item details pre-filled.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">Express Items</h4>
+                  <h4 className="font-medium">Cost Calculator</h4>
                   <p className="text-sm text-muted-foreground">
-                    Express Items leads show a special badge. Click "Quick Quote" to create a quote with the item name, price, and details pre-filled.
+                    Enter material costs, labor hours, hourly rate, and overhead. The calculator shows suggested price and profit margin.
                   </p>
                 </div>
               </CardContent>
@@ -304,26 +304,26 @@ export default function HelpPage() {
             <Card className="hover-elevate">
               <CardHeader>
                 <CreditCard className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>Accepting Payments</CardTitle>
-                <CardDescription>Get paid directly through your quotes</CardDescription>
+                <CardTitle>Revenue & Payments</CardTitle>
+                <CardDescription>Collect deposits and track revenue</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <h4 className="font-medium">Connect Stripe</h4>
                   <p className="text-sm text-muted-foreground">
-                    Go to Settings and click "Connect with Stripe" to link your Stripe account. This lets customers pay deposits or full amounts directly on your quotes.
+                    Go to <strong>Payments → Connect Stripe</strong>. Customers see a "Pay Now" button on your quotes. Money goes directly to your Stripe account.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">How Customers Pay</h4>
+                  <h4 className="font-medium">Deposit Collection</h4>
                   <p className="text-sm text-muted-foreground">
-                    When you send a quote, customers see a "Pay Now" button. They can choose to pay a deposit or the full amount using a secure Stripe checkout page.
+                    Configure deposit percentage or flat amount in <strong>Payments → Deposit Settings</strong>. Deposits are collected automatically when customers pay online.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">Track Your Earnings</h4>
+                  <h4 className="font-medium">Revenue Visibility</h4>
                   <p className="text-sm text-muted-foreground">
-                    Visit the Payments page in your dashboard to see all transactions, total revenue, and payment status for each quote. You also get email notifications for every payment.
+                    Track all transactions, total revenue, and payment status per quote in <strong>Payments</strong>. Email notifications sent for every payment.
                   </p>
                 </div>
               </CardContent>
@@ -332,26 +332,26 @@ export default function HelpPage() {
             <Card className="hover-elevate">
               <CardHeader>
                 <Settings className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>Pricing</CardTitle>
-                <CardDescription>Customize your prices</CardDescription>
+                <CardTitle>Pricing Configuration</CardTitle>
+                <CardDescription>Set what customers see on your order page</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <h4 className="font-medium">Base Prices</h4>
+                  <h4 className="font-medium">Cake Sizes & Shapes</h4>
                   <p className="text-sm text-muted-foreground">
-                    Set prices for each cake size. These form the foundation of your estimates.
+                    Set base prices by size and shape. These appear on your order page.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">Flavors & Frostings</h4>
+                  <h4 className="font-medium">Flavors, Frostings & Add-ons</h4>
                   <p className="text-sm text-muted-foreground">
-                    Add price adjustments for premium flavors and specialty frostings.
+                    Configure premium flavor pricing, frosting types, decorations, and extras.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">Addons & Delivery</h4>
+                  <h4 className="font-medium">Treats & Delivery</h4>
                   <p className="text-sm text-muted-foreground">
-                    Configure prices for extras like dipped strawberries, sweets tables, and delivery fees.
+                    Per-unit treat pricing and delivery tiers. Enable or disable items in <strong>Pricing</strong>.
                   </p>
                 </div>
               </CardContent>
@@ -360,26 +360,26 @@ export default function HelpPage() {
             <Card className="hover-elevate">
               <CardHeader>
                 <Mail className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>Email Notifications</CardTitle>
-                <CardDescription>Stay informed automatically</CardDescription>
+                <CardTitle>Automated Notifications</CardTitle>
+                <CardDescription>System-generated alerts and confirmations</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <h4 className="font-medium">New Lead Alerts</h4>
+                  <h4 className="font-medium">Lead Alerts</h4>
                   <p className="text-sm text-muted-foreground">
-                    Receive an email whenever a customer submits an inquiry through your order page.
+                    You receive an email when a customer submits through your order page.
                   </p>
                 </div>
                 <div className="space-y-2">
                   <h4 className="font-medium">Customer Confirmations</h4>
                   <p className="text-sm text-muted-foreground">
-                    Customers automatically receive a confirmation email with their estimate details.
+                    Customers receive an automatic confirmation with their estimate details.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">Quote Notifications</h4>
+                  <h4 className="font-medium">Payment Receipts</h4>
                   <p className="text-sm text-muted-foreground">
-                    Send professional quote emails to customers directly from the platform.
+                    You and your customer receive email notifications for every payment processed.
                   </p>
                 </div>
               </CardContent>
@@ -388,26 +388,26 @@ export default function HelpPage() {
             <Card className="hover-elevate">
               <CardHeader>
                 <Cake className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>Cakes & Treats</CardTitle>
-                <CardDescription>What customers can order</CardDescription>
+                <CardTitle>Product Categories</CardTitle>
+                <CardDescription>What your order page supports</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <h4 className="font-medium">Custom Cakes</h4>
                   <p className="text-sm text-muted-foreground">
-                    Multi-tier cakes with customizable sizes, shapes, flavors, frostings, decorations, and addons.
+                    Multi-tier with configurable sizes, shapes, flavors, frostings, decorations, and add-ons.
                   </p>
                 </div>
                 <div className="space-y-2">
                   <h4 className="font-medium">Treats</h4>
                   <p className="text-sm text-muted-foreground">
-                    Cupcakes, cake pops, cookies, brownies, dipped strawberries, and more. Enable or disable items in Pricing.
+                    Cupcakes, cake pops, cookies, brownies, dipped strawberries. Enable or disable in <strong>Pricing</strong>.
                   </p>
                 </div>
                 <div className="space-y-2">
                   <h4 className="font-medium">Delivery & Setup</h4>
                   <p className="text-sm text-muted-foreground">
-                    Offer standard delivery, rush delivery, or full setup service with customizable pricing.
+                    Standard delivery, rush delivery, or full setup service. Priced per tier in <strong>Pricing</strong>.
                   </p>
                 </div>
               </CardContent>
@@ -416,26 +416,26 @@ export default function HelpPage() {
             <Card className="hover-elevate">
               <CardHeader>
                 <Users className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>Customer Management</CardTitle>
-                <CardDescription>Organize your client relationships</CardDescription>
+                <CardTitle>Customer Records</CardTitle>
+                <CardDescription>Centralized contact and order history</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <h4 className="font-medium">Customer Database</h4>
                   <p className="text-sm text-muted-foreground">
-                    Keep track of all your customers with contact info, notes, and order history in one place.
+                    Contact info, notes, and complete order history per customer.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">Auto-Create from Leads</h4>
+                  <h4 className="font-medium">Auto-Created from Leads</h4>
                   <p className="text-sm text-muted-foreground">
-                    When you create a quote from a lead, you can automatically create a customer record if one doesn't exist.
+                    Creating a quote from a lead auto-creates a customer record if none exists.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">Link to Quotes & Orders</h4>
+                  <h4 className="font-medium">Linked History</h4>
                   <p className="text-sm text-muted-foreground">
-                    All quotes and orders are linked to customers, making it easy to see their complete history.
+                    All quotes and orders are linked to the customer record for full visibility.
                   </p>
                 </div>
               </CardContent>
@@ -444,38 +444,32 @@ export default function HelpPage() {
             <Card className="hover-elevate">
               <CardHeader>
                 <Share2 className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>Share Your Order Page</CardTitle>
-                <CardDescription>Promote your business on social media</CardDescription>
+                <CardTitle>Distribution Tools</CardTitle>
+                <CardDescription>Share your order page link everywhere</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <h4 className="font-medium">Social Media Sharing</h4>
                   <p className="text-sm text-muted-foreground">
-                    Go to the Share page in your dashboard to share your order page link on Facebook, Instagram, Twitter/X, Pinterest, WhatsApp, and LinkedIn with a single click.
+                    One-click sharing to Facebook, Instagram, Twitter/X, Pinterest, WhatsApp, and LinkedIn from <strong>Share</strong>.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">Caption Templates</h4>
+                  <h4 className="font-medium">Caption Templates & Banners</h4>
                   <p className="text-sm text-muted-foreground">
-                    Choose from General, Wedding, Events, Express Items, or Seasonal caption categories. Each comes with ready-to-use captions you can customize before posting.
+                    Pre-written captions by category (General, Wedding, Events, Seasonal). Generate branded banners (1200x630) with your business name.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">Social Media Banners</h4>
+                  <h4 className="font-medium">QR Code</h4>
                   <p className="text-sm text-muted-foreground">
-                    Create professional social media banners right from the Share page. Pick a pre-made design (Elegant Wedding, Fun Birthday, Clean Modern, or Holiday Seasonal) or upload your own cake photo. Your business name is overlaid automatically and the banner downloads as a ready-to-post image (1200x630, ideal for Facebook and LinkedIn).
+                    Download a QR code from <strong>Share</strong>. Print on business cards, packaging, or booth displays.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">QR Code Download</h4>
+                  <h4 className="font-medium">Per-Item Sharing</h4>
                   <p className="text-sm text-muted-foreground">
-                    Download a QR code for your order page link. Print it on business cards, flyers, or packaging so customers can scan and get an instant estimate.
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <h4 className="font-medium">Share Individual Items</h4>
-                  <p className="text-sm text-muted-foreground">
-                    If you have express items (Express Items), you can share each one individually on social media with its own link and caption.
+                    Each Express Item gets its own shareable link with platform-specific captions.
                   </p>
                 </div>
               </CardContent>
@@ -484,26 +478,26 @@ export default function HelpPage() {
             <Card className="hover-elevate">
               <CardHeader>
                 <Gift className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>Refer a Friend</CardTitle>
-                <CardDescription>Earn free months by sharing BakerIQ</CardDescription>
+                <CardTitle>Referral Program</CardTitle>
+                <CardDescription>Earn free months for every baker you refer</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <h4 className="font-medium">Your Referral Link</h4>
                   <p className="text-sm text-muted-foreground">
-                    Every baker gets a unique referral link. Find yours on the "Refer a Friend" page in your dashboard. Share it with other bakers to start earning rewards.
+                    Find your unique link in <strong>Refer a Friend</strong>. Share it with other bakers.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">How Rewards Work</h4>
+                  <h4 className="font-medium">Rewards</h4>
                   <p className="text-sm text-muted-foreground">
-                    On a paid plan: earn 1 free month of your subscription for each baker who signs up and subscribes. On the free plan: earn 1 month of Express Items access per referral. Stack up to 12 months of credits.
+                    Paid plan: 1 free month per referred baker who subscribes. Free plan: 1 month Express Items access per referral. Stack up to 12 months.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">Track Your Referrals</h4>
+                  <h4 className="font-medium">Tracking</h4>
                   <p className="text-sm text-muted-foreground">
-                    See how many bakers you've referred, who has signed up, and how many credits you've earned — all from your Refer a Friend dashboard.
+                    View referral count, sign-ups, and earned credits in your <strong>Refer a Friend</strong> dashboard.
                   </p>
                 </div>
               </CardContent>
@@ -512,26 +506,26 @@ export default function HelpPage() {
             <Card className="hover-elevate">
               <CardHeader>
                 <ArrowRight className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>Subscription Plans</CardTitle>
-                <CardDescription>Choose the right plan for you</CardDescription>
+                <CardTitle>Plans & Platform Fees</CardTitle>
+                <CardDescription>Processing-first pricing model</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <h4 className="font-medium">Free Plan</h4>
+                  <h4 className="font-medium">Free</h4>
                   <p className="text-sm text-muted-foreground">
-                    Unlimited quotes, 1 Express Item, unlimited leads, 7% platform fee on payments. Perfect for getting started.
+                    Unlimited quotes. 1 Express Item. 7% platform fee on processed payments.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">Basic - $4.99/month</h4>
+                  <h4 className="font-medium">Basic — $4.99/month</h4>
                   <p className="text-sm text-muted-foreground">
-                    Unlimited quotes + Express Items with up to 5 express items. Lower 5% platform fee.
+                    Unlimited quotes. Up to 5 Express Items. 5% platform fee.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">Pro - $9.99/month</h4>
+                  <h4 className="font-medium">Pro — $9.99/month</h4>
                   <p className="text-sm text-muted-foreground">
-                    Unlimited quotes + unlimited express items. Lowest 3% platform fee. Upgrade anytime in Settings.
+                    Unlimited quotes. Unlimited Express Items. 3% platform fee. Upgrade in <strong>Settings</strong>.
                   </p>
                 </div>
               </CardContent>
@@ -541,47 +535,47 @@ export default function HelpPage() {
           <div id="onboarding" className="mb-12" data-testid="section-help-onboarding">
             <div className="flex items-center gap-2 mb-6">
               <Rocket className="h-6 w-6 text-primary" />
-              <h2 className="text-2xl font-bold">Onboarding &amp; Getting Set Up</h2>
+              <h2 className="text-2xl font-bold">Onboarding &amp; Setup</h2>
             </div>
             <Card>
               <CardContent className="pt-6 space-y-4">
                 <p className="text-muted-foreground">
-                  When you first sign up, BakerIQ walks you through a quick setup wizard so your account is ready to receive orders.
+                  The goal of onboarding is simple: get your account structured and ready to receive real orders.
                 </p>
                 <div className="space-y-3">
                   <div className="flex gap-3">
                     <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">1</span>
                     <div>
-                      <h4 className="font-medium">Profile &amp; Branding</h4>
-                      <p className="text-sm text-muted-foreground">Add your business name, logo, and location. To update later, go to <strong>Settings</strong>.</p>
+                      <h4 className="font-medium">Branding</h4>
+                      <p className="text-sm text-muted-foreground">Add your business name and logo. This appears on your public order page. Edit anytime in <strong>Settings</strong>.</p>
                     </div>
                   </div>
                   <div className="flex gap-3">
                     <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">2</span>
                     <div>
                       <h4 className="font-medium">Review Your Pricing</h4>
-                      <p className="text-sm text-muted-foreground">Confirm your cake sizes, flavors, and treat prices. To update later, go to <strong>Pricing</strong>.</p>
+                      <p className="text-sm text-muted-foreground">Set cake sizes, treats, flavors, add-ons, and delivery. This determines what customers see. Edit anytime in <strong>Pricing</strong>.</p>
                     </div>
                   </div>
                   <div className="flex gap-3">
                     <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">3</span>
                     <div>
-                      <h4 className="font-medium">Share Your Order Page</h4>
-                      <p className="text-sm text-muted-foreground">Copy your unique link and share it on social media. To find it later, go to <strong>Share</strong>.</p>
+                      <h4 className="font-medium">Launch Your Order Page</h4>
+                      <p className="text-sm text-muted-foreground">Your public link is automatically created: bakeriq.app/c/your-bakery. Share it in your Instagram bio, Facebook posts, or DMs when someone asks "how much?" Find it in <strong>Share</strong>.</p>
                     </div>
                   </div>
                   <div className="flex gap-3">
                     <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">4</span>
                     <div>
-                      <h4 className="font-medium">Try a Demo Quote</h4>
-                      <p className="text-sm text-muted-foreground">Send yourself a test quote to see what customers receive. You can skip this step.</p>
+                      <h4 className="font-medium">Send a Test Quote</h4>
+                      <p className="text-sm text-muted-foreground">See exactly what customers receive. Optional but recommended.</p>
                     </div>
                   </div>
                   <div className="flex gap-3">
                     <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">5</span>
                     <div>
                       <h4 className="font-medium">Connect Stripe (Optional)</h4>
-                      <p className="text-sm text-muted-foreground">Link Stripe to collect payments online. To set up later, go to <strong>Payments → Connect Stripe</strong>.</p>
+                      <p className="text-sm text-muted-foreground">Go to <strong>Payments → Connect Stripe</strong> to enable online deposits. Stripe adds a Pay Now button to quotes. Money goes directly to your Stripe account.</p>
                     </div>
                   </div>
                 </div>
@@ -612,7 +606,7 @@ export default function HelpPage() {
                     </AccordionContent>
                   </AccordionItem>
                   <AccordionItem value="onboarding-q4" data-testid="accordion-onboarding-q4">
-                    <AccordionTrigger>Can I redo onboarding or change my answers later?</AccordionTrigger>
+                    <AccordionTrigger>Can I redo onboarding or change my settings later?</AccordionTrigger>
                     <AccordionContent>
                       <p className="text-sm text-muted-foreground">
                         Yes. Go to <strong>Settings</strong> for branding, <strong>Pricing</strong> for prices, and <strong>Share → Launch Your Landing Page</strong> for your URL and header image.
@@ -624,35 +618,63 @@ export default function HelpPage() {
             </Card>
           </div>
 
-          <div id="order-page" className="mb-12" data-testid="section-help-order-page">
+          <div id="processing-first" className="mb-12" data-testid="section-help-processing-first">
             <div className="flex items-center gap-2 mb-6">
-              <Globe className="h-6 w-6 text-primary" />
-              <h2 className="text-2xl font-bold">Your Order Page &amp; Sharing</h2>
+              <Wallet className="h-6 w-6 text-primary" />
+              <h2 className="text-2xl font-bold">What Processing-First Means</h2>
             </div>
             <Card>
               <CardContent className="pt-6 space-y-4">
+                <p className="text-muted-foreground">
+                  You don't pay for logging in. You only pay when you process money through your quote link.
+                </p>
+                <div className="grid grid-cols-3 gap-4 py-2">
+                  <div className="text-center p-3 rounded-lg bg-muted/50">
+                    <p className="text-lg font-bold">Free</p>
+                    <p className="text-2xl font-bold text-primary">7%</p>
+                  </div>
+                  <div className="text-center p-3 rounded-lg bg-muted/50">
+                    <p className="text-lg font-bold">Basic</p>
+                    <p className="text-2xl font-bold text-primary">5%</p>
+                  </div>
+                  <div className="text-center p-3 rounded-lg bg-muted/50">
+                    <p className="text-lg font-bold">Pro</p>
+                    <p className="text-2xl font-bold text-primary">3%</p>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  No processed payments = no platform fees.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div id="order-page" className="mb-12" data-testid="section-help-order-page">
+            <div className="flex items-center gap-2 mb-6">
+              <Globe className="h-6 w-6 text-primary" />
+              <h2 className="text-2xl font-bold">Your Order Page</h2>
+            </div>
+            <Card>
+              <CardContent className="pt-6 space-y-4">
+                <p className="text-muted-foreground">
+                  Your order page is your online storefront. No website required.
+                </p>
                 <div className="space-y-2">
-                  <h4 className="font-medium">What is your Order Page?</h4>
+                  <h4 className="font-medium">What Customers Do</h4>
                   <p className="text-sm text-muted-foreground">
-                    Your order page is a public link (like bakeriq.app/c/your-bakery) where customers browse your menu, see pricing, and submit a quote request. It's your online storefront — no website needed.
+                    Browse your pricing. Select options. Submit a structured request. This triggers a lead in your dashboard.
                   </p>
                 </div>
                 <div className="space-y-2">
                   <h4 className="font-medium">Where to Find Your Link</h4>
                   <p className="text-sm text-muted-foreground">
-                    Go to <strong>Share</strong>. Your order page URL is at the top — copy it with one click.
+                    Go to <strong>Share</strong>. Your order page URL is at the top. Copy it with one click.
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-medium">How to Share in DMs (Facebook &amp; Instagram)</h4>
+                  <h4 className="font-medium">Using It in DMs</h4>
                   <p className="text-sm text-muted-foreground">
-                    When someone asks "how much?" in your DMs, paste your order page link. They see your menu with live pricing and can submit a request with their event details.
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <h4 className="font-medium">What Customers See</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Your branding (logo, banner, business name), cake and treat menu with prices, and any featured Express Items. They fill out event details and submit a quote request. You get the lead in <strong>Leads</strong> and by email.
+                    Stop typing custom prices. Reply with your link. Customers build their order. You receive a structured lead. You send a professional quote. That's the system.
                   </p>
                 </div>
 
@@ -661,7 +683,7 @@ export default function HelpPage() {
                     <AccordionTrigger>How do Express Items work?</AccordionTrigger>
                     <AccordionContent>
                       <p className="text-sm text-muted-foreground">
-                        Go to <strong>Pricing Calculator</strong>, save an item, then click the star icon to feature it on your order page. Customers can order featured items with one click. Limits: Free = 1 item, Basic = 5, Pro = unlimited.
+                        Go to <strong>Express Items</strong>, save an item, then click the star icon to feature it on your order page. Customers can order featured items with one click. Limits: Free = 1, Basic = 5, Pro = unlimited.
                       </p>
                     </AccordionContent>
                   </AccordionItem>
@@ -677,15 +699,15 @@ export default function HelpPage() {
                     <AccordionTrigger>Can I share individual items on social media?</AccordionTrigger>
                     <AccordionContent>
                       <p className="text-sm text-muted-foreground">
-                        Yes. Each Express Item gets its own shareable link. On the <strong>Share</strong> page, use the sharing buttons next to each item with pre-written captions for Facebook, Instagram, Twitter/X, Pinterest, WhatsApp, or LinkedIn.
+                        Yes. Each Express Item gets its own shareable link. On the <strong>Share</strong> page, use the sharing buttons next to each item with platform-specific captions.
                       </p>
                     </AccordionContent>
                   </AccordionItem>
                   <AccordionItem value="sharing-q4" data-testid="accordion-sharing-q4">
-                    <AccordionTrigger>How do I get a QR code for my order page?</AccordionTrigger>
+                    <AccordionTrigger>How do I get a QR code?</AccordionTrigger>
                     <AccordionContent>
                       <p className="text-sm text-muted-foreground">
-                        On the <strong>Share</strong> page, click "Download QR Code." Print it on business cards, flyers, or packaging so customers can scan and go directly to your order page.
+                        On the <strong>Share</strong> page, click "Download QR Code." Print on business cards, packaging, or booth displays.
                       </p>
                     </AccordionContent>
                   </AccordionItem>
@@ -693,7 +715,7 @@ export default function HelpPage() {
                     <AccordionTrigger>Where do I find my Order Page link?</AccordionTrigger>
                     <AccordionContent>
                       <p className="text-sm text-muted-foreground">
-                        Go to <strong>Share</strong>. Your link (bakeriq.app/c/your-bakery) is displayed at the top. Click "Copy" to grab it, then paste anywhere — DMs, bio, stories, or your website.
+                        Go to <strong>Share</strong>. Your link (bakeriq.app/c/your-bakery) is displayed at the top. Click "Copy" to grab it.
                       </p>
                     </AccordionContent>
                   </AccordionItem>
@@ -709,7 +731,16 @@ export default function HelpPage() {
             </div>
             <Card>
               <CardContent className="pt-6 space-y-4">
-                <Accordion type="single" collapsible className="w-full">
+                <p className="text-muted-foreground">
+                  Stripe is optional. Without Stripe, customers accept quotes and pay you manually. With Stripe, customers pay deposits online, funds go to your Stripe account, and you track everything in <strong>Payments</strong>.
+                </p>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Deposits</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Configure deposits in <strong>Payments → Deposit Settings</strong>. Customers can accept now and pay later. Acceptance locks pricing.
+                  </p>
+                </div>
+                <Accordion type="single" collapsible className="w-full mt-4">
                   <AccordionItem value="payments-q1" data-testid="accordion-payments-q1">
                     <AccordionTrigger>Do I need Stripe to use BakerIQ?</AccordionTrigger>
                     <AccordionContent>
@@ -722,7 +753,7 @@ export default function HelpPage() {
                     <AccordionTrigger>Can I set up deposits without Stripe?</AccordionTrigger>
                     <AccordionContent>
                       <p className="text-sm text-muted-foreground">
-                        Yes. Go to <strong>Payments → Deposit Settings</strong> to set a percentage or flat amount. Deposit amounts show on your quotes. Without Stripe, customers pay you directly (cash, Venmo, Zelle). With Stripe, they pay the deposit online.
+                        Yes. Go to <strong>Payments → Deposit Settings</strong> to set a percentage or flat amount. Without Stripe, customers pay you directly (cash, Venmo, Zelle). With Stripe, they pay the deposit online.
                       </p>
                     </AccordionContent>
                   </AccordionItem>
@@ -730,7 +761,7 @@ export default function HelpPage() {
                     <AccordionTrigger>What does connecting Stripe do?</AccordionTrigger>
                     <AccordionContent>
                       <p className="text-sm text-muted-foreground">
-                        Stripe adds a "Pay Now" button to your quotes. Customers pay deposits or full amounts through a secure checkout. Money goes to your Stripe account minus the platform fee. Track payments in <strong>Payments</strong>.
+                        Stripe adds a "Pay Now" button to your quotes. Customers pay deposits or full amounts through secure checkout. Money goes to your Stripe account minus the platform fee. Track payments in <strong>Payments</strong>.
                       </p>
                     </AccordionContent>
                   </AccordionItem>
@@ -738,7 +769,7 @@ export default function HelpPage() {
                     <AccordionTrigger>Why can customers accept a quote and pay later?</AccordionTrigger>
                     <AccordionContent>
                       <p className="text-sm text-muted-foreground">
-                        Accepting locks in the price and confirms the order. The customer can return to the same quote link and pay the deposit or full amount whenever they're ready. You'll see the status update in <strong>Quotes</strong>.
+                        Accepting locks in the price and confirms the order. The customer can return to the same quote link and pay whenever ready. You see the status update in <strong>Quotes</strong>.
                       </p>
                     </AccordionContent>
                   </AccordionItem>
@@ -746,7 +777,7 @@ export default function HelpPage() {
                     <AccordionTrigger>What are platform fees?</AccordionTrigger>
                     <AccordionContent>
                       <p className="text-sm text-muted-foreground">
-                        A small percentage deducted only when a customer pays through your quote link. Free: 7%, Basic ($4.99/mo): 5%, Pro ($9.99/mo): 3%. No payments through BakerIQ = no fees.
+                        A percentage deducted only when a customer pays through your quote link. Free: 7%, Basic ($4.99/mo): 5%, Pro ($9.99/mo): 3%. No processed payments = no fees.
                       </p>
                     </AccordionContent>
                   </AccordionItem>
@@ -765,9 +796,9 @@ export default function HelpPage() {
 
           <div className="bg-muted/30 rounded-2xl p-8 text-center">
             <MessageSquare className="h-12 w-12 text-primary mx-auto mb-4" />
-            <h2 className="text-2xl font-bold mb-2">Still have questions?</h2>
+            <h2 className="text-2xl font-bold mb-2">Need more detail?</h2>
             <p className="text-muted-foreground mb-6">
-              Check out our FAQ or get in touch with support.
+              Check the FAQ for specific answers or contact support directly.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href="/faq">
