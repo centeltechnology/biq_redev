@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Share2, MessageSquareText, FileText, CreditCard, ArrowRight, HelpCircle, Loader2 } from "lucide-react";
 import { getQueryFn } from "@/lib/queryClient";
+import lashellPhoto from "@assets/Shell_ref_page_1771738575704.png";
 
 function WorkflowStep({ step, icon, title, description }: { step: number; icon: React.ReactNode; title: string; description: string }) {
   return (
@@ -86,13 +87,12 @@ export default function AffiliateJoinPage() {
             </div>
 
             <div className="space-y-6">
-              <div className="aspect-[4/5] max-w-sm mx-auto bg-muted rounded-2xl flex items-center justify-center overflow-hidden" data-testid="img-affiliate-photo">
-                <div className="text-center text-muted-foreground p-8">
-                  <div className="h-24 w-24 rounded-full bg-muted-foreground/10 flex items-center justify-center mx-auto mb-4">
-                    <span className="text-3xl font-bold text-muted-foreground/40">LH</span>
-                  </div>
-                  <p className="text-sm">lashell.jpg</p>
-                </div>
+              <div className="aspect-[4/5] max-w-sm mx-auto rounded-2xl overflow-hidden" data-testid="img-affiliate-photo">
+                <img
+                  src={lashellPhoto}
+                  alt="LaShell Howard"
+                  className="w-full h-full object-cover"
+                />
               </div>
               <blockquote className="border-l-4 border-primary pl-4 py-2" data-testid="text-affiliate-quote">
                 <p className="text-base italic text-foreground/90 leading-relaxed">
