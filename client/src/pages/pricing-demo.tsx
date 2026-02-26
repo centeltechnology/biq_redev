@@ -68,7 +68,7 @@ export default function PricingDemoPage() {
             Still pricing cakes in DMs?
           </h1>
           <p className="mt-4 text-lg md:text-xl text-muted-foreground max-w-xl mx-auto" data-testid="text-subheadline">
-            Most custom bakers undercharge by 20–40% without realizing it.
+            If you're guessing your pricing, you're probably leaving money on the table.
           </p>
           <Button
             size="lg"
@@ -84,6 +84,9 @@ export default function PricingDemoPage() {
 
       <section ref={calculatorRef} className="pb-20 md:pb-28" data-testid="section-calculator">
         <div className="container max-w-lg mx-auto px-4">
+          <p className="text-sm text-muted-foreground text-center mb-3" data-testid="text-calculator-instruction">
+            Try adjusting servings and design level.
+          </p>
           <Card className="shadow-lg border-border/60" data-testid="card-calculator">
             <CardContent className="p-6 md:p-8 space-y-6">
               <div className="text-center space-y-1">
@@ -141,6 +144,9 @@ export default function PricingDemoPage() {
                 <p className="text-4xl font-bold tracking-tight text-primary" data-testid="text-suggested-price">
                   ${suggestedPrice}
                 </p>
+                <p className="text-sm text-muted-foreground font-medium pt-1" data-testid="text-challenge-line">
+                  Are you charging this?
+                </p>
                 <p className="text-xs text-muted-foreground pt-1" data-testid="text-baseline-note">
                   Based on a $5 per serving professional baseline.
                 </p>
@@ -153,7 +159,7 @@ export default function PricingDemoPage() {
       <section className="pb-20 md:pb-28" data-testid="section-cta">
         <div className="container max-w-lg mx-auto px-4 text-center space-y-4">
           <p className="text-base text-muted-foreground" data-testid="text-cta-line">
-            Turn this into a professional quote in seconds.
+            Turn this into a branded quote and get paid.
           </p>
           <Link href="/signup">
             <Button size="lg" className="w-full sm:w-auto" data-testid="button-create-account">
@@ -163,6 +169,9 @@ export default function PricingDemoPage() {
           </Link>
           <p className="text-sm text-muted-foreground" data-testid="text-support-line">
             Free to start. You only pay when you process.
+          </p>
+          <p className="text-xs text-muted-foreground" data-testid="text-no-cc">
+            No credit card required.
           </p>
         </div>
       </section>
