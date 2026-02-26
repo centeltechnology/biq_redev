@@ -236,6 +236,10 @@ export default function OnboardingPage() {
 
   const handleStep3Continue = async () => {
     await completeMutation.mutateAsync();
+    if (!sessionStorage.getItem("fbq_complete_reg_fired") && (window as any).fbq) {
+      (window as any).fbq("track", "CompleteRegistration");
+      sessionStorage.setItem("fbq_complete_reg_fired", "1");
+    }
     await saveStepMutation.mutateAsync(4);
     setCurrentStep(4);
   };

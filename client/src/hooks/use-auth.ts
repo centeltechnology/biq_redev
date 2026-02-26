@@ -33,6 +33,10 @@ export function useAuth() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
+      if (!sessionStorage.getItem("fbq_lead_fired") && (window as any).fbq) {
+        (window as any).fbq("track", "Lead");
+        sessionStorage.setItem("fbq_lead_fired", "1");
+      }
       setLocation("/onboarding");
     },
   });
