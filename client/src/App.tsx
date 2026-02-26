@@ -41,6 +41,7 @@ import PartnersPage from "@/pages/partners";
 import AffiliateJoinPage from "@/pages/affiliate-join";
 import OnboardingPage from "@/pages/onboarding";
 import EmailPreferences from "@/pages/email-preferences";
+import PricingDemoPage from "@/pages/pricing-demo";
 import { CookieConsent } from "@/components/cookie-consent";
 
 function Router() {
@@ -117,6 +118,7 @@ function Router() {
       <Route path="/privacy" component={PrivacyPage} />
       <Route path="/feedback" component={FeedbackPage} />
       <Route path="/partners" component={PartnersPage} />
+      <Route path="/pricing-demo" component={PricingDemoPage} />
       <Route path="/join/:slug" component={AffiliateJoinPage} />
       <Route path="/email-preferences/:token" component={EmailPreferences} />
       <Route path="/support">{() => <Redirect to="/help" />}</Route>
