@@ -1,0 +1,62 @@
+You are working on the BakerIQ marketing homepage at https://bakeriq.app (public landing page).
+
+GOAL
+Improve homepage conversion by strengthening narrative flow (“tells a story”) and adding a small number of contextual visuals for creative users, WITHOUT turning the page into a gallery or weakening the premium SaaS vibe.
+
+HARD CONSTRAINTS (do not violate)
+- Do NOT change the global brand styling (dark premium SaaS look, typography pairing, spacing system).
+- Do NOT add a lot of new images. Max: 3 new visuals total.
+- Do NOT remove existing core sections (Hero, From inquiry to deposit flow, Built for serious bakers, Pricing, FAQ, Bottom CTA).
+- Do NOT introduce new features or new routes. Homepage-only changes.
+- Keep page fast: use optimized images (webp), lazy loading, and responsive sizing.
+
+WHAT TO CHANGE (exact tasks)
+
+1) HERO: Add a “chaos bridge” under the existing hero subline
+Under the current hero headline and subline, add a short 3-line problem bridge that speaks to the user’s current chaos before presenting the solution.
+Example copy style (you can refine slightly but keep it short):
+- Still pricing in DMs?
+- Still chasing deposits?
+- Still guessing your real profit?
+Then keep/retain the existing CTA(s) below.
+
+2) STORY FLOW: Reword the “From inquiry to deposit — all in one system.” steps to feel chronological and outcome-driven
+Keep the same 4-step layout and meaning, but adjust the titles so they read like a journey rather than tool features.
+Update step titles to something like:
+1. Share your pricing link
+2. Receive a clean order request
+3. Send a professional quote
+4. Lock in the deposit (Stripe)
+Keep supporting text tight. Do not add extra steps unless the UI already supports it.
+
+3) ADD 2–3 CONTEXTUAL VISUALS (not more)
+Creative users need visualization, not decoration. Add up to 3 new visuals total:
+A) Add ONE subtle lifestyle/context image near the hero (either right side of hero on desktop, or directly below hero copy on mobile).
+   - Concept: “calm baker working” (baker at laptop with cake/packaging nearby). Must feel premium and not cheesy.
+B) Add ONE product-context mockup image inside the “From inquiry to deposit” section:
+   - Concept: phone mockup showing a clean quote/invoice + a small cake element.
+C) Optional (only if it improves layout and still looks premium): Add ONE small supporting image near “Built for serious bakers” (ex: minimal photo of packaging/workspace) OR a single illustrated icon row — but only if it clearly improves comprehension.
+
+Implementation requirements:
+- Use local assets in the repo under something like /public/landing/ (or existing assets folder pattern).
+- Use .webp where possible, provide 2x for retina if needed.
+- Use <img loading="lazy">, set width/height, and ensure good CLS scores.
+- Add alt text (accessible, short).
+- Ensure the hero image doesn’t push the main CTA below the fold on common mobile screens.
+
+4) MOVE “Built for serious bakers” slightly higher (only if layout allows)
+Without removing sections, adjust order so the identity/positioning (“Built for serious bakers”) appears sooner—ideally immediately after the story flow, before deep feature proof.
+If the current order is already: Hero → Dashboard → Story Flow → Built for serious bakers, keep it.
+If “Built for serious bakers” is too low, move it up above Pricing.
+
+5) KEEP AUTHORITY / PREMIUM
+Do not lighten the theme. Do not add pastel elements. Do not add busy backgrounds.
+Any new visuals must match current premium/modern look.
+
+DELIVERABLES
+- Provide the code diff (files changed).
+- List exactly which images were added and their paths.
+- Confirm the page still passes basic responsive checks (mobile and desktop).
+- Summarize changes in 5 bullets.
+
+If any copy changes beyond what’s listed feel necessary, propose them in comments but do not implement without explicit instruction.
