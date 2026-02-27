@@ -187,7 +187,7 @@ export default function HomePage() {
                 <p>Platform fee only when you process payments.</p>
                 <p>Upgrade to reduce your rate.</p>
               </div>
-              <Link href="/faq">
+              <Link href="/plans">
                 <Button variant="outline" size="lg" className="gap-2" data-testid="button-view-pricing">
                   View Pricing
                   <ArrowRight className="h-4 w-4" />
@@ -220,14 +220,6 @@ export default function HomePage() {
                 <FaqItem
                   question="Can I change my currency?"
                   answer="Yes. You can change your currency anytime from the Payments page. Changes apply to future quotes — past quotes keep their original currency."
-                />
-                <FaqItem
-                  question="What does BakerIQ cost?"
-                  answer="BakerIQ is free to start. There's no monthly fee on the Free plan. We charge a small platform fee only when you process payments through Stripe — 7% on Free, 5% on Basic ($4.99/mo), and 3% on Pro ($9.99/mo)."
-                />
-                <FaqItem
-                  question="Is there a monthly fee?"
-                  answer="The Free plan has no monthly fee. Basic is $4.99/month and Pro is $9.99/month, both with lower platform fees and more Express Items."
                 />
               </div>
             </div>
