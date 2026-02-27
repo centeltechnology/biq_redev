@@ -1,0 +1,48 @@
+We need to fix the “View Pricing” experience and optimize the /plans page for conversion (processing volume), without changing the underlying plan numbers right now.
+
+GOAL
+When a user clicks “View Pricing”, they should land on a clear pricing chart/section (NOT the long FAQ). Pricing should feel simple, confidence-building, and should nudge upgrades via obvious break-even math (not pressure).
+
+CONSTRAINTS
+- Do NOT change the actual plan pricing/percentages (Free 7%, Growth 5% + $4.99/mo, Pro 3% + $9.99/mo) unless I explicitly ask later.
+- Keep existing branding, typography, and dark/light mode support.
+- Keep changes limited to marketing site pages/components (not the app dashboard pricing link).
+- Keep page performance strong (no heavy libraries, optimize images, avoid layout shift).
+
+TASKS
+
+1) Ensure “View Pricing” buttons on the MARKETING homepage route to /plans (or an anchor within /plans), NOT to the FAQ section.
+   - If the button currently links to an FAQ anchor, replace it with /plans or /plans#plans.
+
+2) On /plans page, add a clear “Plans” chart section at the TOP of the page so it’s immediately visible after the hero.
+   - Include the three plan cards with the same structure and values already shown.
+   - Make sure the pricing cards are above the fold on desktop and near-top on mobile.
+
+3) Add a small “When should I upgrade?” / “Break-even” micro-section directly under the plan cards (not a long FAQ).
+   - Add this exact copy (or very close, keep concise):
+     - “Growth pays for itself at around $1,000/month in orders.”
+     - “Pro is best once you’re consistently above ~$1,250–$1,500/month.”
+   - Keep it as short bullet points or a small callout card.
+
+4) Add an “Example” calculator-style callout under that (simple static math, not interactive):
+   - Show the example at $1,000/month in orders:
+     - Free (7%) = $70
+     - Growth (5% + $4.99) = $54.99
+     - Pro (3% + $9.99) = $39.99
+   - This should be visually clean and easy to scan.
+
+5) Move the long FAQ LOWER on /plans (below the chart + break-even + example).
+   - Keep the FAQ, but it should not be the first thing people hit.
+
+6) Add a sticky or repeated CTA immediately under the pricing chart section:
+   - Primary button: “Start Free”
+   - Secondary button: “Compare Plans”
+   - These should route to signup/onboarding appropriately (same as existing CTAs).
+
+DELIVERABLES
+- List of files changed
+- Confirm that “View Pricing” on homepage now routes to /plans (or /plans#plans)
+- Provide screenshots for:
+  - Homepage hero with updated button target
+  - /plans top section (pricing chart visible)
+  - Mobile layout for /plans

@@ -81,7 +81,7 @@ export default function PlansPage() {
         </div>
       </div>
 
-      <section className="py-16 md:py-24" data-testid="section-plans-hero">
+      <section className="py-12 md:py-16" data-testid="section-plans-hero">
         <div className="container max-w-3xl mx-auto px-4 text-center">
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-tight" data-testid="text-plans-headline">
             Free to start. Pay as you grow.
@@ -92,7 +92,7 @@ export default function PlansPage() {
         </div>
       </section>
 
-      <section className="pb-16 md:pb-24" data-testid="section-plan-cards">
+      <section className="pb-12 md:pb-16" data-testid="section-plan-cards">
         <div className="container max-w-5xl mx-auto px-4">
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {PLANS.map((plan) => (
@@ -155,6 +155,48 @@ export default function PlansPage() {
               </Card>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="pb-10 md:pb-14" data-testid="section-mid-cta">
+        <div className="container max-w-4xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link href="/signup">
+            <Button size="lg" className="gap-2 w-full sm:w-auto" data-testid="button-mid-start-free">
+              Start Free
+              <ArrowRight className="ml-1 h-4 w-4" />
+            </Button>
+          </Link>
+          <Button
+            size="lg"
+            variant="outline"
+            className="gap-2 w-full sm:w-auto"
+            onClick={() => document.getElementById("break-even")?.scrollIntoView({ behavior: "smooth" })}
+            data-testid="button-mid-compare"
+          >
+            Compare Plans
+          </Button>
+        </div>
+      </section>
+
+      <section id="break-even" className="pb-12 md:pb-16" data-testid="section-breakeven">
+        <div className="container max-w-2xl mx-auto px-4">
+          <Card className="border-border/60 bg-muted/20">
+            <CardContent className="p-6 md:p-8">
+              <h3 className="text-base font-semibold mb-4" data-testid="text-breakeven-title">
+                When should I upgrade?
+              </h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <span className="text-primary mt-0.5">•</span>
+                  <span><strong>Growth</strong> pays for itself at around <strong>$1,000/month</strong> in orders.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary mt-0.5">•</span>
+                  <span><strong>Pro</strong> is best once you're consistently above <strong>~$1,250–$1,500/month</strong>.</span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
