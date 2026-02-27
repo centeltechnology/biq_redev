@@ -1,0 +1,82 @@
+You are working on the BakerIQ public marketing homepage.
+
+This is a refinement pass. Do NOT redesign the page. Do NOT add new sections. Do NOT change global branding, color palette, or typography pairing.
+
+GOAL:
+Improve hierarchy clarity, subtle authority signals, and accessibility polish while keeping the premium SaaS aesthetic intact.
+
+----------------------------------------
+1) HERO SECTION – Refine Chaos Bridge Hierarchy
+----------------------------------------
+
+Under the existing hero headline and subline, there are 3 “chaos bridge” lines:
+
+- Still pricing in DMs?
+- Still chasing deposits?
+- Still guessing your real profit?
+
+Adjust styling so these feel like tension cues, not primary content.
+
+Requirements:
+- Reduce font weight slightly (if currently medium, move to regular).
+- Slightly reduce font size (5–10% smaller than subline).
+- Apply subtle opacity (85–90%) so they visually sit beneath the subline.
+- Maintain readability and accessibility contrast.
+
+Do NOT change the copy.
+Do NOT move the CTA.
+
+Ensure final hierarchy:
+Headline (strongest)
+Subline
+Chaos bridge (lighter tension layer)
+Primary CTA
+
+----------------------------------------
+2) ADD MICRO-AUTHORITY LINE
+----------------------------------------
+
+Between the “From inquiry to deposit” section and the “Built for serious baking businesses” section, add ONE single-line authority reinforcement.
+
+Text:
+"Used by serious home bakers and custom cake studios."
+
+Style requirements:
+- Centered.
+- Smaller than section headers.
+- Neutral color (not bright pink).
+- Subtle, confident tone — not loud.
+- Adequate spacing above and below (balanced breathing room).
+
+Do NOT add logos or testimonials. This is just a quiet confidence line.
+
+----------------------------------------
+3) ICON CONTRAST (LIGHT MODE ONLY)
+----------------------------------------
+
+In Light Mode:
+- Slightly increase contrast of pink feature icons in the “From inquiry to deposit” section.
+- Ensure WCAG AA contrast compliance.
+- Do NOT change brand color.
+- Adjust background circle shade or icon weight if necessary.
+
+Dark Mode should remain untouched.
+
+----------------------------------------
+4) VERIFY VISUAL BALANCE
+----------------------------------------
+
+After changes:
+- Confirm hero CTA remains above the fold on standard laptop and mobile breakpoints.
+- Confirm no layout shifts introduced.
+- Confirm images remain optimized (lazy loading intact).
+
+----------------------------------------
+DELIVERABLES
+----------------------------------------
+
+Provide:
+- File(s) modified
+- Summary of visual adjustments
+- Confirmation of accessibility check (light mode icons + chaos bridge text)
+- Screenshot comparison (before/after hero section)

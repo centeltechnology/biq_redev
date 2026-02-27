@@ -59,7 +59,7 @@ export default function HomePage() {
                 <p className="text-lg text-muted-foreground mb-6 max-w-md leading-relaxed" data-testid="text-hero-subheading">
                   Structure your orders. Automate deposits. See your real revenue — from inquiry to payout.
                 </p>
-                <div className="space-y-1 mb-8 text-sm text-muted-foreground italic" data-testid="text-chaos-bridge">
+                <div className="space-y-1 mb-8 text-xs text-muted-foreground/85 italic font-normal" data-testid="text-chaos-bridge">
                   <p>Still pricing in DMs?</p>
                   <p>Still chasing deposits?</p>
                   <p>Still guessing your real profit?</p>
@@ -150,6 +150,12 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        <div className="py-10 text-center" data-testid="text-authority-line">
+          <p className="text-sm text-muted-foreground tracking-wide">
+            Used by serious home bakers and custom cake studios.
+          </p>
+        </div>
 
         {/* WHAT MAKES IT DIFFERENT */}
         <section className="py-20 md:py-28">
@@ -284,7 +290,7 @@ export default function HomePage() {
 function WorkflowStep({ step, icon, title, description }: { step: number; icon: React.ReactNode; title: string; description: string }) {
   return (
     <div className="text-center" data-testid={`workflow-step-${step}`}>
-      <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+      <div className="h-12 w-12 rounded-full bg-primary/15 dark:bg-primary/10 flex items-center justify-center mx-auto mb-4">
         {icon}
       </div>
       <h3 className="text-base font-semibold mb-2">{title}</h3>
