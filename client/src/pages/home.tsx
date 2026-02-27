@@ -13,6 +13,8 @@ import {
   CreditCard,
   ChevronDown,
 } from "lucide-react";
+import heroBakerImg from "@assets/generated_images/hero-baker-workspace.png";
+import quoteMockupImg from "@assets/generated_images/quote-phone-mockup.png";
 
 export default function HomePage() {
   const scrollToHowItWorks = () => {
@@ -54,9 +56,25 @@ export default function HomePage() {
                 <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-extrabold tracking-tight leading-[1.1] mb-6" data-testid="text-hero-heading">
                   You've mastered the craft. Now master the business.
                 </h1>
-                <p className="text-lg text-muted-foreground mb-10 max-w-md leading-relaxed" data-testid="text-hero-subheading">
+                <p className="text-lg text-muted-foreground mb-6 max-w-md leading-relaxed" data-testid="text-hero-subheading">
                   Structure your orders. Automate deposits. See your real revenue — from inquiry to payout.
                 </p>
+                <div className="space-y-1 mb-8 text-sm text-muted-foreground italic" data-testid="text-chaos-bridge">
+                  <p>Still pricing in DMs?</p>
+                  <p>Still chasing deposits?</p>
+                  <p>Still guessing your real profit?</p>
+                </div>
+                <div className="rounded-lg overflow-hidden mb-8 max-w-[280px]">
+                  <img
+                    src={heroBakerImg}
+                    alt="Professional baker working at a clean modern workspace"
+                    width={560}
+                    height={420}
+                    loading="lazy"
+                    className="w-full h-auto max-h-[200px] object-cover rounded-lg"
+                    data-testid="img-hero-lifestyle"
+                  />
+                </div>
                 <div className="flex flex-col sm:flex-row items-start gap-3 mb-6">
                   <Link href="/signup">
                     <Button size="lg" className="gap-2 text-base" data-testid="button-hero-start">
@@ -96,13 +114,13 @@ export default function HomePage() {
               <WorkflowStep
                 step={1}
                 icon={<Share2 className="h-6 w-6 text-primary" />}
-                title="Share your Order Page"
+                title="Share your pricing link"
                 description="One link. Customers see your pricing and submit a complete request."
               />
               <WorkflowStep
                 step={2}
                 icon={<MessageSquareText className="h-6 w-6 text-primary" />}
-                title="Receive a structured inquiry"
+                title="Receive a clean order request"
                 description="No missing details. No back-and-forth."
               />
               <WorkflowStep
@@ -114,8 +132,20 @@ export default function HomePage() {
               <WorkflowStep
                 step={4}
                 icon={<CreditCard className="h-6 w-6 text-primary" />}
-                title="Collect payment through Stripe"
-                description="Customer accepts. Funds processed securely to your account."
+                title="Lock in the deposit"
+                description="Secure deposits via Stripe. Funds processed to your account."
+              />
+            </div>
+            <div className="mt-14 text-center max-w-sm mx-auto" data-testid="section-quote-mockup">
+              <p className="text-sm text-muted-foreground mb-4">This is what your customer sees.</p>
+              <img
+                src={quoteMockupImg}
+                alt="Professional quote displayed on a mobile phone"
+                width={640}
+                height={480}
+                loading="lazy"
+                className="w-full max-w-[320px] h-auto mx-auto rounded-xl shadow-md border border-border/40"
+                data-testid="img-quote-mockup"
               />
             </div>
           </div>
