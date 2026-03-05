@@ -1,5 +1,6 @@
 const SESSION_KEY = "bakeriq_session_id";
 const CALC_TRACKED_KEY = "bakeriq_calc_tracked";
+const CALC_VISIBLE_KEY = "bakeriq_calc_visible";
 
 function generateId(): string {
   try {
@@ -64,4 +65,37 @@ export function trackSignupClick(pagePath?: string) {
 
 export function trackAccountCreated() {
   trackEvent("account_created");
+}
+
+let servingsDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+export function trackServingsChanged() {
+  if (servingsDebounceTimer) return;
+  trackEvent("servings_changed");
+  servingsDebounceTimer = setTimeout(() => {
+    servingsDebounceTimer = null;
+  }, 2000);
+}
+
+let designDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+export function trackDesignLevelChanged() {
+  if (designDebounceTimer) return;
+  trackEvent("design_level_changed");
+  designDebounceTimer = setTimeout(() => {
+    designDebounceTimer = null;
+  }, 2000);
+}
+
+export function trackCalculatorVisible() {
+  try {
+    const sid = getSessionId();
+    const key = `${CALC_VISIBLE_KEY}:${sid}`;
+    if (localStorage.getItem(key)) return;
+    localStorage.setItem(key, "1");
+  } catch {
+  }
+  trackEvent("calculator_visible");
+}
+
+export function trackCtaClick(label: string) {
+  trackEvent("cta_click", `${window.location.pathname}#${label}`);
 }

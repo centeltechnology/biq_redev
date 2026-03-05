@@ -5273,7 +5273,7 @@ Guidelines:
     console.log("Demo baker created: demo@bakeriq.app / demo123");
   }
 
-  const ALLOWED_EVENT_TYPES = new Set(["page_view", "calculator_used", "signup_click", "account_created"]);
+  const ALLOWED_EVENT_TYPES = new Set(["page_view", "calculator_used", "signup_click", "account_created", "servings_changed", "design_level_changed", "calculator_visible", "cta_click"]);
 
   app.post("/api/analytics/event", async (req, res) => {
     try {
@@ -5291,12 +5291,28 @@ Guidelines:
     }
   });
 
-  app.get("/api/admin/analytics/internal", requireSuperAdmin, async (_req, res) => {
+  function getAnalyticsDateRange(range?: string): { startDate: Date | null; endDate: Date | null; days: number } {
+    const now = new Date();
+    switch (range) {
+      case "today": {
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        return { startDate: start, endDate: new Date(start.getTime() + 24 * 60 * 60 * 1000), days: 1 };
+      }
+      case "30d": {
+        return { startDate: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), endDate: now, days: 30 };
+      }
+      case "all":
+        return { startDate: null, endDate: null, days: 90 };
+      case "7d":
+      default:
+        return { startDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000), endDate: now, days: 7 };
+    }
+  }
+
+  app.get("/api/admin/analytics/internal", requireSuperAdmin, async (req, res) => {
     try {
-      const now = new Date();
-      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
-      const summary = await storage.getAnalyticsSummary(startOfDay, endOfDay);
+      const { startDate, endDate } = getAnalyticsDateRange(req.query.range as string);
+      const summary = await storage.getAnalyticsSummary(startDate, endDate);
       res.json(summary);
     } catch {
       res.status(500).json({ error: "Failed to fetch analytics summary" });
@@ -5305,22 +5321,41 @@ Guidelines:
 
   app.get("/api/admin/analytics/internal/trend", requireSuperAdmin, async (req, res) => {
     try {
-      const days = Math.min(Number(req.query.days) || 7, 90);
-      const trend = await storage.getAnalyticsDailyTrend(days);
+      const { days } = getAnalyticsDateRange(req.query.range as string);
+      const trend = await storage.getAnalyticsDailyTrend(Math.min(days, 90));
       res.json(trend);
     } catch {
       res.status(500).json({ error: "Failed to fetch analytics trend" });
     }
   });
 
-  app.get("/api/admin/analytics/internal/pages", requireSuperAdmin, async (_req, res) => {
+  app.get("/api/admin/analytics/internal/pages", requireSuperAdmin, async (req, res) => {
     try {
-      const now = new Date();
-      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const pages = await storage.getAnalyticsPageBreakdown(sevenDaysAgo, now);
+      const { startDate, endDate } = getAnalyticsDateRange(req.query.range as string);
+      const pages = await storage.getAnalyticsPageBreakdown(startDate, endDate);
       res.json(pages);
     } catch {
       res.status(500).json({ error: "Failed to fetch page breakdown" });
+    }
+  });
+
+  app.get("/api/admin/analytics/internal/feed", requireSuperAdmin, async (req, res) => {
+    try {
+      const limit = Math.min(Number(req.query.limit) || 10, 50);
+      const feed = await storage.getRecentAnalyticsFeed(limit);
+      res.json(feed);
+    } catch {
+      res.status(500).json({ error: "Failed to fetch activity feed" });
+    }
+  });
+
+  app.get("/api/analytics/recent", async (req, res) => {
+    try {
+      const limit = Math.min(Number(req.query.limit) || 10, 20);
+      const events = await storage.getRecentAnalyticsEvents(limit, ["calculator_used", "account_created"]);
+      res.json(events);
+    } catch {
+      res.status(500).json({ error: "Failed to fetch recent events" });
     }
   });
 

@@ -1,11 +1,12 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowRight, ChevronDown, Cake } from "lucide-react";
-import { trackSignupClick, trackCalculatorUsed } from "@/lib/analytics";
+import { trackSignupClick, trackCalculatorUsed, trackServingsChanged, trackDesignLevelChanged, trackCalculatorVisible, trackCtaClick } from "@/lib/analytics";
+import { ActivityToast } from "@/components/activity-toast";
 
 declare global {
   interface Window {
@@ -45,17 +46,32 @@ export default function PricingDemoPage() {
 
   const handleServingsChange = (value: number) => {
     trackInteraction();
+    trackServingsChanged();
     setServings(Math.max(1, value));
   };
 
   const handleComplexityChange = (value: string) => {
     trackInteraction();
+    trackDesignLevelChanged();
     setComplexity(value);
   };
 
   const scrollToCalculator = () => {
     calculatorRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  useEffect(() => {
+    const el = calculatorRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        trackCalculatorVisible();
+        observer.disconnect();
+      }
+    }, { threshold: 0.3 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -166,7 +182,7 @@ export default function PricingDemoPage() {
             Turn this into a branded quote and get paid.
           </p>
           <Link href="/signup">
-            <Button size="lg" className="w-full sm:w-auto" data-testid="button-create-account" onClick={() => trackSignupClick("/pricing-demo")}>
+            <Button size="lg" className="w-full sm:w-auto" data-testid="button-create-account" onClick={() => { trackSignupClick("/pricing-demo"); trackCtaClick("Create Free Account"); }}>
               Create Free Account
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
@@ -179,6 +195,7 @@ export default function PricingDemoPage() {
           </p>
         </div>
       </section>
+      <ActivityToast />
     </div>
   );
 }

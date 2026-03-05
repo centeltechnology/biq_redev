@@ -243,9 +243,11 @@ export interface IStorage {
   markAdminEmailSent(id: string, sentCount: number): Promise<AdminEmail | undefined>;
 
   createAnalyticsEvent(event: InsertAnalyticsEvent): Promise<AnalyticsEvent>;
-  getAnalyticsSummary(startDate: Date, endDate: Date): Promise<{ visitors: number; pageViews: number; calculatorUses: number; signupClicks: number; accountsCreated: number; conversionRate: number }>;
+  getAnalyticsSummary(startDate: Date | null, endDate: Date | null): Promise<{ visitors: number; pageViews: number; calculatorUses: number; calculatorVisible: number; calculatorInteractions: number; ctaClicks: number; signupClicks: number; accountsCreated: number; conversionRate: number }>;
   getAnalyticsDailyTrend(days: number): Promise<Array<{ date: string; visitors: number; accounts: number }>>;
-  getAnalyticsPageBreakdown(startDate: Date, endDate: Date): Promise<Array<{ page: string; views: number; conversions: number; rate: number }>>;
+  getAnalyticsPageBreakdown(startDate: Date | null, endDate: Date | null): Promise<Array<{ page: string; views: number; calculatorUses: number; signupClicks: number; accountsCreated: number; conversionRate: number }>>;
+  getRecentAnalyticsEvents(limit: number, types: string[]): Promise<Array<{ eventType: string; pagePath: string | null; createdAt: Date }>>;
+  getRecentAnalyticsFeed(limit: number): Promise<Array<{ eventType: string; pagePath: string | null; createdAt: Date }>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1404,7 +1406,11 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async getAnalyticsSummary(startDate: Date, endDate: Date) {
+  async getAnalyticsSummary(startDate: Date | null, endDate: Date | null) {
+    const conditions = [];
+    if (startDate) conditions.push(gte(analyticsEvents.createdAt, startDate));
+    if (endDate) conditions.push(lte(analyticsEvents.createdAt, endDate));
+
     const rows = await db
       .select({
         eventType: analyticsEvents.eventType,
@@ -1412,18 +1418,23 @@ export class DatabaseStorage implements IStorage {
         uniqueSessions: countDistinct(analyticsEvents.sessionId),
       })
       .from(analyticsEvents)
-      .where(and(gte(analyticsEvents.createdAt, startDate), lte(analyticsEvents.createdAt, endDate)))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
       .groupBy(analyticsEvents.eventType);
 
     const get = (type: string) => rows.find(r => r.eventType === type);
     const visitors = get("page_view")?.uniqueSessions ?? 0;
     const pageViews = get("page_view")?.total ?? 0;
     const calculatorUses = get("calculator_used")?.total ?? 0;
+    const calculatorVisible = get("calculator_visible")?.total ?? 0;
+    const servingsChanged = get("servings_changed")?.total ?? 0;
+    const designChanged = get("design_level_changed")?.total ?? 0;
+    const calculatorInteractions = servingsChanged + designChanged;
+    const ctaClicks = get("cta_click")?.total ?? 0;
     const signupClicks = get("signup_click")?.total ?? 0;
     const accountsCreated = get("account_created")?.total ?? 0;
     const conversionRate = visitors > 0 ? Math.round((accountsCreated / visitors) * 1000) / 10 : 0;
 
-    return { visitors, pageViews, calculatorUses, signupClicks, accountsCreated, conversionRate };
+    return { visitors, pageViews, calculatorUses, calculatorVisible, calculatorInteractions, ctaClicks, signupClicks, accountsCreated, conversionRate };
   }
 
   async getAnalyticsDailyTrend(days: number) {
@@ -1456,45 +1467,70 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async getAnalyticsPageBreakdown(startDate: Date, endDate: Date) {
-    const viewRows = await db
-      .select({
-        pagePath: analyticsEvents.pagePath,
-        views: count(),
-      })
-      .from(analyticsEvents)
-      .where(and(
-        gte(analyticsEvents.createdAt, startDate),
-        lte(analyticsEvents.createdAt, endDate),
-        eq(analyticsEvents.eventType, "page_view"),
-      ))
-      .groupBy(analyticsEvents.pagePath);
+  async getAnalyticsPageBreakdown(startDate: Date | null, endDate: Date | null) {
+    const timeConditions = [];
+    if (startDate) timeConditions.push(gte(analyticsEvents.createdAt, startDate));
+    if (endDate) timeConditions.push(lte(analyticsEvents.createdAt, endDate));
 
-    const clickRows = await db
-      .select({
-        pagePath: analyticsEvents.pagePath,
-        clicks: count(),
-      })
-      .from(analyticsEvents)
-      .where(and(
-        gte(analyticsEvents.createdAt, startDate),
-        lte(analyticsEvents.createdAt, endDate),
-        eq(analyticsEvents.eventType, "signup_click"),
-      ))
-      .groupBy(analyticsEvents.pagePath);
+    const queryByType = async (type: string) => {
+      const conditions = [...timeConditions, eq(analyticsEvents.eventType, type)];
+      return db
+        .select({ pagePath: analyticsEvents.pagePath, total: count(), uniqueSessions: countDistinct(analyticsEvents.sessionId) })
+        .from(analyticsEvents)
+        .where(and(...conditions))
+        .groupBy(analyticsEvents.pagePath);
+    };
+
+    const [viewRows, calcRows, clickRows, accountRows] = await Promise.all([
+      queryByType("page_view"),
+      queryByType("calculator_used"),
+      queryByType("signup_click"),
+      queryByType("account_created"),
+    ]);
 
     return viewRows
       .filter(v => v.pagePath)
       .map(v => {
-        const conversions = clickRows.find(c => c.pagePath === v.pagePath)?.clicks ?? 0;
+        const page = v.pagePath!;
+        const visitors = v.uniqueSessions;
+        const accounts = accountRows.find(r => r.pagePath === page)?.total ?? 0;
         return {
-          page: v.pagePath!,
-          views: v.views,
-          conversions,
-          rate: v.views > 0 ? Math.round((conversions / v.views) * 1000) / 10 : 0,
+          page,
+          views: v.total,
+          calculatorUses: calcRows.find(r => r.pagePath === page)?.total ?? 0,
+          signupClicks: clickRows.find(r => r.pagePath === page)?.total ?? 0,
+          accountsCreated: accounts,
+          conversionRate: visitors > 0 ? Math.round((accounts / visitors) * 1000) / 10 : 0,
         };
       })
       .sort((a, b) => b.views - a.views);
+  }
+
+  async getRecentAnalyticsEvents(limit: number, types: string[]) {
+    const rows = await db
+      .select({
+        eventType: analyticsEvents.eventType,
+        pagePath: analyticsEvents.pagePath,
+        createdAt: analyticsEvents.createdAt,
+      })
+      .from(analyticsEvents)
+      .where(sql`${analyticsEvents.eventType} = ANY(${types})`)
+      .orderBy(desc(analyticsEvents.createdAt))
+      .limit(limit);
+    return rows;
+  }
+
+  async getRecentAnalyticsFeed(limit: number) {
+    const rows = await db
+      .select({
+        eventType: analyticsEvents.eventType,
+        pagePath: analyticsEvents.pagePath,
+        createdAt: analyticsEvents.createdAt,
+      })
+      .from(analyticsEvents)
+      .orderBy(desc(analyticsEvents.createdAt))
+      .limit(limit);
+    return rows;
   }
 }
 
