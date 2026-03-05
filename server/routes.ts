@@ -5273,7 +5273,7 @@ Guidelines:
     console.log("Demo baker created: demo@bakeriq.app / demo123");
   }
 
-  const ALLOWED_EVENT_TYPES = new Set(["page_view", "calculator_used", "signup_click", "account_created", "servings_changed", "design_level_changed", "calculator_visible", "cta_click"]);
+  const ALLOWED_EVENT_TYPES = new Set(["page_view", "calculator_used", "signup_click", "account_created", "servings_changed", "design_level_changed", "calculator_visible", "cta_click", "example_button_used", "price_recalculated"]);
 
   app.post("/api/analytics/event", async (req, res) => {
     try {

@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowRight, ChevronDown, Cake } from "lucide-react";
-import { trackSignupClick, trackCalculatorUsed, trackServingsChanged, trackDesignLevelChanged, trackCalculatorVisible, trackCtaClick } from "@/lib/analytics";
+import { trackSignupClick, trackCalculatorUsed, trackServingsChanged, trackDesignLevelChanged, trackCalculatorVisible, trackCtaClick, trackExampleButtonUsed, trackPriceRecalculated } from "@/lib/analytics";
 import { ActivityToast } from "@/components/activity-toast";
 
 const COMPLEXITY_OPTIONS = [
@@ -14,16 +14,33 @@ const COMPLEXITY_OPTIONS = [
   { id: "luxury", label: "Luxury", multiplier: 1.6, description: "Fondant, sculpted, hand-painted" },
 ] as const;
 
+const EXAMPLE_PRESETS = [
+  { label: "Birthday (24 + Simple)", servings: 24, complexity: "simple" },
+  { label: "Detailed (36 + Detailed)", servings: 36, complexity: "detailed" },
+  { label: "Luxury (48 + Luxury)", servings: 48, complexity: "luxury" },
+];
+
 const BASE_PRICE_PER_SERVING = 5;
 
 export default function PricingDemoV2Page() {
   const [servings, setServings] = useState(24);
   const [complexity, setComplexity] = useState<string>("simple");
+  const [hasInteracted, setHasInteracted] = useState(false);
+  const [exampleLoaded, setExampleLoaded] = useState(false);
   const hasTrackedRef = useRef(false);
   const calculatorRef = useRef<HTMLDivElement>(null);
+  const servingsInputRef = useRef<HTMLInputElement>(null);
+  const prevPriceRef = useRef<number | null>(null);
 
   const multiplier = COMPLEXITY_OPTIONS.find(c => c.id === complexity)?.multiplier ?? 1.0;
   const suggestedPrice = Math.round(servings * BASE_PRICE_PER_SERVING * multiplier);
+
+  useEffect(() => {
+    if (prevPriceRef.current !== null && prevPriceRef.current !== suggestedPrice) {
+      trackPriceRecalculated();
+    }
+    prevPriceRef.current = suggestedPrice;
+  }, [suggestedPrice]);
 
   const trackInteraction = useCallback(() => {
     if (!hasTrackedRef.current) {
@@ -35,6 +52,7 @@ export default function PricingDemoV2Page() {
       }
       trackCalculatorUsed();
       hasTrackedRef.current = true;
+      setHasInteracted(true);
     }
   }, []);
 
@@ -50,8 +68,21 @@ export default function PricingDemoV2Page() {
     setComplexity(value);
   };
 
+  const handleExampleClick = (preset: typeof EXAMPLE_PRESETS[number]) => {
+    trackInteraction();
+    trackExampleButtonUsed(preset.label);
+    setServings(preset.servings);
+    setComplexity(preset.complexity);
+    setExampleLoaded(true);
+    setTimeout(() => setExampleLoaded(false), 1500);
+  };
+
   const scrollToCalculator = () => {
+    trackCtaClick("Check My Price");
     calculatorRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (window.innerWidth >= 768) {
+      setTimeout(() => servingsInputRef.current?.focus(), 500);
+    }
   };
 
   useEffect(() => {
@@ -68,7 +99,7 @@ export default function PricingDemoV2Page() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={`min-h-screen bg-background ${hasInteracted ? "pb-16 md:pb-0" : ""}`}>
       <div className="border-b border-border/40">
         <div className="container max-w-5xl mx-auto px-4 py-4 flex items-center gap-2">
           <Cake className="h-5 w-5 text-primary" />
@@ -120,14 +151,18 @@ export default function PricingDemoV2Page() {
           <p className="text-sm text-muted-foreground text-center mt-6 font-medium" data-testid="text-punchline">
             If you're pricing in DMs, you're probably undercharging.
           </p>
+          <p className="text-xs text-muted-foreground text-center mt-2" data-testid="text-try-below">
+            Now try your own numbers below.
+          </p>
         </div>
       </section>
 
       <section ref={calculatorRef} className="pb-16 md:pb-20" data-testid="section-calculator">
         <div className="container max-w-lg mx-auto px-4">
-          <p className="text-sm text-muted-foreground text-center mb-3" data-testid="text-calculator-instruction">
-            Try changing servings and design level.
-          </p>
+          <div className="text-center mb-4" data-testid="section-guided-instruction">
+            <p className="text-sm font-bold" data-testid="text-guided-title">Quick test (10 seconds):</p>
+            <p className="text-sm text-muted-foreground" data-testid="text-guided-step">Set servings to 36, then tap Luxury.</p>
+          </div>
           <Card className="shadow-lg border-border/60" data-testid="card-calculator">
             <CardContent className="p-6 md:p-8 space-y-6">
               <div className="text-center space-y-1">
@@ -139,6 +174,24 @@ export default function PricingDemoV2Page() {
                 </p>
               </div>
 
+              <div className="flex flex-wrap gap-2 justify-center" data-testid="group-example-pills">
+                {EXAMPLE_PRESETS.map((preset) => (
+                  <button
+                    key={preset.label}
+                    onClick={() => handleExampleClick(preset)}
+                    className="text-xs px-3 py-1.5 rounded-full border border-border hover:border-primary/40 hover:bg-primary/5 transition-all text-muted-foreground hover:text-foreground"
+                    data-testid={`button-example-${preset.complexity}`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+              {exampleLoaded && (
+                <p className="text-xs text-primary text-center -mt-3 animate-in fade-in duration-300" data-testid="text-example-loaded">
+                  Example loaded.
+                </p>
+              )}
+
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="servings-v2" className="text-sm font-medium">
@@ -146,6 +199,7 @@ export default function PricingDemoV2Page() {
                   </Label>
                   <Input
                     id="servings-v2"
+                    ref={servingsInputRef}
                     type="number"
                     min={1}
                     value={servings}
@@ -192,6 +246,9 @@ export default function PricingDemoV2Page() {
                   Based on a $5 per serving professional baseline.
                 </p>
               </div>
+              <p className="text-xs text-muted-foreground text-center" data-testid="text-undercharging">
+                Most custom bakers undercharge by $50–$100 per order.
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -208,14 +265,34 @@ export default function PricingDemoV2Page() {
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </Link>
-          <p className="text-sm text-muted-foreground" data-testid="text-support-line">
-            Free to start.
-          </p>
-          <p className="text-xs text-muted-foreground" data-testid="text-no-cc">
-            No credit card required.
-          </p>
+          <div className="space-y-1" data-testid="section-trust-lines">
+            <p className="text-sm text-muted-foreground">Free to start.</p>
+            <p className="text-sm text-muted-foreground">No credit card required.</p>
+            <p className="text-sm text-muted-foreground">Takes 60 seconds.</p>
+          </div>
         </div>
       </section>
+
+      {hasInteracted && (
+        <div
+          className="fixed bottom-0 left-0 right-0 z-30 md:hidden border-t border-border bg-background/95 backdrop-blur-sm px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] animate-in slide-in-from-bottom duration-300"
+          data-testid="section-sticky-mobile-cta"
+        >
+          <div className="flex items-center justify-between gap-3 max-w-lg mx-auto">
+            <p className="text-xs text-muted-foreground leading-tight">Want a branded quote + payment link?</p>
+            <Link href="/signup">
+              <Button
+                size="sm"
+                className="whitespace-nowrap shrink-0"
+                data-testid="button-sticky-cta"
+                onClick={() => { trackSignupClick("/pricing-demo-v2"); trackCtaClick("Sticky Mobile CTA"); }}
+              >
+                Create Free Account
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
       <ActivityToast />
     </div>
   );

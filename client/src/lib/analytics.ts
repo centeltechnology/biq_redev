@@ -99,3 +99,16 @@ export function trackCalculatorVisible() {
 export function trackCtaClick(label: string) {
   trackEvent("cta_click", `${window.location.pathname}#${label}`);
 }
+
+export function trackExampleButtonUsed(label: string) {
+  trackEvent("example_button_used", `${window.location.pathname}#${label}`);
+}
+
+let priceRecalcDebounce: ReturnType<typeof setTimeout> | null = null;
+export function trackPriceRecalculated() {
+  if (priceRecalcDebounce) return;
+  trackEvent("price_recalculated");
+  priceRecalcDebounce = setTimeout(() => {
+    priceRecalcDebounce = null;
+  }, 2000);
+}
