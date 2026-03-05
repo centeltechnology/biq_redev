@@ -1,0 +1,210 @@
+BakerIQ Analytics Improvements (Phase 1)
+
+Enhance the Admin → Site Analytics dashboard to provide deeper insight into landing page performance and user interaction with the pricing calculator.
+
+This should extend the current analytics system without breaking existing data.
+
+1. Add Time Range Filters
+
+Add filters at the top of the analytics dashboard:
+
+Today
+Last 7 Days
+Last 30 Days
+All Time
+
+When a filter is selected:
+
+all analytics tiles update
+
+charts update
+
+landing page breakdown updates
+
+Default view should be Last 7 Days.
+
+2. Track Calculator Interactions
+
+Currently we only track calculator uses.
+We also need to track interaction events.
+
+Add event tracking for:
+
+servings_changed
+design_level_changed
+price_recalculated
+
+Each time a user changes servings or design complexity:
+
+log event in analytics_events
+
+include timestamp
+
+include page path
+
+include anonymous session id
+
+Example event structure:
+
+{
+  event_type: "servings_changed",
+  page: "/pricing-demo-v2",
+  session_id: "abc123",
+  timestamp: Date
+}
+3. Add New Analytics Tiles
+
+Add these metrics to the dashboard:
+
+Calculator Interactions
+Price Recalculations
+
+Tile layout example:
+
+Visitors
+Page Views
+Calculator Uses
+Calculator Interactions
+Price Recalculations
+Signup Clicks
+Accounts Created
+Conversion Rate
+4. Track Calculator Visibility
+
+Add event:
+
+calculator_visible
+
+Fire this event when the calculator enters the viewport.
+
+This helps measure:
+
+Visitors → Calculator Viewed → Calculator Used
+
+Use a simple IntersectionObserver for this.
+
+5. Track CTA Clicks
+
+Add event tracking for these buttons:
+
+Check My Price
+Create Free Account
+Try the Demo Calculator
+
+Event type:
+
+cta_click
+
+Include button label.
+
+Example:
+
+{
+  event_type: "cta_click",
+  label: "Create Free Account",
+  page: "/pricing-demo-v2"
+}
+6. Improve Conversion Rate Calculation
+
+Current conversion rate should be calculated as:
+
+Accounts Created / Unique Visitors
+
+Display it as:
+
+3.4%
+7. Improve Landing Page Breakdown
+
+Expand the landing page breakdown table to include:
+
+Page
+Views
+Calculator Uses
+Signup Clicks
+Accounts Created
+Conversion Rate
+
+This allows comparison between:
+
+/pricing-demo
+/pricing-demo-v2
+8. Add Real-Time Activity Feed
+
+Below the analytics cards, add a small Recent Activity feed showing the last 10 events.
+
+Example:
+
+A visitor viewed /pricing-demo-v2
+Someone adjusted servings to 36
+Someone changed design level to Luxury
+A signup button was clicked
+
+Display newest first.
+
+This helps quickly verify analytics are working.
+
+9. Session Tracking
+
+Create anonymous session IDs stored in localStorage.
+
+Example:
+
+bakeriq_session_id
+
+This allows tracking:
+
+unique visitors
+user actions
+session funnels
+
+without requiring login.
+
+10. Ensure Performance
+
+Analytics events must:
+
+send asynchronously
+
+not block page rendering
+
+be batched if possible
+
+fail silently if analytics service is unavailable
+
+11. Mobile Compatibility
+
+Ensure analytics tracking works on:
+
+mobile browsers
+Safari
+Chrome
+Facebook in-app browser
+Expected Result
+
+The analytics dashboard should now reveal the full conversion funnel:
+
+Visitors
+↓
+Page Views
+↓
+Calculator Visible
+↓
+Calculator Used
+↓
+Calculator Interactions
+↓
+Signup Clicks
+↓
+Accounts Created
+
+This will allow optimization of:
+
+ad creatives
+
+landing pages
+
+calculator engagement
+
+Optional (If Easy)
+
+Add a sparkline trend graph to each analytics tile showing the last 7 days.

@@ -1,0 +1,128 @@
+Create a lightweight activity notification (toast) system for the BakerIQ landing pages.
+
+Target pages:
+
+/pricing-demo
+/pricing-demo-v2
+
+Notifications should appear bottom right of the screen.
+
+They should use spintax so the messages feel natural and varied.
+
+1. Toast Behavior
+
+Display a small notification card with:
+
+subtle slide/fade animation
+
+small cake emoji icon
+
+message text
+
+optional time indicator (ex: "just now")
+
+Behavior:
+
+Show toast every 25–40 seconds
+Display for 5 seconds
+Fade out smoothly
+
+Do not block CTA buttons or mobile interactions.
+
+2. Two Modes
+
+The system should support two modes.
+
+Mode A — Tips (used initially)
+
+Until the database has enough events (>= 20), show rotating tips.
+
+These must use spintax.
+
+Example spintax:
+
+{Most bakers|Many custom bakers|A lot of home bakers} 
+{undercharge by $50–$100 per cake|are surprised by how much they're undercharging}.
+{Try switching|Try changing} the design level to {Detailed|Luxury} 
+and see how much the price changes.
+{Increase servings|Adjust servings} from {24 to 36|24 to 48}
+to estimate larger orders.
+Mode B — Real Activity
+
+Once enough events exist in analytics_events, use real events.
+
+Event types:
+
+calculator_used
+account_created
+
+Convert them into spintax messages.
+
+Example:
+
+Calculator event:
+
+{A baker|Someone|A custom baker} 
+{just checked a cake price|just calculated a cake price}.
+
+Account event:
+
+{A baker|Someone} 
+{just created a BakerIQ account|started using BakerIQ}.
+3. Spintax Engine
+
+Implement a simple spintax parser.
+
+Example input:
+
+{Most bakers|Many bakers} undercharge.
+
+Possible outputs:
+
+Most bakers undercharge.
+Many bakers undercharge.
+
+The system should randomly select variations.
+
+4. Toast UI
+
+Appearance:
+
+bottom-right
+rounded card
+dark background
+light text
+small cake emoji icon
+
+Example message:
+
+🎂 Someone just calculated a cake price
+
+Optional timestamp:
+
+just now
+2m ago
+5. Performance Requirements
+
+The system must:
+
+load after page render
+not block page performance
+run entirely client-side
+
+If possible, cache recent events to avoid repeated database calls.
+
+6. Mobile Behavior
+
+Ensure the toast:
+
+stacks above bottom safe area
+does not overlap CTA buttons
+scales properly on small screens
+What This Will Look Like on the Page
+
+Example notifications:
+
+🎂 A baker just calculated a cake price
+🎂 Many custom bakers are surprised by how much they're undercharging
+🎂 Try switching the design level to Luxury
