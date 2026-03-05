@@ -1,0 +1,110 @@
+Create a new public landing page variant for our ads at:
+
+/pricing-demo-v2
+
+Goal: maximize conversion from cold Facebook traffic using a “viral story” framing.
+Keep it fast, mobile-first, minimal, and consistent with BakerIQ styling.
+
+1) Page Concept
+
+This page should feel like a relatable “confession” / viral post, not a SaaS sales page.
+
+The hero must use this exact hook:
+
+Headline:
+“I charged $120 for a cake that should’ve been $185.”
+
+Subheadline:
+“Most custom bakers undercharge without realizing it. Try the free calculator and see what your next cake should really cost.”
+
+Add a small note under subheadline:
+“No login required.”
+
+Primary CTA button:
+“Check My Price”
+Scrolls to the calculator section.
+
+2) Viral “Before / After” Section (directly under hero)
+
+Create a simple 2-column card (stacked on mobile):
+
+Left card title: “What I Charged”
+Big number: $120
+Small caption: “Looked fair… until I did the math.”
+
+Right card title: “What It Should’ve Been”
+Big number: $185
+Small caption: “Pricing for servings + design complexity.”
+
+Under the cards add a single punchy line:
+“If you’re pricing in DMs, you’re probably undercharging.”
+
+3) Calculator Section (same logic as existing demo)
+
+Reuse the existing demo calculator component and logic:
+
+Servings input (default 24)
+
+Design Complexity buttons:
+
+Simple (1.0)
+
+Detailed (1.3)
+
+Luxury (1.6)
+
+Base price locked at $5 (not editable)
+
+Formula: servings × 5 × multiplier
+
+Prominent display:
+“Suggested Price: $XXX”
+
+Under the result, include:
+“Are you charging this?”
+“Based on a $5 per serving professional baseline.”
+
+Add micro instruction above the calculator:
+“Try changing servings and design level.”
+
+4) CTA Section (conversion)
+
+Below calculator:
+
+Headline:
+“Turn this into a branded quote and get paid.”
+
+CTA button:
+“Create Free Account”
+Link to existing signup/onboarding flow.
+
+Trust lines below button:
+
+“Free to start.”
+
+“No credit card required.”
+
+5) Tracking Events
+
+PageView is already global.
+Ensure these events fire correctly:
+
+Fire fbq('track','ViewContent') once when the user first interacts with the calculator (first change only).
+
+Do not fire ViewContent repeatedly.
+
+If Lead tracking already exists on signup success, do not change it.
+
+6) Implementation Notes
+
+Keep the page clean, fast loading, and mobile-first.
+
+Use our existing dark/light theme support.
+
+No nav clutter.
+
+Confirm route works on market/app setup (public page accessible).
+
+After implementation, report the file paths updated/created.
+
+Deliverable: working /pricing-demo-v2 page live and ready for ads.
