@@ -1,0 +1,159 @@
+Create a lightweight internal analytics system for BakerIQ so we can track page views and funnel activity without Google Analytics.
+
+The system must be fast, simple, and stored in our existing database.
+
+1. Database Table
+
+Create a new table:
+
+analytics_events
+
+Fields:
+
+id (uuid primary key)
+event_type (string)
+page_path (string)
+session_id (string)
+timestamp (datetime)
+referrer (string)
+user_agent (string)
+
+Indexes:
+
+timestamp
+
+event_type
+
+page_path
+
+2. Session Tracking
+
+Generate a simple visitor session ID.
+
+If no session exists:
+
+Store a random UUID in:
+
+localStorage.session_id
+
+Reuse it for all events during that visit.
+
+3. Event Types to Track
+
+Track these events:
+
+page_view
+calculator_used
+signup_click
+account_created
+4. Page View Tracking
+
+Every time a public page loads, send an async request to log:
+
+event_type: page_view
+page_path: current route
+session_id
+referrer
+user_agent
+timestamp
+
+Important:
+
+Do this async so page performance is not affected.
+
+5. Calculator Interaction Tracking
+
+On the pricing calculator page:
+
+When a user first changes:
+
+servings
+
+design complexity
+
+Fire event:
+
+event_type: calculator_used
+
+Only once per session.
+
+6. Signup Click Tracking
+
+When a user clicks:
+
+Create Free Account
+
+Log event:
+
+event_type: signup_click
+7. Account Creation Tracking
+
+When account registration completes successfully, log:
+
+event_type: account_created
+8. Admin Analytics Dashboard
+
+Create a new page:
+
+/super-admin/analytics
+
+This page should show:
+
+Today
+Visitors
+Page Views
+Calculator Uses
+Signup Clicks
+Accounts Created
+Conversion Rate
+Example Layout
+Today
+
+Visitors: 213
+Page Views: 401
+Calculator Uses: 119
+Signup Clicks: 32
+Accounts Created: 8
+Conversion Rate: 6.7%
+9. 7-Day Chart
+
+Add a simple chart showing:
+
+Visitors per day
+Accounts created per day
+10. Landing Page Breakdown
+
+Show top pages:
+
+/pricing-demo
+/pricing-demo-v2
+/home
+
+Include:
+
+Page views
+Conversions
+Conversion rate
+11. Performance Requirements
+
+The analytics system must:
+
+run async
+
+not block page rendering
+
+add minimal database load
+
+batch requests if possible
+
+12. Deliverables
+
+Provide:
+
+new database migration
+
+analytics tracking utility
+
+dashboard page
+
+confirmation of events firing correctly
