@@ -1406,8 +1406,17 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
+  private marketingPageFilter() {
+    const exactAndPrefix = ['/admin', '/dashboard', '/login', '/settings', '/app', '/onboarding', '/payments', '/share', '/quotes', '/leads', '/customers', '/orders', '/signup', '/pricing'];
+    const conditions = exactAndPrefix.map(prefix =>
+      sql`(${analyticsEvents.pagePath} != ${prefix} AND ${analyticsEvents.pagePath} NOT LIKE ${prefix + '/%'})`
+    );
+    conditions.push(sql`${analyticsEvents.pagePath} IS NOT NULL`);
+    return and(...conditions);
+  }
+
   async getAnalyticsSummary(startDate: Date | null, endDate: Date | null) {
-    const conditions = [];
+    const conditions = [this.marketingPageFilter()!];
     if (startDate) conditions.push(gte(analyticsEvents.createdAt, startDate));
     if (endDate) conditions.push(lte(analyticsEvents.createdAt, endDate));
 
@@ -1418,7 +1427,7 @@ export class DatabaseStorage implements IStorage {
         uniqueSessions: countDistinct(analyticsEvents.sessionId),
       })
       .from(analyticsEvents)
-      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .where(and(...conditions))
       .groupBy(analyticsEvents.eventType);
 
     const get = (type: string) => rows.find(r => r.eventType === type);
@@ -1449,7 +1458,7 @@ export class DatabaseStorage implements IStorage {
         uniqueSessions: countDistinct(analyticsEvents.sessionId),
       })
       .from(analyticsEvents)
-      .where(gte(analyticsEvents.createdAt, startDate))
+      .where(and(gte(analyticsEvents.createdAt, startDate), this.marketingPageFilter()!))
       .groupBy(sql`DATE(${analyticsEvents.createdAt})`, analyticsEvents.eventType);
 
     const result: Array<{ date: string; visitors: number; accounts: number }> = [];
@@ -1468,7 +1477,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAnalyticsPageBreakdown(startDate: Date | null, endDate: Date | null) {
-    const timeConditions = [];
+    const timeConditions = [this.marketingPageFilter()!];
     if (startDate) timeConditions.push(gte(analyticsEvents.createdAt, startDate));
     if (endDate) timeConditions.push(lte(analyticsEvents.createdAt, endDate));
 

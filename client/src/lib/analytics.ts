@@ -2,6 +2,13 @@ const SESSION_KEY = "bakeriq_session_id";
 const CALC_TRACKED_KEY = "bakeriq_calc_tracked";
 const CALC_VISIBLE_KEY = "bakeriq_calc_visible";
 
+const INTERNAL_ROUTE_PREFIXES = ["/admin", "/dashboard", "/login", "/settings", "/app", "/onboarding", "/payments", "/pricing", "/share", "/quotes", "/leads", "/customers", "/orders", "/signup"];
+
+function isMarketingRoute(path?: string): boolean {
+  const p = path ?? window.location.pathname;
+  return !INTERNAL_ROUTE_PREFIXES.some(prefix => p === prefix || p.startsWith(prefix + "/"));
+}
+
 function generateId(): string {
   try {
     return crypto.randomUUID();
@@ -45,6 +52,7 @@ function trackEvent(eventType: string, pagePath?: string) {
 }
 
 export function trackPageView() {
+  if (!isMarketingRoute()) return;
   trackEvent("page_view");
 }
 
