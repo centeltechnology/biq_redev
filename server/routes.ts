@@ -13,7 +13,7 @@ import crypto from "crypto";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
-import { CAKE_SIZES, CAKE_SHAPES, CAKE_FLAVORS, FROSTING_TYPES, DECORATIONS, DELIVERY_OPTIONS, ADDONS, USER_ACTIVITY_EVENT_TYPES, type UserActivityEventType, adminAuditLogs } from "@shared/schema";
+import { CAKE_SIZES, CAKE_SHAPES, CAKE_FLAVORS, FROSTING_TYPES, DECORATIONS, DELIVERY_OPTIONS, ADDONS, USER_ACTIVITY_EVENT_TYPES, type UserActivityEventType, adminAuditLogs, insertAnalyticsEventSchema } from "@shared/schema";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import OpenAI from "openai";
 import { trackEvent } from "./event-tracking";
@@ -5272,6 +5272,57 @@ Guidelines:
     });
     console.log("Demo baker created: demo@bakeriq.app / demo123");
   }
+
+  const ALLOWED_EVENT_TYPES = new Set(["page_view", "calculator_used", "signup_click", "account_created"]);
+
+  app.post("/api/analytics/event", async (req, res) => {
+    try {
+      const parsed = insertAnalyticsEventSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid event data" });
+      }
+      if (!ALLOWED_EVENT_TYPES.has(parsed.data.eventType)) {
+        return res.status(400).json({ error: "Invalid event type" });
+      }
+      storage.createAnalyticsEvent(parsed.data).catch(() => {});
+      res.status(202).json({ ok: true });
+    } catch {
+      res.status(500).json({ error: "Failed to track event" });
+    }
+  });
+
+  app.get("/api/admin/analytics/internal", requireSuperAdmin, async (_req, res) => {
+    try {
+      const now = new Date();
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
+      const summary = await storage.getAnalyticsSummary(startOfDay, endOfDay);
+      res.json(summary);
+    } catch {
+      res.status(500).json({ error: "Failed to fetch analytics summary" });
+    }
+  });
+
+  app.get("/api/admin/analytics/internal/trend", requireSuperAdmin, async (req, res) => {
+    try {
+      const days = Math.min(Number(req.query.days) || 7, 90);
+      const trend = await storage.getAnalyticsDailyTrend(days);
+      res.json(trend);
+    } catch {
+      res.status(500).json({ error: "Failed to fetch analytics trend" });
+    }
+  });
+
+  app.get("/api/admin/analytics/internal/pages", requireSuperAdmin, async (_req, res) => {
+    try {
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const pages = await storage.getAnalyticsPageBreakdown(sevenDaysAgo, now);
+      res.json(pages);
+    } catch {
+      res.status(500).json({ error: "Failed to fetch page breakdown" });
+    }
+  });
 
   return httpServer;
 }

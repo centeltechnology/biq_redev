@@ -1,11 +1,12 @@
-import { Switch, Route, Redirect } from "wouter";
-import { lazy, Suspense } from "react";
+import { Switch, Route, Redirect, useLocation } from "wouter";
+import { lazy, Suspense, useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ProtectedRoute } from "@/components/protected-route";
+import { trackPageView } from "@/lib/analytics";
 
 import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/home";
@@ -44,9 +45,18 @@ import EmailPreferences from "@/pages/email-preferences";
 import PricingDemoPage from "@/pages/pricing-demo";
 import PricingDemoV2Page from "@/pages/pricing-demo-v2";
 import PlansPage from "@/pages/plans";
+const AdminAnalyticsPage = lazy(() => import("@/pages/admin-analytics"));
 import { CookieConsent } from "@/components/cookie-consent";
 
+function usePageTracking() {
+  const [location] = useLocation();
+  useEffect(() => {
+    trackPageView();
+  }, [location]);
+}
+
 function Router() {
+  usePageTracking();
   return (
     <Switch>
       <Route path="/" component={HomePage} />
@@ -109,6 +119,9 @@ function Router() {
       </Route>
       <Route path="/admin/support">
         <ProtectedRoute><AdminSupportPage /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/analytics">
+        <ProtectedRoute><Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}><AdminAnalyticsPage /></Suspense></ProtectedRoute>
       </Route>
       <Route path="/admin">
         <ProtectedRoute><Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}><AdminPage /></Suspense></ProtectedRoute>

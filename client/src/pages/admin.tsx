@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -2863,6 +2863,14 @@ export default function AdminDashboard() {
 
         {/* ANALYTICS TAB */}
         <TabsContent value="analytics" className="space-y-6">
+          <div className="flex justify-end">
+            <Link href="/admin/analytics">
+              <Button variant="outline" size="sm" className="gap-2" data-testid="link-site-analytics">
+                <BarChart3 className="h-4 w-4" />
+                Site Analytics
+              </Button>
+            </Link>
+          </div>
           {overviewLoading ? (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {[...Array(8)].map((_, i) => (

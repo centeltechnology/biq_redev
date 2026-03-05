@@ -2,6 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import type { Baker } from "@shared/schema";
+import { trackAccountCreated } from "@/lib/analytics";
 
 interface AuthSession {
   baker: Baker;
@@ -37,6 +38,7 @@ export function useAuth() {
         (window as any).fbq("track", "Lead");
         sessionStorage.setItem("fbq_lead_fired", "1");
       }
+      trackAccountCreated();
       setLocation("/onboarding");
     },
   });

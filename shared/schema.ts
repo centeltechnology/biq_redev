@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, integer, decimal, date, timestamp, jsonb, uniqueIndex, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, decimal, date, timestamp, jsonb, uniqueIndex, boolean, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -982,3 +982,25 @@ export const insertAdminEmailSchema = createInsertSchema(adminEmails).omit({
 
 export type AdminEmail = typeof adminEmails.$inferSelect;
 export type InsertAdminEmail = z.infer<typeof insertAdminEmailSchema>;
+
+export const analyticsEvents = pgTable("analytics_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventType: text("event_type").notNull(),
+  pagePath: text("page_path"),
+  sessionId: text("session_id"),
+  referrer: text("referrer"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("analytics_events_event_type_idx").on(table.eventType),
+  index("analytics_events_page_path_idx").on(table.pagePath),
+  index("analytics_events_created_at_idx").on(table.createdAt),
+]);
+
+export const insertAnalyticsEventSchema = createInsertSchema(analyticsEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type AnalyticsEvent = typeof analyticsEvents.$inferSelect;
+export type InsertAnalyticsEvent = z.infer<typeof insertAnalyticsEventSchema>;

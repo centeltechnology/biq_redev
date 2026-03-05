@@ -55,9 +55,12 @@ import {
   adminEmails,
   type AdminEmail,
   type InsertAdminEmail,
+  analyticsEvents,
+  type AnalyticsEvent,
+  type InsertAnalyticsEvent,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, gte, lte, sql, or, ilike, isNull } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql, or, ilike, isNull, count, countDistinct } from "drizzle-orm";
 
 export interface IStorage {
   // Bakers
@@ -238,6 +241,11 @@ export interface IStorage {
   updateAdminEmail(id: string, data: Partial<InsertAdminEmail>): Promise<AdminEmail | undefined>;
   deleteAdminEmail(id: string): Promise<void>;
   markAdminEmailSent(id: string, sentCount: number): Promise<AdminEmail | undefined>;
+
+  createAnalyticsEvent(event: InsertAnalyticsEvent): Promise<AnalyticsEvent>;
+  getAnalyticsSummary(startDate: Date, endDate: Date): Promise<{ visitors: number; pageViews: number; calculatorUses: number; signupClicks: number; accountsCreated: number; conversionRate: number }>;
+  getAnalyticsDailyTrend(days: number): Promise<Array<{ date: string; visitors: number; accounts: number }>>;
+  getAnalyticsPageBreakdown(startDate: Date, endDate: Date): Promise<Array<{ page: string; views: number; conversions: number; rate: number }>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1389,6 +1397,104 @@ export class DatabaseStorage implements IStorage {
   async markAdminEmailSent(id: string, sentCount: number): Promise<AdminEmail | undefined> {
     const [updated] = await db.update(adminEmails).set({ status: "sent", sentAt: new Date(), sentCount }).where(eq(adminEmails.id, id)).returning();
     return updated || undefined;
+  }
+
+  async createAnalyticsEvent(event: InsertAnalyticsEvent): Promise<AnalyticsEvent> {
+    const [created] = await db.insert(analyticsEvents).values(event).returning();
+    return created;
+  }
+
+  async getAnalyticsSummary(startDate: Date, endDate: Date) {
+    const rows = await db
+      .select({
+        eventType: analyticsEvents.eventType,
+        total: count(),
+        uniqueSessions: countDistinct(analyticsEvents.sessionId),
+      })
+      .from(analyticsEvents)
+      .where(and(gte(analyticsEvents.createdAt, startDate), lte(analyticsEvents.createdAt, endDate)))
+      .groupBy(analyticsEvents.eventType);
+
+    const get = (type: string) => rows.find(r => r.eventType === type);
+    const visitors = get("page_view")?.uniqueSessions ?? 0;
+    const pageViews = get("page_view")?.total ?? 0;
+    const calculatorUses = get("calculator_used")?.total ?? 0;
+    const signupClicks = get("signup_click")?.total ?? 0;
+    const accountsCreated = get("account_created")?.total ?? 0;
+    const conversionRate = visitors > 0 ? Math.round((accountsCreated / visitors) * 1000) / 10 : 0;
+
+    return { visitors, pageViews, calculatorUses, signupClicks, accountsCreated, conversionRate };
+  }
+
+  async getAnalyticsDailyTrend(days: number) {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days + 1);
+    startDate.setHours(0, 0, 0, 0);
+
+    const rows = await db
+      .select({
+        day: sql<string>`DATE(${analyticsEvents.createdAt})`.as("day"),
+        eventType: analyticsEvents.eventType,
+        uniqueSessions: countDistinct(analyticsEvents.sessionId),
+      })
+      .from(analyticsEvents)
+      .where(gte(analyticsEvents.createdAt, startDate))
+      .groupBy(sql`DATE(${analyticsEvents.createdAt})`, analyticsEvents.eventType);
+
+    const result: Array<{ date: string; visitors: number; accounts: number }> = [];
+    for (let i = 0; i < days; i++) {
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + i);
+      const dateStr = d.toISOString().split("T")[0];
+      const dayRows = rows.filter(r => r.day === dateStr);
+      result.push({
+        date: dateStr,
+        visitors: dayRows.find(r => r.eventType === "page_view")?.uniqueSessions ?? 0,
+        accounts: dayRows.find(r => r.eventType === "account_created")?.uniqueSessions ?? 0,
+      });
+    }
+    return result;
+  }
+
+  async getAnalyticsPageBreakdown(startDate: Date, endDate: Date) {
+    const viewRows = await db
+      .select({
+        pagePath: analyticsEvents.pagePath,
+        views: count(),
+      })
+      .from(analyticsEvents)
+      .where(and(
+        gte(analyticsEvents.createdAt, startDate),
+        lte(analyticsEvents.createdAt, endDate),
+        eq(analyticsEvents.eventType, "page_view"),
+      ))
+      .groupBy(analyticsEvents.pagePath);
+
+    const clickRows = await db
+      .select({
+        pagePath: analyticsEvents.pagePath,
+        clicks: count(),
+      })
+      .from(analyticsEvents)
+      .where(and(
+        gte(analyticsEvents.createdAt, startDate),
+        lte(analyticsEvents.createdAt, endDate),
+        eq(analyticsEvents.eventType, "signup_click"),
+      ))
+      .groupBy(analyticsEvents.pagePath);
+
+    return viewRows
+      .filter(v => v.pagePath)
+      .map(v => {
+        const conversions = clickRows.find(c => c.pagePath === v.pagePath)?.clicks ?? 0;
+        return {
+          page: v.pagePath!,
+          views: v.views,
+          conversions,
+          rate: v.views > 0 ? Math.round((conversions / v.views) * 1000) / 10 : 0,
+        };
+      })
+      .sort((a, b) => b.views - a.views);
   }
 }
 

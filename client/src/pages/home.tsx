@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { MockPaymentsDashboard } from "@/components/mock-payments-dashboard";
+import { trackSignupClick } from "@/lib/analytics";
 import {
   Cake,
   ArrowRight,
@@ -41,7 +42,7 @@ export default function HomePage() {
               <Button variant="outline" data-testid="link-login">Log In</Button>
             </Link>
             <Link href="/signup">
-              <Button data-testid="link-signup">Start Free</Button>
+              <Button data-testid="link-signup" onClick={() => trackSignupClick()}>Start Free</Button>
             </Link>
           </nav>
         </div>
@@ -77,7 +78,7 @@ export default function HomePage() {
                 </div>
                 <div className="flex flex-col sm:flex-row items-start gap-3 mb-6">
                   <Link href="/signup">
-                    <Button size="lg" className="gap-2 text-base" data-testid="button-hero-start">
+                    <Button size="lg" className="gap-2 text-base" data-testid="button-hero-start" onClick={() => trackSignupClick()}>
                       Start Free
                       <ArrowRight className="h-4 w-4" />
                     </Button>
@@ -236,7 +237,7 @@ export default function HomePage() {
               Structure. Clarity. Revenue visibility.
             </p>
             <Link href="/signup">
-              <Button size="lg" variant="secondary" className="gap-2 text-lg" data-testid="button-cta-signup">
+              <Button size="lg" variant="secondary" className="gap-2 text-lg" data-testid="button-cta-signup" onClick={() => trackSignupClick()}>
                 Start Free
                 <ArrowRight className="h-5 w-5" />
               </Button>

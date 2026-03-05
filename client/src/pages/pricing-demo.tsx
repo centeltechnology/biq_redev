@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowRight, ChevronDown, Cake } from "lucide-react";
+import { trackSignupClick, trackCalculatorUsed } from "@/lib/analytics";
 
 declare global {
   interface Window {
@@ -30,11 +31,14 @@ export default function PricingDemoPage() {
   const suggestedPrice = Math.round(servings * BASE_PRICE_PER_SERVING * multiplier);
 
   const trackInteraction = useCallback(() => {
-    if (!hasTrackedRef.current && window.fbq) {
-      window.fbq("track", "ViewContent", {
-        content_name: "Pricing Demo Calculator",
-        content_category: "Demo",
-      });
+    if (!hasTrackedRef.current) {
+      if (window.fbq) {
+        window.fbq("track", "ViewContent", {
+          content_name: "Pricing Demo Calculator",
+          content_category: "Demo",
+        });
+      }
+      trackCalculatorUsed();
       hasTrackedRef.current = true;
     }
   }, []);
@@ -162,7 +166,7 @@ export default function PricingDemoPage() {
             Turn this into a branded quote and get paid.
           </p>
           <Link href="/signup">
-            <Button size="lg" className="w-full sm:w-auto" data-testid="button-create-account">
+            <Button size="lg" className="w-full sm:w-auto" data-testid="button-create-account" onClick={() => trackSignupClick("/pricing-demo")}>
               Create Free Account
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>

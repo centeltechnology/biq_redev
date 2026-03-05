@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Check, ChevronDown, Cake } from "lucide-react";
+import { trackSignupClick } from "@/lib/analytics";
 
 const PLANS = [
   {
@@ -76,7 +77,7 @@ export default function PlansPage() {
             </div>
           </Link>
           <Link href="/signup">
-            <Button size="sm" data-testid="button-nav-signup">Start Free</Button>
+            <Button size="sm" data-testid="button-nav-signup" onClick={() => trackSignupClick("/plans")}>Start Free</Button>
           </Link>
         </div>
       </div>
@@ -161,7 +162,7 @@ export default function PlansPage() {
       <section className="pb-10 md:pb-14" data-testid="section-mid-cta">
         <div className="container max-w-4xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link href="/signup">
-            <Button size="lg" className="gap-2 w-full sm:w-auto" data-testid="button-mid-start-free">
+            <Button size="lg" className="gap-2 w-full sm:w-auto" data-testid="button-mid-start-free" onClick={() => trackSignupClick("/plans")}>
               Start Free
               <ArrowRight className="ml-1 h-4 w-4" />
             </Button>
@@ -248,7 +249,7 @@ export default function PlansPage() {
             Ready to structure your bakery revenue?
           </p>
           <Link href="/signup">
-            <Button size="lg" className="gap-2" data-testid="button-bottom-signup">
+            <Button size="lg" className="gap-2" data-testid="button-bottom-signup" onClick={() => trackSignupClick("/plans")}>
               Start Free
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>

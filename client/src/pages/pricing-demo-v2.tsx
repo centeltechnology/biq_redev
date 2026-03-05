@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowRight, ChevronDown, Cake } from "lucide-react";
+import { trackSignupClick, trackCalculatorUsed } from "@/lib/analytics";
 
 const COMPLEXITY_OPTIONS = [
   { id: "simple", label: "Simple", multiplier: 1.0, description: "Solid colors, minimal decoration" },
@@ -24,11 +25,14 @@ export default function PricingDemoV2Page() {
   const suggestedPrice = Math.round(servings * BASE_PRICE_PER_SERVING * multiplier);
 
   const trackInteraction = useCallback(() => {
-    if (!hasTrackedRef.current && (window as any).fbq) {
-      (window as any).fbq("track", "ViewContent", {
-        content_name: "Pricing Demo V2 Calculator",
-        content_category: "Demo",
-      });
+    if (!hasTrackedRef.current) {
+      if ((window as any).fbq) {
+        (window as any).fbq("track", "ViewContent", {
+          content_name: "Pricing Demo V2 Calculator",
+          content_category: "Demo",
+        });
+      }
+      trackCalculatorUsed();
       hasTrackedRef.current = true;
     }
   }, []);
@@ -183,7 +187,7 @@ export default function PricingDemoV2Page() {
             Turn this into a branded quote and get paid.
           </p>
           <Link href="/signup">
-            <Button size="lg" className="w-full sm:w-auto" data-testid="button-create-account">
+            <Button size="lg" className="w-full sm:w-auto" data-testid="button-create-account" onClick={() => trackSignupClick("/pricing-demo-v2")}>
               Create Free Account
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>

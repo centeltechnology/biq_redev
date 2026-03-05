@@ -59,6 +59,8 @@ Preferred communication style: Simple, everyday language.
     - **Baker Referral Program**: All bakers receive a unique referral link (`/join/r/:code`). Rewards include free subscription months for paid plan bakers and Quick Quote access for free plan bakers.
     - **Affiliate Program**: Admin-invited influencer tier with customizable pretty links (`/join/:slug`). Features 45-day cookie tracking, configurable commission rates (e.g., 20% for 3 months), and an admin dashboard for payout management. Public `/partners` page for application.
 
+- **Internal Analytics System**: Lightweight event tracking for public pages. `analytics_events` table stores `page_view`, `calculator_used`, `signup_click`, `account_created` events with session IDs. Client utility at `client/src/lib/analytics.ts` fires events non-blocking (fire-and-forget). Page views auto-tracked on route changes via `usePageTracking()` in App.tsx. Calculator use tracked once per session. Super-admin dashboard at `/admin/analytics` shows today's summary, 7-day trend chart, and per-page conversion breakdown. Also linked from admin panel Analytics tab via "Site Analytics" button.
+
 ### Planned Future Features
 - **Baker Spotlight**: Success story / testimonial section on the `/help` page. Mini case studies highlighting real bakers and how they use BakerIQ (e.g., "Meet Sarah from Sweet Layers — she went from answering DMs all day to getting 20 quote requests a week through her order page"). Content-driven, no backend changes needed — just add entries to the help page when ready.
 
