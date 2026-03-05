@@ -1,0 +1,151 @@
+Replit Agent Prompt
+Landing Page Conversion Upgrade (Interaction + Signups)
+
+Goal: Increase interaction with the demo calculator and improve signup conversion on:
+
+/pricing-demo
+
+/pricing-demo-v2
+
+Make changes that are lightweight, mobile-first, and consistent with existing BakerIQ design + dark/light themes.
+
+1) Add a “Guided First Click” Micro-Instruction (Key Change)
+
+Directly above the calculator card, add a short instruction line:
+
+Title (small, bold):
+“Quick test (10 seconds):”
+
+Instruction line:
+“Set servings to 36, then tap Luxury.”
+
+This should be visible on both desktop and mobile.
+
+Reason: This creates an immediate “aha” moment by guiding the user to cause the price jump.
+
+2) Add a One-Tap “Try an Example” Button Row (Bonus That Boosts Interaction)
+
+Above the calculator inputs (still inside the calculator card), add 3 pill buttons:
+
+“Birthday (24 + Simple)”
+
+“Detailed (36 + Detailed)”
+
+“Luxury (48 + Luxury)”
+
+When clicked, these auto-fill the calculator values and animate the result update.
+
+After applying, briefly show a tiny confirmation text:
+“Example loaded.”
+
+3) Add “You might be undercharging…” Reinforcement (Bonus)
+
+Directly under the Suggested Price result, add one short credibility line:
+
+Option A:
+“Most custom bakers undercharge by $50–$100 per order.”
+
+Option B:
+“Many bakers discover they’ve been underpricing by 30–40%.”
+
+Use whichever fits visually best (shortest).
+
+Keep it subtle, not spammy.
+
+4) Add a Sticky Mini-CTA on Mobile (Big Bonus)
+
+On mobile only, add a sticky bottom mini-bar that appears after the user interacts with the calculator (first interaction only).
+
+Bar text:
+“Want a branded quote + payment link?”
+
+Button:
+“Create Free Account”
+
+This should not cover the calculator or block inputs. Use safe-area padding.
+
+5) Add “Trust Lines” Under CTA (Bonus)
+
+Under the main CTA button (already present) add these in small text:
+
+“Free to start.”
+
+“No credit card required.”
+
+“Takes 60 seconds.”
+
+(If “60 seconds” is too aggressive, change to “Takes a minute.”)
+
+6) Scroll & Focus Behavior (Bonus)
+
+When user clicks top CTA “Check My Price” / “Try the Demo Calculator”:
+
+smooth scroll to calculator section
+
+auto-focus the servings input (desktop only)
+
+on mobile, do not force keyboard open automatically (avoid annoyance)
+
+7) Hook Alignment Between Pages (Bonus)
+
+For /pricing-demo-v2 specifically:
+
+In the “What I Charged / What It Should’ve Been” cards section, add a tiny text under the cards:
+
+“Now try your own numbers below.”
+
+This increases scroll-through to the calculator.
+
+8) Instrumentation (Required)
+
+Hook into the analytics events we’re implementing:
+
+Fire these events if they don’t already exist:
+
+calculator_visible when calculator enters viewport
+
+calculator_used on first interaction (first change)
+
+price_recalculated every time result changes
+
+cta_click when:
+
+“Check My Price”
+
+“Try the Demo Calculator”
+
+“Create Free Account”
+
+sticky mobile CTA
+
+Also add:
+
+example_button_used when any “Try an Example” pill is clicked
+
+Ensure events are async and do not block rendering.
+
+9) QA Checklist (Must Complete)
+
+After implementing:
+
+Verify both themes (dark/light)
+
+Verify on mobile widths (iPhone-ish)
+
+Verify sticky CTA only appears after interaction
+
+Verify example pills correctly set values and update price
+
+Verify no layout shift that hurts readability
+
+Verify all new analytics events are firing (inspect network calls)
+
+Deliverables
+
+File paths changed
+
+Any new components created
+
+Quick summary of what was added
+
+Confirmation that both pages are updated
