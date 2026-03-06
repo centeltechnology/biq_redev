@@ -1,0 +1,325 @@
+BakerIQ Activation Improvements
+
+(Onboarding + Pricing + Order Page)
+
+We are improving activation and implementation after signup.
+
+These changes should extend existing architecture, not replace it.
+
+Reference: docs/ONBOARDING-WALKTHRU.md
+
+PART 1 — Optimized Onboarding Flow
+
+Current onboarding:
+
+1 Branding
+2 Demo Quote
+3 Share Order Page
+4 Stripe Connect
+
+We will restructure onboarding to better reflect how bakers actually work.
+
+Step 1 — Business Type
+
+Add onboarding step:
+
+What do you sell most?
+
+Options:
+
+Custom Cakes
+Treats (cupcakes, strawberries, cake pops, etc)
+Both
+
+Save value:
+
+product_mode
+
+Allowed values:
+
+cakes
+treats
+both
+Step 2 — Portfolio Upload
+
+Upload 4–6 images.
+
+Dynamic instructions depending on product_mode.
+
+Cakes
+Upload 4–6 cakes you've made recently.
+Customers trust bakers when they can see real designs.
+Treats
+Upload 4–6 treats customers love ordering
+(strawberries, cupcakes, cake pops, etc).
+Both
+Upload a mix of cakes and treats customers love ordering.
+Step 3 — Choose Your Pricing Style
+
+Instead of asking for manual pricing numbers, allow bakers to choose a pricing tier.
+
+Explain:
+
+Most professional bakers charge between $5 and $8 per serving.
+Choose a starting point. You can adjust everything later.
+Cake Pricing Options
+
+Simple
+
+$5 per serving
+Minimal decoration
+
+Detailed
+
+$6.50 per serving
+Custom designs
+
+Luxury
+
+$8 per serving
+Highly detailed cakes
+
+Save selection as:
+
+cake_pricing_tier
+
+Values:
+
+simple
+detailed
+luxury
+Treat Pricing Options
+
+Explain:
+
+Pick the pricing level that best matches your treats.
+You can customize everything later.
+
+Starter
+
+Cupcakes ~$30/dozen
+Strawberries ~$35/dozen
+Cake Pops ~$36/dozen
+
+Popular
+
+Cupcakes ~$36/dozen
+Strawberries ~$45/dozen
+Cake Pops ~$48/dozen
+
+Premium
+
+Cupcakes ~$48/dozen
+Strawberries ~$60/dozen
+Cake Pops ~$60+
+
+Save selection as:
+
+treat_pricing_tier
+PART 2 — Seed Default Pricing
+
+After Step 3:
+
+Automatically generate pricing configuration using the selected tiers.
+
+Populate the same database fields used by /pricing.
+
+Example:
+
+base_serving_price
+treat_default_prices
+complexity_multipliers
+
+Everything must remain editable later on /pricing.
+
+PART 3 — First Quote Simulation (Tiny Activation Step)
+
+Add a quick step:
+
+See Your First Quote
+
+Explain:
+
+Let’s see what your calculator would quote.
+
+Auto-fill example order:
+
+Cake
+24 servings
+Detailed design
+
+Or if treats:
+
+1 dozen strawberries
+
+Display estimated quote.
+
+Example:
+
+Estimated Price
+$156
+
+Explain:
+
+This is what customers will see when they request a quote.
+
+This step ensures the baker understands the system before onboarding ends.
+
+PART 4 — DM Activation Step
+
+Ask:
+
+Do you currently receive quote requests in your DMs?
+
+Options:
+
+Yes — I have one now
+I get them often
+Just exploring
+
+Show a copyable reply message.
+
+Example:
+
+You can submit your cake request here and get an instant quote:
+
+[Order Page Link]
+
+Once you submit the details I'll confirm availability.
+
+Include:
+
+Copy Message button
+PART 5 — Share Your Order Link
+
+Display their public order page:
+
+bakeriq.app/b/[slug]
+
+Explain:
+
+When someone asks "How much?", send them this link.
+Customers can build their order and receive an instant estimate.
+
+Provide quick instructions for:
+
+Instagram bio
+Facebook page button
+Pinned posts
+PART 6 — Stripe Connect
+
+Keep Stripe onboarding as final step.
+
+Copy:
+
+Accept deposits automatically when customers approve quotes.
+
+Stripe remains optional.
+
+PART 7 — Pricing Page Improvements (/pricing)
+
+Add category toggles at the top of the page.
+
+Cakes
+Treats
+
+Database fields:
+
+enable_cakes
+enable_treats
+
+Default behavior based on product_mode.
+
+Cakes Only
+enable_cakes = true
+enable_treats = false
+Treats Only
+enable_cakes = false
+enable_treats = true
+Both
+enable_cakes = true
+enable_treats = true
+Pricing Page Display Logic
+
+Hide cake sections if disabled:
+
+Cake Sizes
+Flavors
+Frostings
+Decorations
+
+Hide treat sections if disabled:
+
+Treats
+Treat Addons
+Bundles
+
+Delivery options always remain visible.
+
+PART 8 — Order Page Improvements
+
+Public order page must reflect enabled product types.
+
+Cakes Only
+
+Show:
+
+Build Your Cake
+Treats Only
+
+Show:
+
+Treat Menu
+Both
+
+Show:
+
+Popular Orders
+Build a Custom Cake
+Treat Menu
+
+Rename UI labels.
+
+Replace:
+
+Quick Order
+
+With:
+
+Popular Orders
+
+Replace:
+
+Customize Your Order
+
+With:
+
+Build a Custom Cake
+PART 9 — Database Updates
+
+Add fields:
+
+product_mode
+enable_cakes
+enable_treats
+cake_pricing_tier
+treat_pricing_tier
+
+Ensure existing bakers default to:
+
+enable_cakes = true
+enable_treats = true
+
+to preserve current behavior.
+
+PART 10 — Success Metrics
+
+Primary activation metric:
+
+Signup → First Quote Generated
+
+Target outcome:
+
+New users complete onboarding in under 3 minutes
+Calculator produces working quotes immediately
+Users begin sharing their order page faster
