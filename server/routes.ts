@@ -578,6 +578,11 @@ export async function registerRoutes(
         portfolioImages: z.array(z.string()).max(6).optional().nullable(),
         calculatorHeaderImage: z.string().optional().nullable(),
         socialBannerUrl: z.string().optional().nullable(),
+        productMode: z.enum(["cakes", "treats", "both"]).optional().nullable(),
+        enableCakes: z.boolean().optional(),
+        enableTreats: z.boolean().optional(),
+        cakePricingTier: z.enum(["simple", "detailed", "luxury"]).optional().nullable(),
+        treatPricingTier: z.enum(["starter", "popular", "premium"]).optional().nullable(),
       }).refine((data) => {
         // Validate fixed deposit amount when fixed type is selected
         if (data.defaultDepositType === "fixed") {
@@ -690,7 +695,7 @@ export async function registerRoutes(
   app.patch("/api/baker/onboarding-step", requireAuth, async (req, res) => {
     try {
       const schema = z.object({
-        step: z.number().min(1).max(4),
+        step: z.number().min(1).max(8),
       });
       const { step } = schema.parse(req.body);
       const baker = await storage.updateBaker(req.session.bakerId!, { onboardingStep: step });
@@ -709,6 +714,32 @@ export async function registerRoutes(
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ message: "Update failed" });
+    }
+  });
+
+  app.post("/api/baker/seed-pricing", requireAuth, async (req, res) => {
+    try {
+      const schema = z.object({
+        productMode: z.enum(["cakes", "treats", "both"]),
+        cakePricingTier: z.enum(["simple", "detailed", "luxury"]).optional().nullable(),
+        treatPricingTier: z.enum(["starter", "popular", "premium"]).optional().nullable(),
+      });
+      const { productMode, cakePricingTier, treatPricingTier } = schema.parse(req.body);
+      const { generateSeededPricing } = await import("./pricing-seed");
+      const config = generateSeededPricing(productMode, cakePricingTier, treatPricingTier);
+      const baker = await storage.updateBaker(req.session.bakerId!, {
+        calculatorConfig: config,
+        productMode,
+        enableCakes: productMode === "cakes" || productMode === "both",
+        enableTreats: productMode === "treats" || productMode === "both",
+        cakePricingTier: cakePricingTier || null,
+        treatPricingTier: treatPricingTier || null,
+      } as any);
+      if (!baker) return res.status(404).json({ message: "Baker not found" });
+      res.json({ success: true, config });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) return res.status(400).json({ message: error.errors[0].message });
+      res.status(500).json({ message: "Pricing seed failed" });
     }
   });
 
@@ -1863,6 +1894,8 @@ export async function registerRoutes(
       portfolioImages: baker.portfolioImages,
       currency: baker.currency,
       calculatorHeaderImage: baker.calculatorHeaderImage,
+      enableCakes: baker.enableCakes,
+      enableTreats: baker.enableTreats,
     });
   });
 

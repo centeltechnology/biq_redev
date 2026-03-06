@@ -460,6 +460,8 @@ export default function CalculatorPage() {
             onSelect={handleCategorySelect} 
             featuredItems={featuredItems}
             onSelectFeaturedItem={handleFeaturedItemSelect}
+            enableCakes={baker?.enableCakes !== false}
+            enableTreats={baker?.enableTreats !== false}
           />
         );
       case "Build Your Cake":
@@ -927,9 +929,11 @@ interface StepCategoryProps {
   onSelect: (category: "cake" | "treat") => void;
   featuredItems?: FeaturedItemType[];
   onSelectFeaturedItem?: (item: FeaturedItemType) => void;
+  enableCakes?: boolean;
+  enableTreats?: boolean;
 }
 
-function StepCategory({ onSelect, featuredItems = [], onSelectFeaturedItem }: StepCategoryProps) {
+function StepCategory({ onSelect, featuredItems = [], onSelectFeaturedItem, enableCakes = true, enableTreats = true }: StepCategoryProps) {
   const fmt = useFormattedCurrency();
 
   const getCategoryLabel = (category: string) => {
@@ -951,7 +955,7 @@ function StepCategory({ onSelect, featuredItems = [], onSelectFeaturedItem }: St
         <div className="space-y-4">
           <div className="flex items-center gap-2 justify-center">
             <Zap className="h-5 w-5 text-primary" />
-            <h3 className="text-lg font-semibold">Quick Order</h3>
+            <h3 className="text-lg font-semibold">Popular Orders</h3>
           </div>
           <p className="text-center text-muted-foreground text-sm">
             Select a popular item for a faster quote
@@ -1016,34 +1020,38 @@ function StepCategory({ onSelect, featuredItems = [], onSelectFeaturedItem }: St
         </p>
       )}
       
-      <div className="grid gap-4 sm:grid-cols-2">
-        <button
-          onClick={() => onSelect("cake")}
-          className="p-6 border rounded-lg text-left hover-elevate cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-primary"
-          data-testid="button-category-cake"
-        >
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-            <Cake className="h-8 w-8 text-primary" />
-          </div>
-          <h3 className="text-xl font-semibold mb-2">Cakes</h3>
-          <p className="text-muted-foreground">
-            Custom cakes for any occasion
-          </p>
-        </button>
+      <div className={`grid gap-4 ${enableCakes && enableTreats ? "sm:grid-cols-2" : "sm:grid-cols-1 max-w-md mx-auto"}`}>
+        {enableCakes && (
+          <button
+            onClick={() => onSelect("cake")}
+            className="p-6 border rounded-lg text-left hover-elevate cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-primary"
+            data-testid="button-category-cake"
+          >
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Cake className="h-8 w-8 text-primary" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">Build a Custom Cake</h3>
+            <p className="text-muted-foreground">
+              Custom cakes for any occasion
+            </p>
+          </button>
+        )}
 
-        <button
-          onClick={() => onSelect("treat")}
-          className="p-6 border rounded-lg text-left hover-elevate cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-primary"
-          data-testid="button-category-treat"
-        >
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-            <Cookie className="h-8 w-8 text-primary" />
-          </div>
-          <h3 className="text-xl font-semibold mb-2">Treats</h3>
-          <p className="text-muted-foreground">
-            Cookies, cupcakes, cake pops & more
-          </p>
-        </button>
+        {enableTreats && (
+          <button
+            onClick={() => onSelect("treat")}
+            className="p-6 border rounded-lg text-left hover-elevate cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-primary"
+            data-testid="button-category-treat"
+          >
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Cookie className="h-8 w-8 text-primary" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">Treat Menu</h3>
+            <p className="text-muted-foreground">
+              Cookies, cupcakes, cake pops & more
+            </p>
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1797,7 +1805,7 @@ function StepFastQuoteReview({ featuredItem, form }: StepFastQuoteReviewProps) {
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Zap className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold">Quick Order Summary</h3>
+          <h3 className="font-semibold">Popular Order Summary</h3>
         </div>
         <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
           <div className="flex items-start gap-3">

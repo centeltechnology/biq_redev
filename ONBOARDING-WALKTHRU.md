@@ -21,15 +21,73 @@ On successful registration, the user is automatically redirected to `/onboarding
 
 ---
 
-## Phase 2: Onboarding Wizard (4 Steps)
+## Phase 2: Onboarding Wizard (8 Steps)
 
 **Route:** `/onboarding`
 **Component:** `client/src/pages/onboarding.tsx`
 **Access Control:** `ProtectedRoute` allows access to `/onboarding` even when `onboardingCompleted` is false. All other authenticated routes redirect back to `/onboarding` until setup is complete.
 
-### Step 1 — Your Bakery (Branding)
+**UI Constraint:** Each step is designed to fit within one viewport height on desktop and mobile. Progress is shown as a minimal bar indicator (8 segments). CTA buttons are anchored at the bottom of each step via flexbox `mt-auto`.
 
-**Purpose:** Collect basic business identity.
+### Step 1 — Products (Business Type)
+
+**Purpose:** Determine what the baker sells to customize the rest of onboarding.
+
+**Behavior:**
+- Heading: "What do you sell most?"
+- 3 tappable cards: Custom Cakes / Treats / Both (with icons)
+- Saves `productMode` + sets `enableCakes`/`enableTreats` via `PATCH /api/bakers/me`
+
+**Fields saved:** `product_mode`, `enable_cakes`, `enable_treats`
+
+### Step 2 — Portfolio Upload
+
+**Purpose:** Collect work samples for the baker's public order page.
+
+**Behavior:**
+- Dynamic heading based on `productMode` (cakes/treats/both)
+- Upload grid (2×3) for up to 6 images
+- Uses `useUpload` hook, stores URLs in `portfolio_images` array via `PATCH /api/bakers/me`
+- "Skip for now" option when no images uploaded
+
+### Step 3 — Pricing Style
+
+**Purpose:** Select a pricing tier to auto-generate calculator config.
+
+**Behavior:**
+- Shows tier cards based on `productMode`:
+  - Cakes: Simple ($5/serving) / Detailed ($6.50/serving) / Luxury ($8/serving)
+  - Treats: Starter (cupcakes $30/doz) / Popular ($36/doz) / Premium ($48/doz)
+  - Both: shows both sections
+- On continue, calls `POST /api/baker/seed-pricing` which generates a full `CalculatorConfig` and saves it
+
+**API:** `POST /api/baker/seed-pricing` — accepts `productMode`, `cakePricingTier`, `treatPricingTier`, generates config via `server/pricing-seed.ts`
+
+**Fields saved:** `cake_pricing_tier`, `treat_pricing_tier`, `calculator_config`
+
+### Step 4 — Preview (Quote Simulation)
+
+**Purpose:** Show the baker what a customer quote looks like with their pricing.
+
+**Behavior:**
+- Auto-calculates an example order price based on `productMode` and selected tier
+- Cakes: 24 servings, Detailed design → shows estimated price
+- Treats: 1 dozen Chocolate Dipped Strawberries → shows estimated price
+- Centered price card with explanation text
+- No API calls — price calculated client-side from tier selection
+
+### Step 5 — DM Activation
+
+**Purpose:** Provide a ready-to-use reply for DM pricing requests.
+
+**Behavior:**
+- Asks "Do you get quote requests in your DMs?" with 3 options
+- Shows a copyable reply message template containing the baker's order page link
+- "Copy Message" button copies the template to clipboard
+
+### Step 6 — Your Bakery (Branding)
+
+**Purpose:** Collect business identity details.
 
 **Fields:**
 - Business Name (pre-filled from signup)
@@ -38,56 +96,36 @@ On successful registration, the user is automatically redirected to `/onboarding
 - Header Image (uploaded to object storage)
 
 **Behavior:**
-- Slugs are validated in real-time via `GET /api/bakers/check-slug/:slug`
-- Images are uploaded using the `useUpload` hook to Replit object storage
-- Data is saved via `PATCH /api/bakers/me`
-- User advances to Step 2 after saving
+- Slugs validated in real-time via `GET /api/bakers/check-slug/:slug`
+- Images uploaded using `useUpload` hook
+- Data saved via `PATCH /api/bakers/me`
 
-### Step 2 — Try a Quote (Education)
-
-**Purpose:** Demonstrate the quoting workflow so the baker understands the core product loop.
-
-**Behavior:**
-1. User clicks "Create Demo Quote"
-2. Server creates a sample customer (the baker themselves) and a draft quote with two pre-filled items (Two-Tier Birthday Cake and Custom Cake Topper)
-3. User can send this demo quote to their own email to see the customer-facing experience
-4. The "Continue" button is gated — the user must either send the test quote or click "Skip for now" before advancing
-
-**API:**
-- `POST /api/baker/demo-quote` — creates the demo customer + quote
-- `POST /api/quotes/:id/send` — sends the quote email
-
-**Demo Quote Detection:** Uses `baker.demoQuoteId` field. Demo quotes show modified copy:
-- Email greeting: "Here's your custom quote preview" (instead of "Hi Test Customer")
-- Demo note moved to subtle footer
-- CTA reads "Review Your Custom Quote"
-- Acceptance shows simulated success without processing real payment
-
-### Step 3 — Share Your Link (Activation)
+### Step 7 — Share Your Order Page (Activation)
 
 **Purpose:** Get the baker to share their public order page link.
 
 **Behavior:**
 - Displays the baker's unique public URL (`/c/:slug`)
-- Provides a "Copy Link" button
-- Completing this step marks `onboarding_completed = true` in the database and advances to Step 4
+- Provides "Copy Link" and "Preview Your Order Page" buttons
+- Tips for where to add: Instagram bio, Facebook page, pinned posts
+- Completing this step marks `onboarding_completed = true`
 
 **API:** `POST /api/baker/onboarding-complete`
 
-### Step 4 — Get Paid (Stripe Connect)
+### Step 8 — Get Paid (Stripe Connect)
 
 **Purpose:** Connect Stripe for automatic deposit collection.
 
 **Behavior:**
-- User can start the Stripe Connect onboarding flow, which redirects to Stripe's external onboarding pages (returns to `/settings` when complete)
-- Alternatively, user can click "Go to Dashboard" to skip Stripe setup
-- The wizard was already marked complete in Step 3 — this step is an optional add-on
+- User can start the Stripe Connect onboarding flow (redirects to Stripe's external onboarding)
+- Alternatively, click "Go to Dashboard" to skip
+- Wizard was already marked complete in Step 7 — this step is optional
 
 **APIs:**
-- `POST /api/stripe-connect/create-account` — creates the Stripe Connect account
-- `POST /api/stripe-connect/onboarding-link` — generates the Stripe onboarding redirect URL
+- `POST /api/stripe-connect/create-account`
+- `POST /api/stripe-connect/onboarding-link`
 
-**Step tracking API:** `PATCH /api/baker/onboarding-step` (updates `onboardingStep` integer field throughout the wizard)
+**Step tracking API:** `PATCH /api/baker/onboarding-step` (updates `onboardingStep` integer, max 8)
 
 ---
 

@@ -92,6 +92,12 @@ export const bakers = pgTable("bakers", {
   quickQuoteCredits: integer("quick_quote_credits").default(0).notNull(),
   referredByBakerId: varchar("referred_by_baker_id"),
   bakerReferredAt: timestamp("baker_referred_at"),
+  // Product mode & category toggles
+  productMode: text("product_mode"),
+  enableCakes: boolean("enable_cakes").default(true).notNull(),
+  enableTreats: boolean("enable_treats").default(true).notNull(),
+  cakePricingTier: text("cake_pricing_tier"),
+  treatPricingTier: text("treat_pricing_tier"),
   // Stripe onboarding prompt tracking
   stripePromptLastShownAt: timestamp("stripe_prompt_last_shown_at"),
   // Activation tracking timestamps (set once on first occurrence)

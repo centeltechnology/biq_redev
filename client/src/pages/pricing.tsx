@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
-import { Loader2, Trash2, Plus, CheckCircle2, Sparkles, ArrowRight } from "lucide-react";
+import { Loader2, Trash2, Plus, CheckCircle2, Sparkles, ArrowRight, Cake, Cookie } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { InstructionModal } from "@/components/instruction-modal";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,12 +32,40 @@ export default function PricingPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [pricingConfig, setPricingConfig] = useState<CalculatorConfig>({});
+  const [enableCakes, setEnableCakes] = useState(true);
+  const [enableTreats, setEnableTreats] = useState(true);
 
   useEffect(() => {
     if (baker?.calculatorConfig) {
       setPricingConfig(baker.calculatorConfig as CalculatorConfig);
     }
+    if (baker) {
+      setEnableCakes(baker.enableCakes ?? true);
+      setEnableTreats(baker.enableTreats ?? true);
+    }
   }, [baker]);
+
+  const toggleCategoryMutation = useMutation({
+    mutationFn: async (updates: { enableCakes?: boolean; enableTreats?: boolean }) => {
+      const res = await apiRequest("PATCH", "/api/bakers/me", updates);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
+    },
+  });
+
+  const handleToggleCakes = useCallback((checked: boolean) => {
+    if (!checked && !enableTreats) return;
+    setEnableCakes(checked);
+    toggleCategoryMutation.mutate({ enableCakes: checked });
+  }, [toggleCategoryMutation, enableTreats]);
+
+  const handleToggleTreats = useCallback((checked: boolean) => {
+    if (!checked && !enableCakes) return;
+    setEnableTreats(checked);
+    toggleCategoryMutation.mutate({ enableTreats: checked });
+  }, [toggleCategoryMutation, enableCakes]);
 
   const updatePricingMutation = useMutation({
     mutationFn: async (config: CalculatorConfig) => {
@@ -438,8 +466,43 @@ export default function PricingPage() {
           </CardContent>
         </Card>
 
-        {/* CAKE SIZES */}
         <Card>
+          <CardHeader>
+            <CardTitle>Product Categories</CardTitle>
+            <CardDescription>
+              Choose which product types appear on your public order page
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
+              <div className="flex items-center gap-3 flex-1">
+                <Switch
+                  checked={enableCakes}
+                  onCheckedChange={handleToggleCakes}
+                  data-testid="switch-enable-cakes"
+                />
+                <div className="flex items-center gap-2">
+                  <Cake className="h-4 w-4 text-muted-foreground" />
+                  <Label className="font-medium">Cakes</Label>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 flex-1">
+                <Switch
+                  checked={enableTreats}
+                  onCheckedChange={handleToggleTreats}
+                  data-testid="switch-enable-treats"
+                />
+                <div className="flex items-center gap-2">
+                  <Cookie className="h-4 w-4 text-muted-foreground" />
+                  <Label className="font-medium">Treats</Label>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* CAKE SIZES */}
+        {enableCakes && <Card>
           <CardHeader>
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
@@ -519,10 +582,10 @@ export default function PricingPage() {
               })}
             </div>
           </CardContent>
-        </Card>
+        </Card>}
 
         {/* FLAVORS */}
-        <Card>
+        {enableCakes && <Card>
           <CardHeader>
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
@@ -591,10 +654,10 @@ export default function PricingPage() {
               })}
             </div>
           </CardContent>
-        </Card>
+        </Card>}
 
         {/* FROSTINGS */}
-        <Card>
+        {enableCakes && <Card>
           <CardHeader>
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
@@ -663,10 +726,10 @@ export default function PricingPage() {
               })}
             </div>
           </CardContent>
-        </Card>
+        </Card>}
 
         {/* DECORATIONS */}
-        <Card>
+        {enableCakes && <Card>
           <CardHeader>
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
@@ -735,10 +798,10 @@ export default function PricingPage() {
               })}
             </div>
           </CardContent>
-        </Card>
+        </Card>}
 
         {/* ADDONS */}
-        <Card>
+        {enableTreats && <Card>
           <CardHeader>
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
@@ -810,10 +873,10 @@ export default function PricingPage() {
               })}
             </div>
           </CardContent>
-        </Card>
+        </Card>}
 
         {/* TREATS */}
-        <Card>
+        {enableTreats && <Card>
           <CardHeader>
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
@@ -892,7 +955,7 @@ export default function PricingPage() {
               })}
             </div>
           </CardContent>
-        </Card>
+        </Card>}
 
         {/* DELIVERY & SETUP */}
         <Card>
