@@ -1,0 +1,274 @@
+BakerIQ Onboarding Flow Fixes
+
+We need to refine the onboarding wizard flow to reduce repetition, improve sequencing, and make the experience clearer for cake and treat makers.
+
+Do not redesign the visual system. Keep the existing UI style. Focus on flow, copy, logic, and step order.
+
+1. Reorder the onboarding steps
+
+Current onboarding order is creating unnecessary friction.
+
+Update the step order to this:
+
+Step 1
+
+What do you sell most?
+Options:
+
+Custom Cakes
+
+Treats
+
+Both
+
+Save value to:
+
+product_mode
+
+Allowed values:
+
+cakes
+
+treats
+
+both
+
+Step 2
+
+Your bakery details
+Move this step earlier in the flow.
+
+This step should include:
+
+Business Name
+
+Order Page URL slug
+
+Profile Photo
+
+Header Image
+
+Reason:
+This information is foundational and should be set before portfolio and sharing steps.
+
+Step 3
+
+Upload portfolio
+Dynamic copy should depend on product_mode.
+
+If cakes:
+
+“Upload 4–6 cakes you've made recently.”
+
+“Customers trust bakers when they can see real cake designs.”
+
+If treats:
+
+“Upload 4–6 treats customers love ordering.”
+
+“These will appear on your order page.”
+
+If both:
+
+“Upload a mix of cakes and treats customers love ordering.”
+
+Keep existing upload behavior.
+
+Step 4
+
+Choose your pricing style
+This stays before quote preview.
+
+For cakes:
+
+Simple
+
+Detailed
+
+Luxury
+
+For treats:
+
+Starter
+
+Popular
+
+Premium
+
+Keep the current starter pricing logic, but improve the treat preview defaults.
+
+Step 5
+
+See your first quote
+Move this immediately after pricing style selection.
+
+This step should preview a realistic quote based on the selected product_mode.
+
+If cakes:
+Show example:
+
+“24 serving custom cake”
+
+estimated quote based on selected cake pricing style
+
+If treats:
+Show example:
+
+“1 dozen chocolate dipped strawberries”
+
+estimated quote based on selected treat pricing style
+
+Important:
+Do not use cupcakes as the default treat preview.
+Use dipped strawberries instead.
+
+Update helper copy to:
+
+“Customers see this estimate before submitting a quote request.”
+
+Step 6
+
+DM reply helper + order link sharing
+Merge the current DM step and share link step into one step.
+
+This step should:
+
+ask: “Do you get quote requests in your DMs?”
+
+show 3 options:
+
+“Yes — I have one now”
+
+“I get them often”
+
+“Just exploring”
+
+The selected option should change the helper copy tone.
+
+If “Yes — I have one now”
+
+Show:
+
+“Send this reply right now.”
+
+If “I get them often”
+
+Show:
+
+“Next time someone asks ‘How much?’, send them this.”
+
+If “Just exploring”
+
+Show:
+
+“When customers start asking for quotes, send them this link.”
+
+This step must include:
+
+copyable reply message
+
+copy link button
+
+preview order page button
+
+short “Where to add it” section:
+
+Instagram bio or Linktree
+
+Facebook page button
+
+Pinned post or story highlight
+
+Important:
+This replaces the separate “Share your order page” step.
+Do not repeat link-sharing in another onboarding step later.
+
+Step 7
+
+Stripe Connect
+Keep as final step.
+
+Copy should emphasize:
+
+“Accept deposits automatically when customers approve quotes.”
+
+Keep Stripe optional.
+
+2. Remove repetitive onboarding content
+
+Delete the old separate share-link step if its content is now merged into the DM helper step.
+
+Goal:
+Avoid showing the same order page link in two different steps.
+
+3. Improve treat-mode consistency
+
+When product_mode = treats:
+
+Step 3 should show treat-specific copy
+
+Step 5 quote preview should use dipped strawberries, not cupcakes
+
+onboarding messaging should consistently reference treats, not cakes
+
+When product_mode = cakes:
+
+treat-specific language should not appear
+
+When product_mode = both:
+
+use mixed / neutral language
+
+4. Reduce onboarding length perception
+
+After reordering and merging steps, onboarding should go from 8 steps to 7 steps.
+
+Update the progress indicator accordingly.
+
+New target flow:
+
+What do you sell?
+
+Bakery details
+
+Upload portfolio
+
+Choose pricing style
+
+See your first quote
+
+DM reply + share link
+
+Connect Stripe
+
+5. Keep all existing backend behavior unless it conflicts with this flow
+
+Preserve existing:
+
+onboarding completion logic
+
+pricing seeding logic
+
+stripe connect flow
+
+upload functionality
+
+route protection
+
+analytics events if already wired
+
+Only remove or bypass old logic if it causes duplicate steps or conflicts with the new sequence.
+
+6. Deliverables
+
+After implementation, report:
+
+updated onboarding step order
+
+files changed
+
+any removed or merged steps
+
+confirmation that treat mode now uses dipped strawberries in quote preview
+
+confirmation that DM/share step is merged and no longer duplicated
