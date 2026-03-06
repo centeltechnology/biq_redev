@@ -1,0 +1,238 @@
+Clarify and Upgrade Analytics Structure Without Mixing the Two Dashboards
+
+Important: There are two different analytics surfaces in the admin, and they must remain separate.
+
+1. Existing Analytics Surfaces
+A) Admin Tab: “Analytics”
+
+This is the business / product analytics dashboard inside the Super Admin dashboard.
+
+It currently contains sections like:
+
+Activation Funnel
+
+Revenue Health
+
+Retention Snapshot
+
+Tier Distribution
+
+Growth Trend
+
+This area is for business performance and product activation metrics.
+
+Do not mix landing page funnel metrics into this dashboard.
+
+B) Separate Page: /admin/analytics
+
+This is the Site Analytics page reached by clicking the “Site Analytics” button from the Analytics tab.
+
+This page is for marketing / landing page analytics only.
+
+It contains metrics like:
+
+Visitors
+
+Page Views
+
+Calc Visible
+
+Calc Uses
+
+Calc Interactions
+
+CTA Clicks
+
+Signup Clicks
+
+Accounts Created
+
+Conversion Rate
+
+This page should remain focused on landing page traffic and conversion behavior.
+
+Do not mix business metrics like GMV, Stripe, retention, or platform revenue into this page.
+
+2. Naming Clarification
+
+To reduce confusion, update labels in the UI:
+
+In the Super Admin dashboard:
+
+Change the Analytics tab label from:
+
+Analytics
+
+to either:
+
+Business Analytics
+
+or
+
+Product Analytics
+
+Pick the one that best fits existing design.
+
+For the button linking to /admin/analytics:
+
+Change the label from:
+
+Site Analytics
+
+to one of these:
+
+Marketing Funnel
+
+Page Analytics
+
+Landing Page Analytics
+
+Preferred label:
+Landing Page Analytics
+
+The goal is to make the distinction obvious:
+
+Business Analytics = product/business performance
+
+Landing Page Analytics = marketing funnel performance
+
+3. Upgrade the /admin/analytics Page Only
+
+All of the following changes apply only to:
+
+/admin/analytics
+
+Do not apply these to the main admin Analytics tab.
+
+Add date filters:
+
+Today
+
+Yesterday
+
+Last 7 Days
+
+Last 14 Days
+
+Last 30 Days
+
+Last 90 Days
+
+Last 180 Days
+
+Last 365 Days
+
+All Time
+
+Default:
+Last 7 Days
+
+Add calculated percentage metrics:
+
+Calculator Engagement Rate = Calc Uses / Calc Visible
+
+Visitor → Calculator Rate = Calc Visible / Visitors
+
+Signup Intent Rate = Signup Clicks / Calc Uses
+
+Visitor → Signup Rate = Accounts Created / Visitors
+
+Display these as percentage cards or secondary metric rows.
+
+Add a visual funnel section:
+
+Show:
+
+Visitors
+↓
+Calculator Visible
+↓
+Calculator Uses
+↓
+Signup Clicks
+↓
+Accounts Created
+
+Include:
+
+raw numbers
+
+percentage drop-offs between stages
+
+Improve Landing Page Breakdown table:
+
+Include columns:
+
+Page
+
+Views
+
+Calc Visible
+
+Calc Uses
+
+Signup Clicks
+
+Accounts Created
+
+Conversion Rate
+
+Sort by:
+highest Conversion Rate first
+
+Exclude internal app/admin routes from landing page marketing calculations:
+
+Do not count these in marketing funnel summaries:
+
+/admin
+
+/admin/*
+
+/dashboard
+
+/login
+
+/settings
+
+/verify-email
+
+API routes
+
+internal auth callback routes
+
+These can still appear in debugging/recent activity if needed, but not in marketing summary metrics.
+
+4. Keep the Two Dashboards Linked but Clearly Separate
+
+From the main admin Analytics tab, keep a button linking to /admin/analytics.
+
+But visually make it clear this is a separate destination.
+
+Suggested helper text under the button:
+View landing page traffic and conversion funnel
+
+5. Optional UX Improvement
+
+If easy, add a small header subtitle on each page:
+
+On the main admin Analytics tab:
+
+Business performance and activation metrics
+
+On /admin/analytics:
+
+Landing page traffic, calculator usage, and signup funnel
+
+This will reduce confusion for admins.
+
+6. Deliverables
+
+After implementation, report:
+
+all labels changed
+
+any routes/components updated
+
+confirmation that the two analytics surfaces remain separate
+
+confirmation that /admin/analytics is only for marketing funnel/page analytics
