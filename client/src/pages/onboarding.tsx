@@ -305,7 +305,7 @@ export default function OnboardingPage() {
 
   const getEstimatedPrice = () => {
     if (productMode === "treats") {
-      const tierPrices: Record<string, number> = { starter: 35, popular: 45, premium: 60 };
+      const tierPrices: Record<string, number> = { starter: 24, popular: 45, premium: 60 };
       return tierPrices[treatTier || "popular"] || 45;
     }
     const tierPrices: Record<string, number> = { simple: 120, detailed: 156, luxury: 192 };
@@ -595,9 +595,9 @@ export default function OnboardingPage() {
                     {productMode === "both" && <p className="text-sm font-medium mb-2">Treat Pricing</p>}
                     <div className="grid grid-cols-3 gap-2">
                       {([
-                        { value: "starter", label: "Starter", price: "Cupcakes $30/doz", desc: "Budget-friendly" },
-                        { value: "popular", label: "Popular", price: "Cupcakes $36/doz", desc: "Market average" },
-                        { value: "premium", label: "Premium", price: "Cupcakes $48/doz", desc: "High-end" },
+                        { value: "starter", label: "Starter", price: "Strawberries $24/doz", desc: "Budget-friendly" },
+                        { value: "popular", label: "Popular", price: "Strawberries $45/doz", desc: "Market average" },
+                        { value: "premium", label: "Premium", price: "Strawberries $60/doz", desc: "High-end" },
                       ]).map((t) => (
                         <button
                           key={t.value}

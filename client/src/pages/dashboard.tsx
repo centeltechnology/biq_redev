@@ -171,7 +171,7 @@ export default function DashboardPage() {
                     Pricing Not Reviewed
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Review your calculator pricing to make sure it reflects what you want to charge.
+                    Review your calculator pricing to make sure it reflects your products and what you want to charge.
                   </p>
                 </div>
               </div>

@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Check, Store, FileText, Share2, CreditCard, ArrowRight, Copy, X, Rocket } from "lucide-react";
+import { Check, Store, CreditCard, ArrowRight, X, Rocket } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/use-auth";
-import { useToast } from "@/hooks/use-toast";
-
 interface ActivationChecklistProps {
   onConnectStripe: () => void;
   isConnecting?: boolean;
@@ -14,57 +12,30 @@ interface ActivationChecklistProps {
 
 export function OnboardingChecklist({ onConnectStripe, isConnecting }: ActivationChecklistProps) {
   const { baker } = useAuth();
-  const { toast } = useToast();
   if (!baker || baker.role === "super_admin") return null;
 
   const bakerId = baker.id;
   const [dismissed, setDismissed] = useState(() => {
     return localStorage.getItem(`bakeriq_activation_dismissed_${bakerId}`) === "true";
   });
-  const [linkCopied, setLinkCopied] = useState(() => {
-    return localStorage.getItem(`bakeriq_calculator_link_shared_${bakerId}`) === "true";
-  });
-
   const hasBranding = !!(baker.businessName && baker.businessName.length > 0);
-  const hasQuote = !!baker.firstQuoteSentAt;
-  const hasSharedLink = linkCopied;
   const hasStripe = !!baker.stripeConnectedAt;
 
-  const weightedProgress = (hasBranding ? 25 : 0) + (hasQuote ? 25 : 0) + (hasSharedLink ? 25 : 0) + (hasStripe ? 25 : 0);
+  const weightedProgress = (hasBranding ? 50 : 0) + (hasStripe ? 50 : 0);
   const justFinishedOnboarding = baker.onboardingCompleted && !hasStripe;
-  const progressPercent = justFinishedOnboarding ? Math.max(weightedProgress, 75) : weightedProgress;
+  const progressPercent = justFinishedOnboarding ? Math.max(weightedProgress, 95) : weightedProgress;
 
   if (progressPercent === 100 || dismissed) return null;
-
-  const handleCopyLink = async () => {
-    if (!baker?.slug) return;
-    const calculatorUrl = `${window.location.origin}/c/${baker.slug}`;
-    try {
-      await navigator.clipboard.writeText(calculatorUrl);
-      localStorage.setItem(`bakeriq_calculator_link_shared_${bakerId}`, "true");
-      setLinkCopied(true);
-      toast({
-        title: "Link copied!",
-        description: "Share it on social media, your website, or directly with customers.",
-      });
-    } catch {
-      toast({
-        title: "Failed to copy",
-        description: "Could not copy the link to clipboard.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleDismiss = () => {
     localStorage.setItem(`bakeriq_activation_dismissed_${bakerId}`, "true");
     setDismissed(true);
   };
 
-  const contextMessage = hasQuote && !hasStripe
-    ? "You're almost ready to collect deposits."
-    : !baker.onboardingCompleted
-      ? "Complete setup to start getting orders."
+  const contextMessage = !baker.onboardingCompleted
+    ? "Complete setup to start getting orders."
+    : !hasStripe
+      ? "You're almost ready to collect deposits."
       : null;
 
   const steps = [
@@ -76,22 +47,7 @@ export function OnboardingChecklist({ onConnectStripe, isConnecting }: Activatio
       actionLabel: "Settings",
     },
     {
-      label: "Send your first test quote",
-      icon: FileText,
-      complete: hasQuote,
-      href: baker.demoQuoteId ? `/quotes/${baker.demoQuoteId}` : "/quotes/new",
-      actionLabel: baker.demoQuoteId ? "View Quote" : "Create Quote",
-    },
-    {
-      label: "Share Your Order Page",
-      icon: Share2,
-      complete: hasSharedLink,
-      action: handleCopyLink,
-      actionLabel: "Copy Link",
-      actionIcon: Copy,
-    },
-    {
-      label: "Activate secure payments",
+      label: "Activate secure payments and Start Receiving Deposits!",
       icon: CreditCard,
       complete: hasStripe,
       action: onConnectStripe,
@@ -164,9 +120,8 @@ export function OnboardingChecklist({ onConnectStripe, isConnecting }: Activatio
                     disabled={s.actionDisabled}
                     data-testid={`button-checklist-action-${idx}`}
                   >
-                    {s.actionIcon ? <s.actionIcon className="mr-1 h-3.5 w-3.5" /> : null}
                     {s.actionLabel}
-                    {!s.actionIcon && <ArrowRight className="ml-1 h-3.5 w-3.5" />}
+                    <ArrowRight className="ml-1 h-3.5 w-3.5" />
                   </Button>
                 )
               )}
