@@ -245,7 +245,7 @@ export interface IStorage {
   createAnalyticsEvent(event: InsertAnalyticsEvent): Promise<AnalyticsEvent>;
   getAnalyticsSummary(startDate: Date | null, endDate: Date | null): Promise<{ visitors: number; pageViews: number; calculatorUses: number; calculatorVisible: number; calculatorInteractions: number; ctaClicks: number; signupClicks: number; accountsCreated: number; conversionRate: number }>;
   getAnalyticsDailyTrend(days: number): Promise<Array<{ date: string; visitors: number; accounts: number }>>;
-  getAnalyticsPageBreakdown(startDate: Date | null, endDate: Date | null): Promise<Array<{ page: string; views: number; calculatorUses: number; signupClicks: number; accountsCreated: number; conversionRate: number }>>;
+  getAnalyticsPageBreakdown(startDate: Date | null, endDate: Date | null): Promise<Array<{ page: string; views: number; calculatorVisible: number; calculatorUses: number; signupClicks: number; accountsCreated: number; conversionRate: number }>>;
   getRecentAnalyticsEvents(limit: number, types: string[]): Promise<Array<{ eventType: string; pagePath: string | null; createdAt: Date }>>;
   getRecentAnalyticsFeed(limit: number): Promise<Array<{ eventType: string; pagePath: string | null; createdAt: Date }>>;
 }
@@ -1490,8 +1490,9 @@ export class DatabaseStorage implements IStorage {
         .groupBy(analyticsEvents.pagePath);
     };
 
-    const [viewRows, calcRows, clickRows, accountRows] = await Promise.all([
+    const [viewRows, calcVisibleRows, calcRows, clickRows, accountRows] = await Promise.all([
       queryByType("page_view"),
+      queryByType("calculator_visible"),
       queryByType("calculator_used"),
       queryByType("signup_click"),
       queryByType("account_created"),
@@ -1503,16 +1504,18 @@ export class DatabaseStorage implements IStorage {
         const page = v.pagePath!;
         const visitors = v.uniqueSessions;
         const accounts = accountRows.find(r => r.pagePath === page)?.total ?? 0;
+        const conversionRate = visitors > 0 ? Math.round((accounts / visitors) * 1000) / 10 : 0;
         return {
           page,
           views: v.total,
+          calculatorVisible: calcVisibleRows.find(r => r.pagePath === page)?.total ?? 0,
           calculatorUses: calcRows.find(r => r.pagePath === page)?.total ?? 0,
           signupClicks: clickRows.find(r => r.pagePath === page)?.total ?? 0,
           accountsCreated: accounts,
-          conversionRate: visitors > 0 ? Math.round((accounts / visitors) * 1000) / 10 : 0,
+          conversionRate,
         };
       })
-      .sort((a, b) => b.views - a.views);
+      .sort((a, b) => b.conversionRate - a.conversionRate);
   }
 
   async getRecentAnalyticsEvents(limit: number, types: string[]) {

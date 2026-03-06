@@ -4,15 +4,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { Link, Redirect } from "wouter";
-import { Users, Eye, Calculator, MousePointerClick, UserPlus, TrendingUp, ArrowLeft, BarChart3, Zap, Target, ScanEye, Activity } from "lucide-react";
+import { Users, Eye, Calculator, MousePointerClick, UserPlus, TrendingUp, ArrowLeft, BarChart3, Zap, Target, ScanEye, Activity, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-type TimeRange = "today" | "7d" | "30d" | "all";
+type TimeRange = "today" | "yesterday" | "7d" | "14d" | "30d" | "90d" | "180d" | "365d" | "all";
 
 const RANGE_LABELS: Record<TimeRange, string> = {
   today: "Today",
-  "7d": "Last 7 Days",
-  "30d": "Last 30 Days",
+  yesterday: "Yesterday",
+  "7d": "7 Days",
+  "14d": "14 Days",
+  "30d": "30 Days",
+  "90d": "90 Days",
+  "180d": "180 Days",
+  "365d": "1 Year",
   all: "All Time",
 };
 
@@ -37,6 +42,7 @@ interface DayTrend {
 interface PageBreakdown {
   page: string;
   views: number;
+  calculatorVisible: number;
   calculatorUses: number;
   signupClicks: number;
   accountsCreated: number;
@@ -65,16 +71,89 @@ function StatCard({ label, value, icon: Icon, suffix }: { label: string; value: 
   );
 }
 
+function FunnelMetrics({ summary }: { summary: Summary }) {
+  const pct = (num: number, den: number) => den > 0 ? Math.round((num / den) * 1000) / 10 : 0;
+  const metrics = [
+    { label: "Visitor → Calculator", value: pct(summary.calculatorVisible, summary.visitors) },
+    { label: "Calculator Engagement", value: pct(summary.calculatorUses, summary.calculatorVisible) },
+    { label: "Signup Intent", value: pct(summary.signupClicks, summary.calculatorUses) },
+    { label: "Visitor → Signup", value: pct(summary.accountsCreated, summary.visitors) },
+  ];
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6" data-testid="funnel-metrics">
+      {metrics.map((m) => (
+        <Card key={m.label} className="border-dashed">
+          <CardContent className="p-3">
+            <p className="text-xs text-muted-foreground">{m.label}</p>
+            <p className="text-lg font-semibold">{m.value}%</p>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function VisualFunnel({ summary }: { summary: Summary }) {
+  const stages = [
+    { label: "Visitors", value: summary.visitors },
+    { label: "Calc Visible", value: summary.calculatorVisible },
+    { label: "Calc Uses", value: summary.calculatorUses },
+    { label: "Signup Clicks", value: summary.signupClicks },
+    { label: "Accounts", value: summary.accountsCreated },
+  ];
+  const maxVal = Math.max(...stages.map(s => s.value), 1);
+
+  return (
+    <Card data-testid="card-visual-funnel">
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <TrendingUp className="h-4 w-4" />
+          Conversion Funnel
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {stages.map((stage, i) => {
+          const prevValue = i > 0 ? stages[i - 1].value : 0;
+          const dropOff = i > 0 && prevValue > 0 ? Math.round((stage.value / prevValue) * 1000) / 10 : null;
+          const barWidth = maxVal > 0 ? Math.max((stage.value / maxVal) * 100, 2) : 2;
+          return (
+            <div key={stage.label}>
+              {i > 0 && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground pl-2 py-0.5">
+                  <ChevronRight className="h-3 w-3" />
+                  {dropOff !== null ? `${dropOff}% of previous` : "—"}
+                </div>
+              )}
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground w-24 text-right flex-shrink-0">{stage.label}</span>
+                <div className="flex-1 h-7 bg-muted rounded overflow-hidden relative">
+                  <div
+                    className="h-full bg-primary/60 rounded transition-all"
+                    style={{ width: `${barWidth}%` }}
+                  />
+                  <span className="absolute inset-y-0 left-2 flex items-center text-xs font-medium">
+                    {stage.value.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
+}
+
 function TrendChart({ data, range }: { data: DayTrend[]; range: TimeRange }) {
   const maxVisitors = Math.max(...data.map(d => d.visitors), 1);
-  const title = range === "today" ? "Today" : range === "all" ? "Last 90 Days" : `Last ${range === "7d" ? "7" : "30"} Days`;
+  const rangeLabel = RANGE_LABELS[range];
 
   return (
     <Card data-testid="card-trend-chart">
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
           <BarChart3 className="h-4 w-4" />
-          {title} Trend
+          {rangeLabel} Trend
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -133,6 +212,7 @@ function PageTable({ data }: { data: PageBreakdown[] }) {
                 <tr className="border-b text-left text-muted-foreground">
                   <th className="pb-2 font-medium">Page</th>
                   <th className="pb-2 font-medium text-right">Views</th>
+                  <th className="pb-2 font-medium text-right">Calc Visible</th>
                   <th className="pb-2 font-medium text-right">Calc Uses</th>
                   <th className="pb-2 font-medium text-right">Signup Clicks</th>
                   <th className="pb-2 font-medium text-right">Accounts</th>
@@ -144,6 +224,7 @@ function PageTable({ data }: { data: PageBreakdown[] }) {
                   <tr key={row.page} className="border-b last:border-0" data-testid={`row-page-${row.page}`}>
                     <td className="py-2 font-mono text-xs">{row.page}</td>
                     <td className="py-2 text-right">{row.views}</td>
+                    <td className="py-2 text-right">{row.calculatorVisible}</td>
                     <td className="py-2 text-right">{row.calculatorUses}</td>
                     <td className="py-2 text-right">{row.signupClicks}</td>
                     <td className="py-2 text-right">{row.accountsCreated}</td>
@@ -242,7 +323,7 @@ export default function AdminAnalyticsPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container max-w-6xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
             <Link href="/admin">
               <Button variant="ghost" size="sm" data-testid="button-back-admin">
@@ -250,21 +331,23 @@ export default function AdminAnalyticsPage() {
                 Admin
               </Button>
             </Link>
-            <h1 className="text-2xl font-bold" data-testid="text-page-title">Site Analytics</h1>
+            <h1 className="text-2xl font-bold" data-testid="text-page-title">Landing Page Analytics</h1>
           </div>
-          <div className="flex gap-1" data-testid="range-filter">
-            {(Object.keys(RANGE_LABELS) as TimeRange[]).map((r) => (
-              <Button
-                key={r}
-                variant={range === r ? "default" : "outline"}
-                size="sm"
-                onClick={() => setRange(r)}
-                data-testid={`button-range-${r}`}
-              >
-                {RANGE_LABELS[r]}
-              </Button>
-            ))}
-          </div>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4 ml-[88px]">Landing page traffic, calculator usage, and signup funnel</p>
+
+        <div className="flex flex-wrap gap-1 mb-6" data-testid="range-filter">
+          {(Object.keys(RANGE_LABELS) as TimeRange[]).map((r) => (
+            <Button
+              key={r}
+              variant={range === r ? "default" : "outline"}
+              size="sm"
+              onClick={() => setRange(r)}
+              data-testid={`button-range-${r}`}
+            >
+              {RANGE_LABELS[r]}
+            </Button>
+          ))}
         </div>
 
         {summaryLoading ? (
@@ -274,17 +357,20 @@ export default function AdminAnalyticsPage() {
             ))}
           </div>
         ) : summary ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
-            <StatCard label="Visitors" value={summary.visitors} icon={Users} />
-            <StatCard label="Page Views" value={summary.pageViews} icon={Eye} />
-            <StatCard label="Calc Visible" value={summary.calculatorVisible} icon={ScanEye} />
-            <StatCard label="Calc Uses" value={summary.calculatorUses} icon={Calculator} />
-            <StatCard label="Calc Interactions" value={summary.calculatorInteractions} icon={Zap} />
-            <StatCard label="CTA Clicks" value={summary.ctaClicks} icon={Target} />
-            <StatCard label="Signup Clicks" value={summary.signupClicks} icon={MousePointerClick} />
-            <StatCard label="Accounts Created" value={summary.accountsCreated} icon={UserPlus} />
-            <StatCard label="Conversion Rate" value={summary.conversionRate} icon={TrendingUp} suffix="%" />
-          </div>
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
+              <StatCard label="Visitors" value={summary.visitors} icon={Users} />
+              <StatCard label="Page Views" value={summary.pageViews} icon={Eye} />
+              <StatCard label="Calc Visible" value={summary.calculatorVisible} icon={ScanEye} />
+              <StatCard label="Calc Uses" value={summary.calculatorUses} icon={Calculator} />
+              <StatCard label="Calc Interactions" value={summary.calculatorInteractions} icon={Zap} />
+              <StatCard label="CTA Clicks" value={summary.ctaClicks} icon={Target} />
+              <StatCard label="Signup Clicks" value={summary.signupClicks} icon={MousePointerClick} />
+              <StatCard label="Accounts Created" value={summary.accountsCreated} icon={UserPlus} />
+              <StatCard label="Conversion Rate" value={summary.conversionRate} icon={TrendingUp} suffix="%" />
+            </div>
+            <FunnelMetrics summary={summary} />
+          </>
         ) : null}
 
         <div className="grid md:grid-cols-2 gap-6 mb-6">
@@ -294,12 +380,18 @@ export default function AdminAnalyticsPage() {
             <TrendChart data={trend} range={range} />
           ) : null}
 
-          {pagesLoading ? (
+          {summary ? (
+            <VisualFunnel summary={summary} />
+          ) : (
             <Skeleton className="h-64" />
-          ) : pages ? (
-            <PageTable data={pages} />
-          ) : null}
+          )}
         </div>
+
+        {pagesLoading ? (
+          <div className="mb-6"><Skeleton className="h-64" /></div>
+        ) : pages ? (
+          <div className="mb-6"><PageTable data={pages} /></div>
+        ) : null}
 
         {feedLoading ? (
           <Skeleton className="h-48" />

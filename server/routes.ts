@@ -3085,15 +3085,17 @@ export async function registerRoutes(
   app.get("/api/admin/analytics/overview", requireSuperAdmin, async (req, res) => {
     try {
       const now = new Date();
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const { startDate, endDate } = getAnalyticsDateRange(req.query.range as string);
+      const rangeStart = startDate || new Date(0);
+      const rangeEnd = endDate || now;
       const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
 
-      // --- SECTION 1: Activation Funnel (cohort = signups in last 30d) ---
+      // --- SECTION 1: Activation Funnel (cohort = signups in selected range) ---
       const funnelResult = await pool.query(`
         WITH cohort AS (
           SELECT id, created_at, stripe_connected_at, first_quote_sent_at, first_payment_processed_at
           FROM bakers
-          WHERE created_at >= $1 AND role != 'super_admin'
+          WHERE created_at >= $1 AND created_at < $2 AND role != 'super_admin'
         )
         SELECT
           COUNT(*)::int AS signups_30d,
@@ -3101,7 +3103,7 @@ export async function registerRoutes(
           COUNT(*) FILTER (WHERE first_quote_sent_at IS NOT NULL AND first_quote_sent_at <= created_at + interval '14 days')::int AS first_quote_14d,
           COUNT(*) FILTER (WHERE first_payment_processed_at IS NOT NULL AND first_payment_processed_at <= created_at + interval '30 days')::int AS first_payment_30d
         FROM cohort
-      `, [thirtyDaysAgo.toISOString()]);
+      `, [rangeStart.toISOString(), rangeEnd.toISOString()]);
 
       const funnel = funnelResult.rows[0];
       const signups30d = funnel.signups_30d || 0;
@@ -3112,10 +3114,10 @@ export async function registerRoutes(
           ORDER BY EXTRACT(EPOCH FROM (stripe_connected_at - created_at)) / 86400.0
         ) AS median_days
         FROM bakers
-        WHERE created_at >= $1 AND role != 'super_admin'
+        WHERE created_at >= $1 AND created_at < $2 AND role != 'super_admin'
           AND stripe_connected_at IS NOT NULL
           AND stripe_connected_at <= created_at + interval '30 days'
-      `, [thirtyDaysAgo.toISOString()]);
+      `, [rangeStart.toISOString(), rangeEnd.toISOString()]);
 
       const medianDaysToStripe = medianResult.rows[0]?.median_days != null
         ? Math.round(medianResult.rows[0].median_days * 10) / 10
@@ -3132,7 +3134,7 @@ export async function registerRoutes(
         median_days_to_stripe_connect: medianDaysToStripe,
       };
 
-      // --- SECTION 2: Revenue Health (last 30d) ---
+      // --- SECTION 2: Revenue Health (selected range) ---
       const revenueResult = await pool.query(`
         SELECT
           COUNT(DISTINCT baker_id)::int AS active_processors_30d,
@@ -3140,8 +3142,8 @@ export async function registerRoutes(
           COALESCE(SUM(platform_fee::numeric), 0)::numeric AS transaction_fee_revenue_30d,
           COUNT(*)::int AS payments_count_30d
         FROM quote_payments
-        WHERE status = 'succeeded' AND created_at >= $1
-      `, [thirtyDaysAgo.toISOString()]);
+        WHERE status = 'succeeded' AND created_at >= $1 AND created_at < $2
+      `, [rangeStart.toISOString(), rangeEnd.toISOString()]);
 
       const rev = revenueResult.rows[0];
       const activeProcessors = rev.active_processors_30d || 0;
@@ -3187,8 +3189,8 @@ export async function registerRoutes(
       const retention30dResult = await pool.query(`
         SELECT COUNT(DISTINCT baker_id)::int AS active
         FROM quote_payments
-        WHERE status = 'succeeded' AND created_at >= $1
-      `, [thirtyDaysAgo.toISOString()]);
+        WHERE status = 'succeeded' AND created_at >= $1 AND created_at < $2
+      `, [rangeStart.toISOString(), rangeEnd.toISOString()]);
 
       const retention90dResult = await pool.query(`
         SELECT COUNT(DISTINCT baker_id)::int AS active
@@ -3241,29 +3243,31 @@ export async function registerRoutes(
     }
   });
 
-  // Analytics Cockpit — Trends (Section 5: 30 daily buckets)
+  // Analytics Cockpit — Trends (daily buckets for selected range)
   app.get("/api/admin/analytics/trends", requireSuperAdmin, async (req, res) => {
     try {
       const now = new Date();
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const { startDate, endDate, days } = getAnalyticsDateRange(req.query.range as string);
+      const rangeStart = startDate || new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+      const rangeEnd = endDate || now;
 
       // Signups by day
       const signupsResult = await pool.query(`
         SELECT to_char(date_trunc('day', created_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD') AS date,
                COUNT(*)::int AS signups
         FROM bakers
-        WHERE created_at >= $1 AND role != 'super_admin'
+        WHERE created_at >= $1 AND created_at < $2 AND role != 'super_admin'
         GROUP BY 1 ORDER BY 1
-      `, [thirtyDaysAgo.toISOString()]);
+      `, [rangeStart.toISOString(), rangeEnd.toISOString()]);
 
       // Stripe connections by day (based on stripeConnectedAt)
       const connectionsResult = await pool.query(`
         SELECT to_char(date_trunc('day', stripe_connected_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD') AS date,
                COUNT(*)::int AS stripe_connections
         FROM bakers
-        WHERE stripe_connected_at >= $1 AND role != 'super_admin'
+        WHERE stripe_connected_at >= $1 AND stripe_connected_at < $2 AND role != 'super_admin'
         GROUP BY 1 ORDER BY 1
-      `, [thirtyDaysAgo.toISOString()]);
+      `, [rangeStart.toISOString(), rangeEnd.toISOString()]);
 
       // Payments by day
       const paymentsResult = await pool.query(`
@@ -3271,11 +3275,11 @@ export async function registerRoutes(
                COUNT(*)::int AS payments_succeeded_count,
                COALESCE(SUM(amount::numeric), 0)::numeric AS gmv
         FROM quote_payments
-        WHERE status = 'succeeded' AND created_at >= $1
+        WHERE status = 'succeeded' AND created_at >= $1 AND created_at < $2
         GROUP BY 1 ORDER BY 1
-      `, [thirtyDaysAgo.toISOString()]);
+      `, [rangeStart.toISOString(), rangeEnd.toISOString()]);
 
-      // Build 30-day buckets
+      // Build daily buckets for the range
       const signupMap = new Map(signupsResult.rows.map((r: any) => [r.date, r.signups]));
       const connectionMap = new Map(connectionsResult.rows.map((r: any) => [r.date, r.stripe_connections]));
       const paymentMap = new Map(paymentsResult.rows.map((r: any) => [r.date, { count: r.payments_succeeded_count, gmv: parseFloat(r.gmv) }]));
@@ -3288,7 +3292,7 @@ export async function registerRoutes(
         gmv: number;
       }> = [];
 
-      for (let i = 29; i >= 0; i--) {
+      for (let i = days - 1; i >= 0; i--) {
         const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
         const dateStr = d.toISOString().slice(0, 10);
         const payment = paymentMap.get(dateStr) || { count: 0, gmv: 0 };
@@ -3305,6 +3309,59 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Admin analytics trends error:", error);
       res.status(500).json({ message: "Failed to get analytics trends" });
+    }
+  });
+
+  // Analytics Cockpit — Activation Cohorts
+  app.get("/api/admin/analytics/cohorts", requireSuperAdmin, async (req, res) => {
+    try {
+      const groupBy = req.query.groupBy === "month" ? "month" : "week";
+      const { startDate, endDate } = getAnalyticsDateRange(req.query.range as string);
+      const rangeStart = startDate || new Date(0);
+      const rangeEnd = endDate || new Date();
+
+      const truncFn = groupBy === "month" ? "month" : "week";
+
+      const result = await pool.query(`
+        SELECT
+          date_trunc('${truncFn}', created_at) AS cohort_start,
+          COUNT(*)::int AS users,
+          COUNT(*) FILTER (WHERE first_quote_sent_at IS NOT NULL)::int AS first_quote_count,
+          COUNT(*) FILTER (WHERE stripe_connected_at IS NOT NULL)::int AS stripe_connected_count,
+          COUNT(*) FILTER (WHERE first_payment_processed_at IS NOT NULL)::int AS first_payment_count
+        FROM bakers
+        WHERE created_at >= $1 AND created_at < $2 AND role != 'super_admin'
+        GROUP BY 1
+        ORDER BY 1 DESC
+      `, [rangeStart.toISOString(), rangeEnd.toISOString()]);
+
+      const cohorts = result.rows.map((row: any) => {
+        const start = new Date(row.cohort_start);
+        let cohortLabel: string;
+        if (groupBy === "month") {
+          cohortLabel = start.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+        } else {
+          const end = new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
+          cohortLabel = `${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${end.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+        }
+        const users = row.users || 0;
+        return {
+          cohortLabel,
+          cohortStart: row.cohort_start,
+          users,
+          firstQuoteCount: row.first_quote_count,
+          firstQuotePct: users > 0 ? Math.round((row.first_quote_count / users) * 1000) / 10 : 0,
+          stripeConnectedCount: row.stripe_connected_count,
+          stripeConnectedPct: users > 0 ? Math.round((row.stripe_connected_count / users) * 1000) / 10 : 0,
+          firstPaymentCount: row.first_payment_count,
+          firstPaymentPct: users > 0 ? Math.round((row.first_payment_count / users) * 1000) / 10 : 0,
+        };
+      });
+
+      res.json({ cohorts });
+    } catch (error) {
+      console.error("Admin analytics cohorts error:", error);
+      res.status(500).json({ message: "Failed to get analytics cohorts" });
     }
   });
 
@@ -5293,19 +5350,31 @@ Guidelines:
 
   function getAnalyticsDateRange(range?: string): { startDate: Date | null; endDate: Date | null; days: number } {
     const now = new Date();
+    const daysAgo = (d: number) => new Date(now.getTime() - d * 24 * 60 * 60 * 1000);
     switch (range) {
       case "today": {
         const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         return { startDate: start, endDate: new Date(start.getTime() + 24 * 60 * 60 * 1000), days: 1 };
       }
-      case "30d": {
-        return { startDate: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), endDate: now, days: 30 };
+      case "yesterday": {
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        return { startDate: start, endDate: new Date(now.getFullYear(), now.getMonth(), now.getDate()), days: 1 };
       }
+      case "14d":
+        return { startDate: daysAgo(14), endDate: now, days: 14 };
+      case "30d":
+        return { startDate: daysAgo(30), endDate: now, days: 30 };
+      case "90d":
+        return { startDate: daysAgo(90), endDate: now, days: 90 };
+      case "180d":
+        return { startDate: daysAgo(180), endDate: now, days: 180 };
+      case "365d":
+        return { startDate: daysAgo(365), endDate: now, days: 365 };
       case "all":
         return { startDate: null, endDate: null, days: 90 };
       case "7d":
       default:
-        return { startDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000), endDate: now, days: 7 };
+        return { startDate: daysAgo(7), endDate: now, days: 7 };
     }
   }
 

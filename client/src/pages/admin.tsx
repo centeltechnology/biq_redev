@@ -2215,17 +2215,49 @@ export default function AdminDashboard() {
   const [selectedTicket, setSelectedTicket] = useState<SupportTicketWithBaker | null>(null);
   const [ticketReply, setTicketReply] = useState("");
   const [ticketFilter, setTicketFilter] = useState<"all" | "open" | "in_progress" | "resolved">("open");
+  const [analyticsRange, setAnalyticsRange] = useState("7d");
+  const [cohortGroupBy, setCohortGroupBy] = useState<"week" | "month">("week");
+
+  const RANGE_OPTIONS = [
+    { value: "today", label: "Today" },
+    { value: "yesterday", label: "Yesterday" },
+    { value: "7d", label: "7 Days" },
+    { value: "14d", label: "14 Days" },
+    { value: "30d", label: "30 Days" },
+    { value: "90d", label: "90 Days" },
+    { value: "180d", label: "180 Days" },
+    { value: "365d", label: "1 Year" },
+    { value: "all", label: "All Time" },
+  ];
+
+  const rangeLabel = RANGE_OPTIONS.find(r => r.value === analyticsRange)?.label || "7 Days";
 
   const { data: analytics, isLoading: analyticsLoading } = useQuery<AdminAnalytics>({
     queryKey: ["/api/admin/analytics"],
   });
 
   const { data: overview, isLoading: overviewLoading } = useQuery<AnalyticsOverview>({
-    queryKey: ["/api/admin/analytics/overview"],
+    queryKey: [`/api/admin/analytics/overview?range=${analyticsRange}`],
   });
 
   const { data: trendsData, isLoading: trendsLoading } = useQuery<{ trends: AnalyticsTrend[] }>({
-    queryKey: ["/api/admin/analytics/trends"],
+    queryKey: [`/api/admin/analytics/trends?range=${analyticsRange}`],
+  });
+
+  interface CohortRow {
+    cohortLabel: string;
+    cohortStart: string;
+    users: number;
+    firstQuoteCount: number;
+    firstQuotePct: number;
+    stripeConnectedCount: number;
+    stripeConnectedPct: number;
+    firstPaymentCount: number;
+    firstPaymentPct: number;
+  }
+
+  const { data: cohortsData, isLoading: cohortsLoading } = useQuery<{ cohorts: CohortRow[] }>({
+    queryKey: [`/api/admin/analytics/cohorts?groupBy=${cohortGroupBy}&range=${analyticsRange}`],
   });
 
   const { data: bakers, isLoading: bakersLoading } = useQuery<Baker[]>({
@@ -2563,7 +2595,7 @@ export default function AdminDashboard() {
           </TabsTrigger>
           <TabsTrigger value="analytics" className="gap-2" data-testid="tab-analytics">
             <BarChart3 className="h-4 w-4" />
-            <span className="hidden sm:inline">Analytics</span>
+            <span className="hidden sm:inline">Business</span>
           </TabsTrigger>
           <TabsTrigger value="email-blast" className="gap-2" data-testid="tab-email-blast">
             <Send className="h-4 w-4" />
@@ -2863,13 +2895,30 @@ export default function AdminDashboard() {
 
         {/* ANALYTICS TAB */}
         <TabsContent value="analytics" className="space-y-6">
-          <div className="flex justify-end">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h2 className="text-lg font-semibold" data-testid="text-business-analytics-title">Business Analytics</h2>
+              <p className="text-sm text-muted-foreground">Business performance and activation metrics</p>
+            </div>
             <Link href="/admin/analytics">
               <Button variant="outline" size="sm" className="gap-2" data-testid="link-site-analytics">
                 <BarChart3 className="h-4 w-4" />
-                Site Analytics
+                Landing Page Analytics
               </Button>
             </Link>
+          </div>
+          <div className="flex flex-wrap gap-1" data-testid="business-range-filter">
+            {RANGE_OPTIONS.map((r) => (
+              <Button
+                key={r.value}
+                variant={analyticsRange === r.value ? "default" : "outline"}
+                size="sm"
+                onClick={() => setAnalyticsRange(r.value)}
+                data-testid={`button-biz-range-${r.value}`}
+              >
+                {r.label}
+              </Button>
+            ))}
           </div>
           {overviewLoading ? (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -2883,7 +2932,7 @@ export default function AdminDashboard() {
           ) : (
             <>
               <div>
-                <h3 className="text-lg font-semibold mb-3" data-testid="text-activation-funnel-title">Activation Funnel (30-Day Cohort)</h3>
+                <h3 className="text-lg font-semibold mb-3" data-testid="text-activation-funnel-title">Activation Funnel ({rangeLabel})</h3>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
@@ -2892,7 +2941,7 @@ export default function AdminDashboard() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold" data-testid="text-signups-30d">{overview?.activationFunnel.signups_30d || 0}</div>
-                      <p className="text-xs text-muted-foreground">Last 30 days</p>
+                      <p className="text-xs text-muted-foreground">{rangeLabel}</p>
                     </CardContent>
                   </Card>
                   <Card>
@@ -2939,7 +2988,7 @@ export default function AdminDashboard() {
               </div>
 
               <div>
-                <h3 className="text-lg font-semibold mb-3" data-testid="text-revenue-health-title">Revenue Health (Last 30 Days)</h3>
+                <h3 className="text-lg font-semibold mb-3" data-testid="text-revenue-health-title">Revenue Health ({rangeLabel})</h3>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
@@ -2948,7 +2997,7 @@ export default function AdminDashboard() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold" data-testid="text-gmv-30d">{formatCurrency(overview?.revenueHealth.gmv_30d || 0)}</div>
-                      <p className="text-xs text-muted-foreground">Last 30 days</p>
+                      <p className="text-xs text-muted-foreground">{rangeLabel}</p>
                     </CardContent>
                   </Card>
                   <Card>
@@ -2971,7 +3020,7 @@ export default function AdminDashboard() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold" data-testid="text-active-processors">{overview?.revenueHealth.active_processors_30d || 0}</div>
-                      <p className="text-xs text-muted-foreground">Last 30 days · Avg GMV: {formatCurrency(overview?.revenueHealth.avg_gmv_per_active_processor_30d || 0)}</p>
+                      <p className="text-xs text-muted-foreground">{rangeLabel} · Avg GMV: {formatCurrency(overview?.revenueHealth.avg_gmv_per_active_processor_30d || 0)}</p>
                     </CardContent>
                   </Card>
                   <Card>
@@ -3080,7 +3129,7 @@ export default function AdminDashboard() {
               </div>
 
               <div>
-                <h3 className="text-lg font-semibold mb-3" data-testid="text-growth-trend-title">Growth Trend (30 Days)</h3>
+                <h3 className="text-lg font-semibold mb-3" data-testid="text-growth-trend-title">Growth Trend ({rangeLabel})</h3>
                 <Card>
                   <CardContent className="pt-6">
                     {trendsLoading ? (
@@ -3113,6 +3162,73 @@ export default function AdminDashboard() {
                           <Line type="monotone" dataKey="payments_succeeded_count" name="Payments" stroke="#3b82f6" strokeWidth={2} dot={false} />
                         </LineChart>
                       </ResponsiveContainer>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold" data-testid="text-cohorts-title">Activation Cohorts</h3>
+                  <div className="flex gap-1">
+                    <Button
+                      variant={cohortGroupBy === "week" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCohortGroupBy("week")}
+                      data-testid="button-cohort-week"
+                    >
+                      Week
+                    </Button>
+                    <Button
+                      variant={cohortGroupBy === "month" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCohortGroupBy("month")}
+                      data-testid="button-cohort-month"
+                    >
+                      Month
+                    </Button>
+                  </div>
+                </div>
+                <Card>
+                  <CardContent className="pt-6">
+                    {cohortsLoading ? (
+                      <Skeleton className="h-[200px] w-full" />
+                    ) : cohortsData?.cohorts && cohortsData.cohorts.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Signup Cohort</TableHead>
+                              <TableHead className="text-right">Users</TableHead>
+                              <TableHead className="text-right">First Quote</TableHead>
+                              <TableHead className="text-right">Stripe Connected</TableHead>
+                              <TableHead className="text-right">First Payment</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {cohortsData.cohorts.map((cohort) => (
+                              <TableRow key={cohort.cohortStart} data-testid={`row-cohort-${cohort.cohortStart}`}>
+                                <TableCell className="font-medium">{cohort.cohortLabel}</TableCell>
+                                <TableCell className="text-right">{cohort.users}</TableCell>
+                                <TableCell className="text-right">
+                                  <span className="text-muted-foreground">{cohort.firstQuoteCount}</span>
+                                  <span className="ml-1 font-medium">({cohort.firstQuotePct}%)</span>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <span className="text-muted-foreground">{cohort.stripeConnectedCount}</span>
+                                  <span className="ml-1 font-medium">({cohort.stripeConnectedPct}%)</span>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <span className="text-muted-foreground">{cohort.firstPaymentCount}</span>
+                                  <span className="ml-1 font-medium">({cohort.firstPaymentPct}%)</span>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-6">No cohort data available for the selected range.</p>
                     )}
                   </CardContent>
                 </Card>
