@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import {
-  Check, ChevronRight, ChevronLeft, Store, FileText, Share2, CreditCard,
-  Copy, Loader2, ExternalLink, Upload, Image, Send, Mail, Cake, Cookie,
+  Check, ChevronRight, ChevronLeft, Store, FileText, CreditCard,
+  Copy, Loader2, ExternalLink, Upload, Image, Cake, Cookie,
   Layers, DollarSign, MessageCircle, Camera
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,12 +17,11 @@ import { useUpload } from "@/hooks/use-upload";
 
 const STEPS = [
   { label: "Products", icon: Layers },
+  { label: "Bakery", icon: Store },
   { label: "Portfolio", icon: Camera },
   { label: "Pricing", icon: DollarSign },
   { label: "Preview", icon: FileText },
-  { label: "DM Reply", icon: MessageCircle },
-  { label: "Bakery", icon: Store },
-  { label: "Share", icon: Share2 },
+  { label: "Share", icon: MessageCircle },
   { label: "Get Paid", icon: CreditCard },
 ];
 
@@ -41,6 +40,7 @@ export default function OnboardingPage() {
   const [portfolioImages, setPortfolioImages] = useState<string[]>([]);
   const [dmOption, setDmOption] = useState<string | null>(null);
   const [dmCopied, setDmCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const [businessName, setBusinessName] = useState("");
   const [slug, setSlug] = useState("");
@@ -48,13 +48,6 @@ export default function OnboardingPage() {
   const [slugChecking, setSlugChecking] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [headerImage, setHeaderImage] = useState<string | null>(null);
-  const [demoQuoteCreated, setDemoQuoteCreated] = useState(false);
-  const [demoQuoteId, setDemoQuoteId] = useState<string | null>(null);
-  const [demoQuoteItems, setDemoQuoteItems] = useState<Array<{ name: string; description: string; quantity: number; unitPrice: string; totalPrice: string }>>([]);
-  const [demoQuoteTotal, setDemoQuoteTotal] = useState<string>("0");
-  const [testEmailAddress, setTestEmailAddress] = useState("");
-  const [testQuoteSent, setTestQuoteSent] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
 
   useEffect(() => {
     if (baker) {
@@ -62,15 +55,10 @@ export default function OnboardingPage() {
       setSlug(baker.slug || "");
       setProfilePhoto(baker.profilePhoto || null);
       setHeaderImage(baker.calculatorHeaderImage || null);
-      setTestEmailAddress(baker.email || "");
       if ((baker as any).productMode) setProductMode((baker as any).productMode as ProductMode);
       if ((baker as any).cakePricingTier) setCakeTier((baker as any).cakePricingTier);
       if ((baker as any).treatPricingTier) setTreatTier((baker as any).treatPricingTier);
       if (baker.portfolioImages?.length) setPortfolioImages(baker.portfolioImages);
-      if (baker.demoQuoteId) {
-        setDemoQuoteId(baker.demoQuoteId);
-        setDemoQuoteCreated(true);
-      }
       if (baker.onboardingStep > 1) {
         const resumeStep = baker.onboardingStep;
         if (resumeStep >= 3 && !(baker as any).productMode) {
@@ -79,7 +67,7 @@ export default function OnboardingPage() {
           setCurrentStep(resumeStep);
         }
       }
-      if (baker.onboardingCompleted && baker.onboardingStep < 7) {
+      if (baker.onboardingCompleted && baker.onboardingStep < 6) {
         setLocation("/dashboard");
       }
     }
@@ -118,53 +106,6 @@ export default function OnboardingPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
-    },
-  });
-
-  const demoQuoteMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/baker/demo-quote");
-      return res.json();
-    },
-    onSuccess: (data: any) => {
-      setDemoQuoteCreated(true);
-      setDemoQuoteId(data.quote?.id);
-      setDemoQuoteTotal(data.quote?.total || "0.00");
-      if (data.quote?.items && data.quote.items.length > 0) {
-        setDemoQuoteItems(data.quote.items.map((item: any) => ({
-          name: item.name,
-          description: item.description || "",
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          totalPrice: item.totalPrice,
-        })));
-      }
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
-    },
-    onError: () => {
-      toast({ title: "Failed to create demo quote", variant: "destructive" });
-    },
-  });
-
-  const sendTestQuoteMutation = useMutation({
-    mutationFn: async (quoteId: string) => {
-      if (testEmailAddress && testEmailAddress !== baker?.email) {
-        const quoteRes = await apiRequest("GET", `/api/quotes/${quoteId}`);
-        const quoteData = await quoteRes.json();
-        if (quoteData.customerId) {
-          await apiRequest("PATCH", `/api/customers/${quoteData.customerId}`, { email: testEmailAddress });
-        }
-      }
-      const res = await apiRequest("POST", `/api/quotes/${quoteId}/send`);
-      return res.json();
-    },
-    onSuccess: () => {
-      setTestQuoteSent(true);
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
-      toast({ title: "Test quote sent!", description: `Check your inbox at ${testEmailAddress}` });
-    },
-    onError: () => {
-      toast({ title: "Failed to send test quote", variant: "destructive" });
     },
   });
 
@@ -283,10 +224,25 @@ export default function OnboardingPage() {
   };
 
   const handleStep2Continue = async () => {
+    if (!businessName.trim()) {
+      toast({ title: "Please enter your business name", variant: "destructive" });
+      return;
+    }
+    await updateProfileMutation.mutateAsync({ businessName });
+    if (slug && slug !== baker?.slug && slugAvailable !== false) {
+      try {
+        await updateSlugMutation.mutateAsync(slug);
+      } catch {
+      }
+    }
     await goToStep(3);
   };
 
   const handleStep3Continue = async () => {
+    await goToStep(4);
+  };
+
+  const handleStep4Continue = async () => {
     const needsCake = productMode === "cakes" || productMode === "both";
     const needsTreat = productMode === "treats" || productMode === "both";
     if (needsCake && !cakeTier) {
@@ -302,10 +258,6 @@ export default function OnboardingPage() {
       cakePricingTier: cakeTier,
       treatPricingTier: treatTier,
     });
-    await goToStep(4);
-  };
-
-  const handleStep4Continue = async () => {
     await goToStep(5);
   };
 
@@ -314,28 +266,12 @@ export default function OnboardingPage() {
   };
 
   const handleStep6Continue = async () => {
-    if (!businessName.trim()) {
-      toast({ title: "Please enter your business name", variant: "destructive" });
-      return;
-    }
-    await updateProfileMutation.mutateAsync({ businessName });
-    if (slug && slug !== baker?.slug && slugAvailable !== false) {
-      try {
-        await updateSlugMutation.mutateAsync(slug);
-      } catch {
-        // slug update failed, continue anyway
-      }
-    }
-    await goToStep(7);
-  };
-
-  const handleStep7Continue = async () => {
     await completeMutation.mutateAsync();
     if (!sessionStorage.getItem("fbq_complete_reg_fired") && (window as any).fbq) {
       (window as any).fbq("track", "CompleteRegistration");
       sessionStorage.setItem("fbq_complete_reg_fired", "1");
     }
-    await goToStep(8);
+    await goToStep(7);
   };
 
   const handleCopyLink = async () => {
@@ -376,6 +312,13 @@ export default function OnboardingPage() {
     return tierPrices[cakeTier || "simple"] || 120;
   };
 
+  const getDmHelperCopy = () => {
+    if (dmOption === "yes_now") return "Send this reply right now.";
+    if (dmOption === "yes_often") return "Next time someone asks \"How much?\", send them this.";
+    if (dmOption === "exploring") return "When customers start asking for quotes, send them this link.";
+    return "Copy this message and send it when someone asks for pricing.";
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col" data-testid="page-onboarding">
       <div className="flex-1 max-w-2xl mx-auto w-full px-4 py-6 flex flex-col">
@@ -402,6 +345,7 @@ export default function OnboardingPage() {
         </div>
 
         <div className="flex-1 flex flex-col">
+
           {currentStep === 1 && (
             <div className="flex-1 flex flex-col" data-testid="card-step-1">
               <div className="text-center mb-6">
@@ -444,260 +388,6 @@ export default function OnboardingPage() {
 
           {currentStep === 2 && (
             <div className="flex-1 flex flex-col" data-testid="card-step-2">
-              <div className="text-center mb-4">
-                <h2 className="text-lg font-semibold">
-                  {productMode === "cakes" ? "Upload cakes you've made recently" :
-                   productMode === "treats" ? "Upload treats customers love ordering" :
-                   "Upload a mix of cakes and treats"}
-                </h2>
-                <p className="text-sm text-muted-foreground mt-1">These appear on your order page. Add up to 6 photos.</p>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2 mb-auto">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="aspect-square rounded-lg border-2 border-dashed border-border overflow-hidden relative">
-                    {portfolioImages[i] ? (
-                      <>
-                        <img src={portfolioImages[i]} alt={`Portfolio ${i + 1}`} className="w-full h-full object-cover" />
-                        <button
-                          onClick={() => removePortfolioImage(i)}
-                          className="absolute top-1 right-1 bg-black/60 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs"
-                          data-testid={`button-remove-portfolio-${i}`}
-                        >
-                          ×
-                        </button>
-                      </>
-                    ) : (
-                      <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors">
-                        <Upload className="h-5 w-5 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground mt-1">Add</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handlePortfolioUpload}
-                          disabled={isUploading}
-                        />
-                      </label>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {isUploading && (
-                <div className="flex items-center justify-center gap-2 py-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm text-muted-foreground">Uploading...</span>
-                </div>
-              )}
-
-              <div className="flex justify-between items-center pt-4 mt-auto">
-                <Button variant="ghost" onClick={() => goToStep(1)} data-testid="button-step2-back">
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Back
-                </Button>
-                <div className="flex items-center gap-3">
-                  {portfolioImages.length === 0 && (
-                    <button
-                      onClick={handleStep2Continue}
-                      className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2"
-                      data-testid="button-step2-skip"
-                    >
-                      Skip for now
-                    </button>
-                  )}
-                  <Button onClick={handleStep2Continue} data-testid="button-step2-continue">
-                    Continue
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {currentStep === 3 && (
-            <div className="flex-1 flex flex-col" data-testid="card-step-3">
-              <div className="text-center mb-4">
-                <h2 className="text-lg font-semibold">Choose your pricing style</h2>
-                <p className="text-sm text-muted-foreground mt-1">Pick a starting point — you can adjust all prices later</p>
-              </div>
-
-              <div className="space-y-4 mb-auto">
-                {(productMode === "cakes" || productMode === "both") && (
-                  <div>
-                    {productMode === "both" && <p className="text-sm font-medium mb-2">Cake Pricing</p>}
-                    <div className="grid grid-cols-3 gap-2">
-                      {([
-                        { value: "simple", label: "Simple", price: "$5/serving", desc: '6" from $45' },
-                        { value: "detailed", label: "Detailed", price: "$6.50/serving", desc: '6" from $65' },
-                        { value: "luxury", label: "Luxury", price: "$8/serving", desc: '6" from $80' },
-                      ]).map((t) => (
-                        <button
-                          key={t.value}
-                          onClick={() => setCakeTier(t.value)}
-                          className={`p-3 rounded-lg border-2 text-left transition-all ${
-                            cakeTier === t.value
-                              ? "border-primary bg-primary/5"
-                              : "border-border hover:border-primary/40"
-                          }`}
-                          data-testid={`button-cake-tier-${t.value}`}
-                        >
-                          <p className="text-sm font-medium">{t.label}</p>
-                          <p className="text-xs text-primary font-semibold mt-0.5">{t.price}</p>
-                          <p className="text-xs text-muted-foreground">{t.desc}</p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {(productMode === "treats" || productMode === "both") && (
-                  <div>
-                    {productMode === "both" && <p className="text-sm font-medium mb-2">Treat Pricing</p>}
-                    <div className="grid grid-cols-3 gap-2">
-                      {([
-                        { value: "starter", label: "Starter", price: "Cupcakes $30/doz", desc: "Budget-friendly" },
-                        { value: "popular", label: "Popular", price: "Cupcakes $36/doz", desc: "Market average" },
-                        { value: "premium", label: "Premium", price: "Cupcakes $48/doz", desc: "High-end" },
-                      ]).map((t) => (
-                        <button
-                          key={t.value}
-                          onClick={() => setTreatTier(t.value)}
-                          className={`p-3 rounded-lg border-2 text-left transition-all ${
-                            treatTier === t.value
-                              ? "border-primary bg-primary/5"
-                              : "border-border hover:border-primary/40"
-                          }`}
-                          data-testid={`button-treat-tier-${t.value}`}
-                        >
-                          <p className="text-sm font-medium">{t.label}</p>
-                          <p className="text-xs text-primary font-semibold mt-0.5">{t.price}</p>
-                          <p className="text-xs text-muted-foreground">{t.desc}</p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex justify-between items-center pt-4 mt-auto">
-                <Button variant="ghost" onClick={() => goToStep(2)} data-testid="button-step3-back">
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Back
-                </Button>
-                <Button
-                  onClick={handleStep3Continue}
-                  disabled={seedPricingMutation.isPending}
-                  data-testid="button-step3-continue"
-                >
-                  {seedPricingMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                  Continue
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {currentStep === 4 && (
-            <div className="flex-1 flex flex-col" data-testid="card-step-4">
-              <div className="text-center mb-6">
-                <h2 className="text-lg font-semibold">Here's what a quote looks like</h2>
-                <p className="text-sm text-muted-foreground mt-1">This is what customers see when they request pricing</p>
-              </div>
-
-              <Card className="mb-auto">
-                <CardContent className="pt-6">
-                  <div className="text-center space-y-3">
-                    <div className="inline-flex items-center justify-center h-14 w-14 rounded-full bg-primary/10 mx-auto">
-                      <DollarSign className="h-7 w-7 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">
-                        {productMode === "treats" ? "1 dozen Chocolate Dipped Strawberries" : "24 servings · Detailed design"}
-                      </p>
-                      <p className="text-3xl font-bold mt-1" data-testid="text-estimated-price">
-                        ${getEstimatedPrice()}
-                      </p>
-                    </div>
-                    <p className="text-xs text-muted-foreground border-t pt-3">
-                      Estimated based on your pricing tier. Customers submit this as a quote request — you review and finalize before sending.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="flex justify-between items-center pt-4 mt-auto">
-                <Button variant="ghost" onClick={() => goToStep(3)} data-testid="button-step4-back">
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Back
-                </Button>
-                <Button onClick={handleStep4Continue} data-testid="button-step4-continue">
-                  Continue
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {currentStep === 5 && (
-            <div className="flex-1 flex flex-col" data-testid="card-step-5">
-              <div className="text-center mb-4">
-                <h2 className="text-lg font-semibold">Do you get quote requests in your DMs?</h2>
-                <p className="text-sm text-muted-foreground mt-1">Next time someone asks "how much?", send them this</p>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2 mb-4">
-                {([
-                  { value: "yes_now", label: "Yes — I have one now" },
-                  { value: "yes_often", label: "I get them often" },
-                  { value: "exploring", label: "Just exploring" },
-                ]).map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => setDmOption(opt.value)}
-                    className={`p-3 rounded-lg border-2 text-center transition-all text-sm ${
-                      dmOption === opt.value
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-primary/40"
-                    }`}
-                    data-testid={`button-dm-${opt.value}`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="bg-muted/50 border rounded-lg p-4 space-y-3 mb-auto">
-                <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Ready-to-send reply</p>
-                <p className="text-sm" data-testid="text-dm-message">
-                  Thanks for reaching out! You can build your order and get an instant estimate here: {calculatorUrl}
-                </p>
-                <Button
-                  size="sm"
-                  variant={dmCopied ? "outline" : "default"}
-                  onClick={handleCopyDmMessage}
-                  data-testid="button-copy-dm"
-                >
-                  {dmCopied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
-                  {dmCopied ? "Copied" : "Copy Message"}
-                </Button>
-              </div>
-
-              <div className="flex justify-between items-center pt-4 mt-auto">
-                <Button variant="ghost" onClick={() => goToStep(4)} data-testid="button-step5-back">
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Back
-                </Button>
-                <Button onClick={handleStep5Continue} data-testid="button-step5-continue">
-                  Continue
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {currentStep === 6 && (
-            <div className="flex-1 flex flex-col" data-testid="card-step-6">
               <div className="mb-4">
                 <h2 className="text-lg font-semibold">Your bakery details</h2>
                 <p className="text-sm text-muted-foreground mt-1">This info appears on your order page</p>
@@ -770,14 +460,14 @@ export default function OnboardingPage() {
               </div>
 
               <div className="flex justify-between items-center pt-4 mt-auto">
-                <Button variant="ghost" onClick={() => goToStep(5)} data-testid="button-step6-back">
+                <Button variant="ghost" onClick={() => goToStep(1)} data-testid="button-step2-back">
                   <ChevronLeft className="h-4 w-4 mr-1" />
                   Back
                 </Button>
                 <Button
-                  onClick={handleStep6Continue}
+                  onClick={handleStep2Continue}
                   disabled={updateProfileMutation.isPending || !businessName.trim()}
-                  data-testid="button-step6-continue"
+                  data-testid="button-step2-continue"
                 >
                   {updateProfileMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                   Continue
@@ -787,53 +477,285 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {currentStep === 7 && (
-            <div className="flex-1 flex flex-col" data-testid="card-step-7">
+          {currentStep === 3 && (
+            <div className="flex-1 flex flex-col" data-testid="card-step-3">
               <div className="text-center mb-4">
-                <h2 className="text-lg font-semibold">Share your order page</h2>
-                <p className="text-sm text-muted-foreground mt-1">When someone asks "how much?", send them this link</p>
+                <h2 className="text-lg font-semibold">
+                  {productMode === "cakes" ? "Upload cakes you've made recently" :
+                   productMode === "treats" ? "Upload treats customers love ordering" :
+                   "Upload a mix of cakes and treats"}
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {productMode === "cakes" ? "Customers trust bakers when they can see real cake designs." :
+                   productMode === "treats" ? "These will appear on your order page." :
+                   "These will appear on your order page. Add up to 6 photos."}
+                </p>
               </div>
 
-              <div className="space-y-4 mb-auto">
-                <div className="bg-muted/50 border rounded-lg p-4 space-y-2">
-                  <Label className="text-xs text-muted-foreground uppercase tracking-wide">Your Order Page</Label>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 bg-background border rounded px-3 py-2 text-sm truncate" data-testid="text-calculator-url">
-                      {calculatorUrl}
-                    </code>
-                    <Button size="sm" onClick={handleCopyLink} variant={linkCopied ? "outline" : "default"} data-testid="button-copy-link">
-                      {linkCopied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
-                      {linkCopied ? "Copied" : "Copy"}
-                    </Button>
+              <div className="grid grid-cols-3 gap-2 mb-auto">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="aspect-square rounded-lg border-2 border-dashed border-border overflow-hidden relative">
+                    {portfolioImages[i] ? (
+                      <>
+                        <img src={portfolioImages[i]} alt={`Portfolio ${i + 1}`} className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => removePortfolioImage(i)}
+                          className="absolute top-1 right-1 bg-black/60 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs"
+                          data-testid={`button-remove-portfolio-${i}`}
+                        >
+                          ×
+                        </button>
+                      </>
+                    ) : (
+                      <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors">
+                        <Upload className="h-5 w-5 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground mt-1">Add</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handlePortfolioUpload}
+                          disabled={isUploading}
+                        />
+                      </label>
+                    )}
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open(calculatorUrl, "_blank")}
-                    className="w-full"
-                    data-testid="button-preview-calculator"
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Preview Your Order Page
-                  </Button>
-                </div>
-
-                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
-                  <p className="text-sm font-medium mb-1.5">Where to add it</p>
-                  <ul className="text-xs text-muted-foreground space-y-1">
-                    <li>• Instagram bio or Linktree</li>
-                    <li>• Facebook page button</li>
-                    <li>• Pinned post or story highlight</li>
-                  </ul>
-                </div>
+                ))}
               </div>
+
+              {isUploading && (
+                <div className="flex items-center justify-center gap-2 py-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm text-muted-foreground">Uploading...</span>
+                </div>
+              )}
 
               <div className="flex justify-between items-center pt-4 mt-auto">
-                <Button variant="ghost" onClick={() => goToStep(6)} data-testid="button-step7-back">
+                <Button variant="ghost" onClick={() => goToStep(2)} data-testid="button-step3-back">
                   <ChevronLeft className="h-4 w-4 mr-1" />
                   Back
                 </Button>
-                <Button onClick={handleStep7Continue} disabled={completeMutation.isPending} data-testid="button-step7-continue">
+                <div className="flex items-center gap-3">
+                  {portfolioImages.length === 0 && (
+                    <button
+                      onClick={handleStep3Continue}
+                      className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2"
+                      data-testid="button-step3-skip"
+                    >
+                      Skip for now
+                    </button>
+                  )}
+                  <Button onClick={handleStep3Continue} data-testid="button-step3-continue">
+                    Continue
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {currentStep === 4 && (
+            <div className="flex-1 flex flex-col" data-testid="card-step-4">
+              <div className="text-center mb-4">
+                <h2 className="text-lg font-semibold">Choose your pricing style</h2>
+                <p className="text-sm text-muted-foreground mt-1">Pick a starting point — you can adjust all prices later</p>
+              </div>
+
+              <div className="space-y-4 mb-auto">
+                {(productMode === "cakes" || productMode === "both") && (
+                  <div>
+                    {productMode === "both" && <p className="text-sm font-medium mb-2">Cake Pricing</p>}
+                    <div className="grid grid-cols-3 gap-2">
+                      {([
+                        { value: "simple", label: "Simple", price: "$5/serving", desc: '6" from $45' },
+                        { value: "detailed", label: "Detailed", price: "$6.50/serving", desc: '6" from $65' },
+                        { value: "luxury", label: "Luxury", price: "$8/serving", desc: '6" from $80' },
+                      ]).map((t) => (
+                        <button
+                          key={t.value}
+                          onClick={() => setCakeTier(t.value)}
+                          className={`p-3 rounded-lg border-2 text-left transition-all ${
+                            cakeTier === t.value
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:border-primary/40"
+                          }`}
+                          data-testid={`button-cake-tier-${t.value}`}
+                        >
+                          <p className="text-sm font-medium">{t.label}</p>
+                          <p className="text-xs text-primary font-semibold mt-0.5">{t.price}</p>
+                          <p className="text-xs text-muted-foreground">{t.desc}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {(productMode === "treats" || productMode === "both") && (
+                  <div>
+                    {productMode === "both" && <p className="text-sm font-medium mb-2">Treat Pricing</p>}
+                    <div className="grid grid-cols-3 gap-2">
+                      {([
+                        { value: "starter", label: "Starter", price: "Cupcakes $30/doz", desc: "Budget-friendly" },
+                        { value: "popular", label: "Popular", price: "Cupcakes $36/doz", desc: "Market average" },
+                        { value: "premium", label: "Premium", price: "Cupcakes $48/doz", desc: "High-end" },
+                      ]).map((t) => (
+                        <button
+                          key={t.value}
+                          onClick={() => setTreatTier(t.value)}
+                          className={`p-3 rounded-lg border-2 text-left transition-all ${
+                            treatTier === t.value
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:border-primary/40"
+                          }`}
+                          data-testid={`button-treat-tier-${t.value}`}
+                        >
+                          <p className="text-sm font-medium">{t.label}</p>
+                          <p className="text-xs text-primary font-semibold mt-0.5">{t.price}</p>
+                          <p className="text-xs text-muted-foreground">{t.desc}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-between items-center pt-4 mt-auto">
+                <Button variant="ghost" onClick={() => goToStep(3)} data-testid="button-step4-back">
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Back
+                </Button>
+                <Button
+                  onClick={handleStep4Continue}
+                  disabled={seedPricingMutation.isPending}
+                  data-testid="button-step4-continue"
+                >
+                  {seedPricingMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                  Continue
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {currentStep === 5 && (
+            <div className="flex-1 flex flex-col" data-testid="card-step-5">
+              <div className="text-center mb-6">
+                <h2 className="text-lg font-semibold">Here's what a quote looks like</h2>
+                <p className="text-sm text-muted-foreground mt-1">Customers see this estimate before submitting a quote request</p>
+              </div>
+
+              <Card className="mb-auto">
+                <CardContent className="pt-6">
+                  <div className="text-center space-y-3">
+                    <div className="inline-flex items-center justify-center h-14 w-14 rounded-full bg-primary/10 mx-auto">
+                      <DollarSign className="h-7 w-7 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        {productMode === "treats" ? "1 dozen Chocolate Dipped Strawberries" : "24 serving custom cake"}
+                      </p>
+                      <p className="text-3xl font-bold mt-1" data-testid="text-estimated-price">
+                        ${getEstimatedPrice()}
+                      </p>
+                    </div>
+                    <p className="text-xs text-muted-foreground border-t pt-3">
+                      Estimated based on your pricing style. Customers submit this as a quote request — you review and finalize before sending.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-between items-center pt-4 mt-auto">
+                <Button variant="ghost" onClick={() => goToStep(4)} data-testid="button-step5-back">
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Back
+                </Button>
+                <Button onClick={handleStep5Continue} data-testid="button-step5-continue">
+                  Continue
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {currentStep === 6 && (
+            <div className="flex-1 flex flex-col" data-testid="card-step-6">
+              <div className="text-center mb-4">
+                <h2 className="text-lg font-semibold">Do you get quote requests in your DMs?</h2>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                {([
+                  { value: "yes_now", label: "Yes — I have one now" },
+                  { value: "yes_often", label: "I get them often" },
+                  { value: "exploring", label: "Just exploring" },
+                ]).map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setDmOption(opt.value)}
+                    className={`p-3 rounded-lg border-2 text-center transition-all text-sm ${
+                      dmOption === opt.value
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/40"
+                    }`}
+                    data-testid={`button-dm-${opt.value}`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="bg-muted/50 border rounded-lg p-3 space-y-2 mb-3">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">{getDmHelperCopy()}</p>
+                <p className="text-sm" data-testid="text-dm-message">
+                  Thanks for reaching out! You can build your order and get an instant estimate here: {calculatorUrl}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant={dmCopied ? "outline" : "default"}
+                    onClick={handleCopyDmMessage}
+                    data-testid="button-copy-dm"
+                  >
+                    {dmCopied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
+                    {dmCopied ? "Copied" : "Copy Message"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={linkCopied ? "outline" : "secondary"}
+                    onClick={handleCopyLink}
+                    data-testid="button-copy-link"
+                  >
+                    {linkCopied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
+                    {linkCopied ? "Copied" : "Copy Link"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => window.open(calculatorUrl, "_blank")}
+                    data-testid="button-preview-calculator"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-1" />
+                    Preview
+                  </Button>
+                </div>
+              </div>
+
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-auto">
+                <p className="text-sm font-medium mb-1">Where to add it</p>
+                <ul className="text-xs text-muted-foreground space-y-0.5">
+                  <li>• Instagram bio or Linktree</li>
+                  <li>• Facebook page button</li>
+                  <li>• Pinned post or story highlight</li>
+                </ul>
+              </div>
+
+              <div className="flex justify-between items-center pt-4 mt-auto">
+                <Button variant="ghost" onClick={() => goToStep(5)} data-testid="button-step6-back">
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Back
+                </Button>
+                <Button onClick={handleStep6Continue} disabled={completeMutation.isPending} data-testid="button-step6-continue">
                   {completeMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                   Continue
                   <ChevronRight className="h-4 w-4 ml-1" />
@@ -842,8 +764,8 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {currentStep === 8 && (
-            <div className="flex-1 flex flex-col" data-testid="card-step-8">
+          {currentStep === 7 && (
+            <div className="flex-1 flex flex-col" data-testid="card-step-7">
               <div className="text-center mb-6">
                 <h2 className="text-lg font-semibold">Accept deposits automatically</h2>
                 <p className="text-sm text-muted-foreground mt-1">When customers approve quotes, they can pay deposits directly through Stripe</p>
@@ -882,7 +804,7 @@ export default function OnboardingPage() {
               </div>
 
               <div className="flex justify-between items-center pt-4 mt-auto">
-                <Button variant="ghost" onClick={() => goToStep(7)} data-testid="button-step8-back">
+                <Button variant="ghost" onClick={() => goToStep(6)} data-testid="button-step7-back">
                   <ChevronLeft className="h-4 w-4 mr-1" />
                   Back
                 </Button>
@@ -893,6 +815,7 @@ export default function OnboardingPage() {
               </div>
             </div>
           )}
+
         </div>
       </div>
     </div>

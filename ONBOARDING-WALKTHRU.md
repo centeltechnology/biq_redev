@@ -21,13 +21,13 @@ On successful registration, the user is automatically redirected to `/onboarding
 
 ---
 
-## Phase 2: Onboarding Wizard (8 Steps)
+## Phase 2: Onboarding Wizard (7 Steps)
 
 **Route:** `/onboarding`
 **Component:** `client/src/pages/onboarding.tsx`
 **Access Control:** `ProtectedRoute` allows access to `/onboarding` even when `onboardingCompleted` is false. All other authenticated routes redirect back to `/onboarding` until setup is complete.
 
-**UI Constraint:** Each step is designed to fit within one viewport height on desktop and mobile. Progress is shown as a minimal bar indicator (8 segments). CTA buttons are anchored at the bottom of each step via flexbox `mt-auto`.
+**UI Constraint:** Each step is designed to fit within one viewport height on desktop and mobile. Progress is shown as a minimal bar indicator (7 segments). CTA buttons are anchored at the bottom of each step via flexbox `mt-auto`.
 
 ### Step 1 — Products (Business Type)
 
@@ -40,17 +40,35 @@ On successful registration, the user is automatically redirected to `/onboarding
 
 **Fields saved:** `product_mode`, `enable_cakes`, `enable_treats`
 
-### Step 2 — Portfolio Upload
+### Step 2 — Your Bakery (Branding)
+
+**Purpose:** Collect business identity details early so the order page URL is ready for later steps.
+
+**Fields:**
+- Business Name (required, pre-filled from signup)
+- Custom URL Slug (for the public order page at `/c/:slug`)
+- Profile Photo (uploaded to object storage)
+- Header Image (uploaded to object storage)
+
+**Behavior:**
+- Slugs validated in real-time via `GET /api/bakers/check-slug/:slug`
+- Images uploaded using `useUpload` hook
+- Data saved via `PATCH /api/bakers/me`
+
+### Step 3 — Portfolio Upload
 
 **Purpose:** Collect work samples for the baker's public order page.
 
 **Behavior:**
-- Dynamic heading based on `productMode` (cakes/treats/both)
+- Dynamic heading based on `productMode`:
+  - Cakes: "Upload cakes you've made recently"
+  - Treats: "Upload treats customers love ordering"
+  - Both: "Upload a mix of cakes and treats"
 - Upload grid (2×3) for up to 6 images
 - Uses `useUpload` hook, stores URLs in `portfolio_images` array via `PATCH /api/bakers/me`
 - "Skip for now" option when no images uploaded
 
-### Step 3 — Pricing Style
+### Step 4 — Pricing Style
 
 **Purpose:** Select a pricing tier to auto-generate calculator config.
 
@@ -65,67 +83,48 @@ On successful registration, the user is automatically redirected to `/onboarding
 
 **Fields saved:** `cake_pricing_tier`, `treat_pricing_tier`, `calculator_config`
 
-### Step 4 — Preview (Quote Simulation)
+### Step 5 — Preview (Quote Simulation)
 
 **Purpose:** Show the baker what a customer quote looks like with their pricing.
 
 **Behavior:**
 - Auto-calculates an example order price based on `productMode` and selected tier
-- Cakes: 24 servings, Detailed design → shows estimated price
-- Treats: 1 dozen Chocolate Dipped Strawberries → shows estimated price
+- Cakes: "24 serving custom cake" → shows estimated price
+- Treats: "1 dozen Chocolate Dipped Strawberries" → shows estimated price
 - Centered price card with explanation text
 - No API calls — price calculated client-side from tier selection
 
-### Step 5 — DM Activation
+### Step 6 — DM Reply + Share Link (Activation)
 
-**Purpose:** Provide a ready-to-use reply for DM pricing requests.
+**Purpose:** Provide a ready-to-use DM reply and get the baker to share their order page link. This is the merged DM activation + share step.
 
 **Behavior:**
 - Asks "Do you get quote requests in your DMs?" with 3 options
-- Shows a copyable reply message template containing the baker's order page link
-- "Copy Message" button copies the template to clipboard
-
-### Step 6 — Your Bakery (Branding)
-
-**Purpose:** Collect business identity details.
-
-**Fields:**
-- Business Name (pre-filled from signup)
-- Custom URL Slug (for the public order page at `/c/:slug`)
-- Profile Photo (uploaded to object storage)
-- Header Image (uploaded to object storage)
-
-**Behavior:**
-- Slugs validated in real-time via `GET /api/bakers/check-slug/:slug`
-- Images uploaded using `useUpload` hook
-- Data saved via `PATCH /api/bakers/me`
-
-### Step 7 — Share Your Order Page (Activation)
-
-**Purpose:** Get the baker to share their public order page link.
-
-**Behavior:**
-- Displays the baker's unique public URL (`/c/:slug`)
-- Provides "Copy Link" and "Preview Your Order Page" buttons
-- Tips for where to add: Instagram bio, Facebook page, pinned posts
+- Dynamic helper copy changes based on selected option:
+  - "Yes — I have one now" → "Send this reply right now."
+  - "I get them often" → "Next time someone asks 'How much?', send them this."
+  - "Just exploring" → "When customers start asking for quotes, send them this link."
+- Shows copyable reply message template containing the baker's order page link
+- Buttons: "Copy Message", "Copy Link", "Preview" (opens order page)
+- "Where to add it" tips: Instagram bio, Facebook page, pinned posts
 - Completing this step marks `onboarding_completed = true`
 
 **API:** `POST /api/baker/onboarding-complete`
 
-### Step 8 — Get Paid (Stripe Connect)
+### Step 7 — Get Paid (Stripe Connect)
 
 **Purpose:** Connect Stripe for automatic deposit collection.
 
 **Behavior:**
 - User can start the Stripe Connect onboarding flow (redirects to Stripe's external onboarding)
 - Alternatively, click "Go to Dashboard" to skip
-- Wizard was already marked complete in Step 7 — this step is optional
+- Wizard was already marked complete in Step 6 — this step is optional
 
 **APIs:**
 - `POST /api/stripe-connect/create-account`
 - `POST /api/stripe-connect/onboarding-link`
 
-**Step tracking API:** `PATCH /api/baker/onboarding-step` (updates `onboardingStep` integer, max 8)
+**Step tracking API:** `PATCH /api/baker/onboarding-step` (updates `onboardingStep` integer, max 7)
 
 ---
 
@@ -508,7 +507,7 @@ Day 4 is the only email that branches based on Stripe connection status.
 | File | Purpose |
 |---|---|
 | `client/src/pages/signup.tsx` | Account creation form |
-| `client/src/pages/onboarding.tsx` | 4-step onboarding wizard |
+| `client/src/pages/onboarding.tsx` | 7-step onboarding wizard |
 | `client/src/components/protected-route.tsx` | Route guard, redirects to onboarding if incomplete |
 | `client/src/components/onboarding-checklist.tsx` | Dashboard activation checklist |
 | `server/routes.ts` | API endpoints for onboarding steps, demo quote, completion |
@@ -523,7 +522,7 @@ Day 4 is the only email that branches based on Stripe connection status.
 
 | Field | Type | Purpose |
 |---|---|---|
-| `onboarding_step` | integer | Current wizard step (1-4) |
+| `onboarding_step` | integer | Current wizard step (1-7) |
 | `onboarding_completed` | boolean | Whether wizard is finished |
 | `first_quote_sent_at` | timestamp | When first quote was sent |
 | `stripe_connected_at` | timestamp | When Stripe was connected |
@@ -533,4 +532,4 @@ Day 4 is the only email that branches based on Stripe connection status.
 | `milestone_first_lead_sent` | boolean | Flag: first lead email sent |
 | `milestone_first_quote_sent` | boolean | Flag: first quote email sent |
 | `milestone_first_payment_sent` | boolean | Flag: first payment email sent |
-| `demo_quote_id` | text | Reference to the demo quote created in Step 2 |
+| `demo_quote_id` | text | Reference to the demo quote (created via dashboard) |

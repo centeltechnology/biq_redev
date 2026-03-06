@@ -695,7 +695,7 @@ export async function registerRoutes(
   app.patch("/api/baker/onboarding-step", requireAuth, async (req, res) => {
     try {
       const schema = z.object({
-        step: z.number().min(1).max(8),
+        step: z.number().min(1).max(7),
       });
       const { step } = schema.parse(req.body);
       const baker = await storage.updateBaker(req.session.bakerId!, { onboardingStep: step });
