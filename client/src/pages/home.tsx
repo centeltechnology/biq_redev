@@ -13,9 +13,9 @@ import {
   FileText,
   CreditCard,
   ChevronDown,
+  ChevronRight,
   Sparkles,
 } from "lucide-react";
-import orderPageImg from "@assets/generated_images/bakeriq_public_cake_calculator.png";
 import cakeImg from "@assets/generated_images/elegant_wedding_cake_hero.png";
 
 export default function HomePage() {
@@ -106,14 +106,55 @@ export default function HomePage() {
                     <span className="h-2.5 w-2.5 rounded-full bg-chart-5/50" />
                     <span className="ml-3 text-[11px] text-muted-foreground truncate">bakeriq.app/c/your-bakery</span>
                   </div>
-                  <img
-                    src={orderPageImg}
-                    alt="A baker's public order page where customers build their cake and get an instant price"
-                    width={900}
-                    height={680}
-                    className="w-full h-auto object-cover"
-                    data-testid="img-hero-order-page"
-                  />
+                  {/* Inline calculator mockup — no external image needed */}
+                  <div className="bg-background p-5 space-y-4" data-testid="img-hero-order-page">
+                    <div className="text-center pb-1">
+                      <p className="text-[11px] text-muted-foreground uppercase tracking-widest mb-0.5">Running Price</p>
+                      <p className="text-3xl font-bold text-foreground">$247.00</p>
+                      <p className="text-[11px] text-muted-foreground">Real-time Total</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Tier</p>
+                      <div className="flex gap-1.5">
+                        {["Single Tier", "Two Tier", "Three Tier"].map((t, i) => (
+                          <button key={t} className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium border transition-colors ${i === 0 ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-muted-foreground"}`}>{t}</button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Design Level</p>
+                      <div className="flex gap-1.5">
+                        {["Simple", "Detailed", "Luxury"].map((t, i) => (
+                          <button key={t} className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium border transition-colors ${i === 1 ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-muted-foreground"}`}>{t}</button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Size</p>
+                      <div className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2">
+                        <span className="text-[12px] text-foreground">24 servings</span>
+                        <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Flavor</p>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {["Vanilla Bean", "Chocolate Fudge", "Red Velvet", "Lemon Zest"].map((f, i) => (
+                          <span key={f} className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium border ${i === 0 ? "bg-primary/10 border-primary/30 text-primary" : "bg-card border-border text-muted-foreground"}`}>{f}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      {["Name", "Email", "Phone Number", "Special Requests"].map((field) => (
+                        <div key={field} className="rounded-lg border border-border bg-card px-3 py-2">
+                          <span className="text-[11px] text-muted-foreground">{field}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <button className="w-full rounded-lg bg-primary text-primary-foreground py-2.5 text-[13px] font-semibold">
+                      Submit Inquiry
+                    </button>
+                  </div>
                 </div>
                 <div className="absolute -bottom-5 -left-4 w-32 sm:w-40 rounded-xl overflow-hidden border-4 border-background shadow-lg rotate-[-4deg]">
                   <img
