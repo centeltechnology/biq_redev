@@ -60,7 +60,7 @@ import {
   type InsertAnalyticsEvent,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, gte, lte, sql, or, ilike, isNull, count, countDistinct } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql, or, ilike, isNull, count, countDistinct, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // Bakers
@@ -1526,7 +1526,7 @@ export class DatabaseStorage implements IStorage {
         createdAt: analyticsEvents.createdAt,
       })
       .from(analyticsEvents)
-      .where(sql`${analyticsEvents.eventType} = ANY(${types})`)
+      .where(inArray(analyticsEvents.eventType, types))
       .orderBy(desc(analyticsEvents.createdAt))
       .limit(limit);
     return rows;

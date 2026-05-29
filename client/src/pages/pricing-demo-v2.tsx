@@ -107,7 +107,7 @@ export default function PricingDemoV2Page() {
         </div>
       </div>
 
-      <section className="py-16 md:py-24" data-testid="section-hero">
+      <section className="py-10 md:py-14" data-testid="section-hero">
         <div className="container max-w-3xl mx-auto px-4 text-center">
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-tight" data-testid="text-headline">
             I charged $120 for a cake that should've been $185.
@@ -130,7 +130,7 @@ export default function PricingDemoV2Page() {
         </div>
       </section>
 
-      <section className="pb-16 md:pb-20" data-testid="section-before-after">
+      <section className="pb-10 md:pb-14" data-testid="section-before-after">
         <div className="container max-w-xl mx-auto px-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Card className="border-border/60" data-testid="card-before">
@@ -157,7 +157,7 @@ export default function PricingDemoV2Page() {
         </div>
       </section>
 
-      <section ref={calculatorRef} className="pb-16 md:pb-20" data-testid="section-calculator">
+      <section ref={calculatorRef} className="pb-10 md:pb-14" data-testid="section-calculator">
         <div className="container max-w-lg mx-auto px-4">
           <div className="text-center mb-4" data-testid="section-guided-instruction">
             <p className="text-sm font-bold" data-testid="text-guided-title">Quick test (10 seconds):</p>
@@ -254,7 +254,7 @@ export default function PricingDemoV2Page() {
         </div>
       </section>
 
-      <section className="pb-20 md:pb-28" data-testid="section-cta">
+      <section className="pb-16 md:pb-20" data-testid="section-cta">
         <div className="container max-w-lg mx-auto px-4 text-center space-y-4">
           <p className="text-base font-medium" data-testid="text-cta-line">
             Turn this into a branded quote and get paid.

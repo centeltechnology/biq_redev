@@ -13,9 +13,10 @@ import {
   FileText,
   CreditCard,
   ChevronDown,
+  Sparkles,
 } from "lucide-react";
-import heroBakerImg from "@assets/generated_images/hero-baker-workspace.png";
-import quoteMockupImg from "@assets/generated_images/quote-phone-mockup.png";
+import orderPageImg from "@assets/generated_images/bakeriq_public_cake_calculator.png";
+import cakeImg from "@assets/generated_images/elegant_wedding_cake_hero.png";
 
 export default function HomePage() {
   const scrollToHowItWorks = () => {
@@ -50,33 +51,31 @@ export default function HomePage() {
 
       <main>
         {/* HERO */}
-        <section className="py-20 md:py-28">
-          <div className="container max-w-7xl mx-auto px-4">
-            <div className="grid lg:grid-cols-[1fr_1.2fr] gap-12 lg:gap-16 items-start">
-              <div className="flex flex-col justify-center lg:pt-6">
-                <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-extrabold tracking-tight leading-[1.1] mb-6" data-testid="text-hero-heading">
-                  You've mastered the craft. Now master the business.
+        <section className="relative overflow-hidden">
+          <div className="absolute inset-0 -z-10 bg-gradient-to-b from-primary/10 via-primary/5 to-transparent" />
+          <div className="absolute -top-24 -right-24 -z-10 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
+          <div className="container max-w-7xl mx-auto px-4 py-16 md:py-24">
+            <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+              <div className="flex flex-col">
+                <span
+                  className="inline-flex items-center gap-2 self-start rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-semibold mb-6"
+                  data-testid="text-hero-eyebrow"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Made for custom cake &amp; treat makers
+                </span>
+                <h1 className="text-4xl md:text-5xl lg:text-[3.4rem] font-extrabold tracking-tight leading-[1.08] mb-6" data-testid="text-hero-heading">
+                  Stop pricing cakes in your DMs.
                 </h1>
-                <p className="text-lg text-muted-foreground mb-6 max-w-md leading-relaxed" data-testid="text-hero-subheading">
-                  Structure your orders. Automate deposits. See your real revenue — from inquiry to payout.
+                <p className="text-lg text-muted-foreground mb-7 max-w-md leading-relaxed" data-testid="text-hero-subheading">
+                  Share one beautiful order page that quotes every request instantly — so you look professional, stop undercharging, and get paid without the endless back-and-forth.
                 </p>
-                <div className="space-y-1 mb-8 text-xs text-muted-foreground/85 italic font-normal" data-testid="text-chaos-bridge">
-                  <p>Still pricing in DMs?</p>
-                  <p>Still chasing deposits?</p>
-                  <p>Still guessing your real profit?</p>
+                <div className="space-y-3 mb-8 max-w-md" data-testid="list-hero-relief">
+                  <ReliefItem text="No more guessing your prices in chat threads" />
+                  <ReliefItem text="Every request arrives complete — no follow-up questions" />
+                  <ReliefItem text="Deposits collected automatically when you're ready" />
                 </div>
-                <div className="rounded-lg overflow-hidden mb-8 max-w-[280px]">
-                  <img
-                    src={heroBakerImg}
-                    alt="Professional baker working at a clean modern workspace"
-                    width={560}
-                    height={420}
-                    loading="lazy"
-                    className="w-full h-auto max-h-[200px] object-cover rounded-lg"
-                    data-testid="img-hero-lifestyle"
-                  />
-                </div>
-                <div className="flex flex-col sm:flex-row items-start gap-3 mb-6">
+                <div className="flex flex-col sm:flex-row items-start gap-3 mb-5">
                   <Link href="/signup">
                     <Button size="lg" className="gap-2 text-base" data-testid="button-hero-start" onClick={() => trackSignupClick()}>
                       Start Free
@@ -94,12 +93,42 @@ export default function HomePage() {
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground" data-testid="text-trust-line">
-                  Free to start. We only earn when you do.
+                  Free to start. No credit card. We only earn when you get paid.
                 </p>
               </div>
 
-              <div className="rounded-xl border bg-card shadow-lg overflow-hidden p-4">
-                <MockPaymentsDashboard />
+              {/* Hero visual: the actual order page customers see */}
+              <div className="relative">
+                <div className="relative rounded-2xl border bg-card shadow-xl overflow-hidden" data-testid="img-hero-order-page-frame">
+                  <div className="flex items-center gap-1.5 border-b bg-muted/40 px-4 py-2.5">
+                    <span className="h-2.5 w-2.5 rounded-full bg-destructive/40" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-chart-4/50" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-chart-5/50" />
+                    <span className="ml-3 text-[11px] text-muted-foreground truncate">bakeriq.app/c/your-bakery</span>
+                  </div>
+                  <img
+                    src={orderPageImg}
+                    alt="A baker's public order page where customers build their cake and get an instant price"
+                    width={900}
+                    height={680}
+                    className="w-full h-auto object-cover"
+                    data-testid="img-hero-order-page"
+                  />
+                </div>
+                <div className="absolute -bottom-5 -left-4 w-32 sm:w-40 rounded-xl overflow-hidden border-4 border-background shadow-lg rotate-[-4deg]">
+                  <img
+                    src={cakeImg}
+                    alt="An elegant custom cake"
+                    width={320}
+                    height={320}
+                    className="w-full h-auto object-cover"
+                    data-testid="img-hero-cake"
+                  />
+                </div>
+                <div className="absolute -top-3 -right-3 sm:-right-4 rounded-full bg-card border shadow-md px-4 py-2 flex items-center gap-2" data-testid="badge-instant-quote">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-semibold">Instant quote</span>
+                </div>
               </div>
             </div>
           </div>
@@ -108,45 +137,36 @@ export default function HomePage() {
         {/* WORKFLOW */}
         <section id="how-it-works" className="py-20 md:py-28 bg-muted/30">
           <div className="container max-w-7xl mx-auto px-4">
-            <h2 className="text-3xl md:text-4xl font-bold mb-16 text-center" data-testid="text-workflow-heading">
-              From inquiry to deposit — all in one system.
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-center" data-testid="text-workflow-heading">
+              From request to paid — without the back-and-forth.
             </h2>
+            <p className="text-center text-muted-foreground mb-16 max-w-xl mx-auto">
+              Four simple steps. You stay in control the whole way.
+            </p>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-10 max-w-5xl mx-auto">
               <WorkflowStep
                 step={1}
                 icon={<Share2 className="h-6 w-6 text-primary" />}
-                title="Share your pricing link"
-                description="One link. Customers see your pricing and submit a complete request."
+                title="Share your order page"
+                description="One link. Customers see your pricing and send a complete request."
               />
               <WorkflowStep
                 step={2}
                 icon={<MessageSquareText className="h-6 w-6 text-primary" />}
-                title="Receive a clean order request"
-                description="No missing details. No back-and-forth."
+                title="Get a clean request"
+                description="Every detail you need. No missing info, no chasing."
               />
               <WorkflowStep
                 step={3}
                 icon={<FileText className="h-6 w-6 text-primary" />}
-                title="Send a professional quote"
-                description="Deposit built in. Clear terms. Ready to accept."
+                title="Send a polished quote"
+                description="Deposit built in. Clear terms. Ready to accept in a tap."
               />
               <WorkflowStep
                 step={4}
                 icon={<CreditCard className="h-6 w-6 text-primary" />}
-                title="Lock in the deposit"
-                description="Secure deposits via Stripe. Funds processed to your account."
-              />
-            </div>
-            <div className="mt-14 text-center max-w-sm mx-auto" data-testid="section-quote-mockup">
-              <p className="text-sm text-muted-foreground mb-4">This is what your customer sees.</p>
-              <img
-                src={quoteMockupImg}
-                alt="Professional quote displayed on a mobile phone"
-                width={640}
-                height={480}
-                loading="lazy"
-                className="w-full max-w-[320px] h-auto mx-auto rounded-xl shadow-md border border-border/40"
-                data-testid="img-quote-mockup"
+                title="Get your deposit"
+                description="Secure deposits through Stripe, paid straight to your account."
               />
             </div>
           </div>
@@ -154,7 +174,7 @@ export default function HomePage() {
 
         <div className="py-10 text-center" data-testid="text-authority-line">
           <p className="text-sm text-muted-foreground tracking-wide">
-            Used by serious home bakers and custom cake studios.
+            Loved by home bakers and custom cake studios alike.
           </p>
         </div>
 
@@ -162,22 +182,50 @@ export default function HomePage() {
         <section className="py-20 md:py-28">
           <div className="container max-w-7xl mx-auto px-4">
             <div className="max-w-3xl mx-auto">
-              <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center" data-testid="text-different-heading">
-                Built for serious baking businesses.
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-center" data-testid="text-different-heading">
+                Everything you need to look professional.
               </h2>
+              <p className="text-center text-muted-foreground mb-12 max-w-xl mx-auto">
+                The tools that used to take a dozen apps — now in one simple place.
+              </p>
               <div className="grid sm:grid-cols-2 gap-x-12 gap-y-5 max-w-xl mx-auto">
-                <Feature text="Unlimited quotes" />
+                <Feature text="Unlimited quotes on every plan" />
                 <Feature text="Express Items for featured specials" />
                 <Feature text="Custom deposit policies" />
                 <Feature text="Stripe-powered payments" />
-                <Feature text="Real revenue dashboard" />
+                <Feature text="A clear view of your real revenue" />
+                <Feature text="Your own branded order page" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* REVENUE VISIBILITY */}
+        <section className="py-20 md:py-28 bg-muted/30">
+          <div className="container max-w-7xl mx-auto px-4">
+            <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+              <div>
+                <h2 className="text-3xl md:text-4xl font-bold mb-5" data-testid="text-revenue-heading">
+                  See every payment in one place.
+                </h2>
+                <p className="text-lg text-muted-foreground mb-6 max-w-md leading-relaxed">
+                  Once you connect Stripe, deposits and payments land here automatically. No spreadsheets, no guessing what you actually earned this month.
+                </p>
+                <div className="space-y-3 max-w-md">
+                  <ReliefItem text="Deposits collected the moment a quote is accepted" />
+                  <ReliefItem text="Your real take-home, after fees, at a glance" />
+                  <ReliefItem text="Set it up only when you're ready — it's optional" />
+                </div>
+              </div>
+              <div className="rounded-xl border bg-card shadow-lg overflow-hidden p-4">
+                <MockPaymentsDashboard />
               </div>
             </div>
           </div>
         </section>
 
         {/* PRICING MODEL CLARITY */}
-        <section className="py-20 md:py-28 bg-muted/30">
+        <section className="py-20 md:py-28">
           <div className="container max-w-7xl mx-auto px-4">
             <div className="max-w-2xl mx-auto text-center">
               <h2 className="text-3xl md:text-4xl font-bold mb-8" data-testid="text-pricing-heading">
@@ -185,8 +233,8 @@ export default function HomePage() {
               </h2>
               <div className="space-y-2 text-muted-foreground text-base mb-10">
                 <p>Unlimited quotes on every plan.</p>
-                <p>Platform fee only when you process payments.</p>
-                <p>Upgrade to reduce your rate.</p>
+                <p>A small fee only when you actually get paid.</p>
+                <p>Upgrade anytime to keep more of what you earn.</p>
               </div>
               <Link href="/plans">
                 <Button variant="outline" size="lg" className="gap-2" data-testid="button-view-pricing">
@@ -199,7 +247,7 @@ export default function HomePage() {
         </section>
 
         {/* FAQ */}
-        <section className="py-20 md:py-28">
+        <section className="py-20 md:py-28 bg-muted/30">
           <div className="container max-w-7xl mx-auto px-4">
             <div className="max-w-2xl mx-auto">
               <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center" data-testid="text-faq-heading">
@@ -231,10 +279,10 @@ export default function HomePage() {
         <section className="py-20 md:py-28 bg-primary text-primary-foreground">
           <div className="container max-w-3xl mx-auto px-4 text-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-closing-heading">
-              Run your bakery like a business.
+              Spend less time quoting. More time baking.
             </h2>
             <p className="text-lg opacity-90 mb-10">
-              Structure. Clarity. Revenue visibility.
+              Set up your order page in minutes — it's free to start.
             </p>
             <Link href="/signup">
               <Button size="lg" variant="secondary" className="gap-2 text-lg" data-testid="button-cta-signup" onClick={() => trackSignupClick()}>
@@ -271,7 +319,7 @@ export default function HomePage() {
               </a>
             </div>
             <p className="text-sm text-muted-foreground">
-              Revenue infrastructure for treat makers
+              Made for custom cake &amp; treat makers
             </p>
           </div>
         </div>
@@ -297,6 +345,17 @@ function Feature({ text }: { text: string }) {
     <div className="flex items-center gap-3">
       <Check className="h-4 w-4 text-primary shrink-0" />
       <span className="text-base">{text}</span>
+    </div>
+  );
+}
+
+function ReliefItem({ text }: { text: string }) {
+  return (
+    <div className="flex items-start gap-3" data-testid="relief-item">
+      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15">
+        <Check className="h-3 w-3 text-primary" />
+      </span>
+      <span className="text-sm text-muted-foreground leading-relaxed">{text}</span>
     </div>
   );
 }

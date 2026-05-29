@@ -113,7 +113,7 @@ export default function PricingDemoPage() {
         </div>
       </div>
 
-      <section className="py-20 md:py-28" data-testid="section-hero">
+      <section className="py-12 md:py-16" data-testid="section-hero">
         <div className="container max-w-3xl mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-tight" data-testid="text-headline">
             Still pricing cakes in DMs?
@@ -133,7 +133,7 @@ export default function PricingDemoPage() {
         </div>
       </section>
 
-      <section ref={calculatorRef} className="pb-20 md:pb-28" data-testid="section-calculator">
+      <section ref={calculatorRef} className="pb-12 md:pb-16" data-testid="section-calculator">
         <div className="container max-w-lg mx-auto px-4">
           <div className="text-center mb-4" data-testid="section-guided-instruction">
             <p className="text-sm font-bold" data-testid="text-guided-title">Quick test (10 seconds):</p>
@@ -230,7 +230,7 @@ export default function PricingDemoPage() {
         </div>
       </section>
 
-      <section className="pb-20 md:pb-28" data-testid="section-cta">
+      <section className="pb-16 md:pb-20" data-testid="section-cta">
         <div className="container max-w-lg mx-auto px-4 text-center space-y-4">
           <p className="text-base text-muted-foreground" data-testid="text-cta-line">
             Turn this into a branded quote and get paid.

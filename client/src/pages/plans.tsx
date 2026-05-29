@@ -88,7 +88,7 @@ export default function PlansPage() {
             Free to start. Pay as you grow.
           </h1>
           <p className="mt-4 text-lg text-muted-foreground max-w-xl mx-auto" data-testid="text-plans-subline">
-            Process payments when you're ready. Upgrade as your volume increases.
+            Start free with no monthly fee, and the platform fee only kicks in when a customer actually pays you. Upgrade as you grow to keep even more of every order.
           </p>
         </div>
       </section>
@@ -126,7 +126,7 @@ export default function PlansPage() {
                   <div className="space-y-3 text-sm">
                     <div className="flex items-center gap-2">
                       <Check className="h-4 w-4 text-primary shrink-0" />
-                      <span><strong>{plan.fee}</strong> platform fee</span>
+                      <span><strong>{plan.fee}</strong> fee — only when you get paid</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="h-4 w-4 text-primary shrink-0" />
@@ -246,7 +246,7 @@ export default function PlansPage() {
       <section className="py-12 bg-muted/30 border-t" data-testid="section-plans-bottom-cta">
         <div className="container max-w-2xl mx-auto px-4 text-center space-y-4">
           <p className="text-base text-muted-foreground">
-            Ready to structure your bakery revenue?
+            Ready to get paid for your work — the easy way?
           </p>
           <Link href="/signup">
             <Button size="lg" className="gap-2" data-testid="button-bottom-signup" onClick={() => trackSignupClick("/plans")}>
