@@ -286,10 +286,8 @@ export default function OnboardingPage() {
   };
 
   const handleCopyDmMessage = async () => {
-    const url = `${window.location.origin}/c/${baker?.slug || slug}`;
-    const message = `Thanks for reaching out! You can build your order and get an instant estimate here: ${url}`;
     try {
-      await navigator.clipboard.writeText(message);
+      await navigator.clipboard.writeText(getDmMessage());
       setDmCopied(true);
       toast({ title: "Message copied!" });
     } catch {
@@ -302,21 +300,33 @@ export default function OnboardingPage() {
   };
 
   const calculatorUrl = `${window.location.origin}/c/${baker?.slug || slug}`;
+  const linkPreview = `${window.location.host}/c/${slug || baker?.slug || "your-bakery"}`;
 
-  const getEstimatedPrice = () => {
-    if (productMode === "treats") {
-      const tierPrices: Record<string, number> = { starter: 24, popular: 45, premium: 60 };
-      return tierPrices[treatTier || "popular"] || 45;
-    }
+  const getCakePrice = () => {
     const tierPrices: Record<string, number> = { simple: 120, detailed: 156, luxury: 192 };
     return tierPrices[cakeTier || "simple"] || 120;
   };
 
+  const getTreatPrice = () => {
+    const tierPrices: Record<string, number> = { starter: 35, popular: 45, premium: 60 };
+    return tierPrices[treatTier || "popular"] || 45;
+  };
+
+  const getDmMessage = () => {
+    const intro =
+      productMode === "cakes"
+        ? "Thanks for reaching out! You can build your cake request and get an instant estimate here:"
+        : productMode === "treats"
+        ? "Thanks for reaching out! You can build your treat order and get an instant estimate here:"
+        : "Thanks for reaching out! You can build your order and get an instant estimate here:";
+    return `${intro}\n${calculatorUrl}\n\nOnce you submit the details, I'll review everything and confirm availability.`;
+  };
+
   const getDmHelperCopy = () => {
     if (dmOption === "yes_now") return "Send this reply right now.";
-    if (dmOption === "yes_often") return "Next time someone asks \"How much?\", send them this.";
+    if (dmOption === "yes_often") return "Next time someone asks 'how much?', send them this.";
     if (dmOption === "exploring") return "When customers start asking for quotes, send them this link.";
-    return "Copy this message and send it when someone asks for pricing.";
+    return "Send them this when someone asks for pricing.";
   };
 
   return (
@@ -350,13 +360,13 @@ export default function OnboardingPage() {
             <div className="flex-1 flex flex-col" data-testid="card-step-1">
               <div className="text-center mb-6">
                 <h2 className="text-lg font-semibold">What do you sell most?</h2>
-                <p className="text-sm text-muted-foreground mt-1">This helps us set up your pricing and order page</p>
+                <p className="text-sm text-muted-foreground mt-1">We'll tailor your pricing, order page, and setup steps around what you sell.</p>
               </div>
 
               <div className="grid grid-cols-3 gap-3 mb-auto">
                 {([
                   { value: "cakes" as ProductMode, label: "Custom Cakes", icon: Cake, desc: "Layer cakes, sheet cakes" },
-                  { value: "treats" as ProductMode, label: "Treats", icon: Cookie, desc: "Cupcakes, cookies, pops" },
+                  { value: "treats" as ProductMode, label: "Treats", icon: Cookie, desc: "Strawberries, cupcakes, cookies, cake pops" },
                   { value: "both" as ProductMode, label: "Both", icon: Layers, desc: "Cakes and treats" },
                 ]).map((opt) => (
                   <button
@@ -406,7 +416,7 @@ export default function OnboardingPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="slug">Your Order Page URL</Label>
+                  <Label htmlFor="slug">Your Order Page Link</Label>
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground whitespace-nowrap">/c/</span>
                     <Input
@@ -418,6 +428,9 @@ export default function OnboardingPage() {
                       data-testid="input-slug"
                     />
                   </div>
+                  <p className="text-xs text-muted-foreground" data-testid="text-link-preview">
+                    Your link: <span className="font-medium text-foreground">{linkPreview}</span>
+                  </p>
                   {slugChecking && <p className="text-xs text-muted-foreground">Checking...</p>}
                   {slugAvailable === true && <p className="text-xs text-green-600">Available!</p>}
                   {slugAvailable === false && <p className="text-xs text-red-600">Not available</p>}
@@ -481,14 +494,12 @@ export default function OnboardingPage() {
             <div className="flex-1 flex flex-col" data-testid="card-step-3">
               <div className="text-center mb-4">
                 <h2 className="text-lg font-semibold">
-                  {productMode === "cakes" ? "Upload cakes you've made recently" :
+                  {productMode === "cakes" ? "Upload your best cake designs" :
                    productMode === "treats" ? "Upload treats customers love ordering" :
                    "Upload a mix of cakes and treats"}
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {productMode === "cakes" ? "Customers trust bakers when they can see real cake designs." :
-                   productMode === "treats" ? "These will appear on your order page." :
-                   "These will appear on your order page. Add up to 6 photos."}
+                  These will appear on your order page. Add up to 6 photos.
                 </p>
               </div>
 
@@ -530,6 +541,12 @@ export default function OnboardingPage() {
                 </div>
               )}
 
+              {portfolioImages.length === 0 && (
+                <p className="text-xs text-center text-muted-foreground pt-3">
+                  Photos help customers trust your order page. You can add them later.
+                </p>
+              )}
+
               <div className="flex justify-between items-center pt-4 mt-auto">
                 <Button variant="ghost" onClick={() => goToStep(2)} data-testid="button-step3-back">
                   <ChevronLeft className="h-4 w-4 mr-1" />
@@ -558,7 +575,7 @@ export default function OnboardingPage() {
             <div className="flex-1 flex flex-col" data-testid="card-step-4">
               <div className="text-center mb-4">
                 <h2 className="text-lg font-semibold">Choose your pricing style</h2>
-                <p className="text-sm text-muted-foreground mt-1">Pick a starting point — you can adjust all prices later</p>
+                <p className="text-sm text-muted-foreground mt-1">Pick a starting point — you can adjust all prices later.</p>
               </div>
 
               <div className="space-y-4 mb-auto">
@@ -567,9 +584,9 @@ export default function OnboardingPage() {
                     {productMode === "both" && <p className="text-sm font-medium mb-2">Cake Pricing</p>}
                     <div className="grid grid-cols-3 gap-2">
                       {([
-                        { value: "simple", label: "Simple", price: "$5/serving", desc: '6" from $45' },
-                        { value: "detailed", label: "Detailed", price: "$6.50/serving", desc: '6" from $65' },
-                        { value: "luxury", label: "Luxury", price: "$8/serving", desc: '6" from $80' },
+                        { value: "simple", label: "Simple", price: "$5/serving", desc: "24 servings from $120" },
+                        { value: "detailed", label: "Detailed", price: "$6.50/serving", desc: "24 servings from $156" },
+                        { value: "luxury", label: "Luxury", price: "$8/serving", desc: "24 servings from $192" },
                       ]).map((t) => (
                         <button
                           key={t.value}
@@ -595,8 +612,8 @@ export default function OnboardingPage() {
                     {productMode === "both" && <p className="text-sm font-medium mb-2">Treat Pricing</p>}
                     <div className="grid grid-cols-3 gap-2">
                       {([
-                        { value: "starter", label: "Starter", price: "Strawberries $24/doz", desc: "Budget-friendly" },
-                        { value: "popular", label: "Popular", price: "Strawberries $45/doz", desc: "Market average" },
+                        { value: "starter", label: "Starter", price: "Strawberries $35/doz", desc: "Budget-friendly" },
+                        { value: "popular", label: "Popular", price: "Strawberries $45/doz", desc: "Most common" },
                         { value: "premium", label: "Premium", price: "Strawberries $60/doz", desc: "High-end" },
                       ]).map((t) => (
                         <button
@@ -641,29 +658,44 @@ export default function OnboardingPage() {
             <div className="flex-1 flex flex-col" data-testid="card-step-5">
               <div className="text-center mb-6">
                 <h2 className="text-lg font-semibold">Here's what a quote looks like</h2>
-                <p className="text-sm text-muted-foreground mt-1">Customers see this estimate before submitting a quote request</p>
+                <p className="text-sm text-muted-foreground mt-1">This is the estimate your customer sees after building their request.</p>
               </div>
 
-              <Card className="mb-auto">
-                <CardContent className="pt-6">
-                  <div className="text-center space-y-3">
-                    <div className="inline-flex items-center justify-center h-14 w-14 rounded-full bg-primary/10 mx-auto">
-                      <DollarSign className="h-7 w-7 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">
-                        {productMode === "treats" ? "1 dozen Chocolate Dipped Strawberries" : "24 serving custom cake"}
-                      </p>
-                      <p className="text-3xl font-bold mt-1" data-testid="text-estimated-price">
-                        ${getEstimatedPrice()}
-                      </p>
-                    </div>
-                    <p className="text-xs text-muted-foreground border-t pt-3">
-                      Estimated based on your pricing style. Customers submit this as a quote request — you review and finalize before sending.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="mb-auto space-y-3">
+                {(productMode === "cakes" || productMode === "both") && (
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center gap-4">
+                        <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-primary/10 shrink-0">
+                          <Cake className="h-6 w-6 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm text-muted-foreground">24 serving custom cake</p>
+                          <p className="text-2xl font-bold mt-0.5" data-testid="text-cake-price">${getCakePrice()}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                {(productMode === "treats" || productMode === "both") && (
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center gap-4">
+                        <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-primary/10 shrink-0">
+                          <Cookie className="h-6 w-6 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm text-muted-foreground">1 dozen chocolate dipped strawberries</p>
+                          <p className="text-2xl font-bold mt-0.5" data-testid="text-treat-price">${getTreatPrice()}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                <p className="text-xs text-muted-foreground text-center px-2 pt-1">
+                  Customers submit this as a quote request. You review the details, confirm availability, and send the final quote.
+                </p>
+              </div>
 
               <div className="flex justify-between items-center pt-4 mt-auto">
                 <Button variant="ghost" onClick={() => goToStep(4)} data-testid="button-step5-back">
@@ -681,14 +713,15 @@ export default function OnboardingPage() {
           {currentStep === 6 && (
             <div className="flex-1 flex flex-col" data-testid="card-step-6">
               <div className="text-center mb-4">
-                <h2 className="text-lg font-semibold">Do you get quote requests in your DMs?</h2>
+                <h2 className="text-lg font-semibold">Have someone asking 'how much' right now?</h2>
+                <p className="text-sm text-muted-foreground mt-1">Copy this reply and send them your order link.</p>
               </div>
 
               <div className="grid grid-cols-3 gap-2 mb-3">
                 {([
                   { value: "yes_now", label: "Yes — I have one now" },
                   { value: "yes_often", label: "I get them often" },
-                  { value: "exploring", label: "Just exploring" },
+                  { value: "exploring", label: "Just setting up" },
                 ]).map((opt) => (
                   <button
                     key={opt.value}
@@ -707,8 +740,8 @@ export default function OnboardingPage() {
 
               <div className="bg-muted/50 border rounded-lg p-3 space-y-2 mb-3">
                 <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">{getDmHelperCopy()}</p>
-                <p className="text-sm" data-testid="text-dm-message">
-                  Thanks for reaching out! You can build your order and get an instant estimate here: {calculatorUrl}
+                <p className="text-sm whitespace-pre-line" data-testid="text-dm-message">
+                  {getDmMessage()}
                 </p>
                 <div className="flex items-center gap-2">
                   <Button
@@ -742,7 +775,7 @@ export default function OnboardingPage() {
               </div>
 
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-auto">
-                <p className="text-sm font-medium mb-1">Where to add it</p>
+                <p className="text-sm font-medium mb-1">Also add your link here:</p>
                 <ul className="text-xs text-muted-foreground space-y-0.5">
                   <li>• Instagram bio or Linktree</li>
                   <li>• Facebook page button</li>
@@ -767,8 +800,8 @@ export default function OnboardingPage() {
           {currentStep === 7 && (
             <div className="flex-1 flex flex-col" data-testid="card-step-7">
               <div className="text-center mb-6">
-                <h2 className="text-lg font-semibold">Accept deposits automatically</h2>
-                <p className="text-sm text-muted-foreground mt-1">When customers approve quotes, they can pay deposits directly through Stripe</p>
+                <h2 className="text-lg font-semibold">Enable retainers</h2>
+                <p className="text-sm text-muted-foreground mt-1">When customers approve quotes, they can pay retainers online.</p>
               </div>
 
               <div className="mb-auto">
@@ -784,8 +817,14 @@ export default function OnboardingPage() {
                     <div>
                       <p className="font-medium">Connect Stripe</p>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Stripe handles all payment processing securely. You'll receive payouts directly to your bank account.
+                        Connect Stripe so customers can pay retainers when they approve quotes. You'll receive payouts directly to your bank account.
                       </p>
+                    </div>
+                    <div className="bg-background border rounded-lg p-3 text-left text-sm max-w-xs mx-auto">
+                      <p className="text-xs font-medium text-muted-foreground mb-1.5">Example</p>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Quote total</span><span className="font-medium">$192</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Retainer</span><span className="font-medium">$50</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Balance due later</span><span className="font-medium">$142</span></div>
                     </div>
                     <Button
                       onClick={() => connectMutation.mutate()}
@@ -793,7 +832,7 @@ export default function OnboardingPage() {
                       data-testid="button-connect-stripe"
                     >
                       {connectMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                      Connect Stripe
+                      Enable Retainers
                     </Button>
                   </div>
                 )}

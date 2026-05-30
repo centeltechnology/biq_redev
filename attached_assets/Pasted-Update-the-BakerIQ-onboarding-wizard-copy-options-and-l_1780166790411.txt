@@ -1,0 +1,379 @@
+Update the BakerIQ onboarding wizard copy, options, and logic based on the latest UX review.
+
+Do not redesign the visual system. Keep the current layout, dark/light theme support, progress bar, buttons, and page structure. Focus on copy clarity, option labels, product-mode-specific wording, and making the activation path stronger.
+
+Current onboarding flow should remain:
+
+1. What do you sell most?
+2. Bakery details
+3. Upload portfolio
+4. Choose pricing style
+5. Quote preview
+6. DM reply + order link
+7. Stripe / retainers
+
+---
+
+## 1. Step 1 — What do you sell most?
+
+Current headline is fine:
+
+“What do you sell most?”
+
+Update helper text to:
+
+“We’ll tailor your pricing, order page, and setup steps around what you sell.”
+
+Keep the three options:
+
+* Custom Cakes
+* Treats
+* Both
+
+Update option descriptions:
+
+Custom Cakes:
+“Layer cakes, sheet cakes”
+
+Treats:
+“Strawberries, cupcakes, cookies, cake pops”
+
+Both:
+“Cakes and treats”
+
+Save the selected value as currently implemented:
+
+* cakes
+* treats
+* both
+
+---
+
+## 2. Step 2 — Bakery details
+
+Keep this step in the current Step 2 position.
+
+Update label:
+
+“Your Order Page URL”
+
+to:
+
+“Your Order Page Link”
+
+Show a full preview of the public link, not only the slug.
+
+Example:
+
+“bakeriq.app/c/noclew-demo”
+
+If the app currently uses `/c/:slug`, keep that route. Do not change routing unless already supported elsewhere.
+
+Keep fields:
+
+* Business Name
+* Order Page slug
+* Profile Photo
+* Header Image
+
+---
+
+## 3. Step 3 — Upload portfolio
+
+Keep upload behavior the same.
+
+Update copy based on product_mode.
+
+If product_mode = cakes:
+
+Headline:
+“Upload your best cake designs”
+
+Helper:
+“These will appear on your order page. Add up to 6 photos.”
+
+If product_mode = treats:
+
+Headline:
+“Upload treats customers love ordering”
+
+Helper:
+“These will appear on your order page. Add up to 6 photos.”
+
+If product_mode = both:
+
+Headline:
+“Upload a mix of cakes and treats”
+
+Helper:
+“These will appear on your order page. Add up to 6 photos.”
+
+Keep “Skip for now,” but add a subtle helper line near it:
+
+“Photos help customers trust your order page. You can add them later.”
+
+---
+
+## 4. Step 4 — Choose your pricing style
+
+Keep this step where it is.
+
+Update the general helper text to:
+
+“Pick a starting point — you can adjust all prices later.”
+
+If product_mode = cakes, show only Cake Pricing.
+
+If product_mode = treats, show only Treat Pricing.
+
+If product_mode = both, show both Cake Pricing and Treat Pricing.
+
+---
+
+### Cake Pricing cards
+
+Use these cards:
+
+Simple
+“$5/serving”
+“24 servings from $120”
+
+Detailed
+“$6.50/serving”
+“24 servings from $156”
+
+Luxury
+“$8/serving”
+“24 servings from $192”
+
+---
+
+### Treat Pricing cards
+
+Use dipped strawberries as the example, not cupcakes.
+
+Starter
+“Strawberries $35/doz”
+“Budget-friendly”
+
+Popular
+“Strawberries $45/doz”
+“Most common”
+
+Premium
+“Strawberries $60/doz”
+“High-end”
+
+Do not use $24/doz for strawberries. That conflicts with the undercharging positioning.
+
+---
+
+## 5. Step 5 — Quote preview
+
+This step needs clearer explanation.
+
+Update headline:
+
+“Here’s what a quote looks like”
+
+Update helper text:
+
+“This is the estimate your customer sees after building their request.”
+
+Inside the preview card, show examples based on product_mode.
+
+If product_mode = cakes:
+
+Show one card:
+
+“24 serving custom cake”
+
+Estimated price should reflect the selected cake pricing tier:
+
+Simple = $120
+Detailed = $156
+Luxury = $192
+
+If product_mode = treats:
+
+Show one card:
+
+“1 dozen chocolate dipped strawberries”
+
+Estimated price should reflect the selected treat pricing tier:
+
+Starter = $35
+Popular = $45
+Premium = $60
+
+If product_mode = both:
+
+Show two preview cards or two stacked rows:
+
+Cake example:
+“24 serving custom cake”
+Use selected cake pricing tier.
+
+Treat example:
+“1 dozen chocolate dipped strawberries”
+Use selected treat pricing tier.
+
+Under the quote preview, update explanation text to:
+
+“Customers submit this as a quote request. You review the details, confirm availability, and send the final quote.”
+
+Remove or replace vague text like:
+“Estimated based on your pricing tier.”
+
+---
+
+## 6. Step 6 — DM reply helper + order link
+
+This is the most important activation step. Make it action-oriented.
+
+Update headline from:
+
+“Do you get quote requests in your DMs?”
+
+to:
+
+“Have someone asking ‘how much’ right now?”
+
+Update helper text to:
+
+“Copy this reply and send them your order link.”
+
+Keep three options, but update wording:
+
+* Yes — I have one now
+* I get them often
+* Just setting up
+
+Replace “Just exploring” with “Just setting up.”
+
+The selected option should change the small instruction above the copy box.
+
+If “Yes — I have one now”:
+
+“Send this reply right now.”
+
+If “I get them often”:
+
+“Next time someone asks ‘how much?’, send them this.”
+
+If “Just setting up”:
+
+“When customers start asking for quotes, send them this link.”
+
+---
+
+### DM reply message should change by product_mode
+
+If product_mode = cakes:
+
+“Thanks for reaching out! You can build your cake request and get an instant estimate here:
+[order page link]
+
+Once you submit the details, I’ll review everything and confirm availability.”
+
+If product_mode = treats:
+
+“Thanks for reaching out! You can build your treat order and get an instant estimate here:
+[order page link]
+
+Once you submit the details, I’ll review everything and confirm availability.”
+
+If product_mode = both:
+
+“Thanks for reaching out! You can build your order and get an instant estimate here:
+[order page link]
+
+Once you submit the details, I’ll review everything and confirm availability.”
+
+Buttons should remain:
+
+* Copy Message
+* Copy Link
+* Preview
+
+Change the “Where to add it” label to:
+
+“Also add your link here:”
+
+Keep bullets:
+
+* Instagram bio or Linktree
+* Facebook page button
+* Pinned post or story highlight
+
+Important: This step is the primary activation step. Do not make it feel like a generic share-link step. The main action is sending the link to someone asking for pricing.
+
+---
+
+## 7. Step 7 — Stripe / retainers
+
+Keep Stripe as the final step.
+
+Update headline:
+
+“Accept deposits automatically”
+
+to:
+
+“Enable retainers”
+
+Update helper text:
+
+“When customers approve quotes, they can pay retainers online.”
+
+Inside the Stripe card, update copy to:
+
+“Connect Stripe so customers can pay retainers when they approve quotes. You’ll receive payouts directly to your bank account.”
+
+Add an example retainer breakdown if it fits cleanly:
+
+“Example:
+Quote total: $192
+Retainer: $50
+Balance due later: $142”
+
+Update main button text from:
+
+“Connect Stripe”
+
+to:
+
+“Enable Retainers”
+
+Keep Stripe optional.
+
+Update small text below card to:
+
+“You can do this now or later. Quotes still work without payments enabled.”
+
+---
+
+## 8. Preserve existing behavior
+
+Do not break:
+
+* onboarding completion logic
+* route protection
+* image upload behavior
+* pricing seeding
+* public order page link generation
+* Stripe Connect flow
+* analytics events
+
+---
+
+## 9. Deliverables
+
+After implementation, report:
+
+* files changed
+* updated onboarding step copy
+* confirmation that product_mode-specific copy works for cakes/treats/both
+* confirmation that treat examples now use dipped strawberries
+* confirmation that Step 6 uses stronger DM activation language
+* confirmation that Stripe button now says “Enable Retainers”
