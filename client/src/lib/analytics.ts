@@ -120,3 +120,23 @@ export function trackPriceRecalculated() {
     priceRecalcDebounce = null;
   }, 2000);
 }
+
+export function trackDmReplyCopied() {
+  trackEvent("dm_reply_copied");
+}
+
+export function trackOrderLinkCopied() {
+  trackEvent("order_link_copied");
+}
+
+export function trackOrderPagePreviewed() {
+  trackEvent("order_page_previewed");
+}
+
+export function trackStripeEnableClicked() {
+  trackEvent("stripe_enable_clicked");
+}
+
+export function trackPricingReviewClicked() {
+  trackEvent("pricing_review_clicked");
+}

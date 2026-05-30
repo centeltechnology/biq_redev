@@ -1,0 +1,183 @@
+Update the first dashboard experience after onboarding so the primary next action is getting the baker’s first real request, not connecting Stripe.
+
+Do not redesign the dashboard visual system. Keep the existing layout style, cards, colors, and components. Focus on hierarchy, copy, CTA order, and activation logic.
+
+Current issue:
+The dashboard currently emphasizes Stripe/deposits too early. New users need to first send their BakerIQ order link to a real customer or DM inquiry. Stripe should become the second action after the baker understands the request/quote flow.
+
+---
+
+## 1. Update the main launch card hierarchy
+
+The top dashboard activation card should prioritize getting the first request.
+
+Replace the current primary emphasis:
+
+“You’re almost ready to collect deposits”
+“Activate secure payments and start receiving deposits”
+
+with:
+
+Headline:
+“Get your first request”
+
+Subtext:
+“Have someone asking ‘how much?’ Send them your BakerIQ order link.”
+
+Primary CTA:
+“Copy DM Reply”
+
+Secondary CTA:
+“Preview Order Page”
+
+The progress card can still show setup progress, but the next recommended action should be sending the order link, not Stripe.
+
+---
+
+## 2. Add a copyable DM reply block or modal
+
+When the user clicks “Copy DM Reply,” show or copy a message based on product_mode.
+
+If product_mode = cakes:
+
+“Thanks for reaching out! You can build your cake request and get an instant estimate here:
+[order page link]
+
+Once you submit the details, I’ll review everything and confirm availability.”
+
+If product_mode = treats:
+
+“Thanks for reaching out! You can build your treat order and get an instant estimate here:
+[order page link]
+
+Once you submit the details, I’ll review everything and confirm availability.”
+
+If product_mode = both:
+
+“Thanks for reaching out! You can build your order and get an instant estimate here:
+[order page link]
+
+Once you submit the details, I’ll review everything and confirm availability.”
+
+If possible, show a toast after copying:
+
+“DM reply copied. Send it to your next pricing inquiry.”
+
+---
+
+## 3. Reorder dashboard nudges
+
+Dashboard priority should be:
+
+1. Get first request / send order link
+2. Enable retainers / Stripe
+3. Review pricing
+
+Stripe should not be the first large highlighted action unless the baker already has quote/request activity.
+
+---
+
+## 4. Stripe card copy
+
+Rename the Stripe nudge from generic payment language to retainer language.
+
+Card title:
+“Enable retainers”
+
+Card text:
+“Once customers approve quotes, they can pay retainers online.”
+
+Button:
+“Enable Retainers”
+
+If the user has already received at least one request or created at least one quote but Stripe is not connected, then make this card more prominent:
+
+“You have quote activity. Enable retainers so customers can pay online.”
+
+If the user has no requests/quotes yet, keep this as secondary.
+
+---
+
+## 5. Pricing review card
+
+Keep the pricing review card, but make it third priority.
+
+Title:
+“Review your pricing”
+
+Text:
+“Fine-tune your calculator when you’re ready. Your starter pricing is already live.”
+
+Button:
+“Review Pricing”
+
+This avoids making users feel blocked before using the system.
+
+---
+
+## 6. Revenue metrics placeholder
+
+Keep revenue metrics hidden until the user has quote/payment activity.
+
+Update placeholder copy to:
+
+“Your revenue metrics will appear after your first quote is sent.”
+
+If Stripe is not connected, do not make the placeholder mainly about Stripe. The first milestone is quote activity.
+
+---
+
+## 7. Quick Actions section
+
+Update Quick Actions order:
+
+1. Copy DM Reply
+2. Preview Order Page
+3. Create Quote
+4. Add Customer
+5. Calendar
+
+If “Copy DM Reply” is too large for the existing button layout, use “Copy Reply.”
+
+---
+
+## 8. Track activation events
+
+If analytics tracking exists, add/confirm these dashboard events:
+
+* dm_reply_copied
+* order_link_copied
+* order_page_previewed
+* stripe_enable_clicked
+* pricing_review_clicked
+
+These will help measure whether inactive users are moving toward activation.
+
+---
+
+## 9. Preserve existing behavior
+
+Do not break:
+
+* existing dashboard route
+* account data loading
+* Stripe connection flow
+* pricing review route
+* order page preview route
+* onboarding checklist logic
+* email verification warning
+
+The email verification warning should remain at the top if present.
+
+---
+
+## 10. Deliverables
+
+After implementation, report:
+
+* files changed
+* updated dashboard card hierarchy
+* updated CTA labels
+* confirmation that “Copy DM Reply” works
+* confirmation that Stripe is now framed as “Enable Retainers”
+* confirmation that dashboard prioritizes first request before Stripe

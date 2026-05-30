@@ -1,7 +1,14 @@
 import { Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { ClipboardList, Users, ArrowRight, Calendar, DollarSign, TrendingUp, CalendarCheck, Sparkles, AlertTriangle, Plus, UserPlus, Mail, BarChart3, AlertCircle, Shield } from "lucide-react";
+import { ClipboardList, Users, ArrowRight, Calendar, DollarSign, TrendingUp, CalendarCheck, Sparkles, AlertTriangle, Plus, UserPlus, Mail, BarChart3, AlertCircle, Shield, Copy, ExternalLink, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  trackDmReplyCopied,
+  trackOrderLinkCopied,
+  trackOrderPagePreviewed,
+  trackStripeEnableClicked,
+  trackPricingReviewClicked,
+} from "@/lib/analytics";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -97,7 +104,50 @@ export default function DashboardPage() {
     },
   });
 
-  const isOnboarding = baker && baker.role !== "super_admin" && (!baker.stripeConnectedAt || !baker.firstQuoteSentAt);
+  const orderUrl = `${window.location.origin}/c/${baker?.slug ?? ""}`;
+  const productMode = (baker as any)?.productMode as string | undefined;
+
+  const getDmReply = () => {
+    const intro =
+      productMode === "cakes"
+        ? "Thanks for reaching out! You can build your cake request and get an instant estimate here:"
+        : productMode === "treats"
+        ? "Thanks for reaching out! You can build your treat order and get an instant estimate here:"
+        : "Thanks for reaching out! You can build your order and get an instant estimate here:";
+    return `${intro}\n${orderUrl}\n\nOnce you submit the details, I'll review everything and confirm availability.`;
+  };
+
+  const handleCopyDmReply = async () => {
+    try {
+      await navigator.clipboard.writeText(getDmReply());
+      trackDmReplyCopied();
+      toast({ title: "DM reply copied. Send it to your next pricing inquiry." });
+    } catch {
+      toast({ title: "Could not copy", variant: "destructive" });
+    }
+  };
+
+  const handleCopyOrderLink = async () => {
+    try {
+      await navigator.clipboard.writeText(orderUrl);
+      trackOrderLinkCopied();
+      toast({ title: "Order link copied!" });
+    } catch {
+      toast({ title: "Could not copy", variant: "destructive" });
+    }
+  };
+
+  // Has the baker received any real request/quote activity yet?
+  const hasActivity =
+    (stats?.recentLeads?.length ?? 0) > 0 ||
+    (stats?.pendingQuotesCount ?? 0) > 0 ||
+    !!baker?.firstQuoteSentAt;
+
+  const isBaker = !!baker && baker.role !== "super_admin" && baker.role !== "admin";
+  const showFirstRequestCard = isBaker && !!baker?.onboardingCompleted && !hasActivity;
+
+  // Revenue metrics stay hidden until the first quote has been sent.
+  const isOnboarding = baker && baker.role !== "super_admin" && !baker.firstQuoteSentAt;
 
   return (
     <DashboardLayout title="Dashboard">
@@ -132,46 +182,102 @@ export default function DashboardPage() {
           </Card>
         )}
 
+        {showFirstRequestCard && (
+          <Card className="border-primary/30 bg-primary/5" data-testid="card-first-request">
+            <CardContent className="py-5">
+              <div className="flex items-start gap-3">
+                <div className="flex items-center justify-center h-10 w-10 rounded-md bg-primary/10 shrink-0">
+                  <Send className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-base" data-testid="text-first-request-title">
+                    Get your first request
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Have someone asking "how much?" Send them your BakerIQ order link.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2 mt-3">
+                    <Button onClick={handleCopyDmReply} data-testid="button-copy-dm-reply">
+                      <Copy className="mr-2 h-4 w-4" />
+                      Copy DM Reply
+                    </Button>
+                    <Button variant="outline" asChild data-testid="button-preview-order-page">
+                      <a
+                        href={orderUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => trackOrderPagePreviewed()}
+                      >
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        Preview Order Page
+                      </a>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCopyOrderLink}
+                      data-testid="button-copy-order-link"
+                    >
+                      Copy link
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <OnboardingChecklist
-          onConnectStripe={() => connectMutation.mutate()}
+          onConnectStripe={() => {
+            trackStripeEnableClicked();
+            connectMutation.mutate();
+          }}
           isConnecting={connectMutation.isPending}
         />
 
         {baker && !baker.stripeConnectedAt && baker.role !== "super_admin" && baker.role !== "admin" && baker.onboardingCompleted && (
-          <Card className="border-muted" data-testid="card-stripe-dashboard-nudge">
+          <Card
+            className={hasActivity ? "border-primary/30 bg-primary/5" : "border-muted"}
+            data-testid="card-stripe-dashboard-nudge"
+          >
             <CardContent className="flex items-center justify-between gap-4 py-4">
               <div className="flex items-center gap-3">
-                <Shield className="h-5 w-5 text-muted-foreground shrink-0" />
+                <Shield className={`h-5 w-5 shrink-0 ${hasActivity ? "text-primary" : "text-muted-foreground"}`} />
                 <div>
-                  <p className="font-medium text-sm" data-testid="text-enable-payments">Enable online payments</p>
+                  <p className="font-medium text-sm" data-testid="text-enable-payments">Enable retainers</p>
                   <p className="text-xs text-muted-foreground">
-                    Connect Stripe to start collecting deposits automatically from your quotes.
+                    {hasActivity
+                      ? "You have quote activity. Enable retainers so customers can pay online."
+                      : "Once customers approve quotes, they can pay retainers online."}
                   </p>
                 </div>
               </div>
               <Button
                 size="sm"
-                onClick={() => connectMutation.mutate()}
+                onClick={() => {
+                  trackStripeEnableClicked();
+                  connectMutation.mutate();
+                }}
                 disabled={connectMutation.isPending}
                 data-testid="button-dashboard-connect-stripe"
               >
-                {connectMutation.isPending ? "Setting up..." : "Secure Your Payouts"}
+                {connectMutation.isPending ? "Setting up..." : "Enable Retainers"}
               </Button>
             </CardContent>
           </Card>
         )}
 
         {baker && !baker.pricingReviewed && baker.onboardingCompleted && (
-          <Card className="border-amber-500/30 bg-amber-50 dark:bg-amber-950/20">
+          <Card className="border-muted">
             <CardContent className="flex items-center justify-between gap-4 py-4">
               <div className="flex items-center gap-3">
-                <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                <Sparkles className="h-5 w-5 text-muted-foreground shrink-0" />
                 <div>
                   <p className="font-medium text-sm" data-testid="text-pricing-not-reviewed">
-                    Pricing Not Reviewed
+                    Review your pricing
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Review your calculator pricing to make sure it reflects your products and what you want to charge.
+                    Fine-tune your calculator when you're ready. Your starter pricing is already live.
                   </p>
                 </div>
               </div>
@@ -181,7 +287,7 @@ export default function DashboardPage() {
                 asChild
                 data-testid="button-review-pricing"
               >
-                <Link href="/pricing">Review Pricing</Link>
+                <Link href="/pricing" onClick={() => trackPricingReviewClicked()}>Review Pricing</Link>
               </Button>
             </CardContent>
           </Card>
@@ -236,7 +342,22 @@ export default function DashboardPage() {
             <CardTitle className="text-lg">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
-            <Button asChild data-testid="button-quick-new-quote">
+            <Button onClick={handleCopyDmReply} data-testid="button-quick-copy-dm-reply">
+              <Copy className="mr-2 h-4 w-4" />
+              Copy Reply
+            </Button>
+            <Button variant="outline" asChild data-testid="button-quick-preview-order-page">
+              <a
+                href={orderUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => trackOrderPagePreviewed()}
+              >
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Preview Order Page
+              </a>
+            </Button>
+            <Button variant="outline" asChild data-testid="button-quick-new-quote">
               <Link href="/quotes/new">
                 <Plus className="mr-2 h-4 w-4" />
                 Create Quote
@@ -246,12 +367,6 @@ export default function DashboardPage() {
               <Link href="/customers?new=true">
                 <UserPlus className="mr-2 h-4 w-4" />
                 Add Customer
-              </Link>
-            </Button>
-            <Button variant="outline" asChild data-testid="button-quick-view-leads">
-              <Link href="/leads">
-                <ClipboardList className="mr-2 h-4 w-4" />
-                View Leads
               </Link>
             </Button>
             <Button variant="outline" asChild data-testid="button-quick-calendar">

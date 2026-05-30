@@ -35,7 +35,7 @@ export function OnboardingChecklist({ onConnectStripe, isConnecting }: Activatio
   const contextMessage = !baker.onboardingCompleted
     ? "Complete setup to start getting orders."
     : !hasStripe
-      ? "You're almost ready to collect deposits."
+      ? "Next: send your order link to your first request."
       : null;
 
   const steps = [
@@ -47,7 +47,7 @@ export function OnboardingChecklist({ onConnectStripe, isConnecting }: Activatio
       actionLabel: "Settings",
     },
     {
-      label: "Activate secure payments and Start Receiving Deposits!",
+      label: "Enable retainers so customers can pay online",
       icon: CreditCard,
       complete: hasStripe,
       action: onConnectStripe,
