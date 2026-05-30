@@ -47,7 +47,7 @@ export function OnboardingChecklist({ onConnectStripe, isConnecting }: Activatio
       actionLabel: "Settings",
     },
     {
-      label: "Enable retainers so customers can pay online",
+      label: "Accept deposits so customers can pay online",
       icon: CreditCard,
       complete: hasStripe,
       action: onConnectStripe,

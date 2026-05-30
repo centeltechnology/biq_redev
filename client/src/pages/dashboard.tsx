@@ -244,11 +244,11 @@ export default function DashboardPage() {
               <div className="flex items-center gap-3">
                 <Shield className={`h-5 w-5 shrink-0 ${hasActivity ? "text-primary" : "text-muted-foreground"}`} />
                 <div>
-                  <p className="font-medium text-sm" data-testid="text-enable-payments">Enable retainers</p>
+                  <p className="font-medium text-sm" data-testid="text-enable-payments">Accept deposits</p>
                   <p className="text-xs text-muted-foreground">
                     {hasActivity
-                      ? "You have quote activity. Enable retainers so customers can pay online."
-                      : "Once customers approve quotes, they can pay retainers online."}
+                      ? "You have quote activity. Connect Stripe so customers can pay deposits online."
+                      : "Once customers approve quotes, they can pay deposits online."}
                   </p>
                 </div>
               </div>
@@ -261,7 +261,7 @@ export default function DashboardPage() {
                 disabled={connectMutation.isPending}
                 data-testid="button-dashboard-connect-stripe"
               >
-                {connectMutation.isPending ? "Setting up..." : "Enable Retainers"}
+                {connectMutation.isPending ? "Setting up..." : "Accept Deposits"}
               </Button>
             </CardContent>
           </Card>

@@ -1,0 +1,150 @@
+Update BakerIQ language from “retainer” to “deposit” across onboarding and dashboard UI.
+
+Do not change Stripe logic, payment logic, database behavior, or routes. This is a copy/label update only unless a variable name is purely display-related.
+
+Reason:
+“Retainer” feels too formal for home bakers and treat makers. “Deposit” is clearer, more familiar, and better aligned with how bakers already talk to customers.
+
+---
+
+## 1. Onboarding Step 7
+
+Find the final Stripe/payment onboarding step.
+
+Replace:
+
+“Enable retainers”
+
+with:
+
+“Accept deposits automatically”
+
+Replace any similar text like:
+
+“Customers can pay retainers online.”
+
+with:
+
+“When customers approve quotes, they can pay deposits online.”
+
+Update Stripe card copy to:
+
+“Connect Stripe so customers can pay deposits when they approve quotes. You’ll receive payouts directly to your bank account.”
+
+If an example payment breakdown is shown, use:
+
+“Example:
+Quote total: $192
+Deposit: $50
+Balance due later: $142”
+
+Update the main button text from:
+
+“Enable Retainers”
+
+to:
+
+“Accept Deposits”
+
+Update small helper text to:
+
+“You can do this now or later. Quotes still work without deposits enabled.”
+
+---
+
+## 2. Dashboard Stripe/payment card
+
+Update dashboard Stripe/payment nudge language.
+
+Replace:
+
+“Enable retainers”
+
+with:
+
+“Accept deposits”
+
+or:
+
+“Accept deposits automatically”
+
+Replace:
+
+“Once customers approve quotes, they can pay retainers online.”
+
+with:
+
+“Once customers approve quotes, they can pay deposits online.”
+
+Update button text from:
+
+“Enable Retainers”
+
+to:
+
+“Accept Deposits”
+
+If the user has quote activity but Stripe is not connected, use:
+
+“You have quote activity. Connect Stripe so customers can pay deposits online.”
+
+---
+
+## 3. Checklist / Launch card copy
+
+If the onboarding checklist or launch card says:
+
+“Activate secure payments and start receiving deposits”
+
+that is fine.
+
+But avoid using “retainer” anywhere in the main baker-facing flow.
+
+Preferred language:
+
+“Accept deposits”
+“Collect deposits”
+“Customers can pay deposits online”
+“Deposit: $50”
+
+---
+
+## 4. Search and replace guidance
+
+Search the codebase for display text containing:
+
+* retainer
+* retainers
+* Enable Retainers
+* pay retainers
+
+Replace only user-facing copy with deposit/deposits language.
+
+Do not rename backend fields, database columns, Stripe metadata, or business logic unless they are purely UI labels.
+
+---
+
+## 5. Preserve behavior
+
+Do not change:
+
+* Stripe Connect API calls
+* payment processing
+* quote acceptance flow
+* onboarding completion
+* dashboard logic
+* pricing setup
+* order page behavior
+
+This is a wording cleanup only.
+
+---
+
+## 6. Deliverables
+
+After implementation, report:
+
+* files changed
+* all visible “retainer” language replaced with “deposit”
+* confirmation that Stripe/payment behavior was not changed
+* confirmation that onboarding Step 7 and dashboard payment cards now use deposit language

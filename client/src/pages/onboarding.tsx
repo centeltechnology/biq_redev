@@ -800,8 +800,8 @@ export default function OnboardingPage() {
           {currentStep === 7 && (
             <div className="flex-1 flex flex-col" data-testid="card-step-7">
               <div className="text-center mb-6">
-                <h2 className="text-lg font-semibold">Enable retainers</h2>
-                <p className="text-sm text-muted-foreground mt-1">When customers approve quotes, they can pay retainers online.</p>
+                <h2 className="text-lg font-semibold">Accept deposits automatically</h2>
+                <p className="text-sm text-muted-foreground mt-1">When customers approve quotes, they can pay deposits online.</p>
               </div>
 
               <div className="mb-auto">
@@ -817,13 +817,13 @@ export default function OnboardingPage() {
                     <div>
                       <p className="font-medium">Connect Stripe</p>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Connect Stripe so customers can pay retainers when they approve quotes. You'll receive payouts directly to your bank account.
+                        Connect Stripe so customers can pay deposits when they approve quotes. You'll receive payouts directly to your bank account.
                       </p>
                     </div>
                     <div className="bg-background border rounded-lg p-3 text-left text-sm max-w-xs mx-auto">
                       <p className="text-xs font-medium text-muted-foreground mb-1.5">Example</p>
                       <div className="flex justify-between"><span className="text-muted-foreground">Quote total</span><span className="font-medium">$192</span></div>
-                      <div className="flex justify-between"><span className="text-muted-foreground">Retainer</span><span className="font-medium">$50</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Deposit</span><span className="font-medium">$50</span></div>
                       <div className="flex justify-between"><span className="text-muted-foreground">Balance due later</span><span className="font-medium">$142</span></div>
                     </div>
                     <Button
@@ -832,13 +832,13 @@ export default function OnboardingPage() {
                       data-testid="button-connect-stripe"
                     >
                       {connectMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                      Enable Retainers
+                      Accept Deposits
                     </Button>
                   </div>
                 )}
 
                 <p className="text-xs text-center text-muted-foreground mt-3">
-                  You can do this now or later. Quotes still work without payments enabled.
+                  You can do this now or later. Quotes still work without deposits enabled.
                 </p>
               </div>
 
