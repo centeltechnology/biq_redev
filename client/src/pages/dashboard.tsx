@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
+import { InstallPromptCard } from "@/components/install-prompt";
 
 import { StatusBadge } from "@/components/status-badge";
 import { useFormatCurrency } from "@/hooks/use-baker-currency";
@@ -377,6 +378,8 @@ export default function DashboardPage() {
             </Button>
           </CardContent>
         </Card>
+
+        {baker?.onboardingCompleted && <InstallPromptCard />}
 
         <div className="grid gap-4 md:grid-cols-2">
           <Card>

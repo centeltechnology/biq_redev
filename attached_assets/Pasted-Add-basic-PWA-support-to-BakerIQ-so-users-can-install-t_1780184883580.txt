@@ -1,0 +1,94 @@
+Add basic PWA support to BakerIQ so users can install the web app on mobile and desktop.
+
+This is not a new product feature. It is an access/usability improvement.
+
+Requirements:
+
+1. Add a web app manifest.
+
+Include:
+- name: BakerIQ
+- short_name: BakerIQ
+- description: Bakery quoting, order pages, and deposit tools
+- start_url: /dashboard
+- scope: /
+- display: standalone
+- theme_color: #ec3c77
+- background_color: #ffffff
+- orientation: portrait-primary if appropriate
+- icons:
+  - 192x192
+  - 512x512
+  - maskable icon if possible
+
+2. Add required meta tags in the HTML head.
+
+Include:
+- theme-color
+- apple-mobile-web-app-capable
+- apple-mobile-web-app-title
+- apple-mobile-web-app-status-bar-style
+- mobile-web-app-capable
+
+3. Add a service worker.
+
+Keep it simple:
+- cache app shell/static assets
+- do not cache authenticated API responses
+- do not cache sensitive user data
+- allow normal network behavior for dashboard/API routes
+
+4. Add install prompt UI.
+
+Create a small “Install BakerIQ” prompt/card that appears only when:
+- the browser supports PWA install
+- the app is not already installed
+- the user has completed onboarding
+
+Suggested copy:
+
+Title:
+“Add BakerIQ to your phone”
+
+Text:
+“Open quotes, requests, and your order page faster from your home screen.”
+
+Button:
+“Install BakerIQ”
+
+Secondary:
+“Maybe later”
+
+5. Placement:
+
+Show the install prompt:
+- on the dashboard after onboarding
+- optionally in Settings under a section called “Install BakerIQ”
+
+Do not show the prompt during onboarding.
+
+6. iOS fallback instructions.
+
+Since iOS does not always support the same install prompt behavior, show simple instructions when needed:
+
+“On iPhone: tap Share, then Add to Home Screen.”
+
+7. Preserve existing behavior.
+
+Do not change:
+- authentication
+- onboarding logic
+- dashboard data loading
+- Stripe flow
+- quote/request APIs
+- pricing logic
+
+8. Deliverables:
+
+After implementation, report:
+- files added/changed
+- manifest path
+- service worker path
+- icon files used
+- confirmation that app can be installed
+- confirmation that API responses are not cached
