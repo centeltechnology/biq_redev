@@ -15,6 +15,7 @@ import {
   ChevronDown,
   ChevronRight,
   Sparkles,
+  Smartphone,
 } from "lucide-react";
 import cakeImg from "@assets/generated_images/elegant_wedding_cake_hero.png";
 
@@ -236,6 +237,7 @@ export default function HomePage() {
                 <Feature text="Stripe-powered payments" />
                 <Feature text="A clear view of your real revenue" />
                 <Feature text="Your own branded order page" />
+                <Feature text="Works like an app on your phone" />
               </div>
             </div>
           </div>
@@ -261,6 +263,26 @@ export default function HomePage() {
               <div className="rounded-xl border bg-card shadow-lg overflow-hidden p-4">
                 <MockPaymentsDashboard />
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* INSTALLABLE APP CALLOUT */}
+        <section className="py-20 md:py-28">
+          <div className="container max-w-7xl mx-auto px-4">
+            <div
+              className="max-w-3xl mx-auto rounded-2xl border border-primary/30 bg-primary/5 p-8 md:p-10 text-center"
+              data-testid="callout-install-app"
+            >
+              <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-primary/15">
+                <Smartphone className="h-6 w-6 text-primary" />
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold mb-3" data-testid="text-install-callout-heading">
+                Keep your bakery in your pocket.
+              </h2>
+              <p className="text-base md:text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed" data-testid="text-install-callout-body">
+                Add BakerIQ to your home screen and open it like any other app — manage quotes, requests, and deposits from your phone, wherever you are.
+              </p>
             </div>
           </div>
         </section>
