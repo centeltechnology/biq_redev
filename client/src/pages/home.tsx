@@ -246,6 +246,31 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* COMPARE TEASER */}
+        <section className="pb-4">
+          <div className="container max-w-7xl mx-auto px-4">
+            <div
+              className="max-w-3xl mx-auto rounded-2xl border bg-card px-6 py-7 sm:px-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-center sm:text-left"
+              data-testid="callout-compare"
+            >
+              <div>
+                <h3 className="text-lg md:text-xl font-bold mb-1" data-testid="text-compare-teaser-heading">
+                  Wondering how we stack up?
+                </h3>
+                <p className="text-sm text-muted-foreground max-w-md" data-testid="text-compare-teaser-body">
+                  See how BakerIQ compares to HoneyBook, Dubsado, and the spreadsheet you're using now.
+                </p>
+              </div>
+              <Link href="/compare">
+                <Button variant="outline" className="gap-2 shrink-0 w-full sm:w-auto" data-testid="button-compare-teaser">
+                  See the comparison
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
+
         {/* REVENUE VISIBILITY */}
         <section className="py-20 md:py-28 bg-muted/30">
           <div className="container max-w-7xl mx-auto px-4">

@@ -15,21 +15,28 @@ import {
 } from "@shared/schema";
 
 // Get effective pricing based on custom config or default
-function getEffectiveSizePrice(sizeId: string, config?: CalculatorConfig): number {
+export function getEffectiveSizePrice(sizeId: string, config?: CalculatorConfig): number {
   const customSize = config?.sizes?.find(s => s.id === sizeId);
   if (customSize) return customSize.basePrice;
   const defaultSize = CAKE_SIZES.find(s => s.id === sizeId);
   return defaultSize?.basePrice || 0;
 }
 
-function getEffectiveFlavorPrice(flavorId: string, config?: CalculatorConfig): number {
+export function getEffectiveShapePrice(shapeId: string, config?: CalculatorConfig): number {
+  const customShape = config?.shapes?.find(s => s.id === shapeId);
+  if (customShape) return customShape.priceModifier;
+  const defaultShape = CAKE_SHAPES.find(s => s.id === shapeId);
+  return defaultShape?.priceModifier || 0;
+}
+
+export function getEffectiveFlavorPrice(flavorId: string, config?: CalculatorConfig): number {
   const customFlavor = config?.flavors?.find(f => f.id === flavorId);
   if (customFlavor) return customFlavor.priceModifier;
   const defaultFlavor = CAKE_FLAVORS.find(f => f.id === flavorId);
   return defaultFlavor?.priceModifier || 0;
 }
 
-function getEffectiveFrostingPrice(frostingId: string, config?: CalculatorConfig): number {
+export function getEffectiveFrostingPrice(frostingId: string, config?: CalculatorConfig): number {
   const customFrosting = config?.frostings?.find(f => f.id === frostingId);
   if (customFrosting) return customFrosting.priceModifier;
   const defaultFrosting = FROSTING_TYPES.find(f => f.id === frostingId);
@@ -44,10 +51,8 @@ function getEffectiveDecorationPrice(decorationId: string, config?: CalculatorCo
 }
 
 export function calculateTierPrice(tier: CakeTier, config?: CalculatorConfig): number {
-  const shape = CAKE_SHAPES.find((s) => s.id === tier.shape);
-
   const basePrice = getEffectiveSizePrice(tier.size, config);
-  const shapePrice = shape?.priceModifier || 0;
+  const shapePrice = getEffectiveShapePrice(tier.shape, config);
   const flavorPrice = getEffectiveFlavorPrice(tier.flavor, config);
   const frostingPrice = getEffectiveFrostingPrice(tier.frosting, config);
 
@@ -285,7 +290,7 @@ export function createDefaultTier(): CakeTier {
 }
 
 // Merge baker custom config options with defaults by id, preserving custom-only entries.
-function mergeOptionsById<D extends { id: string }, C extends { id: string }>(
+export function mergeOptionsById<D extends { id: string }, C extends { id: string }>(
   defaults: readonly D[],
   custom: C[] | undefined,
 ): (D | C)[] {
@@ -331,8 +336,7 @@ export function getCakeStartingPrice(config?: CalculatorConfig): number | null {
   const cheapestSize = cheapestBy(sizes, (id) => getEffectiveSizePrice(id, config));
   const cheapestFlavor = cheapestBy(flavors, (id) => getEffectiveFlavorPrice(id, config));
   const cheapestFrosting = cheapestBy(frostings, (id) => getEffectiveFrostingPrice(id, config));
-  // calculateTierPrice resolves shape pricing from CAKE_SHAPES defaults only.
-  const cheapestShape = cheapestBy(shapes, (id) => CAKE_SHAPES.find((s) => s.id === id)?.priceModifier ?? 0);
+  const cheapestShape = cheapestBy(shapes, (id) => getEffectiveShapePrice(id, config));
 
   const tier: CakeTier = {
     size: cheapestSize.id,

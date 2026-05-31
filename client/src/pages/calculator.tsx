@@ -1,4 +1,4 @@
-import { useState, useMemo, createContext, useContext } from "react";
+import { useState, useMemo, useEffect, createContext, useContext } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -70,6 +70,11 @@ import {
   createDefaultTier,
   getCakeStartingPrice,
   getTreatStartingPrice,
+  getEffectiveSizePrice,
+  getEffectiveShapePrice,
+  getEffectiveFlavorPrice,
+  getEffectiveFrostingPrice,
+  mergeOptionsById,
 } from "@/lib/calculator";
 import { apiRequest } from "@/lib/queryClient";
 import {
@@ -1186,6 +1191,34 @@ interface StepCakeBuilderProps {
 
 function StepCakeBuilder({ tiers, onUpdateTier, onAddTier, onRemoveTier, config, openAccordion, onAccordionChange }: StepCakeBuilderProps) {
   const fmt = useFormattedCurrency();
+  const enabledOnly = <T extends { id: string }>(opts: T[]): T[] =>
+    opts.filter((o) => (o as { enabled?: boolean }).enabled !== false);
+  const sizeOptions = enabledOnly(mergeOptionsById(CAKE_SIZES, config?.sizes));
+  const shapeOptions = enabledOnly(mergeOptionsById(CAKE_SHAPES, config?.shapes));
+  const flavorOptions = enabledOnly(mergeOptionsById(CAKE_FLAVORS, config?.flavors));
+  const frostingOptions = enabledOnly(mergeOptionsById(FROSTING_TYPES, config?.frostings));
+
+  // If a tier still references an option the baker has since disabled (or that no
+  // longer exists), snap it to the first enabled option so no disabled selection
+  // can survive into a quote.
+  useEffect(() => {
+    const groups: { field: keyof CakeTier; opts: { id: string }[] }[] = [
+      { field: "size", opts: sizeOptions },
+      { field: "shape", opts: shapeOptions },
+      { field: "flavor", opts: flavorOptions },
+      { field: "frosting", opts: frostingOptions },
+    ];
+    tiers.forEach((tier, index) => {
+      groups.forEach(({ field, opts }) => {
+        if (opts.length === 0) return;
+        const current = tier[field];
+        if (!opts.some((o) => o.id === current)) {
+          onUpdateTier(index, field, opts[0].id);
+        }
+      });
+    });
+  }, [tiers, sizeOptions, shapeOptions, flavorOptions, frostingOptions, onUpdateTier]);
+
   return (
     <div className="space-y-4">
       <Accordion type="single" collapsible value={openAccordion} onValueChange={onAccordionChange} className="space-y-4">
@@ -1222,7 +1255,7 @@ function StepCakeBuilder({ tiers, onUpdateTier, onAddTier, onRemoveTier, config,
                   onValueChange={(value) => onUpdateTier(index, "size", value)}
                   className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
                 >
-                  {CAKE_SIZES.map((size) => (
+                  {sizeOptions.map((size) => (
                     <Label
                       key={size.id}
                       className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover-elevate has-[:checked]:border-primary has-[:checked]:bg-primary/5"
@@ -1232,7 +1265,7 @@ function StepCakeBuilder({ tiers, onUpdateTier, onAddTier, onRemoveTier, config,
                         <p className="font-medium">{size.label}</p>
                         <p className="text-xs text-muted-foreground">{size.servings} servings</p>
                       </div>
-                      <span className="text-sm font-medium">{fmt(size.basePrice)}</span>
+                      <span className="text-sm font-medium">{fmt(getEffectiveSizePrice(size.id, config))}</span>
                     </Label>
                   ))}
                 </RadioGroup>
@@ -1245,18 +1278,21 @@ function StepCakeBuilder({ tiers, onUpdateTier, onAddTier, onRemoveTier, config,
                   onValueChange={(value) => onUpdateTier(index, "shape", value)}
                   className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
                 >
-                  {CAKE_SHAPES.map((shape) => (
+                  {shapeOptions.map((shape) => {
+                    const shapePrice = getEffectiveShapePrice(shape.id, config);
+                    return (
                     <Label
                       key={shape.id}
                       className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover-elevate has-[:checked]:border-primary has-[:checked]:bg-primary/5"
                     >
                       <RadioGroupItem value={shape.id} data-testid={`radio-shape-${shape.id}-${index}`} />
                       <span className="flex-1">{shape.label}</span>
-                      {shape.priceModifier > 0 && (
-                        <span className="text-xs text-muted-foreground">+{fmt(shape.priceModifier)}</span>
+                      {shapePrice > 0 && (
+                        <span className="text-xs text-muted-foreground">+{fmt(shapePrice)}</span>
                       )}
                     </Label>
-                  ))}
+                    );
+                  })}
                 </RadioGroup>
               </div>
 
@@ -1267,18 +1303,21 @@ function StepCakeBuilder({ tiers, onUpdateTier, onAddTier, onRemoveTier, config,
                   onValueChange={(value) => onUpdateTier(index, "flavor", value)}
                   className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
                 >
-                  {CAKE_FLAVORS.map((flavor) => (
+                  {flavorOptions.map((flavor) => {
+                    const flavorPrice = getEffectiveFlavorPrice(flavor.id, config);
+                    return (
                     <Label
                       key={flavor.id}
                       className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover-elevate has-[:checked]:border-primary has-[:checked]:bg-primary/5"
                     >
                       <RadioGroupItem value={flavor.id} data-testid={`radio-flavor-${flavor.id}-${index}`} />
                       <span className="flex-1">{flavor.label}</span>
-                      {flavor.priceModifier > 0 && (
-                        <span className="text-xs text-muted-foreground">+{fmt(flavor.priceModifier)}</span>
+                      {flavorPrice > 0 && (
+                        <span className="text-xs text-muted-foreground">+{fmt(flavorPrice)}</span>
                       )}
                     </Label>
-                  ))}
+                    );
+                  })}
                 </RadioGroup>
               </div>
 
@@ -1289,18 +1328,21 @@ function StepCakeBuilder({ tiers, onUpdateTier, onAddTier, onRemoveTier, config,
                   onValueChange={(value) => onUpdateTier(index, "frosting", value)}
                   className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
                 >
-                  {FROSTING_TYPES.map((frosting) => (
+                  {frostingOptions.map((frosting) => {
+                    const frostingPrice = getEffectiveFrostingPrice(frosting.id, config);
+                    return (
                     <Label
                       key={frosting.id}
                       className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover-elevate has-[:checked]:border-primary has-[:checked]:bg-primary/5"
                     >
                       <RadioGroupItem value={frosting.id} data-testid={`radio-frosting-${frosting.id}-${index}`} />
                       <span className="flex-1">{frosting.label}</span>
-                      {frosting.priceModifier > 0 && (
-                        <span className="text-xs text-muted-foreground">+{fmt(frosting.priceModifier)}</span>
+                      {frostingPrice > 0 && (
+                        <span className="text-xs text-muted-foreground">+{fmt(frostingPrice)}</span>
                       )}
                     </Label>
-                  ))}
+                    );
+                  })}
                 </RadioGroup>
               </div>
             </AccordionContent>
