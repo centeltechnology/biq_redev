@@ -192,7 +192,8 @@ export default function QuotesPage() {
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+              <div className="hidden lg:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -220,6 +221,19 @@ export default function QuotesPage() {
                   </TableBody>
                 </Table>
               </div>
+              <div className="lg:hidden divide-y border-t">
+                {filteredQuotes?.map((quote) => (
+                  <QuoteMobileCard
+                    key={quote.id}
+                    quote={quote}
+                    onDuplicate={() => duplicateMutation.mutate(quote.id)}
+                    onDelete={() => setDeleteQuoteId(quote.id)}
+                    onArchive={() => archiveMutation.mutate(quote.id)}
+                    onUnarchive={() => unarchiveMutation.mutate(quote.id)}
+                  />
+                ))}
+              </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -306,41 +320,135 @@ function QuoteTableRow({ quote, onDuplicate, onDelete, onArchive, onUnarchive }:
         )}
       </TableCell>
       <TableCell>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" data-testid={`button-actions-${quote.id}`}>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem asChild>
-              <Link href={`/quotes/${quote.id}`}>
-                <Eye className="mr-2 h-4 w-4" />
-                Edit
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onDuplicate}>
-              <Copy className="mr-2 h-4 w-4" />
-              Duplicate
-            </DropdownMenuItem>
-            {!isArchived ? (
-              <DropdownMenuItem onClick={onArchive} data-testid={`button-archive-${quote.id}`}>
-                <Archive className="mr-2 h-4 w-4" />
-                Archive
-              </DropdownMenuItem>
-            ) : (
-              <DropdownMenuItem onClick={onUnarchive} data-testid={`button-restore-${quote.id}`}>
-                <ArchiveRestore className="mr-2 h-4 w-4" />
-                Restore
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem onClick={onDelete} className="text-destructive">
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <QuoteActions
+          quote={quote}
+          isArchived={isArchived}
+          onDuplicate={onDuplicate}
+          onDelete={onDelete}
+          onArchive={onArchive}
+          onUnarchive={onUnarchive}
+          triggerTestId={`button-actions-${quote.id}`}
+        />
       </TableCell>
     </TableRow>
+  );
+}
+
+function QuoteActions({
+  quote,
+  isArchived,
+  onDuplicate,
+  onDelete,
+  onArchive,
+  onUnarchive,
+  triggerTestId,
+}: {
+  quote: QuoteWithCustomer;
+  isArchived: boolean;
+  onDuplicate: () => void;
+  onDelete: () => void;
+  onArchive?: () => void;
+  onUnarchive?: () => void;
+  triggerTestId: string;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" data-testid={triggerTestId}>
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem asChild>
+          <Link href={`/quotes/${quote.id}`}>
+            <Eye className="mr-2 h-4 w-4" />
+            Edit
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onDuplicate}>
+          <Copy className="mr-2 h-4 w-4" />
+          Duplicate
+        </DropdownMenuItem>
+        {!isArchived ? (
+          <DropdownMenuItem onClick={onArchive}>
+            <Archive className="mr-2 h-4 w-4" />
+            Archive
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem onClick={onUnarchive}>
+            <ArchiveRestore className="mr-2 h-4 w-4" />
+            Restore
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem onClick={onDelete} className="text-destructive">
+          <Trash2 className="mr-2 h-4 w-4" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function QuoteMobileCard({ quote, onDuplicate, onDelete, onArchive, onUnarchive }: QuoteTableRowProps) {
+  const bakerCurrency = useBakerCurrency();
+  const fmt = (amount: number | string) => {
+    const num = typeof amount === "string" ? parseFloat(amount) || 0 : amount;
+    return formatCurrency(num, quote.currencyCode || bakerCurrency);
+  };
+  const eventDate = quote.eventDate
+    ? new Date(quote.eventDate).toLocaleDateString()
+    : null;
+  const isArchived = !!quote.archivedAt;
+
+  return (
+    <div className="p-4 space-y-3" data-testid={`quote-card-${quote.id}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-medium truncate">{quote.title}</p>
+          <p className="text-sm text-muted-foreground truncate">
+            {quote.customer?.name || "No customer"}{" "}
+            · <span className="font-mono">{quote.quoteNumber}</span>
+          </p>
+        </div>
+        <QuoteActions
+          quote={quote}
+          isArchived={isArchived}
+          onDuplicate={onDuplicate}
+          onDelete={onDelete}
+          onArchive={onArchive}
+          onUnarchive={onUnarchive}
+          triggerTestId={`button-actions-m-${quote.id}`}
+        />
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <StatusBadge status={quote.status} type="quote" />
+        {isArchived && (
+          <Badge variant="secondary" className="bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400">
+            Archived
+          </Badge>
+        )}
+        {quote.paymentStatus === "paid" && (
+          <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+            <CreditCard className="h-3 w-3 mr-1" /> Paid
+          </Badge>
+        )}
+        {quote.paymentStatus === "deposit_paid" && (
+          <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+            <CreditCard className="h-3 w-3 mr-1" /> Deposit
+          </Badge>
+        )}
+      </div>
+      <div className="flex items-center justify-between gap-3 text-sm">
+        {eventDate ? (
+          <span className="flex items-center gap-1 text-muted-foreground">
+            <Calendar className="h-3.5 w-3.5" />
+            {eventDate}
+          </span>
+        ) : (
+          <span />
+        )}
+        <span className="font-semibold">{fmt(Number(quote.total))}</span>
+      </div>
+    </div>
   );
 }

@@ -472,7 +472,8 @@ export default function PaymentsPage() {
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+              <div className="hidden lg:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -523,6 +524,43 @@ export default function PaymentsPage() {
                   </TableBody>
                 </Table>
               </div>
+              <div className="lg:hidden divide-y border-t">
+                {data.payments.map((payment) => (
+                  <div key={payment.id} className="p-4 space-y-2" data-testid={`payment-card-${payment.id}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">{payment.quoteTitle}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          #{payment.quoteNumber} · {payment.customerName}
+                        </p>
+                      </div>
+                      <span className="font-semibold text-sm shrink-0">
+                        {formatCurrencyFn(parseFloat(payment.amount), payment.currencyCode || baker?.currency || "USD")}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                      <span className="text-muted-foreground">
+                        {format(new Date(payment.createdAt), "MMM d, yyyy")}
+                      </span>
+                      <Badge variant="secondary" className="text-xs">
+                        {paymentTypeLabels[payment.paymentType] || payment.paymentType}
+                      </Badge>
+                      {payment.status === "succeeded" ? (
+                        <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                          Paid
+                        </Badge>
+                      ) : payment.status === "pending" ? (
+                        <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                          Pending
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">{payment.status}</Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              </>
             )}
           </CardContent>
         </Card>

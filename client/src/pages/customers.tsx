@@ -524,7 +524,8 @@ export default function CustomersPage() {
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+              <div className="hidden lg:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -552,6 +553,21 @@ export default function CustomersPage() {
                   </TableBody>
                 </Table>
               </div>
+              <div className="lg:hidden divide-y border-t">
+                {filteredCustomers?.map((customer) => (
+                  <CustomerMobileCard
+                    key={customer.id}
+                    customer={customer}
+                    isExpanded={expandedCustomer === customer.id}
+                    onToggle={() => toggleExpanded(customer.id)}
+                    onArchive={() => archiveCustomerMutation.mutate(customer.id)}
+                    onRestore={() => restoreCustomerMutation.mutate(customer.id)}
+                    isArchiving={archiveCustomerMutation.isPending}
+                    isRestoring={restoreCustomerMutation.isPending}
+                  />
+                ))}
+              </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -726,5 +742,124 @@ function CustomerTableRow({
         </TableRow>
       )}
     </>
+  );
+}
+
+function CustomerMobileCard({
+  customer,
+  isExpanded,
+  onToggle,
+  onArchive,
+  onRestore,
+  isArchiving,
+  isRestoring,
+}: {
+  customer: CustomerWithQuotes;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onArchive: () => void;
+  onRestore: () => void;
+  isArchiving: boolean;
+  isRestoring: boolean;
+}) {
+  const formatCurrency = useFormatCurrency();
+  const quoteCount = customer.quotes?.length || 0;
+  const lastActivity = customer.quotes?.[0]?.createdAt
+    ? new Date(customer.quotes[0].createdAt).toLocaleDateString()
+    : new Date(customer.createdAt).toLocaleDateString();
+
+  return (
+    <div className="p-4 space-y-3" data-testid={`customer-card-${customer.id}`}>
+      <div className="flex items-start justify-between gap-3">
+        <button
+          type="button"
+          className="flex items-start gap-2 min-w-0 text-left"
+          onClick={onToggle}
+          data-testid={`button-toggle-customer-${customer.id}`}
+        >
+          {quoteCount > 0 && (
+            <span className="mt-0.5 shrink-0">
+              {isExpanded ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+            </span>
+          )}
+          <span className="min-w-0">
+            <span className="flex items-center gap-2">
+              <span className="font-medium truncate">{customer.name}</span>
+              {customer.archivedAt && <Badge>Archived</Badge>}
+            </span>
+            <span className="text-sm text-muted-foreground truncate flex items-center gap-1">
+              <Mail className="h-3.5 w-3.5 shrink-0" />
+              {customer.email}
+            </span>
+            {customer.phone && (
+              <span className="text-sm text-muted-foreground truncate flex items-center gap-1">
+                <Phone className="h-3.5 w-3.5 shrink-0" />
+                {customer.phone}
+              </span>
+            )}
+          </span>
+        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="icon" variant="ghost" aria-label="Customer actions" data-testid={`button-actions-m-${customer.id}`}>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {!customer.archivedAt ? (
+              <DropdownMenuItem onClick={onArchive} disabled={isArchiving}>
+                <Archive className="mr-2 h-4 w-4" />
+                Archive
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onClick={onRestore} disabled={isRestoring}>
+                <ArchiveRestore className="mr-2 h-4 w-4" />
+                Restore
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <FileText className="h-4 w-4" />
+          {quoteCount} {quoteCount === 1 ? "quote" : "quotes"}
+        </span>
+        <span className="flex items-center gap-1">
+          <Calendar className="h-4 w-4" />
+          {lastActivity}
+        </span>
+      </div>
+      {isExpanded && quoteCount > 0 && (
+        <div className="space-y-2">
+          {customer.quotes.map((quote) => (
+            <Link key={quote.id} href={`/quotes/${quote.id}`}>
+              <div
+                className="flex items-center justify-between gap-2 p-3 rounded-md border bg-background hover-elevate active-elevate-2 cursor-pointer"
+                data-testid={`quote-card-${quote.id}`}
+              >
+                <div className="min-w-0">
+                  <p className="font-medium text-sm truncate">{quote.quoteNumber}</p>
+                  <p className="text-xs text-muted-foreground truncate">{quote.title}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="font-medium text-sm flex items-center gap-1 justify-end">
+                    <DollarSign className="h-3.5 w-3.5" />
+                    {formatCurrency(Number(quote.total))}
+                  </p>
+                  <Badge variant="secondary" className={`text-xs ${STATUS_COLORS[quote.status]}`}>
+                    {quote.status}
+                  </Badge>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

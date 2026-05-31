@@ -125,7 +125,8 @@ export default function LeadsPage() {
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+              <div className="hidden lg:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -151,6 +152,18 @@ export default function LeadsPage() {
                   </TableBody>
                 </Table>
               </div>
+              <div className="lg:hidden divide-y border-t">
+                {filteredLeads?.map((lead) => (
+                  <LeadMobileCard
+                    key={lead.id}
+                    lead={lead}
+                    onStatusChange={(status) =>
+                      updateStatusMutation.mutate({ id: lead.id, status })
+                    }
+                  />
+                ))}
+              </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -266,5 +279,97 @@ function LeadTableRow({ lead, onStatusChange }: LeadTableRowProps) {
         </DropdownMenu>
       </TableCell>
     </TableRow>
+  );
+}
+
+function LeadMobileCard({ lead, onStatusChange }: LeadTableRowProps) {
+  const formatCurrency = useFormatCurrency();
+  const receivedDate = new Date(lead.createdAt).toLocaleDateString();
+  const eventDate = lead.eventDate ? new Date(lead.eventDate).toLocaleDateString() : null;
+  const rawPayload = lead.calculatorPayload;
+  const isFastQuote = isFastQuoteLead(rawPayload);
+  const fastQuotePayload = isFastQuote ? rawPayload : null;
+  const payload = !isFastQuote ? (rawPayload as CalculatorPayload | null) : null;
+  const cakeSummary = isFastQuote && fastQuotePayload
+    ? fastQuotePayload.featuredItemName
+    : payload
+      ? getPayloadSummary(payload)
+      : null;
+
+  return (
+    <div className="p-4 space-y-3" data-testid={`lead-card-${lead.id}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="font-medium truncate">{lead.customerName}</p>
+            {isFastQuote && (
+              <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs shrink-0">
+                <Zap className="h-3 w-3" />
+              </Badge>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground truncate flex items-center gap-1">
+            <Mail className="h-3 w-3 shrink-0" />
+            {lead.customerEmail}
+          </p>
+          {lead.customerPhone && (
+            <p className="text-sm text-muted-foreground truncate flex items-center gap-1">
+              <Phone className="h-3 w-3 shrink-0" />
+              {lead.customerPhone}
+            </p>
+          )}
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" data-testid={`button-actions-m-${lead.id}`}>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <Link href={`/leads/${lead.id}`}>
+                <Eye className="mr-2 h-4 w-4" />
+                View Details
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href={`/leads/${lead.id}/quote`}>
+                <FileText className="mr-2 h-4 w-4" />
+                Create Quote
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <div className="space-y-1 text-sm text-muted-foreground">
+        <p className="flex items-center gap-1">
+          <Calendar className="h-3 w-3 shrink-0" />
+          {(lead.eventType || eventDate) ? (
+            <span>
+              <span className="capitalize">{lead.eventType || "Event"}</span>
+              {eventDate && <span> · {eventDate}</span>}
+            </span>
+          ) : (
+            <span>Received {receivedDate}</span>
+          )}
+        </p>
+        {cakeSummary && <p className="truncate">{cakeSummary}</p>}
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <span className="font-semibold text-sm">{formatCurrency(Number(lead.estimatedTotal))}</span>
+        <Select value={lead.status} onValueChange={onStatusChange}>
+          <SelectTrigger className="w-[130px] h-8" data-testid={`select-status-m-${lead.id}`}>
+            <StatusBadge status={lead.status} type="lead" />
+          </SelectTrigger>
+          <SelectContent>
+            {LEAD_STATUSES.map((status) => (
+              <SelectItem key={status.id} value={status.id}>
+                {status.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
   );
 }
