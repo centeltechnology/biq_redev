@@ -299,27 +299,40 @@ function mergeOptionsById<D extends { id: string }, C extends { id: string }>(
   return [...mergedDefaults, ...customOnly];
 }
 
-// Lowest price for a single-tier cake the customer can actually reach in the
-// builder. Computed via calculateTierPrice on the cheapest option in each group
-// so the hint always matches the live tier total. The cake builder offers all
-// default options (with config price overrides), so we mirror that universe.
-// Returns null only if there are no cake options to build from.
+// Lowest price for a single-tier cake using the baker's ENABLED options
+// (defaults merged with config overrides). A cake needs one option from each
+// group, so if any group has no enabled options the hint is hidden (null).
+// The price is computed via calculateTierPrice on the cheapest enabled option
+// in each group so the hint matches the live tier total. Returns null if the
+// cheapest reachable combination is unpriced (<= 0) so nothing misleading shows.
 export function getCakeStartingPrice(config?: CalculatorConfig): number | null {
-  const cheapestBy = <T extends { id: string }>(
-    options: readonly T[],
-    price: (id: string) => number,
-  ): T | undefined =>
-    [...options].sort((a, b) => price(a.id) - price(b.id))[0];
+  const enabled = <T extends { id: string }>(
+    defaults: readonly T[],
+    custom: { id: string }[] | undefined,
+  ): T[] =>
+    mergeOptionsById(defaults, custom).filter(
+      (o) => (o as { enabled?: boolean }).enabled !== false,
+    ) as T[];
 
-  const cheapestSize = cheapestBy(CAKE_SIZES, (id) => getEffectiveSizePrice(id, config));
-  const cheapestFlavor = cheapestBy(CAKE_FLAVORS, (id) => getEffectiveFlavorPrice(id, config));
-  const cheapestFrosting = cheapestBy(FROSTING_TYPES, (id) => getEffectiveFrostingPrice(id, config));
-  // calculateTierPrice resolves shape pricing from CAKE_SHAPES defaults only.
-  const cheapestShape = cheapestBy(CAKE_SHAPES, (id) => CAKE_SHAPES.find((s) => s.id === id)?.priceModifier ?? 0);
+  const sizes = enabled(CAKE_SIZES, config?.sizes);
+  const shapes = enabled(CAKE_SHAPES, config?.shapes);
+  const flavors = enabled(CAKE_FLAVORS, config?.flavors);
+  const frostings = enabled(FROSTING_TYPES, config?.frostings);
 
-  if (!cheapestSize || !cheapestFlavor || !cheapestFrosting || !cheapestShape) {
+  if (!sizes.length || !shapes.length || !flavors.length || !frostings.length) {
     return null;
   }
+
+  const cheapestBy = <T extends { id: string }>(
+    options: T[],
+    price: (id: string) => number,
+  ): T => [...options].sort((a, b) => price(a.id) - price(b.id))[0];
+
+  const cheapestSize = cheapestBy(sizes, (id) => getEffectiveSizePrice(id, config));
+  const cheapestFlavor = cheapestBy(flavors, (id) => getEffectiveFlavorPrice(id, config));
+  const cheapestFrosting = cheapestBy(frostings, (id) => getEffectiveFrostingPrice(id, config));
+  // calculateTierPrice resolves shape pricing from CAKE_SHAPES defaults only.
+  const cheapestShape = cheapestBy(shapes, (id) => CAKE_SHAPES.find((s) => s.id === id)?.priceModifier ?? 0);
 
   const tier: CakeTier = {
     size: cheapestSize.id,
@@ -327,18 +340,20 @@ export function getCakeStartingPrice(config?: CalculatorConfig): number | null {
     flavor: cheapestFlavor.id,
     frosting: cheapestFrosting.id,
   };
-  return calculateTierPrice(tier, config);
+  const total = calculateTierPrice(tier, config);
+  return total > 0 ? total : null;
 }
 
 // Lowest reachable subtotal for an enabled treat. StepTreats enforces minQuantity
-// on first add, so the true minimum is unitPrice * minQuantity. Returns null when
-// no treats are enabled/priced.
+// on first add, so the true minimum is unitPrice * minQuantity. Unpriced/zero
+// treats are excluded. Returns null when no enabled, priced treats remain.
 export function getTreatStartingPrice(config?: CalculatorConfig): number | null {
   const treats = mergeOptionsById(TREATS, config?.treats).filter(
     (t) => (t as { enabled?: boolean }).enabled !== false,
   ) as { unitPrice: number; minQuantity?: number }[];
-  if (treats.length === 0) return null;
-  return Math.min(
-    ...treats.map((t) => (t.unitPrice ?? 0) * Math.max(t.minQuantity ?? 1, 1)),
-  );
+  const subtotals = treats
+    .map((t) => (t.unitPrice ?? 0) * Math.max(t.minQuantity ?? 1, 1))
+    .filter((p) => p > 0);
+  if (subtotals.length === 0) return null;
+  return Math.min(...subtotals);
 }
