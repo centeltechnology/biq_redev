@@ -283,3 +283,62 @@ export function createDefaultTier(): CakeTier {
     frosting: "buttercream",
   };
 }
+
+// Merge baker custom config options with defaults by id, preserving custom-only entries.
+function mergeOptionsById<D extends { id: string }, C extends { id: string }>(
+  defaults: readonly D[],
+  custom: C[] | undefined,
+): (D | C)[] {
+  if (!custom || custom.length === 0) {
+    return defaults.map((d) => ({ ...d }));
+  }
+  const customById = new Map(custom.map((c) => [c.id, c]));
+  const defaultIds = new Set(defaults.map((d) => d.id));
+  const mergedDefaults = defaults.map((d) => customById.get(d.id) ?? d);
+  const customOnly = custom.filter((c) => !defaultIds.has(c.id));
+  return [...mergedDefaults, ...customOnly];
+}
+
+// Lowest price for a single-tier cake the customer can actually reach in the
+// builder. Computed via calculateTierPrice on the cheapest option in each group
+// so the hint always matches the live tier total. The cake builder offers all
+// default options (with config price overrides), so we mirror that universe.
+// Returns null only if there are no cake options to build from.
+export function getCakeStartingPrice(config?: CalculatorConfig): number | null {
+  const cheapestBy = <T extends { id: string }>(
+    options: readonly T[],
+    price: (id: string) => number,
+  ): T | undefined =>
+    [...options].sort((a, b) => price(a.id) - price(b.id))[0];
+
+  const cheapestSize = cheapestBy(CAKE_SIZES, (id) => getEffectiveSizePrice(id, config));
+  const cheapestFlavor = cheapestBy(CAKE_FLAVORS, (id) => getEffectiveFlavorPrice(id, config));
+  const cheapestFrosting = cheapestBy(FROSTING_TYPES, (id) => getEffectiveFrostingPrice(id, config));
+  // calculateTierPrice resolves shape pricing from CAKE_SHAPES defaults only.
+  const cheapestShape = cheapestBy(CAKE_SHAPES, (id) => CAKE_SHAPES.find((s) => s.id === id)?.priceModifier ?? 0);
+
+  if (!cheapestSize || !cheapestFlavor || !cheapestFrosting || !cheapestShape) {
+    return null;
+  }
+
+  const tier: CakeTier = {
+    size: cheapestSize.id,
+    shape: cheapestShape.id,
+    flavor: cheapestFlavor.id,
+    frosting: cheapestFrosting.id,
+  };
+  return calculateTierPrice(tier, config);
+}
+
+// Lowest reachable subtotal for an enabled treat. StepTreats enforces minQuantity
+// on first add, so the true minimum is unitPrice * minQuantity. Returns null when
+// no treats are enabled/priced.
+export function getTreatStartingPrice(config?: CalculatorConfig): number | null {
+  const treats = mergeOptionsById(TREATS, config?.treats).filter(
+    (t) => (t as { enabled?: boolean }).enabled !== false,
+  ) as { unitPrice: number; minQuantity?: number }[];
+  if (treats.length === 0) return null;
+  return Math.min(
+    ...treats.map((t) => (t.unitPrice ?? 0) * Math.max(t.minQuantity ?? 1, 1)),
+  );
+}

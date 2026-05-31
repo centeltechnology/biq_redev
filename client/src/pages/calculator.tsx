@@ -68,6 +68,8 @@ import {
   calculateTreatsPrice,
   formatCurrency,
   createDefaultTier,
+  getCakeStartingPrice,
+  getTreatStartingPrice,
 } from "@/lib/calculator";
 import { apiRequest } from "@/lib/queryClient";
 import {
@@ -462,6 +464,7 @@ export default function CalculatorPage() {
             onSelectFeaturedItem={handleFeaturedItemSelect}
             enableCakes={baker?.enableCakes !== false}
             enableTreats={baker?.enableTreats !== false}
+            config={bakerConfig}
           />
         );
       case "Build Your Cake":
@@ -931,10 +934,13 @@ interface StepCategoryProps {
   onSelectFeaturedItem?: (item: FeaturedItemType) => void;
   enableCakes?: boolean;
   enableTreats?: boolean;
+  config?: CalculatorConfig;
 }
 
-function StepCategory({ onSelect, featuredItems = [], onSelectFeaturedItem, enableCakes = true, enableTreats = true }: StepCategoryProps) {
+function StepCategory({ onSelect, featuredItems = [], onSelectFeaturedItem, enableCakes = true, enableTreats = true, config }: StepCategoryProps) {
   const fmt = useFormattedCurrency();
+  const cakeStartingPrice = getCakeStartingPrice(config);
+  const treatStartingPrice = getTreatStartingPrice(config);
 
   const getCategoryLabel = (category: string) => {
     const labels: Record<string, string> = {
@@ -1034,6 +1040,11 @@ function StepCategory({ onSelect, featuredItems = [], onSelectFeaturedItem, enab
             <p className="text-muted-foreground">
               Custom cakes for any occasion
             </p>
+            {cakeStartingPrice != null && (
+              <p className="text-sm font-medium text-primary mt-2" data-testid="text-cake-starting-price">
+                Starting at {fmt(cakeStartingPrice)}
+              </p>
+            )}
           </button>
         )}
 
@@ -1050,6 +1061,11 @@ function StepCategory({ onSelect, featuredItems = [], onSelectFeaturedItem, enab
             <p className="text-muted-foreground">
               Cookies, cupcakes, cake pops & more
             </p>
+            {treatStartingPrice != null && (
+              <p className="text-sm font-medium text-primary mt-2" data-testid="text-treat-starting-price">
+                Starting at {fmt(treatStartingPrice)}
+              </p>
+            )}
           </button>
         )}
       </div>
