@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/form";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { InstallSettingsSection } from "@/components/install-prompt";
+import { PushNotificationCard } from "@/components/push-notification-card";
 import { useAuth } from "@/hooks/use-auth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -658,6 +659,8 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        <PushNotificationCard />
 
         <Card>
           <CardHeader>

@@ -58,6 +58,9 @@ import {
   analyticsEvents,
   type AnalyticsEvent,
   type InsertAnalyticsEvent,
+  pushSubscriptions,
+  type PushSubscription,
+  type InsertPushSubscription,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql, or, ilike, isNull, count, countDistinct, inArray } from "drizzle-orm";
@@ -244,6 +247,12 @@ export interface IStorage {
 
   createAnalyticsEvent(event: InsertAnalyticsEvent): Promise<AnalyticsEvent>;
   getAnalyticsSummary(startDate: Date | null, endDate: Date | null): Promise<{ visitors: number; pageViews: number; calculatorUses: number; calculatorVisible: number; calculatorInteractions: number; ctaClicks: number; signupClicks: number; accountsCreated: number; conversionRate: number }>;
+
+  // Push subscriptions
+  createPushSubscription(sub: InsertPushSubscription): Promise<PushSubscription>;
+  getPushSubscriptionsByBaker(bakerId: string): Promise<PushSubscription[]>;
+  deletePushSubscriptionByEndpoint(endpoint: string): Promise<void>;
+  deletePushSubscriptionForBaker(endpoint: string, bakerId: string): Promise<void>;
   getAnalyticsDailyTrend(days: number): Promise<Array<{ date: string; visitors: number; accounts: number }>>;
   getAnalyticsPageBreakdown(startDate: Date | null, endDate: Date | null): Promise<Array<{ page: string; views: number; calculatorVisible: number; calculatorUses: number; signupClicks: number; accountsCreated: number; conversionRate: number }>>;
   getRecentAnalyticsEvents(limit: number, types: string[]): Promise<Array<{ eventType: string; pagePath: string | null; createdAt: Date }>>;
@@ -1543,6 +1552,35 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(analyticsEvents.createdAt))
       .limit(limit);
     return rows;
+  }
+
+  async createPushSubscription(sub: InsertPushSubscription): Promise<PushSubscription> {
+    const [created] = await db
+      .insert(pushSubscriptions)
+      .values(sub)
+      .onConflictDoUpdate({
+        target: pushSubscriptions.endpoint,
+        set: { bakerId: sub.bakerId, p256dh: sub.p256dh, auth: sub.auth },
+      })
+      .returning();
+    return created;
+  }
+
+  async getPushSubscriptionsByBaker(bakerId: string): Promise<PushSubscription[]> {
+    return db
+      .select()
+      .from(pushSubscriptions)
+      .where(eq(pushSubscriptions.bakerId, bakerId));
+  }
+
+  async deletePushSubscriptionByEndpoint(endpoint: string): Promise<void> {
+    await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint));
+  }
+
+  async deletePushSubscriptionForBaker(endpoint: string, bakerId: string): Promise<void> {
+    await db
+      .delete(pushSubscriptions)
+      .where(and(eq(pushSubscriptions.endpoint, endpoint), eq(pushSubscriptions.bakerId, bakerId)));
   }
 }
 

@@ -9,6 +9,7 @@ import { pool } from "./db";
 import connectPgSimple from "connect-pg-simple";
 import { sendEmail, sendNewLeadNotification, sendLeadConfirmationToCustomer, sendPasswordResetEmail, sendEmailVerification, sendQuoteNotification, sendOnboardingEmail, sendQuoteResponseNotification, sendAdminPasswordReset, sendPaymentReceivedNotification, sendAnnouncementEmail, getAnnouncementEmailHtml, sendInvitationEmail, getDynamicEmailHtml, sendDynamicAdminEmail, sendAffiliateApplicationConfirmation, sendAffiliateApplicationNotification, sendMilestoneEmail, type AdminEmailTokens } from "./email";
 import { getCanonicalAppUrl, buildAppUrl } from "./url";
+import { sendPushToBaker, getVapidPublicKey } from "./push";
 import crypto from "crypto";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { db } from "./db";
@@ -549,6 +550,56 @@ export async function registerRoutes(
       return res.status(404).json({ message: "Baker not found" });
     }
     res.json({ ...baker, passwordHash: undefined });
+  });
+
+  // --- Web Push notifications ---
+  app.get("/api/push/public-key", (req, res) => {
+    const key = getVapidPublicKey();
+    if (!key) {
+      return res.status(503).json({ message: "Push notifications are not configured" });
+    }
+    res.json({ publicKey: key });
+  });
+
+  app.post("/api/push/subscribe", requireAuth, async (req, res) => {
+    try {
+      const schema = z.object({
+        endpoint: z.string().url(),
+        keys: z.object({
+          p256dh: z.string().min(1),
+          auth: z.string().min(1),
+        }),
+      });
+      const { endpoint, keys } = schema.parse(req.body);
+      await storage.createPushSubscription({
+        bakerId: req.session.bakerId!,
+        endpoint,
+        p256dh: keys.p256dh,
+        auth: keys.auth,
+      });
+      res.json({ success: true });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid subscription", errors: err.errors });
+      }
+      console.error("[Push] Subscribe failed:", err);
+      res.status(500).json({ message: "Failed to save subscription" });
+    }
+  });
+
+  app.post("/api/push/unsubscribe", requireAuth, async (req, res) => {
+    try {
+      const schema = z.object({ endpoint: z.string().url() });
+      const { endpoint } = schema.parse(req.body);
+      await storage.deletePushSubscriptionForBaker(endpoint, req.session.bakerId!);
+      res.json({ success: true });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid request", errors: err.errors });
+      }
+      console.error("[Push] Unsubscribe failed:", err);
+      res.status(500).json({ message: "Failed to remove subscription" });
+    }
   });
 
   app.patch("/api/bakers/me", requireAuth, async (req, res) => {
@@ -2076,6 +2127,16 @@ export async function registerRoutes(
         baker.emailPrefsToken
       );
 
+      // Push notification (respects the baker's "quote accepted" toggle)
+      if (action === "accept" && baker.notifyQuoteAccepted) {
+        sendPushToBaker(baker.id, {
+          title: "Quote accepted 🎉",
+          body: `${customer.name} accepted quote ${quote.quoteNumber} ($${parseFloat(quote.total).toFixed(2)})`,
+          url: `/quotes/${quote.id}`,
+          tag: `quote-accepted-${quote.id}`,
+        }).catch((err) => console.error("[Push] quote accepted error:", err));
+      }
+
       res.json({ 
         success: true, 
         message: action === "accept" 
@@ -2173,6 +2234,16 @@ export async function registerRoutes(
           category,
         }),
       ]).catch((err) => console.error("Email notification error:", err));
+
+      // Push notification (respects the baker's "new lead" toggle)
+      if (baker.notifyNewLead) {
+        sendPushToBaker(baker.id, {
+          title: "New lead 🍰",
+          body: `${data.customerName} requested a quote${data.eventType ? ` for ${data.eventType}` : ""} (~$${estimatedTotal.toFixed(2)})`,
+          url: `/leads`,
+          tag: `lead-${lead.id}`,
+        }).catch((err) => console.error("[Push] new lead error:", err));
+      }
 
       res.json({ success: true, leadId: lead.id });
     } catch (error: any) {
@@ -2758,6 +2829,13 @@ export async function registerRoutes(
                 totalQuoteAmount: total,
                 totalPaid,
               }, baker.emailPrefsToken).catch(err => console.error("Failed to send payment notification:", err));
+
+              sendPushToBaker(baker.id, {
+                title: "Payment received 💰",
+                body: `${customer.name} paid $${paidAmount.toFixed(2)} on ${quote.quoteNumber}`,
+                url: `/payments`,
+                tag: `payment-${quote.id}`,
+              }).catch(err => console.error("[Push] payment received error:", err));
 
               if (!baker.milestoneFirstPaymentSent && !baker.firstPaymentProcessedAt) {
                 storage.updateBaker(bakerId, { milestoneFirstPaymentSent: true })
