@@ -80,8 +80,7 @@ integrations = ["javascript_database:1.0.0", "stripe:2.0.0", "javascript_object_
 [userenv.shared]
 ONBOARDING_CONDITIONALS_ENABLED = "false"
 APP_CANONICAL_URL = "https://bakeriq.app"
-VAPID_PUBLIC_KEY = "BDJkLsrGTQ3rWvkLtIZbQ66mGzjU8rZZFXBuKSTeFL9NyMw9lZ17gMNmRkuaaBknQMhjZr78uU37M5RP9OY6LkM"
-VAPID_PRIVATE_KEY = "UAEKQ0NcIJXIdVfjkgQxyeHF1mCJyK1LIBkNWDUhFEI"
+VAPID_PUBLIC_KEY = "BISfsJSScja-fYaCpPSHTphqpn8Jzw7sg2mex1xLgwFKzS-lbT9HTTt9tlOnMSJcZUixcKt3yMq9JLqYiWcULQU"
 VAPID_SUBJECT = "mailto:support@bakeriq.app"
 
 [postMerge]
