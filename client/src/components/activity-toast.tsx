@@ -21,12 +21,30 @@ const TIP_TEMPLATES = [
 
 const ACTIVITY_TEMPLATES: Record<string, string[]> = {
   calculator_used: [
-    "{A baker|Someone|A custom baker} {just checked a cake price|just calculated a cake price|just ran a pricing check}.",
+    "{A baker|Someone|A custom baker} just calculated a cake price.",
+  ],
+  price_recalculated: [
+    "{A baker|Someone} just checked their pricing.",
+  ],
+  signup_click: [
+    "Someone just clicked to create an order page.",
   ],
   account_created: [
-    "{A baker|Someone} {just created a BakerIQ account|started using BakerIQ|just signed up for BakerIQ}.",
+    "A baker just started setting up BakerIQ.",
+  ],
+  dm_reply_copied: [
+    "A baker just copied a reply to send a customer.",
+  ],
+  order_link_copied: [
+    "A baker just shared their order page link.",
   ],
 };
+
+const FRESHNESS_WINDOW_MS = 72 * 60 * 60 * 1000;
+
+function isFresh(dateStr: string): boolean {
+  return Date.now() - new Date(dateStr).getTime() <= FRESHNESS_WINDOW_MS;
+}
 
 function relativeTime(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -35,7 +53,7 @@ function relativeTime(dateStr: string): string {
   if (mins < 60) return `${mins}m ago`;
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
+  return "recently";
 }
 
 export function ActivityToast() {
@@ -44,31 +62,44 @@ export function ActivityToast() {
   const [timestamp, setTimestamp] = useState<string | null>(null);
   const [leaving, setLeaving] = useState(false);
 
+  const lastMessageRef = useRef<string | null>(null);
+
   const { data: recentEvents } = useQuery<RecentEvent[]>({
     queryKey: ["/api/analytics/recent?limit=20"],
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
-  const useRealActivity = (recentEvents?.length ?? 0) >= 20;
-
   const showToast = useCallback(() => {
-    let msg: string;
+    let msg = "";
     let ts: string | null = null;
 
-    if (useRealActivity && recentEvents && recentEvents.length > 0) {
-      const event = recentEvents[Math.floor(Math.random() * recentEvents.length)];
-      const templates = ACTIVITY_TEMPLATES[event.eventType];
-      if (templates) {
-        msg = resolveSpintax(templates[Math.floor(Math.random() * templates.length)]);
-        ts = relativeTime(event.createdAt);
-      } else {
-        msg = resolveSpintax(TIP_TEMPLATES[Math.floor(Math.random() * TIP_TEMPLATES.length)]);
+    const freshEvents = (recentEvents ?? []).filter(
+      (e) => ACTIVITY_TEMPLATES[e.eventType] && isFresh(e.createdAt),
+    );
+
+    if (freshEvents.length > 0) {
+      let chosen = freshEvents[Math.floor(Math.random() * freshEvents.length)];
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const event = freshEvents[Math.floor(Math.random() * freshEvents.length)];
+        const templates = ACTIVITY_TEMPLATES[event.eventType];
+        const candidate = resolveSpintax(templates[Math.floor(Math.random() * templates.length)]);
+        msg = candidate;
+        chosen = event;
+        if (candidate !== lastMessageRef.current) break;
       }
+      ts = relativeTime(chosen.createdAt);
     } else {
-      msg = resolveSpintax(TIP_TEMPLATES[Math.floor(Math.random() * TIP_TEMPLATES.length)]);
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const candidate = resolveSpintax(TIP_TEMPLATES[Math.floor(Math.random() * TIP_TEMPLATES.length)]);
+        msg = candidate;
+        if (candidate !== lastMessageRef.current) break;
+      }
     }
 
+    if (!msg) return;
+
+    lastMessageRef.current = msg;
     setMessage(msg);
     setTimestamp(ts);
     setLeaving(false);
@@ -78,7 +109,7 @@ export function ActivityToast() {
       setLeaving(true);
       setTimeout(() => setVisible(false), 400);
     }, 5000);
-  }, [useRealActivity, recentEvents]);
+  }, [recentEvents]);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);

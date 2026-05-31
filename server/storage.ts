@@ -1528,6 +1528,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRecentAnalyticsEvents(limit: number, types: string[]) {
+    const seventyTwoHoursAgo = new Date(Date.now() - 72 * 60 * 60 * 1000);
     const rows = await db
       .select({
         eventType: analyticsEvents.eventType,
@@ -1535,7 +1536,12 @@ export class DatabaseStorage implements IStorage {
         createdAt: analyticsEvents.createdAt,
       })
       .from(analyticsEvents)
-      .where(inArray(analyticsEvents.eventType, types))
+      .where(
+        and(
+          inArray(analyticsEvents.eventType, types),
+          gte(analyticsEvents.createdAt, seventyTwoHoursAgo),
+        ),
+      )
       .orderBy(desc(analyticsEvents.createdAt))
       .limit(limit);
     return rows;

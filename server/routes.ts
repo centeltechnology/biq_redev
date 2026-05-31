@@ -5531,8 +5531,15 @@ Guidelines:
 
   app.get("/api/analytics/recent", async (req, res) => {
     try {
-      const limit = Math.min(Number(req.query.limit) || 10, 20);
-      const events = await storage.getRecentAnalyticsEvents(limit, ["calculator_used", "account_created"]);
+      const limit = Math.max(1, Math.min(Number(req.query.limit) || 20, 20));
+      const events = await storage.getRecentAnalyticsEvents(limit, [
+        "calculator_used",
+        "price_recalculated",
+        "signup_click",
+        "account_created",
+        "dm_reply_copied",
+        "order_link_copied",
+      ]);
       res.json(events);
     } catch {
       res.status(500).json({ error: "Failed to fetch recent events" });

@@ -1,0 +1,153 @@
+Update the landing page activity/social proof toast system so it never shows stale activity from weeks/months ago.
+
+Current issue:
+The activity popups are showing events from around 80 days ago. That makes the site feel inactive and hurts trust.
+
+Goal:
+Only show recent real activity. If no recent real activity exists, show helpful tip-style toasts instead of old activity.
+
+---
+
+## 1. Real activity freshness window
+
+Only use real analytics/activity events from the last 72 hours.
+
+Allowed real events:
+
+* calculator_used
+* price_recalculated
+* signup_click
+* account_created
+* dm_reply_copied
+* order_link_copied
+
+Do not show real activity older than 72 hours.
+
+If an event is older than 72 hours, exclude it from the toast rotation.
+
+---
+
+## 2. Timestamp display rules
+
+For real events, show relative time only if recent.
+
+Examples:
+
+* “just now”
+* “2m ago”
+* “18m ago”
+* “1h ago”
+* “yesterday”
+
+Do not display:
+
+* “80 days ago”
+* “2 months ago”
+* “last month”
+* any stale timestamp
+
+If the event is older than 24 hours but still within 72 hours, show:
+
+“recently”
+
+instead of an exact old timestamp.
+
+---
+
+## 3. Fallback to tip toasts when no recent activity exists
+
+If there are no real events in the last 72 hours, show rotating tip toasts instead.
+
+These should not pretend to be real user actions.
+
+Examples:
+
+“Try switching to Luxury to see how much design work changes the price.”
+
+“Most bakers undercharge by $50–$100 per order.”
+
+“Change servings from 24 to 36 and watch the estimate update.”
+
+“Send your order page link next time someone asks ‘how much?’”
+
+“Customers can build the request. You review the quote.”
+
+---
+
+## 4. Separate real activity from tips
+
+Real activity messages may say:
+
+“A baker just calculated a cake price.”
+
+“A baker just checked their pricing.”
+
+“Someone just clicked to create an order page.”
+
+“A baker just started setting up BakerIQ.”
+
+Tip messages must not imply real activity.
+
+Do not use fake names, fake cities, fake signups, or fake timestamps.
+
+---
+
+## 5. Toast display behavior
+
+Keep existing toast placement and design.
+
+Use:
+
+* bottom-right placement
+* fade/slide animation
+* display every 25–45 seconds
+* show for around 5–6 seconds
+* mobile-safe positioning
+
+Do not block CTA buttons.
+
+---
+
+## 6. Query/update logic
+
+Update the toast data source so it queries only recent events:
+
+* filter by timestamp >= now - 72 hours
+* sort newest first
+* limit to a reasonable number, like 20
+
+If no events are returned, use the tip toast list.
+
+If events are returned, rotate through recent real events.
+
+---
+
+## 7. Optional: prevent showing the same toast repeatedly
+
+Avoid showing the same exact message twice in a row.
+
+If using tip toasts, randomize rotation.
+
+If using real events, rotate through recent events.
+
+---
+
+## 8. Preserve analytics
+
+Do not change analytics event tracking.
+
+Do not delete old analytics events.
+
+Only change what the activity toast system chooses to display.
+
+---
+
+## 9. Deliverables
+
+After implementation, report:
+
+* files changed
+* confirmation that events older than 72 hours are excluded
+* confirmation that “80 days ago” style timestamps no longer appear
+* confirmation that fallback tip toasts show when no recent activity exists
+* confirmation that no fake user activity is displayed
