@@ -1,0 +1,149 @@
+Update the `/pricing-demo` landing page calculator copy so it uses plain baker/customer-friendly language instead of multiplier language.
+
+Do not change the calculator logic or pricing formula. This is a UI/copy cleanup only unless needed to align defaults.
+
+---
+
+## 1. Remove visible multiplier labels
+
+In the Design Complexity / Design Level buttons, remove visible labels like:
+
+* 1x
+* 1.3x
+* 1.6x
+
+Keep the multipliers in the calculation logic, but do not show them to users.
+
+Replace the visible button copy with:
+
+Simple
+“Minimal decoration”
+
+Detailed
+“Custom design”
+
+Luxury
+“High-detail cake”
+
+---
+
+## 2. Rename section label
+
+Change:
+
+“Design Complexity”
+
+to:
+
+“Design Level”
+
+This is easier for bakers to understand.
+
+---
+
+## 3. Add selected design explanation
+
+Below the design buttons, show a short explanation based on the selected design level.
+
+If Simple is selected:
+
+“Simple: solid colors, minimal decoration, basic finish.”
+
+If Detailed is selected:
+
+“Detailed: custom piping, multi-color design, toppers, or moderate detail.”
+
+If Luxury is selected:
+
+“Luxury: premium details, specialty finishes, florals, sculpted work, or complex design.”
+
+---
+
+## 4. Fix quick test/default mismatch
+
+The page currently says:
+
+“Quick test (10 seconds): Set servings to 36, then tap Luxury.”
+
+Make sure the default calculator state starts at:
+
+* 24 servings
+* Simple
+
+Suggested price should show:
+
+$120
+
+Then the quick test instruction should be:
+
+“Quick test:
+Change servings to 36 and tap Luxury.
+Watch the price jump.”
+
+This lets the visitor experience the price change themselves.
+
+Do not default the page to 36 servings or Detailed if the instruction tells them to change it manually.
+
+---
+
+## 5. Improve result helper copy
+
+Under the suggested price, keep:
+
+“Are you charging this?”
+
+Keep or update the baseline text to:
+
+“Based on a $5 per serving professional baseline.”
+
+Then below that, keep:
+
+“Most custom bakers undercharge by $50–$100 per order.”
+
+---
+
+## 6. Improve CTA wording
+
+Change main CTA button from:
+
+“Create Free Account”
+
+to:
+
+“Create Your Order Page”
+
+Keep the destination the same as the existing signup/onboarding flow.
+
+Keep the supporting text:
+
+“Free to start.”
+“No credit card required.”
+“Takes 60 seconds.”
+
+---
+
+## 7. Preserve existing tracking
+
+Do not remove or break existing analytics events:
+
+* calculator_visible
+* calculator_used
+* price_recalculated
+* cta_click
+* signup_click
+
+If CTA label changes, update the analytics label to reflect:
+
+“Create Your Order Page”
+
+---
+
+## 8. Deliverables
+
+After implementation, report:
+
+* files changed
+* confirmation that multipliers are no longer visible
+* confirmation that calculation logic still uses the same multipliers internally
+* confirmation that default state is 24 servings + Simple
+* confirmation that CTA now says “Create Your Order Page”

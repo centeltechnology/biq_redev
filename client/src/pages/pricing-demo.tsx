@@ -15,9 +15,9 @@ declare global {
 }
 
 const COMPLEXITY_OPTIONS = [
-  { id: "simple", label: "Simple", multiplier: 1.0, description: "Solid colors, minimal decoration" },
-  { id: "detailed", label: "Detailed", multiplier: 1.3, description: "Custom piping, multi-color, toppers" },
-  { id: "luxury", label: "Luxury", multiplier: 1.6, description: "Fondant, sculpted, hand-painted" },
+  { id: "simple", label: "Simple", multiplier: 1.0, shortLabel: "Minimal decoration", explanation: "Simple: solid colors, minimal decoration, basic finish." },
+  { id: "detailed", label: "Detailed", multiplier: 1.3, shortLabel: "Custom design", explanation: "Detailed: custom piping, multi-color design, toppers, or moderate detail." },
+  { id: "luxury", label: "Luxury", multiplier: 1.6, shortLabel: "High-detail cake", explanation: "Luxury: premium details, specialty finishes, florals, sculpted work, or complex design." },
 ] as const;
 
 const EXAMPLE_PRESETS = [
@@ -136,8 +136,9 @@ export default function PricingDemoPage() {
       <section ref={calculatorRef} className="pb-12 md:pb-16" data-testid="section-calculator">
         <div className="container max-w-lg mx-auto px-4">
           <div className="text-center mb-4" data-testid="section-guided-instruction">
-            <p className="text-sm font-bold" data-testid="text-guided-title">Quick test (10 seconds):</p>
-            <p className="text-sm text-muted-foreground" data-testid="text-guided-step">Set servings to 36, then tap Luxury.</p>
+            <p className="text-sm font-bold" data-testid="text-guided-title">Quick test:</p>
+            <p className="text-sm text-muted-foreground" data-testid="text-guided-step">Change servings to 36 and tap Luxury.</p>
+            <p className="text-sm text-muted-foreground" data-testid="text-guided-watch">Watch the price jump.</p>
           </div>
           <Card className="shadow-lg border-border/60" data-testid="card-calculator">
             <CardContent className="p-6 md:p-8 space-y-6">
@@ -186,7 +187,7 @@ export default function PricingDemoPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Design Complexity</Label>
+                  <Label className="text-sm font-medium">Design Level</Label>
                   <div className="grid grid-cols-3 gap-2" data-testid="group-complexity">
                     {COMPLEXITY_OPTIONS.map((option) => (
                       <button
@@ -200,12 +201,12 @@ export default function PricingDemoPage() {
                         data-testid={`button-complexity-${option.id}`}
                       >
                         <div className="text-sm font-medium">{option.label}</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">{option.multiplier}×</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{option.shortLabel}</div>
                       </button>
                     ))}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {COMPLEXITY_OPTIONS.find(c => c.id === complexity)?.description}
+                  <p className="text-xs text-muted-foreground" data-testid="text-design-explanation">
+                    {COMPLEXITY_OPTIONS.find(c => c.id === complexity)?.explanation}
                   </p>
                 </div>
               </div>
@@ -236,8 +237,8 @@ export default function PricingDemoPage() {
             Turn this into a branded quote and get paid.
           </p>
           <Link href="/signup">
-            <Button size="lg" className="w-full sm:w-auto" data-testid="button-create-account" onClick={() => { trackSignupClick("/pricing-demo"); trackCtaClick("Create Free Account"); }}>
-              Create Free Account
+            <Button size="lg" className="w-full sm:w-auto" data-testid="button-create-account" onClick={() => { trackSignupClick("/pricing-demo"); trackCtaClick("Create Your Order Page"); }}>
+              Create Your Order Page
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </Link>
@@ -263,7 +264,7 @@ export default function PricingDemoPage() {
                 data-testid="button-sticky-cta"
                 onClick={() => { trackSignupClick("/pricing-demo"); trackCtaClick("Sticky Mobile CTA"); }}
               >
-                Create Free Account
+                Create Your Order Page
               </Button>
             </Link>
           </div>
