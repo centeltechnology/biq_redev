@@ -33,6 +33,9 @@ export default function HomePage() {
             <span className="text-xl font-bold">BakerIQ</span>
           </div>
           <nav className="flex items-center gap-2 sm:gap-4 flex-wrap">
+            <Link href="/compare">
+              <Button variant="ghost" data-testid="link-compare">Compare</Button>
+            </Link>
             <Link href="/help">
               <Button variant="ghost" data-testid="link-help">Help</Button>
             </Link>
@@ -365,6 +368,9 @@ export default function HomePage() {
               <span className="font-semibold">BakerIQ</span>
             </div>
             <div className="flex items-center gap-6 flex-wrap justify-center">
+              <Link href="/compare">
+                <span className="text-sm text-muted-foreground hover:text-foreground" data-testid="footer-link-compare">Compare</span>
+              </Link>
               <Link href="/help">
                 <span className="text-sm text-muted-foreground hover:text-foreground" data-testid="footer-link-help">Help</span>
               </Link>

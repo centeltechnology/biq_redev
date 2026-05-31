@@ -45,6 +45,7 @@ import EmailPreferences from "@/pages/email-preferences";
 import PricingDemoPage from "@/pages/pricing-demo";
 import PricingDemoV2Page from "@/pages/pricing-demo-v2";
 import PlansPage from "@/pages/plans";
+import ComparePage from "@/pages/compare";
 const AdminAnalyticsPage = lazy(() => import("@/pages/admin-analytics"));
 import { CookieConsent } from "@/components/cookie-consent";
 
@@ -136,6 +137,7 @@ function Router() {
       <Route path="/pricing-demo" component={PricingDemoPage} />
       <Route path="/pricing-demo-v2" component={PricingDemoV2Page} />
       <Route path="/plans" component={PlansPage} />
+      <Route path="/compare" component={ComparePage} />
       <Route path="/join/:slug" component={AffiliateJoinPage} />
       <Route path="/email-preferences/:token" component={EmailPreferences} />
       <Route path="/support">{() => <Redirect to="/help" />}</Route>
