@@ -1,1 +1,2 @@
 - [Settings notify-prefs type errors](settings-notify-prefs.md) — pre-existing tsc TS2353 on notifyOnboarding/Retention/Announcements; not a regression, ignore unless task is the notify form.
+- [Dashboard header overflow](dashboard-header-overflow.md) — mobile sideways scroll on list pages came from the shared DashboardLayout header, not page cards; keep title truncate + right group shrink-0.

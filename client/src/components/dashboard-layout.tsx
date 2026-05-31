@@ -162,12 +162,12 @@ export function DashboardLayout({ children, title, actions }: DashboardLayoutPro
       <div className="flex h-screen w-full">
         <AppSidebar />
         <div className="flex flex-col flex-1 min-w-0">
-          <header className="flex items-center justify-between gap-4 px-4 py-3 border-b bg-background sticky top-0 z-50">
-            <div className="flex items-center gap-4">
+          <header className="flex items-center justify-between gap-2 px-4 py-3 border-b bg-background sticky top-0 z-50">
+            <div className="flex items-center gap-4 min-w-0">
               <SidebarTrigger data-testid="button-sidebar-toggle" />
-              {title && <h1 className="text-lg font-semibold">{title}</h1>}
+              {title && <h1 className="text-lg font-semibold truncate">{title}</h1>}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               {subscription && (
                 subscription.plan === "pro" ? (
                   <Badge variant="outline" className="gap-1" data-testid="badge-pro-plan">
