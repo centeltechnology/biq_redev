@@ -1,9 +1,9 @@
 import { Link, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Share2, MessageSquareText, FileText, CreditCard, ArrowRight, HelpCircle, Loader2 } from "lucide-react";
+import { Share2, MessageSquareText, FileText, CreditCard, ArrowRight, HelpCircle, Loader2, UserRound } from "lucide-react";
 import { getQueryFn } from "@/lib/queryClient";
-import lashellPhoto from "@assets/Shell_ref_page_1771738575704.png";
+import { getAffiliateHeadlinePreset, AFFILIATE_STANDARD_QUOTE } from "@shared/affiliate-content";
 
 function WorkflowStep({ step, icon, title, description }: { step: number; icon: React.ReactNode; title: string; description: string }) {
   return (
@@ -20,7 +20,13 @@ function WorkflowStep({ step, icon, title, description }: { step: number; icon: 
 export default function AffiliateJoinPage() {
   const { slug } = useParams<{ slug: string }>();
 
-  const { data: affiliate, isLoading, error } = useQuery<{ businessName: string; slug: string }>({
+  const { data: affiliate, isLoading, error } = useQuery<{
+    businessName: string;
+    slug: string;
+    displayName: string;
+    photo: string | null;
+    headlineKey: string | null;
+  }>({
     queryKey: ["/api/affiliate/join", slug],
     queryFn: getQueryFn({ on401: "returnNull" }),
     retry: false,
@@ -52,6 +58,9 @@ export default function AffiliateJoinPage() {
     );
   }
 
+  const headline = getAffiliateHeadlinePreset(affiliate.headlineKey);
+  const referrerName = affiliate.displayName || affiliate.businessName;
+
   return (
     <div className="min-h-screen bg-background">
       <section className="py-16 md:py-24" data-testid="section-affiliate-hero">
@@ -59,11 +68,10 @@ export default function AffiliateJoinPage() {
           <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
             <div className="space-y-6">
               <h1 className="text-4xl md:text-5xl font-bold tracking-tight leading-tight" data-testid="text-affiliate-headline">
-                I don't recommend many tools.<br />
-                This one earns it.
+                {headline.headline}
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground leading-relaxed" data-testid="text-affiliate-subheadline">
-                If you're learning from me and planning to sell professionally, you need structure — not DMs.
+                {headline.subheadline}
               </p>
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <Link href="/signup">
@@ -88,19 +96,26 @@ export default function AffiliateJoinPage() {
             </div>
 
             <div className="space-y-6">
-              <div className="aspect-[4/5] max-w-sm mx-auto rounded-2xl overflow-hidden" data-testid="img-affiliate-photo">
-                <img
-                  src={lashellPhoto}
-                  alt="LaShell Howard"
-                  className="w-full h-full object-cover"
-                />
+              <div className="aspect-[4/5] max-w-sm mx-auto rounded-2xl overflow-hidden bg-muted" data-testid="img-affiliate-photo">
+                {affiliate.photo ? (
+                  <img
+                    src={affiliate.photo}
+                    alt={referrerName}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground gap-3">
+                    <UserRound className="h-16 w-16" />
+                    <span className="text-sm font-medium">{referrerName}</span>
+                  </div>
+                )}
               </div>
               <blockquote className="border-l-4 border-primary pl-4 py-2" data-testid="text-affiliate-quote">
                 <p className="text-base italic text-foreground/90 leading-relaxed">
-                  "I don't believe in running a business through DMs. If you're serious about selling, you need a structured system."
+                  "{AFFILIATE_STANDARD_QUOTE}"
                 </p>
-                <footer className="mt-2 text-sm font-medium text-muted-foreground">
-                  — LaShell Howard
+                <footer className="mt-2 text-sm font-medium text-muted-foreground" data-testid="text-affiliate-quote-author">
+                  — {referrerName}
                 </footer>
               </blockquote>
             </div>
@@ -115,7 +130,7 @@ export default function AffiliateJoinPage() {
           </h2>
           <div className="space-y-4 text-lg text-muted-foreground leading-relaxed">
             <p>
-              LaShell recommends structure.<br />
+              {referrerName} recommends structure.<br />
               BakerIQ provides the system.
             </p>
             <p>

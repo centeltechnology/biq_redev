@@ -84,6 +84,9 @@ export const bakers = pgTable("bakers", {
   affiliateCommissionMonths: integer("affiliate_commission_months").default(3),
   affiliateStripeConnectId: text("affiliate_stripe_connect_id"),
   affiliateStripeConnectOnboarded: boolean("affiliate_stripe_connect_onboarded").default(false).notNull(),
+  affiliatePhoto: text("affiliate_photo"),
+  affiliateDisplayName: text("affiliate_display_name"),
+  affiliateHeadlineKey: text("affiliate_headline_key"),
   referredByAffiliateId: varchar("referred_by_affiliate_id"),
   referredAt: timestamp("referred_at"),
   // Baker referral program (all bakers)

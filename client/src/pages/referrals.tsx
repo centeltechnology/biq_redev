@@ -1,16 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, MousePointerClick, UserPlus, DollarSign, Clock, Link2, Pencil, Check, X } from "lucide-react";
+import { Copy, MousePointerClick, UserPlus, DollarSign, Clock, Link2, Pencil, Check, X, UserRound, ExternalLink, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useUpload } from "@/hooks/use-upload";
+import { AFFILIATE_HEADLINE_PRESETS, DEFAULT_AFFILIATE_HEADLINE_KEY } from "@shared/affiliate-content";
 
 interface AffiliateStats {
   totalClicks: number;
@@ -42,6 +45,10 @@ interface AffiliateData {
   affiliateSlug?: string;
   commissionRate?: string;
   commissionMonths?: number;
+  affiliateDisplayName?: string | null;
+  affiliatePhoto?: string | null;
+  affiliateHeadlineKey?: string | null;
+  businessName?: string;
   stats?: AffiliateStats;
   referrals?: Referral[];
   commissions?: Commission[];
@@ -51,10 +58,16 @@ export default function ReferralsPage() {
   const { toast } = useToast();
   const [editingSlug, setEditingSlug] = useState(false);
   const [slugValue, setSlugValue] = useState("");
+  const [nameValue, setNameValue] = useState("");
 
   const { data, isLoading } = useQuery<AffiliateData>({
     queryKey: ["/api/affiliate/stats"],
   });
+
+  const serverDisplayName = data?.affiliateDisplayName || "";
+  useEffect(() => {
+    setNameValue(serverDisplayName);
+  }, [serverDisplayName]);
 
   const slugMutation = useMutation({
     mutationFn: async (newSlug: string) => {
@@ -70,6 +83,34 @@ export default function ReferralsPage() {
       toast({ title: error.message || "Failed to update link", variant: "destructive" });
     },
   });
+
+  const profileMutation = useMutation({
+    mutationFn: async (payload: { affiliateDisplayName?: string | null; affiliatePhoto?: string | null; affiliateHeadlineKey?: string | null }) => {
+      const res = await apiRequest("PATCH", "/api/affiliate/profile", payload);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/affiliate/stats"] });
+      toast({ title: "Referral page updated!" });
+    },
+    onError: (error: Error) => {
+      toast({ title: error.message || "Failed to update referral page", variant: "destructive" });
+    },
+  });
+
+  const { uploadFile, isUploading } = useUpload({
+    onError: (error) => toast({ title: error.message || "Upload failed", variant: "destructive" }),
+  });
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const result = await uploadFile(file);
+    if (result) {
+      profileMutation.mutate({ affiliatePhoto: result.objectPath });
+    }
+    e.target.value = "";
+  };
 
   const handleCopyLink = async () => {
     const slug = data?.affiliateSlug || data?.affiliateCode;
@@ -175,6 +216,124 @@ export default function ReferralsPage() {
                 </Button>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle data-testid="text-referral-page-title">Your Referral Page</CardTitle>
+            <CardDescription>
+              This is what bakers see when they visit your link. Add your photo and name so they recognize you, and pick a headline.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center gap-4">
+              <div className="h-20 w-20 rounded-full overflow-hidden bg-muted flex items-center justify-center shrink-0" data-testid="img-affiliate-page-photo">
+                {data.affiliatePhoto ? (
+                  <img src={data.affiliatePhoto} alt="Your referral photo" className="h-full w-full object-cover" />
+                ) : (
+                  <UserRound className="h-9 w-9 text-muted-foreground" />
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Your photo</Label>
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="affiliate-photo-input"
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                    data-testid="input-affiliate-photo"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isUploading || profileMutation.isPending}
+                    onClick={() => document.getElementById("affiliate-photo-input")?.click()}
+                    data-testid="button-upload-affiliate-photo"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      data.affiliatePhoto ? "Change photo" : "Upload photo"
+                    )}
+                  </Button>
+                  {data.affiliatePhoto && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="ml-2"
+                      disabled={profileMutation.isPending}
+                      onClick={() => profileMutation.mutate({ affiliatePhoto: null })}
+                      data-testid="button-remove-affiliate-photo"
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2 max-w-sm">
+              <Label htmlFor="affiliate-name" className="text-sm font-medium">Name shown to bakers</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="affiliate-name"
+                  value={nameValue}
+                  onChange={(e) => setNameValue(e.target.value)}
+                  placeholder={data.businessName || "Your name"}
+                  maxLength={60}
+                  data-testid="input-affiliate-display-name"
+                />
+                <Button
+                  onClick={() => profileMutation.mutate({ affiliateDisplayName: nameValue.trim() })}
+                  disabled={profileMutation.isPending || nameValue.trim() === (data.affiliateDisplayName || "")}
+                  data-testid="button-save-affiliate-name"
+                >
+                  Save
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">Leave blank to use your business name ({data.businessName}).</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Headline</Label>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {AFFILIATE_HEADLINE_PRESETS.map((preset) => {
+                  const activeKey = data.affiliateHeadlineKey || DEFAULT_AFFILIATE_HEADLINE_KEY;
+                  const isActive = activeKey === preset.key;
+                  return (
+                    <button
+                      key={preset.key}
+                      type="button"
+                      onClick={() => profileMutation.mutate({ affiliateHeadlineKey: preset.key })}
+                      disabled={profileMutation.isPending}
+                      className={`text-left rounded-lg border p-3 transition-colors hover-elevate ${isActive ? "border-primary ring-1 ring-primary" : "border-border"}`}
+                      data-testid={`button-headline-${preset.key}`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-sm font-semibold">{preset.headline}</span>
+                        {isActive && <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
+                      </div>
+                      <span className="text-xs text-muted-foreground">{preset.subheadline}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <a href={refLink} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm" data-testid="button-preview-referral-page">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Preview your page
+                </Button>
+              </a>
+            </div>
           </CardContent>
         </Card>
 

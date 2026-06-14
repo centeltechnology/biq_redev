@@ -15,6 +15,7 @@ import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClie
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { CAKE_SIZES, CAKE_SHAPES, CAKE_FLAVORS, FROSTING_TYPES, DECORATIONS, DELIVERY_OPTIONS, ADDONS, USER_ACTIVITY_EVENT_TYPES, type UserActivityEventType, adminAuditLogs, insertAnalyticsEventSchema } from "@shared/schema";
+import { AFFILIATE_HEADLINE_PRESETS } from "@shared/affiliate-content";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import OpenAI from "openai";
 import { trackEvent } from "./event-tracking";
@@ -4997,6 +4998,9 @@ Guidelines:
       res.json({
         businessName: affiliate.businessName,
         slug: affiliate.affiliateSlug || affiliate.affiliateCode,
+        displayName: affiliate.affiliateDisplayName || affiliate.businessName,
+        photo: affiliate.affiliatePhoto || null,
+        headlineKey: affiliate.affiliateHeadlineKey || null,
       });
     } catch (error) {
       console.error("Affiliate join info error:", error);
@@ -5313,6 +5317,44 @@ Guidelines:
     }
   });
 
+  // Affiliate: Update referral page profile (display name, photo, headline)
+  app.patch("/api/affiliate/profile", requireAuth, async (req, res) => {
+    try {
+      const baker = await storage.getBaker(req.session.bakerId!);
+      if (!baker || !baker.isAffiliate) {
+        return res.status(403).json({ message: "Must be an affiliate to update profile" });
+      }
+
+      const headlineKeys = AFFILIATE_HEADLINE_PRESETS.map((p) => p.key) as [string, ...string[]];
+      const schema = z.object({
+        affiliateDisplayName: z.string().trim().max(60, "Name must be 60 characters or less").optional().nullable(),
+        affiliatePhoto: z
+          .string()
+          .max(1000)
+          .refine((v) => v === "" || v.startsWith("/objects/") || /^https?:\/\//.test(v), "Invalid photo path")
+          .optional()
+          .nullable(),
+        affiliateHeadlineKey: z.enum(headlineKeys).optional().nullable(),
+      });
+      const data = schema.parse(req.body);
+
+      const updated = await storage.updateBaker(baker.id, {
+        ...(data.affiliateDisplayName !== undefined && {
+          affiliateDisplayName: data.affiliateDisplayName === "" ? null : data.affiliateDisplayName,
+        }),
+        ...(data.affiliatePhoto !== undefined && { affiliatePhoto: data.affiliatePhoto }),
+        ...(data.affiliateHeadlineKey !== undefined && { affiliateHeadlineKey: data.affiliateHeadlineKey }),
+      });
+      res.json({ ...updated, passwordHash: undefined });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      console.error("Error updating affiliate profile:", error);
+      res.status(500).json({ message: "Failed to update affiliate profile" });
+    }
+  });
+
   // Baker: Get own affiliate stats (Referrals tab)
   app.get("/api/affiliate/stats", requireAuth, async (req, res) => {
     try {
@@ -5331,6 +5373,10 @@ Guidelines:
         affiliateSlug: baker.affiliateSlug,
         commissionRate: baker.affiliateCommissionRate,
         commissionMonths: baker.affiliateCommissionMonths,
+        affiliateDisplayName: baker.affiliateDisplayName,
+        affiliatePhoto: baker.affiliatePhoto,
+        affiliateHeadlineKey: baker.affiliateHeadlineKey,
+        businessName: baker.businessName,
         stats,
         referrals: referrals.map(r => ({
           id: r.id,
