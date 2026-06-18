@@ -4744,54 +4744,83 @@ Guidelines:
       const templatePath = path.resolve(import.meta.dirname, "..", "client", "index.html");
       let html = await fs.readFile(templatePath, "utf-8");
       
-      // Create dynamic meta content with escaping
-      const businessName = escapeHtml(baker.businessName || "Custom Baker");
-      const title = `Get a Quote from ${businessName} | BakerIQ`;
-      const description = `Get a quick price estimate for custom cakes and treats from ${businessName}. Fast, easy, and no obligation.`;
-      const pageUrl = `${req.protocol}://${req.get("host")}/c/${slug}`;
-      
+      // Create dynamic meta content with escaping.
+      // Branding is baker-first: the baker's business name leads the title and
+      // their profile photo is the preview image (BakerIQ branding is not used).
+      const businessName = baker.businessName || "Custom Baker";
+      const offerings =
+        baker.enableCakes && baker.enableTreats
+          ? "Custom Cakes & Treats"
+          : baker.enableCakes
+            ? "Custom Cakes"
+            : baker.enableTreats
+              ? "Custom Treats"
+              : "Custom Orders";
+      const title = `${businessName} — ${offerings}`;
+      const description = `Order ${offerings.toLowerCase()} from ${businessName}. Get a quick price estimate and request your order online — fast, easy, no obligation.`;
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      const pageUrl = `${baseUrl}/c/${slug}`;
+
+      // Prefer the baker's own profile photo, then their other uploaded imagery,
+      // and only fall back to a neutral generic image as a last resort. Only
+      // accept well-formed rooted paths or http(s) URLs so a malformed/hostile
+      // value can never leak into the crawler HTML.
+      const isSafeImage = (v: string) => /^\/[^\s"'<>]*$/.test(v) || /^https?:\/\/[^\s"'<>]+$/.test(v);
+      const candidate =
+        baker.profilePhoto ||
+        baker.socialBannerUrl ||
+        baker.calculatorHeaderImage ||
+        "/calc-social.png";
+      const ogImage = isSafeImage(candidate) ? candidate : "/calc-social.png";
+      const fullImageUrl = ogImage.startsWith("http") ? ogImage : `${baseUrl}${ogImage}`;
+
+      // Every dynamic value is HTML-escaped before being placed into an
+      // attribute, since the crawler check is user-agent based and spoofable.
+      const escTitle = escapeHtml(title);
+      const escDescription = escapeHtml(description);
+      const escPageUrl = escapeHtml(pageUrl);
+      const escImageUrl = escapeHtml(fullImageUrl);
+
       // Replace default meta tags with dynamic ones
       html = html.replace(
         /<title>.*?<\/title>/,
-        `<title>${title}</title>`
+        `<title>${escTitle}</title>`
       );
       html = html.replace(
         /<meta name="description" content=".*?" \/>/,
-        `<meta name="description" content="${description}" />`
+        `<meta name="description" content="${escDescription}" />`
       );
       html = html.replace(
         /<meta property="og:type" content=".*?" \/>/,
-        `<meta property="og:type" content="website" />\n    <meta property="og:url" content="${pageUrl}" />`
+        `<meta property="og:type" content="website" />\n    <meta property="og:url" content="${escPageUrl}" />`
       );
       html = html.replace(
         /<meta property="og:title" content=".*?" \/>/,
-        `<meta property="og:title" content="${title}" />`
+        `<meta property="og:title" content="${escTitle}" />`
       );
       html = html.replace(
         /<meta property="og:description" content=".*?" \/>/,
-        `<meta property="og:description" content="${description}" />`
+        `<meta property="og:description" content="${escDescription}" />`
       );
-      const ogImage = baker.socialBannerUrl || baker.calculatorHeaderImage || "/calc-social.png";
-      const fullImageUrl = ogImage.startsWith("http") ? ogImage : `${req.protocol}://${req.get("host")}${ogImage}`;
       html = html.replace(
         /<meta property="og:image" content=".*?" \/>/,
-        `<meta property="og:image" content="${fullImageUrl}" />`
+        `<meta property="og:image" content="${escImageUrl}" />`
       );
       html = html.replace(
         /<meta name="twitter:card" content=".*?" \/>/,
-        `<meta name="twitter:card" content="summary_large_image" />\n    <meta name="twitter:url" content="${pageUrl}" />`
+        `<meta name="twitter:card" content="summary_large_image" />\n    <meta name="twitter:url" content="${escPageUrl}" />`
       );
       html = html.replace(
         /<meta name="twitter:title" content=".*?" \/>/,
-        `<meta name="twitter:title" content="${title}" />`
+        `<meta name="twitter:title" content="${escTitle}" />`
       );
       html = html.replace(
         /<meta name="twitter:description" content=".*?" \/>/,
-        `<meta name="twitter:description" content="${description}" />`
+        `<meta name="twitter:description" content="${escDescription}" />`
       );
       html = html.replace(
         /<meta name="twitter:image" content=".*?" \/>/,
-        `<meta name="twitter:image" content="${fullImageUrl}" />`
+        `<meta name="twitter:image" content="${escImageUrl}" />`
       );
       
       res.status(200).set({ "Content-Type": "text/html" }).send(html);
