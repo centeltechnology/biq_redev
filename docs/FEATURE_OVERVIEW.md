@@ -59,7 +59,7 @@ Order Page → Customer Request (Lead) → Baker Quote → Customer Payment
 
 | Feature | Route(s) | Nav Location | Plan Gate | Stripe Required? | Primary Outcome | Notes |
 |---------|----------|-------------|-----------|-------------------|-----------------|-------|
-| Admin Panel | `/admin` | Sidebar (super_admin only) | super_admin | N | Manage bakers, analytics, emails, invitations, affiliates | Includes impersonation, account deletion, retention tools |
+| Admin Panel | `/admin` | Sidebar (super_admin only) | super_admin | N | Manage bakers, analytics, emails, invitations, affiliates | Includes impersonation, account deletion, retention tools, activation journey & engagement analytics with milestone event tracking |
 | Support | `/admin/support` | Sidebar (admin + super_admin) | admin, super_admin | N | View and respond to support tickets | AI-powered chat + ticket system |
 
 ### Public Pages (No Auth)
@@ -243,6 +243,7 @@ FOOTER
 - **Primary goal**: Platform operations and user management.
 - **UI location**: Sidebar → "Admin" (`/admin`) — super_admin only.
 - **Key screens**: Baker list, baker detail/edit, analytics dashboard, email manager (CRUD + send), invitation system, retention email management, affiliate management, onboarding stats, audit logs.
+- **Activation & engagement tracking**: Business Analytics includes milestone event tracking, a 14-step Activation Journey funnel (signup → first payment) with largest-dropoff highlighting, engagement buckets (active days, return windows, recently-active), an expanded signup cohorts table with per-milestone columns, and per-baker activation timelines in the baker activity dialog. Most milestones are backfilled from historical records (onboarding, pricing setup, express items, inquiries, quotes, Stripe connected, payments); some are tracked forward-only from feature launch (calculator link copied, external calculator visits, inquiry started, Stripe Connect click/start granularity) and are labeled with "new" badges and tracked-since dates in the UI.
 - **Tables**: `admin_audit_logs`, `invitations`, `admin_emails`, `retention_email_templates`, `retention_email_sends`, `survey_responses`.
 - **Plan gating**: super_admin role only.
 - **Dependencies**: None.
