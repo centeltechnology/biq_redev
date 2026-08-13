@@ -103,6 +103,8 @@ export const bakers = pgTable("bakers", {
   treatPricingTier: text("treat_pricing_tier"),
   // Stripe onboarding prompt tracking
   stripePromptLastShownAt: timestamp("stripe_prompt_last_shown_at"),
+  // Payment method customization (null = never customized, use Stripe defaults)
+  disabledPaymentMethods: text("disabled_payment_methods").array(),
   // Activation tracking timestamps (set once on first occurrence)
   stripeConnectedAt: timestamp("stripe_connected_at"),
   firstProductCreatedAt: timestamp("first_product_created_at"),
@@ -730,6 +732,16 @@ export const USER_ACTIVITY_EVENT_TYPES = [
   "stripe_connect_clicked",
   "stripe_connect_started",
   "stripe_connect_completed",
+  // BakerIQ Payments / payment methods flow (tracked forward from deployment)
+  "bakeriq_payments_step_viewed",
+  "payment_methods_step_viewed",
+  "payment_methods_defaults_accepted",
+  "payment_methods_customization_opened",
+  "payment_method_enabled",
+  "payment_method_disabled",
+  "payment_methods_customization_skipped",
+  "payment_methods_setup_completed",
+  "payment_methods_settings_revisited",
 ] as const;
 
 export type UserActivityEventType = typeof USER_ACTIVITY_EVENT_TYPES[number];

@@ -81,21 +81,24 @@ export function StripeConnectModal({ baker, onDismiss }: StripeConnectModalProps
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-primary" />
-            Connect Stripe to start getting paid
+            Set Up BakerIQ Payments
           </DialogTitle>
           <DialogDescription className="pt-2">
-            Connecting Stripe takes a few minutes and lets you collect deposits and payments directly through BakerIQ.
+            Connect once. Give your customers more ways to pay — powered by Stripe.
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
           <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-            <p className="text-sm font-medium">With Stripe connected, you can:</p>
+            <p className="text-sm font-medium">With BakerIQ Payments, you can:</p>
             <ul className="text-sm text-muted-foreground space-y-1">
+              <li>• Offer cards, Apple Pay, Cash App Pay, Link & more</li>
               <li>• Collect deposits upfront on orders</li>
-              <li>• Accept full payments through quotes</li>
               <li>• Get paid directly to your bank account</li>
               <li>• Track all payments in one place</li>
             </ul>
+            <p className="text-xs text-muted-foreground pt-1">
+              Payment options vary by account, customer device, and Stripe eligibility.
+            </p>
           </div>
         </div>
         <DialogFooter className="flex gap-2 sm:gap-0">
@@ -112,7 +115,7 @@ export function StripeConnectModal({ baker, onDismiss }: StripeConnectModalProps
             disabled={isPending}
             data-testid="button-stripe-connect-modal"
           >
-            {isPending ? "Setting up..." : "Connect Stripe"}
+            {isPending ? "Setting up..." : "Set Up BakerIQ Payments"}
           </Button>
         </DialogFooter>
       </DialogContent>

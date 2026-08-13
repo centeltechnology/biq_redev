@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import {
   Check, ChevronRight, ChevronLeft, Store, FileText, CreditCard,
   Copy, Loader2, ExternalLink, Upload, Image, Cake, Cookie,
-  Layers, DollarSign, MessageCircle, Camera
+  Layers, DollarSign, MessageCircle, Camera, Wallet, ShieldCheck,
+  Sparkles
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,12 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useUpload } from "@/hooks/use-upload";
+import { trackActivationEvent } from "@/lib/activation";
+import {
+  PaymentMethodsManager,
+  PaymentMethodsLoadError,
+  usePaymentMethods,
+} from "@/components/payment-methods-manager";
 
 const STEPS = [
   { label: "Products", icon: Layers },
@@ -23,6 +30,18 @@ const STEPS = [
   { label: "Preview", icon: FileText },
   { label: "Share", icon: MessageCircle },
   { label: "Get Paid", icon: CreditCard },
+  { label: "Payments", icon: Wallet },
+];
+
+// Curated showcase shown before connecting (availability disclosed as
+// variable; the post-connect step shows the real per-account list).
+const PAYMENT_SHOWCASE = [
+  "Credit & debit cards",
+  "Apple Pay",
+  "Cash App Pay",
+  "Link",
+  "Affirm",
+  "Klarna",
 ];
 
 type ProductMode = "cakes" | "treats" | "both";
@@ -126,7 +145,7 @@ export default function OnboardingPage() {
         const data = await res.json();
         accountId = data.accountId;
       }
-      const linkRes = await apiRequest("POST", "/api/stripe-connect/onboarding-link");
+      const linkRes = await apiRequest("POST", "/api/stripe-connect/onboarding-link", { context: "onboarding" });
       return linkRes.json();
     },
     onSuccess: (data: any) => {
@@ -209,6 +228,45 @@ export default function OnboardingPage() {
     await saveStepMutation.mutateAsync(step);
     setCurrentStep(step);
   };
+
+  // Handle return from Stripe onboarding (?connect=complete / refresh)
+  const connectReturnHandled = useRef(false);
+  useEffect(() => {
+    if (!baker || connectReturnHandled.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const connectParam = params.get("connect");
+    if (!connectParam) return;
+    connectReturnHandled.current = true;
+    window.history.replaceState({}, "", "/onboarding");
+    if (connectParam === "complete") {
+      (async () => {
+        try {
+          const res = await apiRequest("GET", "/api/stripe-connect/status");
+          const status = await res.json();
+          queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
+          if (status.onboarded && status.payoutsEnabled) {
+            await goToStep(8);
+            return;
+          }
+        } catch {
+          // fall through to step 7 below
+        }
+        setCurrentStep(7);
+        toast({
+          title: "Stripe setup isn't finished yet",
+          description: "You can pick up where you left off, or finish later from Settings.",
+        });
+      })();
+    } else {
+      setCurrentStep(7);
+    }
+  }, [baker]);
+
+  // Analytics: step views (deduped once per browser session)
+  useEffect(() => {
+    if (currentStep === 7) trackActivationEvent("bakeriq_payments_step_viewed");
+    if (currentStep === 8) trackActivationEvent("payment_methods_step_viewed");
+  }, [currentStep]);
 
   const handleStep1Continue = async () => {
     if (!productMode) {
@@ -296,6 +354,27 @@ export default function OnboardingPage() {
   };
 
   const handleSkipStripe = () => {
+    setLocation("/dashboard");
+  };
+
+  const [showCustomize, setShowCustomize] = useState(false);
+  const paymentMethodsQuery = usePaymentMethods(currentStep === 8);
+
+  const handleOpenCustomize = () => {
+    setShowCustomize(true);
+    trackActivationEvent("payment_methods_customization_opened");
+  };
+
+  const handleFinishPaymentMethods = () => {
+    if (paymentMethodsQuery.data?.ok) {
+      if (showCustomize && !paymentMethodsQuery.data.customized) {
+        // Opened customization but changed nothing
+        trackActivationEvent("payment_methods_customization_skipped");
+      } else if (!showCustomize) {
+        trackActivationEvent("payment_methods_defaults_accepted");
+      }
+    }
+    trackActivationEvent("payment_methods_setup_completed");
     setLocation("/dashboard");
   };
 
@@ -800,31 +879,46 @@ export default function OnboardingPage() {
           {currentStep === 7 && (
             <div className="flex-1 flex flex-col" data-testid="card-step-7">
               <div className="text-center mb-6">
-                <h2 className="text-lg font-semibold">Accept deposits automatically</h2>
-                <p className="text-sm text-muted-foreground mt-1">When customers approve quotes, they can pay deposits online.</p>
+                <h2 className="text-lg font-semibold">Set Up BakerIQ Payments</h2>
+                <p className="text-sm text-muted-foreground mt-1">Connect once. Give your customers more ways to pay.</p>
               </div>
 
               <div className="mb-auto">
                 {baker?.stripeConnectOnboarded ? (
                   <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-6 text-center space-y-3">
                     <Check className="h-12 w-12 text-green-500 mx-auto" />
-                    <p className="font-medium text-green-800 dark:text-green-200">Stripe is connected!</p>
+                    <p className="font-medium text-green-800 dark:text-green-200">BakerIQ Payments is connected!</p>
                     <p className="text-sm text-green-700 dark:text-green-300">You're ready to accept payments.</p>
+                    <Button
+                      onClick={() => goToStep(8)}
+                      data-testid="button-view-payment-options"
+                    >
+                      See Your Payment Options
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
                   </div>
                 ) : (
                   <div className="bg-muted/50 border rounded-lg p-6 text-center space-y-4">
-                    <CreditCard className="h-12 w-12 text-muted-foreground mx-auto" />
+                    <Wallet className="h-12 w-12 text-primary mx-auto" />
                     <div>
-                      <p className="font-medium">Connect Stripe</p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Connect Stripe so customers can pay deposits when they approve quotes. You'll receive payouts directly to your bank account.
+                      <p className="text-sm text-muted-foreground">
+                        BakerIQ Payments is powered by Stripe and can give eligible customers multiple ways to pay — not just cards.
                       </p>
                     </div>
-                    <div className="bg-background border rounded-lg p-3 text-left text-sm max-w-xs mx-auto">
-                      <p className="text-xs font-medium text-muted-foreground mb-1.5">Example</p>
-                      <div className="flex justify-between"><span className="text-muted-foreground">Quote total</span><span className="font-medium">$192</span></div>
-                      <div className="flex justify-between"><span className="text-muted-foreground">Deposit</span><span className="font-medium">$50</span></div>
-                      <div className="flex justify-between"><span className="text-muted-foreground">Balance due later</span><span className="font-medium">$142</span></div>
+                    <div className="bg-background border rounded-lg p-3 text-left max-w-xs mx-auto" data-testid="payment-options-showcase">
+                      <p className="text-xs font-medium mb-2 flex items-center gap-1">
+                        <Sparkles className="h-3.5 w-3.5 text-primary" />
+                        More Ways for Your Customers to Pay
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {PAYMENT_SHOWCASE.map((label) => (
+                          <span key={label} className="text-xs bg-muted border rounded-full px-2.5 py-1">{label}</span>
+                        ))}
+                        <span className="text-xs text-muted-foreground rounded-full px-1 py-1">+ more</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-2">
+                        Availability varies by account, location, customer device, and Stripe eligibility.
+                      </p>
                     </div>
                     <Button
                       onClick={() => connectMutation.mutate()}
@@ -832,8 +926,12 @@ export default function OnboardingPage() {
                       data-testid="button-connect-stripe"
                     >
                       {connectMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                      Accept Deposits
+                      Set Up BakerIQ Payments
                     </Button>
+                    <p className="text-xs text-muted-foreground flex items-start gap-1.5 max-w-xs mx-auto text-left">
+                      <ShieldCheck className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                      Secure payments powered by Stripe. Your customers pay you directly, and BakerIQ automatically records the transaction and applicable platform fee.
+                    </p>
                   </div>
                 )}
 
@@ -851,6 +949,60 @@ export default function OnboardingPage() {
                   Go to Dashboard
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
+              </div>
+            </div>
+          )}
+
+          {currentStep === 8 && (
+            <div className="flex-1 flex flex-col" data-testid="card-step-8">
+              <div className="text-center mb-6">
+                <h2 className="text-lg font-semibold">Choose How Customers Can Pay</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Your payment setup is ready. These are the payment options currently available through your BakerIQ Payments account.
+                </p>
+              </div>
+
+              <div className="mb-auto space-y-4">
+                {paymentMethodsQuery.isLoading ? (
+                  <div className="flex justify-center py-10">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : !paymentMethodsQuery.data?.ok ? (
+                  <PaymentMethodsLoadError message={paymentMethodsQuery.data?.message} />
+                ) : (
+                  <>
+                    <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center">
+                      <p className="text-sm text-green-800 dark:text-green-200 flex items-center justify-center gap-1.5">
+                        <Sparkles className="h-4 w-4" />
+                        These options unlocked because you connected BakerIQ Payments
+                      </p>
+                    </div>
+                    <PaymentMethodsManager
+                      data={paymentMethodsQuery.data}
+                      editable={showCustomize}
+                      context="onboarding"
+                    />
+                    <p className="text-xs text-center text-muted-foreground">
+                      You can use the recommended defaults or customize them anytime in Settings → Payments.
+                    </p>
+                  </>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-2 pt-4 mt-auto">
+                <Button onClick={handleFinishPaymentMethods} data-testid="button-payment-methods-continue">
+                  Looks Good — Continue
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+                {paymentMethodsQuery.data?.ok && !showCustomize && (
+                  <Button
+                    variant="ghost"
+                    onClick={handleOpenCustomize}
+                    data-testid="button-payment-methods-customize"
+                  >
+                    Customize Payment Methods
+                  </Button>
+                )}
               </div>
             </div>
           )}

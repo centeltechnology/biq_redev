@@ -19,6 +19,7 @@ import { AFFILIATE_HEADLINE_PRESETS } from "@shared/affiliate-content";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import OpenAI from "openai";
 import { trackEvent, trackEventOnce, trackEventDeduped } from "./event-tracking";
+import { getPlatformMethodAvailability, resolveBakerMethods, getCheckoutPaymentMethodTypes, isToggleableMethod, createCheckoutSessionWithFallback } from "./payment-methods";
 
 // OpenAI client for support chat
 const openai = new OpenAI({
@@ -747,7 +748,7 @@ export async function registerRoutes(
   app.patch("/api/baker/onboarding-step", requireAuth, async (req, res) => {
     try {
       const schema = z.object({
-        step: z.number().min(1).max(7),
+        step: z.number().min(1).max(8),
       });
       const { step } = schema.parse(req.body);
       const baker = await storage.updateBaker(req.session.bakerId!, { onboardingStep: step });
@@ -2619,10 +2620,17 @@ export async function registerRoutes(
       const stripe = await getUncachableStripeClient();
 
       const baseUrl = req.headers.origin || `https://${req.headers.host}`;
+      // When started from the onboarding wizard, return there so the
+      // baker can continue to the payment-methods step.
+      const fromOnboarding = req.body?.context === "onboarding";
       const accountLink = await stripe.accountLinks.create({
         account: baker.stripeConnectAccountId,
-        refresh_url: `${baseUrl}/settings?tab=payments&connect=refresh`,
-        return_url: `${baseUrl}/settings?tab=payments&connect=complete&stripe=connected`,
+        refresh_url: fromOnboarding
+          ? `${baseUrl}/onboarding?connect=refresh`
+          : `${baseUrl}/settings?tab=payments&connect=refresh`,
+        return_url: fromOnboarding
+          ? `${baseUrl}/onboarding?connect=complete&stripe=connected`
+          : `${baseUrl}/settings?tab=payments&connect=complete&stripe=connected`,
         type: "account_onboarding",
       });
 
@@ -2676,6 +2684,108 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Connect status error:", error);
       res.status(500).json({ message: "Failed to check Connect status" });
+    }
+  });
+
+  // ============================================
+  // Payment Methods (BakerIQ Payments)
+  // ============================================
+
+  // Effective payment-method availability for the authenticated baker.
+  // Availability is resolved from the platform's live Stripe payment
+  // method configuration (destination charges: the platform config
+  // governs what Stripe can offer at checkout).
+  app.get("/api/payment-methods", requireAuth, async (req, res) => {
+    try {
+      const baker = await storage.getBaker(req.session.bakerId!);
+      if (!baker) return res.status(404).json({ message: "Baker not found" });
+
+      const connected = !!baker.stripeConnectAccountId;
+      const onboarded = !!baker.stripeConnectOnboarded;
+
+      try {
+        const platform = await getPlatformMethodAvailability();
+        const methods = resolveBakerMethods(baker, platform);
+        res.json({
+          ok: true,
+          connected,
+          onboarded,
+          payoutsEnabled: !!baker.stripeConnectPayoutsEnabled,
+          customized: (baker.disabledPaymentMethods?.length ?? 0) > 0,
+          methods,
+        });
+      } catch (stripeErr: any) {
+        // Never leave the UI on a broken screen — report gracefully.
+        console.error("Payment methods load error:", stripeErr?.message);
+        res.json({
+          ok: false,
+          connected,
+          onboarded,
+          payoutsEnabled: !!baker.stripeConnectPayoutsEnabled,
+          customized: (baker.disabledPaymentMethods?.length ?? 0) > 0,
+          methods: [],
+          message: "We couldn't load your payment options right now. You can review them later in Settings → Payments.",
+        });
+      }
+    } catch (error) {
+      console.error("Payment methods error:", error);
+      res.status(500).json({ message: "Failed to load payment methods" });
+    }
+  });
+
+  // Toggle a single optional payment method (atomic array update so
+  // concurrent toggles from multiple tabs never clobber each other).
+  app.patch("/api/payment-methods", requireAuth, async (req, res) => {
+    try {
+      const schema = z.object({
+        method: z.string(),
+        enabled: z.boolean(),
+      });
+      const { method, enabled } = schema.parse(req.body);
+
+      if (!isToggleableMethod(method)) {
+        return res.status(400).json({ message: `Cannot modify: ${method}` });
+      }
+
+      const baker = await storage.getBaker(req.session.bakerId!);
+      if (!baker) return res.status(404).json({ message: "Baker not found" });
+
+      let result;
+      if (enabled) {
+        result = await db.execute(sql`
+          UPDATE bakers
+          SET disabled_payment_methods = array_remove(COALESCE(disabled_payment_methods, '{}'), ${method})
+          WHERE id = ${baker.id}
+          RETURNING disabled_payment_methods
+        `);
+      } else {
+        result = await db.execute(sql`
+          UPDATE bakers
+          SET disabled_payment_methods = (
+            CASE WHEN ${method} = ANY(COALESCE(disabled_payment_methods, '{}'))
+              THEN disabled_payment_methods
+              ELSE array_append(COALESCE(disabled_payment_methods, '{}'), ${method})
+            END
+          )
+          WHERE id = ${baker.id}
+          RETURNING disabled_payment_methods
+        `);
+      }
+
+      // Analytics: no banking/KYC data
+      trackEvent(baker.id, enabled ? "payment_method_enabled" : "payment_method_disabled", {
+        method,
+        connectedAccountId: baker.stripeConnectAccountId || null,
+        plan: baker.plan,
+        onboardingCompleted: baker.onboardingCompleted,
+      }).catch(() => {});
+
+      const disabled = (result.rows?.[0] as any)?.disabled_payment_methods ?? [];
+      res.json({ success: true, disabled });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) return res.status(400).json({ message: error.errors[0].message });
+      console.error("Update payment methods error:", error);
+      res.status(500).json({ message: "Failed to update payment methods" });
     }
   });
 
@@ -2772,8 +2882,13 @@ export async function registerRoutes(
 
       const baseUrl = req.headers.origin || `https://${req.headers.host}`;
 
-      const session = await stripe.checkout.sessions.create({
+      // Respect the baker's payment-method customization (undefined =
+      // Stripe dynamic payment methods, the default behavior).
+      const paymentMethodTypes = await getCheckoutPaymentMethodTypes(baker);
+
+      const sessionParams: any = {
         mode: "payment",
+        ...(paymentMethodTypes ? { payment_method_types: paymentMethodTypes as any } : {}),
         line_items: [
           {
             price_data: {
@@ -2802,7 +2917,9 @@ export async function registerRoutes(
         },
         success_url: `${baseUrl}/quote/${quote.id}/pay?status=success`,
         cancel_url: `${baseUrl}/quote/${quote.id}/pay?status=cancelled`,
-      });
+      };
+
+      const session = await createCheckoutSessionWithFallback(stripe, sessionParams);
 
       await storage.setActivationTimestamp(quote.bakerId, "firstInvoiceCreatedAt");
 
@@ -3002,8 +3119,13 @@ export async function registerRoutes(
       const stripe = await getUncachableStripeClient();
       const baseUrl = `${req.protocol}://${req.get("host")}`;
 
-      const session = await stripe.checkout.sessions.create({
+      // Respect the baker's payment-method customization (undefined =
+      // Stripe dynamic payment methods, the default behavior).
+      const paymentMethodTypes = await getCheckoutPaymentMethodTypes(baker);
+
+      const sessionParams: any = {
         mode: "payment",
+        ...(paymentMethodTypes ? { payment_method_types: paymentMethodTypes as any } : {}),
         line_items: [{
           price_data: {
             currency: (quote.currencyCode || baker.currency || "usd").toLowerCase(),
@@ -3030,7 +3152,9 @@ export async function registerRoutes(
         },
         success_url: `${baseUrl}/quote/${quoteId}?payment=success`,
         cancel_url: `${baseUrl}/quote/${quoteId}?payment=cancelled`,
-      });
+      };
+
+      const session = await createCheckoutSessionWithFallback(stripe, sessionParams);
 
       res.json({ url: session.url });
     } catch (error: any) {

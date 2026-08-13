@@ -39,10 +39,10 @@ export function StripeConnectNudge({ open, onClose, stripeConnectAccountId }: St
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-primary" />
-            Connect Stripe to accept payments
+            Set Up BakerIQ Payments
           </DialogTitle>
           <DialogDescription className="pt-2">
-            Connect Stripe to accept deposits and payments on invoices.
+            Give your customers more ways to pay — cards, Apple Pay, Cash App Pay, Link, and more. Powered by Stripe.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex gap-2 sm:gap-0">
@@ -58,7 +58,7 @@ export function StripeConnectNudge({ open, onClose, stripeConnectAccountId }: St
             disabled={connectMutation.isPending}
             data-testid="button-nudge-connect-stripe"
           >
-            {connectMutation.isPending ? "Setting up..." : "Connect Stripe"}
+            {connectMutation.isPending ? "Setting up..." : "Set Up BakerIQ Payments"}
           </Button>
         </DialogFooter>
       </DialogContent>

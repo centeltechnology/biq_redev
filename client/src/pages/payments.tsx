@@ -33,7 +33,13 @@ import { useAuth } from "@/hooks/use-auth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AVAILABLE_CURRENCIES } from "@/lib/calculator";
-import { DollarSign, TrendingUp, CreditCard, ArrowUpRight, Receipt, Shield, Globe, Loader2, CheckCircle2 } from "lucide-react";
+import { DollarSign, TrendingUp, CreditCard, ArrowUpRight, Receipt, Shield, Globe, Loader2, CheckCircle2, Wallet, Sparkles, X } from "lucide-react";
+import { trackActivationEvent } from "@/lib/activation";
+import {
+  PaymentMethodsManager,
+  PaymentMethodsLoadError,
+  usePaymentMethods,
+} from "@/components/payment-methods-manager";
 import { format } from "date-fns";
 import { Link } from "wouter";
 
@@ -91,6 +97,28 @@ export default function PaymentsPage() {
   const { data, isLoading } = useQuery<PaymentData>({
     queryKey: ["/api/payments"],
   });
+
+  const paymentMethodsQuery = usePaymentMethods(stripeConnected);
+
+  // Non-disruptive, dismissible banner for already-connected bakers
+  const [showMethodsBanner, setShowMethodsBanner] = useState(() => {
+    try {
+      return localStorage.getItem("bakeriq_payment_methods_banner_dismissed") !== "1";
+    } catch {
+      return true;
+    }
+  });
+  const dismissMethodsBanner = () => {
+    setShowMethodsBanner(false);
+    try {
+      localStorage.setItem("bakeriq_payment_methods_banner_dismissed", "1");
+    } catch {}
+  };
+
+  // Analytics: connected bakers revisiting payment settings (once/session)
+  useEffect(() => {
+    if (stripeConnected) trackActivationEvent("payment_methods_settings_revisited");
+  }, [stripeConnected]);
 
   const paymentForm = useForm<PaymentFormData>({
     resolver: zodResolver(paymentSchema),
@@ -209,7 +237,7 @@ export default function PaymentsPage() {
               ) : (
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground">
-                    Connect Stripe to collect deposits automatically.
+                    Set up BakerIQ Payments to give customers more ways to pay — cards, Apple Pay, Cash App Pay, Link, and more. Powered by Stripe.
                   </p>
                   <Button
                     size="sm"
@@ -218,7 +246,7 @@ export default function PaymentsPage() {
                     className="w-full"
                     data-testid="button-secure-payouts"
                   >
-                    {connectMutation.isPending ? "Setting up..." : "Secure Your Payouts"}
+                    {connectMutation.isPending ? "Setting up..." : "Set Up BakerIQ Payments"}
                   </Button>
                 </div>
               )}
@@ -372,6 +400,54 @@ export default function PaymentsPage() {
             </CardContent>
           </Card>
         </div>
+
+        {stripeConnected && showMethodsBanner && (
+          <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3" data-testid="banner-payment-methods">
+            <Sparkles className="h-4 w-4 text-primary shrink-0" />
+            <p className="text-sm flex-1">
+              You may have more ways to get paid. Review your available payment methods below.
+            </p>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 shrink-0"
+              onClick={dismissMethodsBanner}
+              aria-label="Dismiss"
+              data-testid="button-dismiss-methods-banner"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+
+        {stripeConnected && (
+          <Card data-testid="card-payment-methods">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Wallet className="h-4 w-4" />
+                <CardTitle className="text-base">Payment Methods</CardTitle>
+              </div>
+              <CardDescription>
+                Choose which payment options your customers see at checkout. Powered by Stripe through BakerIQ Payments.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {paymentMethodsQuery.isLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : !paymentMethodsQuery.data?.ok ? (
+                <PaymentMethodsLoadError message={paymentMethodsQuery.data?.message} />
+              ) : (
+                <PaymentMethodsManager
+                  data={paymentMethodsQuery.data}
+                  editable
+                  context="settings"
+                />
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <div className={`grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 ${!stripeConnected ? "opacity-60" : ""}`}>
           <Card>
