@@ -1,0 +1,633 @@
+Please make a focused UX/content pass across BakerIQ’s onboarding, first-dashboard experience, and Payments page to make our new **BakerIQ Payments** positioning consistent everywhere.
+
+The underlying Stripe Connect implementation has already been established and should NOT be redesigned.
+
+## Primary objective
+
+We have changed our payment positioning from:
+
+**“Connect Stripe”**
+
+to:
+
+**“Set Up BakerIQ Payments”**
+
+Stripe remains the infrastructure and should be disclosed clearly as:
+
+**Powered by Stripe**
+
+However, bakers should primarily experience this as setting up BakerIQ’s payment functionality and unlocking more ways for their customers to pay.
+
+Make the following changes as one coordinated update.
+
+---
+
+# 1. Preserve the existing payment architecture
+
+Do NOT modify:
+
+* Stripe Connect account architecture
+* Direct-charge model
+* Application/platform fee logic
+* Free / Basic / Pro transaction fees
+* Merchant-of-record structure
+* Baker responsibility for refunds/disputes
+* Negative-balance responsibility
+* Payout routing
+* Webhook architecture
+* Subscription billing
+* Existing Stripe account onboarding requirements
+
+This task is primarily UX, terminology, navigation, payment-method configuration, and analytics.
+
+Do not convert the payment architecture to destination charges or separate charges/transfers.
+
+---
+
+# 2. Standardize terminology throughout BakerIQ
+
+Search the application for baker-facing references such as:
+
+* Connect Stripe
+* Stripe Setup
+* Enable Stripe
+* Stripe Payments
+* Stripe Connected
+* Stripe not connected
+* Payments will appear once Stripe is connected
+
+Review each instance.
+
+Where the baker is being asked to enable or use our payment functionality, prefer:
+
+**BakerIQ Payments**
+
+Examples:
+
+Instead of:
+
+**Connect Stripe**
+
+Use:
+
+**Set Up BakerIQ Payments**
+
+Instead of:
+
+**Accept deposits so customers can pay online — Connect Stripe**
+
+Use:
+
+**Accept deposits and give customers more ways to pay**
+
+CTA:
+
+**Set Up BakerIQ Payments**
+
+Supporting text may say:
+
+**Cards, Cash App Pay, Apple Pay, Link and more. Powered by Stripe.**
+
+Instead of:
+
+**Payments will appear here once Stripe is connected.**
+
+Use:
+
+**Payments will appear here once BakerIQ Payments is set up.**
+
+IMPORTANT:
+
+Do not remove Stripe disclosure.
+
+Where appropriate, show:
+
+**Powered by Stripe**
+
+or:
+
+**Secure payment processing powered by Stripe**
+
+The goal is not to hide Stripe. The goal is to distinguish the baker-facing product from the underlying payment processor.
+
+---
+
+# 3. Keep the current Step 7 onboarding design
+
+The current onboarding Step 7 structure is good and should remain substantially intact:
+
+### Set Up BakerIQ Payments
+
+**Connect once. Give your customers more ways to pay.**
+
+Continue showing examples such as:
+
+* Credit & debit cards
+* Apple Pay
+* Cash App Pay
+* Link
+* Affirm
+* Klarna
+* * more
+
+Continue showing appropriate eligibility language.
+
+Keep the primary CTA:
+
+**Set Up BakerIQ Payments**
+
+Keep the ability to skip payment setup.
+
+Keep the message communicating that quotes still work without deposits enabled.
+
+Do NOT make Stripe Connect mandatory to complete BakerIQ onboarding.
+
+---
+
+# 4. Improve the main explanatory sentence on Step 7
+
+Replace the current sentence:
+
+**BakerIQ Payments is powered by Stripe and can give eligible customers multiple ways to pay — not just cards.**
+
+with more benefit-first language:
+
+**Let customers pay the way they prefer. BakerIQ Payments is powered by Stripe and supports multiple payment options — not just cards.**
+
+Keep the eligibility disclaimer below the payment-method examples.
+
+---
+
+# 5. Add the post-Stripe success experience
+
+When a baker clicks:
+
+**Set Up BakerIQ Payments**
+
+and successfully completes Stripe Connect onboarding, return them to BakerIQ.
+
+Do NOT simply dump them back into the dashboard.
+
+Show a lightweight success/customization step.
+
+Suggested structure:
+
+### You're Ready to Get Paid
+
+**BakerIQ Payments is connected. Here are the payment options currently available for your account.**
+
+Supporting text:
+
+**We've already applied the recommended defaults. You can customize them now or anytime from Payments.**
+
+Display the baker's ACTUAL eligible/configurable Stripe payment methods.
+
+Examples may include:
+
+* Cards
+* Cash App Pay
+* Apple Pay
+* Link
+* Affirm
+* Afterpay / Clearpay
+* Klarna
+
+Do not show unavailable methods as available.
+
+Primary CTA:
+
+**Looks Good — Continue**
+
+Secondary action:
+
+**Customize Payment Methods**
+
+This page must NOT create another onboarding barrier.
+
+If the baker accepts the defaults, continue normally.
+
+---
+
+# 6. Payment-method customization must remain optional
+
+Do not require the baker to manually configure payment methods.
+
+If valid Stripe defaults already exist:
+
+* Show them what is enabled
+* Explain what they unlocked
+* Let them continue immediately
+
+The purpose of this step is:
+
+**“Look what you just unlocked.”**
+
+It should NOT feel like:
+
+**“Complete another setup form.”**
+
+If Stripe payment-method configuration cannot be loaded for some reason, do not block onboarding.
+
+Show a message such as:
+
+**Your payment setup is complete. You can review payment methods later from Payments.**
+
+Then allow the baker to continue.
+
+---
+
+# 7. Update the first-dashboard payment CTA
+
+The first-dashboard launch checklist currently includes payment setup.
+
+Replace baker-facing language such as:
+
+**Accept deposits so customers can pay online
+Connect Stripe →**
+
+with:
+
+### Accept deposits and give customers more ways to pay
+
+Supporting text, if space allows:
+
+**Cards, Cash App Pay, Apple Pay and more. Powered by Stripe.**
+
+CTA:
+
+**Set Up BakerIQ Payments →**
+
+Keep the checklist logic unchanged.
+
+If BakerIQ Payments is already connected, this item should show as completed.
+
+Do not continue prompting connected bakers to set up payments.
+
+---
+
+# 8. Review the separate dashboard "Accept deposits" card
+
+There is currently another dashboard card for:
+
+**Accept deposits**
+
+Review this alongside the Launch Your Bakery checklist so we are not unnecessarily repeating the exact same payment CTA twice.
+
+If both should remain, differentiate their purpose.
+
+For example:
+
+The launch checklist can be the activation reminder.
+
+The separate card can focus on deposit configuration:
+
+### Choose Your Deposit Settings
+
+**Decide whether customers pay a deposit or the full amount when they accept a quote.**
+
+CTA:
+
+**Review Deposit Settings**
+
+If payments are not connected yet, this card may still explain that BakerIQ Payments must be set up before customers can pay online.
+
+Avoid showing two nearly identical "Set Up Payments" prompts directly on top of each other.
+
+---
+
+# 9. Update the Payments page before connection
+
+The current Payments page has a top-left card titled:
+
+**Enable Online Payments**
+
+Change this to:
+
+### BakerIQ Payments
+
+Show a clear status such as:
+
+**Not set up**
+
+Then use benefit-first copy:
+
+**Give customers more ways to pay — including cards, Apple Pay, Cash App Pay, Link and other eligible options.**
+
+Supporting text:
+
+**Secure payment processing powered by Stripe.**
+
+Primary CTA:
+
+**Set Up BakerIQ Payments**
+
+This page should reinforce the same message the baker saw during onboarding.
+
+Do not introduce a different payment story here.
+
+---
+
+# 10. Update empty-state terminology on the Payments page
+
+Replace:
+
+**Payments will appear here once Stripe is connected.**
+
+with:
+
+**Payments will appear here once BakerIQ Payments is set up.**
+
+For the Recent Payments empty state, current language such as:
+
+**No payments yet
+Payments will appear here when customers pay through your quotes**
+
+is good and can remain.
+
+---
+
+# 11. Payments page after connection
+
+Once BakerIQ Payments is connected, the top-left setup card should transform into a payment-status/settings area instead of continuing to look like a setup card.
+
+Suggested structure:
+
+### BakerIQ Payments
+
+Status:
+
+**Active**
+
+Supporting text:
+
+**Secure payments powered by Stripe**
+
+Then show relevant summary information such as:
+
+**Payment Methods**
+Cards, Cash App Pay, Apple Pay, Link + X more
+
+CTA:
+
+**Manage Payment Methods**
+
+Optionally include:
+
+**Stripe account connected ✓**
+
+Do not expose unnecessary Stripe technical/account details unless they are useful to the baker.
+
+---
+
+# 12. Add/manage Payment Methods from the Payments page
+
+Connected bakers should be able to access:
+
+**Payments → Payment Methods**
+
+or a clearly visible:
+
+**Manage Payment Methods**
+
+action from the Payments page.
+
+This should show the connected account's actual Stripe-supported payment methods.
+
+Allow eligible methods to be enabled or disabled where the Stripe APIs permit it.
+
+Suggested organization:
+
+### Everyday Payments
+
+* Cards
+* Apple Pay
+* Cash App Pay
+* Link
+
+### Flexible Payment Options
+
+* Affirm
+* Afterpay / Clearpay
+* Klarna
+
+Only show methods that are relevant/configurable for that baker.
+
+Do not dump all international Stripe payment methods into the interface.
+
+---
+
+# 13. Preserve the current Deposit Settings section
+
+The current Payments page includes Deposit Settings.
+
+Keep this functionality.
+
+Payment-method selection and deposit settings are different concepts and should remain visually distinct.
+
+Payment methods answer:
+
+**How can my customer pay?**
+
+Deposit settings answer:
+
+**How much must my customer pay?**
+
+Do not combine these settings into one control.
+
+---
+
+# 14. Review placement of Deposit Settings when payments are not connected
+
+Currently Deposit Settings are visible even when BakerIQ Payments is not connected.
+
+This is acceptable if deposit settings are also used to prepare future quotes.
+
+However, make sure the interface clearly communicates that online collection requires BakerIQ Payments.
+
+If necessary, add subtle supporting language such as:
+
+**Your deposit preference will apply when online payments are enabled.**
+
+Do NOT unnecessarily disable pricing/deposit configuration simply because Stripe has not been connected.
+
+---
+
+# 15. Payment-method availability language
+
+Do not promise that every displayed payment option will appear for every customer.
+
+Where appropriate use language such as:
+
+**Available payment options can vary by customer, device, location, transaction, and Stripe eligibility.**
+
+Avoid cluttering the interface with this disclaimer repeatedly.
+
+Place it where it is useful, particularly:
+
+* Onboarding payment setup
+* Payment-method management
+
+---
+
+# 16. Checkout behavior
+
+Verify that customer checkout dynamically displays eligible payment methods based on:
+
+* connected baker
+* enabled payment methods
+* Stripe account eligibility
+* device/browser support
+* customer location
+* transaction amount
+* currency
+* Stripe requirements
+
+Do not create fake/static Cash App, Apple Pay, Affirm, Klarna, etc. buttons.
+
+Only show payment methods Stripe actually makes available for that transaction.
+
+---
+
+# 17. Existing connected bakers
+
+Existing bakers who already have Stripe Connect completed should NOT be asked to reconnect.
+
+Instead:
+
+* Mark BakerIQ Payments as Active
+* Give them access to Manage Payment Methods
+* Allow them to see which additional methods are currently available
+
+Optionally show a one-time, dismissible message:
+
+### You may have more ways to get paid
+
+**Review the payment methods available through BakerIQ Payments.**
+
+CTA:
+
+**Review Payment Methods**
+
+Do not make this disruptive or mandatory.
+
+---
+
+# 18. Existing bakers who are not connected
+
+Existing users without a completed Stripe Connect account should see the improved:
+
+**Set Up BakerIQ Payments**
+
+positioning everywhere payment activation is promoted.
+
+Do not create different wording for new users and existing users unless context requires it.
+
+---
+
+# 19. Analytics
+
+Preserve and verify tracking for:
+
+* bakeriq_payments_step_viewed
+* stripe_connect_clicked
+* stripe_connect_started
+* stripe_connect_completed
+* payment_methods_step_viewed
+* payment_methods_defaults_accepted
+* payment_methods_customization_opened
+* payment_methods_customization_skipped
+* payment_method_enabled
+* payment_method_disabled
+* payment_methods_setup_completed
+* payment_methods_settings_revisited
+
+Also track major dashboard/payment-page CTAs so we can determine where payment activation originates.
+
+Examples:
+
+* dashboard_payments_cta_clicked
+* payments_page_setup_clicked
+* onboarding_payments_setup_clicked
+
+Include appropriate user ID, plan, onboarding state, and timestamp.
+
+Do not store sensitive Stripe KYC/banking/card information.
+
+---
+
+# 20. Do not change unrelated onboarding steps
+
+The overall onboarding flow is currently:
+
+1. What do you sell?
+2. Bakery details
+3. Portfolio
+4. Pricing style
+5. Quote preview
+6. DM/order-link activation
+7. BakerIQ Payments
+8. Completion/dashboard flow
+
+Do not redesign or reorder unrelated steps as part of this task.
+
+We are trying to collect clean activation data, so keep the existing flow stable.
+
+---
+
+# 21. Visual consistency
+
+Use BakerIQ's existing design system.
+
+Do not create a visually different "Stripe section."
+
+BakerIQ Payments should look and feel like a native part of BakerIQ.
+
+Maintain:
+
+* current dark/light themes
+* existing typography
+* spacing
+* pink accent treatment
+* button styles
+* card styles
+* responsive/mobile behavior
+
+Keep Stripe disclosure subtle but clear.
+
+---
+
+# 22. Before coding
+
+First inspect the existing implementation and summarize:
+
+1. Where Stripe/BakerIQ Payments terminology currently appears
+2. Current Stripe Connect flow
+3. Current direct-charge/application-fee logic
+4. Current onboarding return behavior after Stripe
+5. Existing payment-method configuration code
+6. Existing Payments page components
+7. Dashboard activation/checklist logic
+8. Analytics already implemented
+
+Then identify exactly which files/components/routes need modification.
+
+Do not rewrite payment architecture unnecessarily.
+
+---
+
+# 23. After implementation
+
+Provide a concise report confirming:
+
+1. Which baker-facing Stripe references were changed to BakerIQ Payments
+2. Which references intentionally still say Stripe and why
+3. How the post-connect success/payment-method screen works
+4. How payment-method eligibility is determined
+5. How existing connected bakers are handled
+6. How unconnected existing bakers are handled
+7. How the Payments page changes after connection
+8. Where bakers manage payment methods
+9. Whether any Stripe Dashboard setting requires manual action from me
+10. Confirmation that our direct-charge/application-fee/liability structure was not changed
+11. Confirmation that payment-method customization remains optional
+12. Confirmation that unrelated onboarding steps were left unchanged
