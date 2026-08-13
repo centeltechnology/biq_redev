@@ -160,7 +160,7 @@ export function PaymentMethodsLoadError({ message }: { message?: string }) {
     <div className="flex items-start gap-2 rounded-lg border bg-muted/50 p-4" data-testid="payment-methods-error">
       <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
       <p className="text-sm text-muted-foreground">
-        {message || "We couldn't load your payment options right now. You can review them anytime in Settings → Payments."}
+        {message || "We couldn't load your payment methods right now. Please try again, or review them later from Payments."}
       </p>
     </div>
   );

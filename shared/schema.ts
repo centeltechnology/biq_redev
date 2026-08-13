@@ -742,6 +742,9 @@ export const USER_ACTIVITY_EVENT_TYPES = [
   "payment_methods_customization_skipped",
   "payment_methods_setup_completed",
   "payment_methods_settings_revisited",
+  "dashboard_payments_cta_clicked",
+  "payments_page_setup_clicked",
+  "onboarding_payments_setup_clicked",
 ] as const;
 
 export type UserActivityEventType = typeof USER_ACTIVITY_EVENT_TYPES[number];

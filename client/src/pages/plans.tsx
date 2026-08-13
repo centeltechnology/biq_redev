@@ -56,8 +56,8 @@ const PRICING_FAQS = [
     answer: "The Free plan has no monthly fee. Growth is $4.99/month and Pro is $9.99/month, both with lower platform fees and more Express Items.",
   },
   {
-    question: "Do I need Stripe to use BakerIQ?",
-    answer: "No. You can use BakerIQ for quoting and lead management without Stripe. Connect Stripe only when you're ready to collect deposits and payments online.",
+    question: "Do I need BakerIQ Payments to use BakerIQ?",
+    answer: "No. You can use BakerIQ for quoting and lead management without setting up payments. Set up BakerIQ Payments (powered by Stripe) only when you're ready to collect deposits and payments online.",
   },
   {
     question: "Can I change plans later?",

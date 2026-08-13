@@ -47,7 +47,7 @@ const faqs = [
       },
       {
         q: "How do I track quote status?",
-        a: "Statuses: Draft, Sent, Accepted, Declined, Expired. Acceptance locks pricing. Customers can pay online if Stripe is connected."
+        a: "Statuses: Draft, Sent, Accepted, Declined, Expired. Acceptance locks pricing. Customers can pay online if BakerIQ Payments is set up."
       }
     ]
   },
@@ -94,15 +94,15 @@ const faqs = [
     ]
   },
   {
-    category: "Stripe & Payments",
+    category: "Payments",
     questions: [
       {
-        q: "Do I need Stripe to use BakerIQ?",
-        a: "No. Stripe is optional and only required for online payments. All other features work without it."
+        q: "Do I need BakerIQ Payments to use BakerIQ?",
+        a: "No. BakerIQ Payments is optional and only required for online payments. All other features work without it."
       },
       {
-        q: "How do I connect Stripe?",
-        a: "Go to Payments → Connect Stripe. Once connected, customers see a 'Pay Now' button on your quotes. Money goes to your Stripe account."
+        q: "How do I set up BakerIQ Payments?",
+        a: "Go to Payments → Set Up BakerIQ Payments. It's powered by Stripe. Once set up, customers see a 'Pay Now' button on your quotes and money goes directly to you."
       },
       {
         q: "What are the fees?",
@@ -121,7 +121,7 @@ const faqs = [
         a: "Go to Payments. View total revenue, transaction count, and per-payment details. Email notifications sent for every payment."
       },
       {
-        q: "How do I disconnect Stripe?",
+        q: "How do I disconnect BakerIQ Payments?",
         a: "Contact support. Disconnecting removes the 'Pay Now' button from quotes."
       }
     ]

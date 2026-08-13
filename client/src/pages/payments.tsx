@@ -100,6 +100,17 @@ export default function PaymentsPage() {
 
   const paymentMethodsQuery = usePaymentMethods(stripeConnected);
 
+  // Short summary of enabled payment methods, e.g. "Card, Apple Pay + 3 more"
+  const enabledMethodsSummary = (() => {
+    const methods = paymentMethodsQuery.data?.ok
+      ? paymentMethodsQuery.data.methods.filter((m) => m.status === "on")
+      : [];
+    if (methods.length === 0) return null;
+    const first = methods.slice(0, 3).map((m) => m.label).join(", ");
+    const rest = methods.length - 3;
+    return rest > 0 ? `${first} + ${rest} more` : first;
+  })();
+
   // Non-disruptive, dismissible banner for already-connected bakers
   const [showMethodsBanner, setShowMethodsBanner] = useState(() => {
     try {
@@ -220,28 +231,48 @@ export default function PaymentsPage() {
                   <Shield className="h-4 w-4 text-primary" />
                 )}
                 <CardTitle className="text-sm font-medium" data-testid="text-activation-title">
-                  {stripeConnected ? "Online Payments" : "Enable Online Payments"}
+                  BakerIQ Payments
                 </CardTitle>
               </div>
             </CardHeader>
             <CardContent className="px-4 pb-4 pt-1">
               {stripeConnected ? (
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-xs" data-testid="badge-stripe-connected">
-                    Stripe Connected
+                    Active
                   </Badge>
                   <p className="text-xs text-muted-foreground">
-                    Collecting deposits automatically from quotes.
+                    Secure payments powered by Stripe.
                   </p>
+                  {enabledMethodsSummary && (
+                    <p className="text-xs text-muted-foreground" data-testid="text-methods-summary">
+                      Accepting: {enabledMethodsSummary}
+                    </p>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => document.querySelector('[data-testid="card-payment-methods"]')?.scrollIntoView({ behavior: "smooth" })}
+                    data-testid="button-manage-payment-methods"
+                  >
+                    Manage Payment Methods
+                  </Button>
                 </div>
               ) : (
                 <div className="space-y-2">
+                  <Badge variant="secondary" className="text-xs" data-testid="badge-stripe-not-setup">
+                    Not set up
+                  </Badge>
                   <p className="text-xs text-muted-foreground">
-                    Set up BakerIQ Payments to give customers more ways to pay — cards, Apple Pay, Cash App Pay, Link, and more. Powered by Stripe.
+                    Give customers more ways to pay — cards, Apple Pay, Cash App Pay, Link, and more. Secure payment processing powered by Stripe.
                   </p>
                   <Button
                     size="sm"
-                    onClick={() => connectMutation.mutate()}
+                    onClick={() => {
+                      trackActivationEvent("payments_page_setup_clicked");
+                      connectMutation.mutate();
+                    }}
                     disabled={connectMutation.isPending}
                     className="w-full"
                     data-testid="button-secure-payouts"
@@ -258,6 +289,11 @@ export default function PaymentsPage() {
               <CardTitle className="text-sm font-medium">Deposit Settings</CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4 pt-1">
+              {!stripeConnected && (
+                <p className="text-xs text-muted-foreground mb-2" data-testid="text-deposit-settings-note">
+                  Your deposit preference will apply when online payments are enabled.
+                </p>
+              )}
               <Form {...paymentForm}>
                 <form
                   onSubmit={paymentForm.handleSubmit((data) =>
@@ -408,6 +444,15 @@ export default function PaymentsPage() {
               You may have more ways to get paid. Review your available payment methods below.
             </p>
             <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              onClick={() => document.querySelector('[data-testid="card-payment-methods"]')?.scrollIntoView({ behavior: "smooth" })}
+              data-testid="button-review-payment-methods"
+            >
+              Review Payment Methods
+            </Button>
+            <Button
               variant="ghost"
               size="icon"
               className="h-7 w-7 shrink-0"
@@ -517,7 +562,7 @@ export default function PaymentsPage() {
 
         {!stripeConnected && (
           <p className="text-xs text-muted-foreground text-center" data-testid="text-payments-helper">
-            Payments will appear here once Stripe is connected.
+            Payments will appear here once BakerIQ Payments is set up.
           </p>
         )}
 

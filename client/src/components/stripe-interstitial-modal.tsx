@@ -33,7 +33,7 @@ export function StripeInterstitialModal({
 
         <div className="space-y-5 py-2">
           <p className="text-sm text-muted-foreground text-center">
-            You're about to complete a quick, secure setup with Stripe.
+            You're about to set up BakerIQ Payments — a quick, secure setup powered by Stripe.
           </p>
 
           <div className="space-y-3">
@@ -77,7 +77,7 @@ export function StripeInterstitialModal({
 
           <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
             <Shield className="h-3 w-3" />
-            <span>Secured by Stripe</span>
+            <span>Powered by Stripe</span>
           </div>
         </div>
       </DialogContent>

@@ -202,7 +202,7 @@ export default function HelpPage() {
                 <div className="space-y-2">
                   <h4 className="font-medium">Quote Lifecycle</h4>
                   <p className="text-sm text-muted-foreground">
-                    Draft → Sent → Accepted or Declined. Acceptance locks pricing. Customers can pay online if Stripe is connected.
+                    Draft → Sent → Accepted or Declined. Acceptance locks pricing. Customers can pay online if BakerIQ Payments is set up.
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -309,9 +309,9 @@ export default function HelpPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <h4 className="font-medium">Connect Stripe</h4>
+                  <h4 className="font-medium">Set Up BakerIQ Payments</h4>
                   <p className="text-sm text-muted-foreground">
-                    Go to <strong>Payments → Connect Stripe</strong>. Customers see a "Pay Now" button on your quotes. Money goes directly to your Stripe account.
+                    Go to <strong>Payments → Set Up BakerIQ Payments</strong>. Customers see a "Pay Now" button on your quotes. Money goes directly to you — powered by Stripe.
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -574,8 +574,8 @@ export default function HelpPage() {
                   <div className="flex gap-3">
                     <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">5</span>
                     <div>
-                      <h4 className="font-medium">Connect Stripe (Optional)</h4>
-                      <p className="text-sm text-muted-foreground">Go to <strong>Payments → Connect Stripe</strong> to enable online deposits. Stripe adds a Pay Now button to quotes. Money goes directly to your Stripe account.</p>
+                      <h4 className="font-medium">Set Up BakerIQ Payments (Optional)</h4>
+                      <p className="text-sm text-muted-foreground">Go to <strong>Payments → Set Up BakerIQ Payments</strong> to enable online deposits. This adds a Pay Now button to quotes. Money goes directly to you — powered by Stripe.</p>
                     </div>
                   </div>
                 </div>
@@ -585,7 +585,7 @@ export default function HelpPage() {
                     <AccordionTrigger>Why can't I accept payments yet?</AccordionTrigger>
                     <AccordionContent>
                       <p className="text-sm text-muted-foreground">
-                        Online payments require Stripe. Go to <strong>Payments → Connect Stripe</strong> to link your account. Once connected, customers see a "Pay Now" button on your quotes.
+                        Online payments require BakerIQ Payments. Go to <strong>Payments → Set Up BakerIQ Payments</strong> to get started. Once set up, customers see a "Pay Now" button on your quotes.
                       </p>
                     </AccordionContent>
                   </AccordionItem>
@@ -732,7 +732,7 @@ export default function HelpPage() {
             <Card>
               <CardContent className="pt-6 space-y-4">
                 <p className="text-muted-foreground">
-                  Stripe is optional. Without Stripe, customers accept quotes and pay you manually. With Stripe, customers pay deposits online, funds go to your Stripe account, and you track everything in <strong>Payments</strong>.
+                  BakerIQ Payments is optional. Without it, customers accept quotes and pay you manually. With it, customers pay deposits online through secure checkout powered by Stripe, funds go directly to you, and you track everything in <strong>Payments</strong>.
                 </p>
                 <div className="space-y-2">
                   <h4 className="font-medium">Deposits</h4>
@@ -742,26 +742,26 @@ export default function HelpPage() {
                 </div>
                 <Accordion type="single" collapsible className="w-full mt-4">
                   <AccordionItem value="payments-q1" data-testid="accordion-payments-q1">
-                    <AccordionTrigger>Do I need Stripe to use BakerIQ?</AccordionTrigger>
+                    <AccordionTrigger>Do I need BakerIQ Payments to use BakerIQ?</AccordionTrigger>
                     <AccordionContent>
                       <p className="text-sm text-muted-foreground">
-                        No. You can create quotes, manage leads, and run your order page without Stripe. Stripe is only needed if you want customers to pay online through your quotes. Go to <strong>Payments → Connect Stripe</strong> when you're ready.
+                        No. You can create quotes, manage leads, and run your order page without it. BakerIQ Payments is only needed if you want customers to pay online through your quotes. Go to <strong>Payments → Set Up BakerIQ Payments</strong> when you're ready.
                       </p>
                     </AccordionContent>
                   </AccordionItem>
                   <AccordionItem value="payments-q2" data-testid="accordion-payments-q2">
-                    <AccordionTrigger>Can I set up deposits without Stripe?</AccordionTrigger>
+                    <AccordionTrigger>Can I set up deposits without BakerIQ Payments?</AccordionTrigger>
                     <AccordionContent>
                       <p className="text-sm text-muted-foreground">
-                        Yes. Go to <strong>Payments → Deposit Settings</strong> to set a percentage or flat amount. Without Stripe, customers pay you directly (cash, Venmo, Zelle). With Stripe, they pay the deposit online.
+                        Yes. Go to <strong>Payments → Deposit Settings</strong> to set a percentage or flat amount. Without BakerIQ Payments, customers pay you directly (cash, Venmo, Zelle). With BakerIQ Payments, they pay the deposit online.
                       </p>
                     </AccordionContent>
                   </AccordionItem>
                   <AccordionItem value="payments-q3" data-testid="accordion-payments-q3">
-                    <AccordionTrigger>What does connecting Stripe do?</AccordionTrigger>
+                    <AccordionTrigger>What does setting up BakerIQ Payments do?</AccordionTrigger>
                     <AccordionContent>
                       <p className="text-sm text-muted-foreground">
-                        Stripe adds a "Pay Now" button to your quotes. Customers pay deposits or full amounts through secure checkout. Money goes to your Stripe account minus the platform fee. Track payments in <strong>Payments</strong>.
+                        BakerIQ Payments adds a "Pay Now" button to your quotes. Customers pay deposits or full amounts through secure checkout powered by Stripe. Money goes directly to you minus the platform fee. Track payments in <strong>Payments</strong>.
                       </p>
                     </AccordionContent>
                   </AccordionItem>

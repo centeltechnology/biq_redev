@@ -1152,7 +1152,7 @@ export default function QuoteBuilderPage() {
                       {!baker?.stripeConnectedAt && (
                         <div className="flex items-start gap-2 rounded-md border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/20 px-3 py-2.5 text-xs text-amber-800 dark:text-amber-300" data-testid="banner-no-stripe-info">
                           <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                          <span>Online payments aren't enabled yet. Customers can still accept quotes — you'll collect payments manually until Stripe is connected.</span>
+                          <span>Online payments aren't enabled yet. Customers can still accept quotes — you'll collect payments manually until BakerIQ Payments is set up.</span>
                         </div>
                       )}
                       

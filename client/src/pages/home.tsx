@@ -211,7 +211,7 @@ export default function HomePage() {
                 step={4}
                 icon={<CreditCard className="h-6 w-6 text-primary" />}
                 title="Get your deposit"
-                description="Secure deposits through Stripe, paid straight to your account."
+                description="Secure deposits with BakerIQ Payments, paid straight to your account. Powered by Stripe."
               />
             </div>
           </div>
@@ -280,7 +280,7 @@ export default function HomePage() {
                   See every payment in one place.
                 </h2>
                 <p className="text-lg text-muted-foreground mb-6 max-w-md leading-relaxed">
-                  Once you connect Stripe, deposits and payments land here automatically. No spreadsheets, no guessing what you actually earned this month.
+                  Once you set up BakerIQ Payments, deposits and payments land here automatically. No spreadsheets, no guessing what you actually earned this month.
                 </p>
                 <div className="space-y-3 max-w-md">
                   <ReliefItem text="Deposits collected the moment a quote is accepted" />
@@ -346,8 +346,8 @@ export default function HomePage() {
               </h2>
               <div className="space-y-0 divide-y">
                 <FaqItem
-                  question="Do I need Stripe?"
-                  answer="Only if you want to collect payments online. You can use BakerIQ for quoting and lead management without Stripe. When you're ready, connect Stripe to start accepting deposits and payments."
+                  question="Do I need to set up payments?"
+                  answer="Only if you want to collect payments online. You can use BakerIQ for quoting and lead management without it. When you're ready, set up BakerIQ Payments (powered by Stripe) to start accepting deposits and payments."
                 />
                 <FaqItem
                   question="Can customers accept a quote and pay later?"

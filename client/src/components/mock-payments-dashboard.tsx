@@ -42,14 +42,14 @@ export function MockPaymentsDashboard() {
           <CardHeader className="pb-1 pt-3 px-3">
             <div className="flex items-center gap-1.5">
               <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
-              <CardTitle className="text-[11px] font-medium">Online Payments</CardTitle>
+              <CardTitle className="text-[11px] font-medium">BakerIQ Payments</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="px-3 pb-3 pt-0.5">
             <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-[10px]">
-              Stripe Connected
+              Active
             </Badge>
-            <p className="text-[10px] text-muted-foreground mt-1">Collecting deposits automatically.</p>
+            <p className="text-[10px] text-muted-foreground mt-1">Secure payments powered by Stripe.</p>
           </CardContent>
         </Card>
 

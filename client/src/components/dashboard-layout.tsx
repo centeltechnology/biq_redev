@@ -269,7 +269,7 @@ export function DashboardLayout({ children, title, actions }: DashboardLayoutPro
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground text-center">
-                  Stripe is connected and ready to collect deposits from your customers automatically.
+                  BakerIQ Payments is connected and ready to collect deposits from your customers automatically.
                 </p>
                 <div className="flex flex-col gap-2">
                   <Button

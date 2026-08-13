@@ -152,7 +152,7 @@ export default function OnboardingPage() {
       if (data.url) window.location.href = data.url;
     },
     onError: () => {
-      toast({ title: "Failed to start Stripe setup", variant: "destructive" });
+      toast({ title: "Failed to start BakerIQ Payments setup", variant: "destructive" });
     },
   });
 
@@ -253,8 +253,8 @@ export default function OnboardingPage() {
         }
         setCurrentStep(7);
         toast({
-          title: "Stripe setup isn't finished yet",
-          description: "You can pick up where you left off, or finish later from Settings.",
+          title: "BakerIQ Payments setup isn't finished yet",
+          description: "You can pick up where you left off, or finish later from Payments.",
         });
       })();
     } else {
@@ -902,7 +902,7 @@ export default function OnboardingPage() {
                     <Wallet className="h-12 w-12 text-primary mx-auto" />
                     <div>
                       <p className="text-sm text-muted-foreground">
-                        BakerIQ Payments is powered by Stripe and can give eligible customers multiple ways to pay — not just cards.
+                        Let customers pay the way they prefer. BakerIQ Payments is powered by Stripe and supports multiple payment options — not just cards.
                       </p>
                     </div>
                     <div className="bg-background border rounded-lg p-3 text-left max-w-xs mx-auto" data-testid="payment-options-showcase">
@@ -921,7 +921,10 @@ export default function OnboardingPage() {
                       </p>
                     </div>
                     <Button
-                      onClick={() => connectMutation.mutate()}
+                      onClick={() => {
+                        trackActivationEvent("onboarding_payments_setup_clicked");
+                        connectMutation.mutate();
+                      }}
                       disabled={connectMutation.isPending}
                       data-testid="button-connect-stripe"
                     >
@@ -956,9 +959,9 @@ export default function OnboardingPage() {
           {currentStep === 8 && (
             <div className="flex-1 flex flex-col" data-testid="card-step-8">
               <div className="text-center mb-6">
-                <h2 className="text-lg font-semibold">Choose How Customers Can Pay</h2>
+                <h2 className="text-lg font-semibold">You're Ready to Get Paid</h2>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Your payment setup is ready. These are the payment options currently available through your BakerIQ Payments account.
+                  BakerIQ Payments is connected. Here are the payment options currently available for your account.
                 </p>
               </div>
 
@@ -968,7 +971,12 @@ export default function OnboardingPage() {
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
                 ) : !paymentMethodsQuery.data?.ok ? (
-                  <PaymentMethodsLoadError message={paymentMethodsQuery.data?.message} />
+                  <PaymentMethodsLoadError
+                    message={
+                      paymentMethodsQuery.data?.message ||
+                      "Your payment setup is complete, but we couldn't load your payment options right now. You can review payment methods later from Payments."
+                    }
+                  />
                 ) : (
                   <>
                     <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center">
@@ -983,7 +991,7 @@ export default function OnboardingPage() {
                       context="onboarding"
                     />
                     <p className="text-xs text-center text-muted-foreground">
-                      You can use the recommended defaults or customize them anytime in Settings → Payments.
+                      We've already applied the recommended defaults — you can keep them as-is or customize anytime from Payments.
                     </p>
                   </>
                 )}

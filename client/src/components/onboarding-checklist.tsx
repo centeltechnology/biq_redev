@@ -47,11 +47,11 @@ export function OnboardingChecklist({ onConnectStripe, isConnecting }: Activatio
       actionLabel: "Settings",
     },
     {
-      label: "Accept deposits so customers can pay online",
+      label: "Accept deposits and give customers more ways to pay",
       icon: CreditCard,
       complete: hasStripe,
       action: onConnectStripe,
-      actionLabel: isConnecting ? "Setting up..." : "Connect Stripe",
+      actionLabel: isConnecting ? "Setting up..." : "Set Up BakerIQ Payments",
       actionDisabled: isConnecting,
     },
   ];

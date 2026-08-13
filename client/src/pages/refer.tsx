@@ -97,15 +97,15 @@ export default function ReferPage() {
                 <div className="flex items-start gap-3">
                   <CreditCard className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-sm font-medium">Connect Stripe to unlock your referral link</p>
+                    <p className="text-sm font-medium">Set up BakerIQ Payments to unlock your referral link</p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Complete your Stripe setup to start referring friends and earning rewards.
+                      Complete your payment setup to start referring friends and earning rewards.
                     </p>
                   </div>
                 </div>
-                <Link href="/settings">
+                <Link href="/payments">
                   <Button className="mt-1" data-testid="button-connect-stripe-referral">
-                    Go to Settings
+                    Go to Payments
                   </Button>
                 </Link>
               </div>
