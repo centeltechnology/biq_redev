@@ -77,6 +77,7 @@ import {
   mergeOptionsById,
 } from "@/lib/calculator";
 import { apiRequest } from "@/lib/queryClient";
+import { trackPublicActivationEvent } from "@/lib/activation";
 import {
   CAKE_SIZES,
   CAKE_SHAPES,
@@ -210,6 +211,20 @@ export default function CalculatorPage() {
 
   const bakerConfig = baker?.calculatorConfig as CalculatorConfig | undefined;
   const bakerCurrency = baker?.currency || "USD";
+
+  // Activation tracking: record calculator visit once the baker page loads
+  useEffect(() => {
+    if (slug && baker) {
+      trackPublicActivationEvent(slug, "calculator_visited");
+    }
+  }, [slug, baker]);
+
+  // Activation tracking: record inquiry started when the customer reaches the contact form
+  useEffect(() => {
+    if (slug && STEPS[currentStep] === "Contact Info") {
+      trackPublicActivationEvent(slug, "inquiry_started");
+    }
+  }, [slug, currentStep, STEPS]);
 
   const payload: CalculatorPayload = useMemo(() => {
     if (category === "treat") {

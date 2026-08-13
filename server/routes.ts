@@ -18,7 +18,7 @@ import { CAKE_SIZES, CAKE_SHAPES, CAKE_FLAVORS, FROSTING_TYPES, DECORATIONS, DEL
 import { AFFILIATE_HEADLINE_PRESETS } from "@shared/affiliate-content";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import OpenAI from "openai";
-import { trackEvent } from "./event-tracking";
+import { trackEvent, trackEventOnce, trackEventDeduped } from "./event-tracking";
 
 // OpenAI client for support chat
 const openai = new OpenAI({
@@ -752,6 +752,7 @@ export async function registerRoutes(
       const { step } = schema.parse(req.body);
       const baker = await storage.updateBaker(req.session.bakerId!, { onboardingStep: step });
       if (!baker) return res.status(404).json({ message: "Baker not found" });
+      trackEventOnce(req.session.bakerId!, "onboarding_started").catch(() => {});
       res.json({ success: true, onboardingStep: step });
     } catch (error: any) {
       if (error instanceof z.ZodError) return res.status(400).json({ message: error.errors[0].message });
@@ -763,6 +764,7 @@ export async function registerRoutes(
     try {
       const baker = await storage.updateBaker(req.session.bakerId!, { onboardingCompleted: true });
       if (!baker) return res.status(404).json({ message: "Baker not found" });
+      trackEventOnce(req.session.bakerId!, "onboarding_completed").catch(() => {});
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ message: "Update failed" });
@@ -2151,6 +2153,66 @@ export async function registerRoutes(
     }
   });
 
+  // Simple in-memory rate limiter for the public activation tracker:
+  // caps writes per IP and per baker per hour so bots can't flood analytics.
+  const activationRateBuckets = new Map<string, { count: number; resetAt: number }>();
+  const activationRateLimited = (key: string, limit: number): boolean => {
+    const now = Date.now();
+    const bucket = activationRateBuckets.get(key);
+    if (!bucket || now > bucket.resetAt) {
+      activationRateBuckets.set(key, { count: 1, resetAt: now + 60 * 60 * 1000 });
+      return false;
+    }
+    bucket.count++;
+    return bucket.count > limit;
+  };
+  setInterval(() => {
+    const now = Date.now();
+    activationRateBuckets.forEach((bucket, key) => {
+      if (now > bucket.resetAt) activationRateBuckets.delete(key);
+    });
+  }, 10 * 60 * 1000).unref();
+
+  // Public activation event tracking (calculator visits, inquiry starts).
+  // Attributed to the baker who owns the calculator; distinguishes the
+  // baker viewing their own page (logged in as owner) from external visitors.
+  // Note: visit counts are best-effort signals, not verified traffic.
+  app.post("/api/public/activation-event", async (req, res) => {
+    try {
+      const schema = z.object({
+        slug: z.string().min(1),
+        sessionId: z.string().min(8).max(64),
+        eventType: z.enum(["calculator_visited", "inquiry_started"]),
+      });
+      const data = schema.parse(req.body);
+
+      const ip = (req.headers["x-forwarded-for"]?.toString().split(",")[0] || req.ip || "unknown").trim();
+      if (activationRateLimited(`ip:${ip}`, 60)) {
+        return res.status(202).json({ ok: true });
+      }
+
+      const baker = await storage.getBakerBySlug(data.slug);
+      if (!baker) return res.status(202).json({ ok: true });
+
+      if (activationRateLimited(`baker:${baker.id}:${data.eventType}`, 200)) {
+        return res.status(202).json({ ok: true });
+      }
+
+      const isOwner = req.session?.bakerId === baker.id;
+      // Dedupe: same session + event type within 30 minutes counts once
+      trackEventDeduped(baker.id, data.eventType, data.sessionId, 30, {
+        external: !isOwner,
+      }).catch(() => {});
+
+      res.status(202).json({ ok: true });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid event data" });
+      }
+      res.status(500).json({ message: "Tracking failed" });
+    }
+  });
+
   app.post("/api/public/calculator/submit", async (req, res) => {
     try {
       const tenant = req.query.tenant as string;
@@ -2207,7 +2269,7 @@ export async function registerRoutes(
         source: isQuickOrder ? "quick_order" : "calculator",
       });
 
-      // Track lead created
+      // Track lead created (inquiry submitted)
       trackEvent(baker.id, "lead_created", { leadId: lead.id, source: isQuickOrder ? "quick_order" : "calculator" });
 
       if (!baker.milestoneFirstLeadSent) {
@@ -2526,6 +2588,8 @@ export async function registerRoutes(
         stripeConnectAccountId: account.id,
       });
 
+      trackEventOnce(baker.id, "stripe_connect_clicked").catch(() => {});
+
       res.json({
         accountId: account.id,
         onboarded: false,
@@ -2561,6 +2625,8 @@ export async function registerRoutes(
         return_url: `${baseUrl}/settings?tab=payments&connect=complete&stripe=connected`,
         type: "account_onboarding",
       });
+
+      trackEventOnce(baker.id, "stripe_connect_started").catch(() => {});
 
       res.json({ url: accountLink.url });
     } catch (error: any) {
@@ -2598,6 +2664,7 @@ export async function registerRoutes(
       }
       if (onboarded && payoutsEnabled) {
         await storage.setActivationTimestamp(baker.id, "stripeConnectedAt");
+        trackEventOnce(baker.id, "stripe_connect_completed").catch(() => {});
       }
 
       res.json({
@@ -3435,17 +3502,51 @@ export async function registerRoutes(
       const truncFn = groupBy === "month" ? "month" : "week";
 
       const result = await pool.query(`
+        WITH cohort AS (
+          SELECT b.*
+          FROM bakers b
+          WHERE b.created_at >= $1 AND b.created_at < $2 AND b.role != 'super_admin'
+        ),
+        milestones AS (
+          SELECT
+            c.id,
+            c.created_at,
+            (c.onboarding_completed OR c.onboarding_step > 1
+              OR EXISTS (SELECT 1 FROM user_activity_events e WHERE e.baker_id = c.id AND e.event_type = 'onboarding_started')) AS onboarding_started,
+            c.onboarding_completed AS onboarding_completed,
+            c.pricing_reviewed AS pricing_completed,
+            (c.first_product_created_at IS NOT NULL
+              OR EXISTS (SELECT 1 FROM pricing_calculations pc WHERE pc.baker_id = c.id)) AS express_item_created,
+            EXISTS (SELECT 1 FROM user_activity_events e WHERE e.baker_id = c.id AND e.event_type IN ('calculator_link_copied', 'quick_quote_link_copied')) AS link_copied,
+            EXISTS (SELECT 1 FROM user_activity_events e WHERE e.baker_id = c.id AND e.event_type = 'calculator_visited' AND e.event_data->>'external' = 'true') AS external_visit,
+            EXISTS (SELECT 1 FROM leads l WHERE l.baker_id = c.id) AS inquiry_submitted,
+            (c.first_quote_sent_at IS NOT NULL OR EXISTS (SELECT 1 FROM quotes q WHERE q.baker_id = c.id)) AS first_quote,
+            (c.stripe_connect_account_id IS NOT NULL
+              OR EXISTS (SELECT 1 FROM user_activity_events e WHERE e.baker_id = c.id AND e.event_type = 'stripe_connect_clicked')) AS stripe_attempted,
+            (c.stripe_connected_at IS NOT NULL OR (c.stripe_connect_onboarded AND c.stripe_connect_payouts_enabled)) AS stripe_connected,
+            (c.first_payment_processed_at IS NOT NULL
+              OR EXISTS (SELECT 1 FROM quote_payments p WHERE p.baker_id = c.id AND p.status = 'succeeded')) AS first_payment
+          FROM cohort c
+        )
         SELECT
           date_trunc('${truncFn}', created_at) AS cohort_start,
           COUNT(*)::int AS users,
-          COUNT(*) FILTER (WHERE first_quote_sent_at IS NOT NULL)::int AS first_quote_count,
-          COUNT(*) FILTER (WHERE stripe_connected_at IS NOT NULL)::int AS stripe_connected_count,
-          COUNT(*) FILTER (WHERE first_payment_processed_at IS NOT NULL)::int AS first_payment_count
-        FROM bakers
-        WHERE created_at >= $1 AND created_at < $2 AND role != 'super_admin'
+          COUNT(*) FILTER (WHERE onboarding_completed)::int AS onboarding_completed_count,
+          COUNT(*) FILTER (WHERE pricing_completed)::int AS pricing_completed_count,
+          COUNT(*) FILTER (WHERE express_item_created)::int AS express_item_count,
+          COUNT(*) FILTER (WHERE link_copied)::int AS link_copied_count,
+          COUNT(*) FILTER (WHERE external_visit)::int AS external_visit_count,
+          COUNT(*) FILTER (WHERE inquiry_submitted)::int AS inquiry_count,
+          COUNT(*) FILTER (WHERE first_quote)::int AS first_quote_count,
+          COUNT(*) FILTER (WHERE stripe_attempted)::int AS stripe_attempted_count,
+          COUNT(*) FILTER (WHERE stripe_connected)::int AS stripe_connected_count,
+          COUNT(*) FILTER (WHERE first_payment)::int AS first_payment_count
+        FROM milestones
         GROUP BY 1
         ORDER BY 1 DESC
       `, [rangeStart.toISOString(), rangeEnd.toISOString()]);
+
+      const pct = (count: number, users: number) => users > 0 ? Math.round((count / users) * 1000) / 10 : 0;
 
       const cohorts = result.rows.map((row: any) => {
         const start = new Date(row.cohort_start);
@@ -3461,12 +3562,26 @@ export async function registerRoutes(
           cohortLabel,
           cohortStart: row.cohort_start,
           users,
+          onboardingCompletedCount: row.onboarding_completed_count,
+          onboardingCompletedPct: pct(row.onboarding_completed_count, users),
+          pricingCompletedCount: row.pricing_completed_count,
+          pricingCompletedPct: pct(row.pricing_completed_count, users),
+          expressItemCount: row.express_item_count,
+          expressItemPct: pct(row.express_item_count, users),
+          linkCopiedCount: row.link_copied_count,
+          linkCopiedPct: pct(row.link_copied_count, users),
+          externalVisitCount: row.external_visit_count,
+          externalVisitPct: pct(row.external_visit_count, users),
+          inquiryCount: row.inquiry_count,
+          inquiryPct: pct(row.inquiry_count, users),
           firstQuoteCount: row.first_quote_count,
-          firstQuotePct: users > 0 ? Math.round((row.first_quote_count / users) * 1000) / 10 : 0,
+          firstQuotePct: pct(row.first_quote_count, users),
+          stripeAttemptedCount: row.stripe_attempted_count,
+          stripeAttemptedPct: pct(row.stripe_attempted_count, users),
           stripeConnectedCount: row.stripe_connected_count,
-          stripeConnectedPct: users > 0 ? Math.round((row.stripe_connected_count / users) * 1000) / 10 : 0,
+          stripeConnectedPct: pct(row.stripe_connected_count, users),
           firstPaymentCount: row.first_payment_count,
-          firstPaymentPct: users > 0 ? Math.round((row.first_payment_count / users) * 1000) / 10 : 0,
+          firstPaymentPct: pct(row.first_payment_count, users),
         };
       });
 
@@ -3474,6 +3589,182 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Admin analytics cohorts error:", error);
       res.status(500).json({ message: "Failed to get analytics cohorts" });
+    }
+  });
+
+  // Analytics Cockpit — Activation Journey funnel
+  // Cohort = bakers who signed up in the selected range. Each step counts users
+  // who ever reached that milestone (no conversion window), mixing backfilled
+  // database records with forward-only behavioral events.
+  app.get("/api/admin/analytics/activation-journey", requireSuperAdmin, async (req, res) => {
+    try {
+      const { startDate, endDate } = getAnalyticsDateRange(req.query.range as string);
+      const rangeStart = startDate || new Date(0);
+      const rangeEnd = endDate || new Date();
+
+      const result = await pool.query(`
+        WITH cohort AS (
+          SELECT b.* FROM bakers b
+          WHERE b.created_at >= $1 AND b.created_at < $2 AND b.role != 'super_admin'
+        )
+        SELECT
+          COUNT(*)::int AS signups,
+          COUNT(*) FILTER (WHERE onboarding_completed OR onboarding_step > 1
+            OR EXISTS (SELECT 1 FROM user_activity_events e WHERE e.baker_id = c.id AND e.event_type = 'onboarding_started'))::int AS onboarding_started,
+          COUNT(*) FILTER (WHERE profile_photo IS NOT NULL OR COALESCE(array_length(portfolio_images, 1), 0) > 0)::int AS profile_completed,
+          COUNT(*) FILTER (WHERE pricing_reviewed)::int AS pricing_completed,
+          COUNT(*) FILTER (WHERE first_product_created_at IS NOT NULL
+            OR EXISTS (SELECT 1 FROM pricing_calculations pc WHERE pc.baker_id = c.id))::int AS express_item_created,
+          COUNT(*) FILTER (WHERE onboarding_completed)::int AS onboarding_completed,
+          COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM user_activity_events e WHERE e.baker_id = c.id AND e.event_type IN ('calculator_link_copied', 'quick_quote_link_copied')))::int AS link_copied,
+          COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM user_activity_events e WHERE e.baker_id = c.id AND e.event_type = 'calculator_visited' AND e.event_data->>'external' = 'true'))::int AS external_visit,
+          COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM leads l WHERE l.baker_id = c.id))::int AS inquiry_submitted,
+          COUNT(*) FILTER (WHERE first_quote_sent_at IS NOT NULL
+            OR EXISTS (SELECT 1 FROM quotes q WHERE q.baker_id = c.id))::int AS quote_created,
+          COUNT(*) FILTER (WHERE stripe_connect_account_id IS NOT NULL
+            OR EXISTS (SELECT 1 FROM user_activity_events e WHERE e.baker_id = c.id AND e.event_type = 'stripe_connect_clicked'))::int AS stripe_clicked,
+          COUNT(*) FILTER (WHERE stripe_connect_account_id IS NOT NULL
+            OR EXISTS (SELECT 1 FROM user_activity_events e WHERE e.baker_id = c.id AND e.event_type = 'stripe_connect_started'))::int AS stripe_started,
+          COUNT(*) FILTER (WHERE stripe_connected_at IS NOT NULL OR (stripe_connect_onboarded AND stripe_connect_payouts_enabled))::int AS stripe_connected,
+          COUNT(*) FILTER (WHERE first_payment_processed_at IS NOT NULL
+            OR EXISTS (SELECT 1 FROM quote_payments p WHERE p.baker_id = c.id AND p.status = 'succeeded'))::int AS first_payment
+        FROM cohort c
+      `, [rangeStart.toISOString(), rangeEnd.toISOString()]);
+
+      // Tracking-start dates for forward-only events (so zeroes before these
+      // dates aren't mistaken for real user behavior)
+      const trackedSinceResult = await pool.query(`
+        SELECT event_type, MIN(created_at) AS tracked_since
+        FROM user_activity_events
+        WHERE event_type IN ('calculator_link_copied', 'quick_quote_link_copied', 'calculator_visited')
+        GROUP BY event_type
+      `);
+      const trackedSince: Record<string, string> = {};
+      for (const row of trackedSinceResult.rows) {
+        trackedSince[row.event_type] = row.tracked_since;
+      }
+
+      const r = result.rows[0];
+      const signups = r.signups || 0;
+
+      const stepDefs: Array<{ key: string; label: string; count: number; forwardOnly?: boolean; trackedSince?: string | null; definition: string }> = [
+        { key: "signups", label: "Signups", count: signups, definition: "Bakers who created an account during the selected period (excludes admins)." },
+        { key: "onboarding_started", label: "Onboarding Started", count: r.onboarding_started, definition: "Advanced past the first onboarding step, or completed onboarding." },
+        { key: "profile_completed", label: "Profile Completed", count: r.profile_completed, definition: "Added a profile photo or at least one portfolio image." },
+        { key: "pricing_completed", label: "Pricing Completed", count: r.pricing_completed, definition: "Reviewed and saved their pricing setup." },
+        { key: "express_item_created", label: "Express Item Created", count: r.express_item_created, definition: "Created at least one pricing/express item." },
+        { key: "onboarding_completed", label: "Onboarding Completed", count: r.onboarding_completed, definition: "Finished the full onboarding flow." },
+        { key: "link_copied", label: "Calculator Link Copied", count: r.link_copied, forwardOnly: true, trackedSince: trackedSince["calculator_link_copied"] || trackedSince["quick_quote_link_copied"] || null, definition: "Copied their public calculator/order link. Tracked from deployment forward — earlier signups show zero even if they copied their link before tracking began. Copying is not the same as sharing; BakerIQ cannot verify a copied link was sent." },
+        { key: "external_visit", label: "External Calculator Visit", count: r.external_visit, forwardOnly: true, trackedSince: trackedSince["calculator_visited"] || null, definition: "Their public calculator/order page was visited by someone other than the baker (baker's own logged-in visits are excluded where reliably identifiable). Tracked from deployment forward." },
+        { key: "inquiry_submitted", label: "Inquiry Submitted", count: r.inquiry_submitted, definition: "Received at least one customer inquiry (lead) from their calculator or quick order page." },
+        { key: "quote_created", label: "Quote Created", count: r.quote_created, definition: "Created at least one quote." },
+        { key: "stripe_clicked", label: "Stripe Connect Clicked", count: r.stripe_clicked, definition: "Initiated Stripe Connect (a Connect account was created for them). Historical data counts any baker with a Connect account." },
+        { key: "stripe_started", label: "Stripe Connect Started", count: r.stripe_started, definition: "Opened the Stripe onboarding flow. Historical data counts any baker with a Connect account." },
+        { key: "stripe_connected", label: "Stripe Connected", count: r.stripe_connected, definition: "Completed Stripe Connect onboarding with payouts enabled." },
+        { key: "first_payment", label: "First Payment", count: r.first_payment, definition: "Received at least one successful customer payment." },
+      ];
+
+      let largestDropKey: string | null = null;
+      let largestDrop = -1;
+      const steps = stepDefs.map((step, i) => {
+        const prev = i > 0 ? stepDefs[i - 1].count : null;
+        const fromPrev = prev != null && prev > 0 ? Math.round((step.count / prev) * 1000) / 10 : null;
+        if (prev != null && prev > 0) {
+          const drop = prev - step.count;
+          if (drop > largestDrop) {
+            largestDrop = drop;
+            largestDropKey = step.key;
+          }
+        }
+        return {
+          ...step,
+          pctOfSignups: signups > 0 ? Math.round((step.count / signups) * 1000) / 10 : 0,
+          pctFromPrevious: fromPrev,
+        };
+      });
+
+      res.json({ steps, largestDropKey, signups });
+    } catch (error) {
+      console.error("Admin activation journey error:", error);
+      res.status(500).json({ message: "Failed to get activation journey" });
+    }
+  });
+
+  // Analytics Cockpit — Engagement / Retention
+  // "Active" = recorded a real product activity event (login, quotes, pricing
+  // edits, etc.), not background/system requests.
+  app.get("/api/admin/analytics/engagement", requireSuperAdmin, async (req, res) => {
+    try {
+      const { startDate, endDate } = getAnalyticsDateRange(req.query.range as string);
+      const rangeStart = startDate || new Date(0);
+      const rangeEnd = endDate || new Date();
+
+      // Session buckets + return windows, for the signup cohort in range.
+      // "Session" = a distinct calendar day with product activity.
+      const cohortResult = await pool.query(`
+        WITH cohort AS (
+          SELECT b.id, b.created_at FROM bakers b
+          WHERE b.created_at >= $1 AND b.created_at < $2 AND b.role != 'super_admin'
+        ),
+        activity AS (
+          SELECT c.id, c.created_at AS signup_at,
+            COUNT(DISTINCT date_trunc('day', e.created_at))::int AS active_days,
+            MIN(e.created_at) FILTER (WHERE e.created_at > c.created_at + interval '12 hours') AS first_return_at
+          FROM cohort c
+          LEFT JOIN user_activity_events e ON e.baker_id = c.id
+            AND e.event_type NOT IN ('calculator_visited', 'inquiry_started')
+          GROUP BY c.id, c.created_at
+        )
+        SELECT
+          COUNT(*)::int AS total_users,
+          COUNT(*) FILTER (WHERE active_days = 0)::int AS bucket_0,
+          COUNT(*) FILTER (WHERE active_days = 1)::int AS bucket_1,
+          COUNT(*) FILTER (WHERE active_days BETWEEN 2 AND 3)::int AS bucket_2_3,
+          COUNT(*) FILTER (WHERE active_days BETWEEN 4 AND 10)::int AS bucket_4_10,
+          COUNT(*) FILTER (WHERE active_days > 10)::int AS bucket_10_plus,
+          COUNT(*) FILTER (WHERE first_return_at IS NOT NULL AND first_return_at <= signup_at + interval '1 day')::int AS returned_1d,
+          COUNT(*) FILTER (WHERE first_return_at IS NOT NULL AND first_return_at <= signup_at + interval '7 days')::int AS returned_7d,
+          COUNT(*) FILTER (WHERE first_return_at IS NOT NULL AND first_return_at <= signup_at + interval '30 days')::int AS returned_30d
+        FROM activity
+      `, [rangeStart.toISOString(), rangeEnd.toISOString()]);
+
+      // Recently-active counts across all bakers (absolute windows)
+      const activeResult = await pool.query(`
+        SELECT
+          COUNT(DISTINCT e.baker_id) FILTER (WHERE e.created_at >= NOW() - interval '7 days')::int AS active_7d,
+          COUNT(DISTINCT e.baker_id) FILTER (WHERE e.created_at >= NOW() - interval '30 days')::int AS active_30d,
+          COUNT(DISTINCT e.baker_id) FILTER (WHERE e.created_at >= NOW() - interval '90 days')::int AS active_90d
+        FROM user_activity_events e
+        JOIN bakers b ON b.id = e.baker_id AND b.role != 'super_admin'
+        WHERE e.event_type NOT IN ('calculator_visited', 'inquiry_started')
+      `);
+
+      const c = cohortResult.rows[0];
+      const a = activeResult.rows[0];
+
+      res.json({
+        cohortTotal: c.total_users,
+        sessionBuckets: {
+          zero: c.bucket_0,
+          one: c.bucket_1,
+          twoToThree: c.bucket_2_3,
+          fourToTen: c.bucket_4_10,
+          tenPlus: c.bucket_10_plus,
+        },
+        returnWindows: {
+          within1d: c.returned_1d,
+          within7d: c.returned_7d,
+          within30d: c.returned_30d,
+        },
+        recentlyActive: {
+          last7d: a.active_7d,
+          last30d: a.active_30d,
+          last90d: a.active_90d,
+        },
+      });
+    } catch (error) {
+      console.error("Admin engagement analytics error:", error);
+      res.status(500).json({ message: "Failed to get engagement analytics" });
     }
   });
 
@@ -3845,6 +4136,71 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Get baker activity error:", error);
       res.status(500).json({ message: "Failed to get baker activity" });
+    }
+  });
+
+  // Account-level activation timeline for Super Admin diagnostics
+  app.get("/api/admin/bakers/:id/activation", requireSuperAdmin, async (req, res) => {
+    try {
+      const baker = await storage.getBaker(req.params.id);
+      if (!baker) {
+        return res.status(404).json({ message: "Baker not found" });
+      }
+      const bakerId = req.params.id;
+
+      const result = await pool.query(`
+        SELECT
+          (SELECT MIN(created_at) FROM user_activity_events WHERE baker_id = $1 AND event_type = 'onboarding_started') AS onboarding_started_at,
+          (SELECT MIN(created_at) FROM user_activity_events WHERE baker_id = $1 AND event_type = 'onboarding_completed') AS onboarding_completed_at,
+          (SELECT MIN(created_at) FROM user_activity_events WHERE baker_id = $1 AND event_type = 'quick_quote_configured') AS pricing_configured_at,
+          (SELECT MIN(created_at) FROM pricing_calculations WHERE baker_id = $1) AS first_express_item_at,
+          (SELECT MIN(created_at) FROM user_activity_events WHERE baker_id = $1 AND event_type IN ('calculator_link_copied', 'quick_quote_link_copied')) AS link_copied_at,
+          (SELECT COUNT(*)::int FROM user_activity_events WHERE baker_id = $1 AND event_type = 'calculator_visited' AND event_data->>'external' = 'true') AS external_visit_count,
+          (SELECT MIN(created_at) FROM user_activity_events WHERE baker_id = $1 AND event_type = 'calculator_visited' AND event_data->>'external' = 'true') AS first_external_visit_at,
+          (SELECT COUNT(*)::int FROM leads WHERE baker_id = $1) AS inquiry_count,
+          (SELECT MIN(created_at) FROM leads WHERE baker_id = $1) AS first_inquiry_at,
+          (SELECT MIN(created_at) FROM quotes WHERE baker_id = $1) AS first_quote_at,
+          (SELECT MIN(created_at) FROM user_activity_events WHERE baker_id = $1 AND event_type = 'stripe_connect_clicked') AS stripe_clicked_at,
+          (SELECT MIN(created_at) FROM user_activity_events WHERE baker_id = $1 AND event_type = 'stripe_connect_started') AS stripe_started_at,
+          (SELECT MIN(created_at) FROM quote_payments WHERE baker_id = $1 AND status = 'succeeded') AS first_payment_at_fallback,
+          (SELECT COUNT(DISTINCT date_trunc('day', created_at))::int FROM user_activity_events WHERE baker_id = $1 AND event_type NOT IN ('calculator_visited', 'inquiry_started')) AS active_days,
+          (SELECT MAX(created_at) FROM user_activity_events WHERE baker_id = $1 AND event_type NOT IN ('calculator_visited', 'inquiry_started')) AS last_active_at,
+          (SELECT MIN(created_at) FROM user_activity_events WHERE baker_id = $1 AND event_type NOT IN ('calculator_visited', 'inquiry_started')) AS first_activity_at
+      `, [bakerId]);
+      const r = result.rows[0];
+
+      const hasPortfolio = (baker.portfolioImages?.length || 0) > 0;
+      const timeline = [
+        { key: "signup", label: "User signed up", date: baker.createdAt, done: true },
+        { key: "onboarding_started", label: "Onboarding started", date: r.onboarding_started_at, done: !!(r.onboarding_started_at || baker.onboardingCompleted || (baker.onboardingStep || 1) > 1) },
+        { key: "profile_completed", label: "Profile completed", date: null, done: !!(baker.profilePhoto || hasPortfolio) },
+        { key: "pricing_completed", label: "Pricing setup completed", date: r.pricing_configured_at, done: !!baker.pricingReviewed },
+        { key: "express_item_created", label: "Express Item created", date: baker.firstProductCreatedAt || r.first_express_item_at, done: !!(baker.firstProductCreatedAt || r.first_express_item_at) },
+        { key: "onboarding_completed", label: "Onboarding completed", date: r.onboarding_completed_at, done: !!baker.onboardingCompleted },
+        { key: "link_copied", label: "Calculator link copied", date: r.link_copied_at, done: !!r.link_copied_at, forwardOnly: true },
+        { key: "external_visits", label: "External calculator visits", date: r.first_external_visit_at, done: r.external_visit_count > 0, count: r.external_visit_count, forwardOnly: true },
+        { key: "inquiries", label: "Inquiries submitted", date: r.first_inquiry_at, done: r.inquiry_count > 0, count: r.inquiry_count },
+        { key: "quote_created", label: "Quote created", date: r.first_quote_at, done: !!r.first_quote_at },
+        { key: "stripe_clicked", label: "Stripe Connect clicked", date: r.stripe_clicked_at, done: !!(r.stripe_clicked_at || baker.stripeConnectAccountId) },
+        { key: "stripe_started", label: "Stripe Connect started", date: r.stripe_started_at, done: !!(r.stripe_started_at || baker.stripeConnectAccountId) },
+        { key: "stripe_connected", label: "Stripe Connected", date: baker.stripeConnectedAt, done: !!(baker.stripeConnectedAt || (baker.stripeConnectOnboarded && baker.stripeConnectPayoutsEnabled)) },
+        { key: "first_payment", label: "First payment received", date: baker.firstPaymentProcessedAt || r.first_payment_at_fallback, done: !!(baker.firstPaymentProcessedAt || r.first_payment_at_fallback) },
+      ];
+
+      res.json({
+        bakerId,
+        businessName: baker.businessName,
+        timeline,
+        engagement: {
+          signupAt: baker.createdAt,
+          firstActivityAt: r.first_activity_at,
+          lastActiveAt: r.last_active_at,
+          activeDays: r.active_days,
+        },
+      });
+    } catch (error) {
+      console.error("Get baker activation error:", error);
+      res.status(500).json({ message: "Failed to get baker activation" });
     }
   });
 

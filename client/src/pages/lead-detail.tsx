@@ -33,7 +33,8 @@ import {
   type Lead,
   type CalculatorPayload,
 } from "@shared/schema";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { trackActivationEvent } from "@/lib/activation";
 
 export default function LeadDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -46,6 +47,13 @@ export default function LeadDetailPage() {
     queryKey: ["/api/leads", id],
     enabled: !!id,
   });
+
+  // Activation tracking: record that the baker viewed a lead (once per lead per session)
+  useEffect(() => {
+    if (lead && id) {
+      trackActivationEvent("lead_viewed", id);
+    }
+  }, [lead, id]);
 
   const updateMutation = useMutation({
     mutationFn: async (data: { status?: string; notes?: string }) => {

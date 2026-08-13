@@ -18,6 +18,61 @@ export async function trackEvent(
   }
 }
 
+// Track an event only if the baker has never recorded it before.
+// Used for once-per-account activation milestones so refreshes/retries
+// don't create duplicate rows.
+export async function trackEventOnce(
+  bakerId: string,
+  eventType: UserActivityEventType,
+  eventData?: Record<string, unknown>
+): Promise<void> {
+  try {
+    // Single atomic statement (insert-if-absent) to avoid duplicate rows
+    // from concurrent requests.
+    const dataJson = eventData ? JSON.stringify(eventData) : null;
+    await db.execute(sql`
+      INSERT INTO user_activity_events (baker_id, event_type, event_data)
+      SELECT ${bakerId}, ${eventType}, ${dataJson}::jsonb
+      WHERE NOT EXISTS (
+        SELECT 1 FROM user_activity_events
+        WHERE baker_id = ${bakerId} AND event_type = ${eventType}
+      )
+    `);
+  } catch (error) {
+    console.error(`Failed to track once event ${eventType} for baker ${bakerId}:`, error);
+  }
+}
+
+// Track a repeatable event, skipping duplicates from the same session
+// within a debounce window (defends against refreshes/re-renders).
+export async function trackEventDeduped(
+  bakerId: string,
+  eventType: UserActivityEventType,
+  sessionId: string,
+  windowMinutes: number,
+  eventData?: Record<string, unknown>
+): Promise<void> {
+  try {
+    const since = new Date(Date.now() - windowMinutes * 60 * 1000);
+    const dataJson = JSON.stringify({ ...(eventData || {}), sessionId });
+    // Single atomic statement (insert-if-no-recent-duplicate) to keep
+    // concurrent requests from double-writing.
+    await db.execute(sql`
+      INSERT INTO user_activity_events (baker_id, event_type, event_data)
+      SELECT ${bakerId}, ${eventType}, ${dataJson}::jsonb
+      WHERE NOT EXISTS (
+        SELECT 1 FROM user_activity_events
+        WHERE baker_id = ${bakerId}
+          AND event_type = ${eventType}
+          AND created_at >= ${since.toISOString()}::timestamp
+          AND event_data->>'sessionId' = ${sessionId}
+      )
+    `);
+  } catch (error) {
+    console.error(`Failed to track deduped event ${eventType} for baker ${bakerId}:`, error);
+  }
+}
+
 export async function getEventsSince(
   bakerId: string,
   since: Date

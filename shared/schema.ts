@@ -719,6 +719,17 @@ export const USER_ACTIVITY_EVENT_TYPES = [
   "featured_item_updated",
   "onboarding_checklist_seen",
   "first_quote_cta_used",
+  // Activation journey events (tracked forward from deployment)
+  "onboarding_started",
+  "onboarding_completed",
+  "calculator_link_copied",
+  "calculator_visited",
+  "inquiry_started",
+  "lead_viewed",
+  "quote_started",
+  "stripe_connect_clicked",
+  "stripe_connect_started",
+  "stripe_connect_completed",
 ] as const;
 
 export type UserActivityEventType = typeof USER_ACTIVITY_EVENT_TYPES[number];

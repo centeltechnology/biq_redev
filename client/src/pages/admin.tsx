@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Users, 
@@ -47,6 +48,7 @@ import {
   Percent,
   Pencil,
   Trash2,
+  Info,
 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -2248,8 +2250,22 @@ export default function AdminDashboard() {
     cohortLabel: string;
     cohortStart: string;
     users: number;
+    onboardingCompletedCount: number;
+    onboardingCompletedPct: number;
+    pricingCompletedCount: number;
+    pricingCompletedPct: number;
+    expressItemCount: number;
+    expressItemPct: number;
+    linkCopiedCount: number;
+    linkCopiedPct: number;
+    externalVisitCount: number;
+    externalVisitPct: number;
+    inquiryCount: number;
+    inquiryPct: number;
     firstQuoteCount: number;
     firstQuotePct: number;
+    stripeAttemptedCount: number;
+    stripeAttemptedPct: number;
     stripeConnectedCount: number;
     stripeConnectedPct: number;
     firstPaymentCount: number;
@@ -2258,6 +2274,34 @@ export default function AdminDashboard() {
 
   const { data: cohortsData, isLoading: cohortsLoading } = useQuery<{ cohorts: CohortRow[] }>({
     queryKey: [`/api/admin/analytics/cohorts?groupBy=${cohortGroupBy}&range=${analyticsRange}`],
+  });
+
+  interface JourneyStep {
+    key: string;
+    label: string;
+    count: number;
+    forwardOnly?: boolean;
+    trackedSince?: string | null;
+    definition: string;
+    pctOfSignups: number;
+    pctFromPrevious: number | null;
+  }
+
+  const { data: journeyData, isLoading: journeyLoading } = useQuery<{
+    steps: JourneyStep[];
+    largestDropKey: string | null;
+    signups: number;
+  }>({
+    queryKey: [`/api/admin/analytics/activation-journey?range=${analyticsRange}`],
+  });
+
+  const { data: engagementData, isLoading: engagementLoading } = useQuery<{
+    cohortTotal: number;
+    sessionBuckets: { zero: number; one: number; twoToThree: number; fourToTen: number; tenPlus: number };
+    returnWindows: { within1d: number; within7d: number; within30d: number };
+    recentlyActive: { last7d: number; last30d: number; last90d: number };
+  }>({
+    queryKey: [`/api/admin/analytics/engagement?range=${analyticsRange}`],
   });
 
   const { data: bakers, isLoading: bakersLoading } = useQuery<Baker[]>({
@@ -2299,6 +2343,30 @@ export default function AdminDashboard() {
 
   const { data: bakerActivity, isLoading: activityLoading } = useQuery<BakerActivity>({
     queryKey: ["/api/admin/bakers", selectedBaker?.id, "activity"],
+    enabled: !!selectedBaker && activityDialogOpen,
+  });
+
+  interface ActivationTimelineStep {
+    key: string;
+    label: string;
+    date: string | null;
+    done: boolean;
+    count?: number;
+    forwardOnly?: boolean;
+  }
+
+  const { data: bakerActivation, isLoading: activationLoading } = useQuery<{
+    bakerId: string;
+    businessName: string;
+    timeline: ActivationTimelineStep[];
+    engagement: {
+      signupAt: string;
+      firstActivityAt: string | null;
+      lastActiveAt: string | null;
+      activeDays: number;
+    };
+  }>({
+    queryKey: ["/api/admin/bakers", selectedBaker?.id, "activation"],
     enabled: !!selectedBaker && activityDialogOpen,
   });
 
@@ -2956,7 +3024,17 @@ export default function AdminDashboard() {
                   </Card>
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">First Quote</CardTitle>
+                      <CardTitle className="text-sm font-medium flex items-center gap-1.5">
+                        First Quote
+                        <TooltipProvider delayDuration={150}>
+                          <UITooltip>
+                            <TooltipTrigger asChild><Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" /></TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">
+                              Counts bakers who sent their first quote within 14 days of signup. The cohort table counts quotes created at any time, so its numbers can be higher.
+                            </TooltipContent>
+                          </UITooltip>
+                        </TooltipProvider>
+                      </CardTitle>
                       <FileText className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -2986,6 +3064,138 @@ export default function AdminDashboard() {
                   </Card>
                 </div>
               </div>
+
+              <TooltipProvider delayDuration={150}>
+              <div>
+                <h3 className="text-lg font-semibold mb-3" data-testid="text-activation-journey-title">Activation Journey ({rangeLabel})</h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Bakers who signed up in this period and how far they got, in order. Hover each step for its definition. Steps marked "new" are tracked from feature launch forward only — older signups show zero even if they did the action before tracking began.
+                </p>
+                {journeyLoading ? (
+                  <Skeleton className="h-64 w-full" />
+                ) : journeyData && journeyData.steps.length > 0 ? (
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="space-y-1.5">
+                        {journeyData.steps.map((step) => {
+                          const isLargestDrop = journeyData.largestDropKey === step.key;
+                          return (
+                            <div key={step.key} className={`flex items-center gap-2 rounded-md px-2 py-1.5 ${isLargestDrop ? "bg-destructive/10" : ""}`} data-testid={`journey-step-${step.key}`}>
+                              <div className="w-44 md:w-56 shrink-0 flex items-center gap-1.5 min-w-0">
+                                <span className="text-sm truncate">{step.label}</span>
+                                {step.forwardOnly && (
+                                  <Badge variant="outline" className="text-[10px] px-1 py-0 shrink-0">new</Badge>
+                                )}
+                                <UITooltip>
+                                  <TooltipTrigger asChild>
+                                    <Info className="h-3.5 w-3.5 text-muted-foreground shrink-0 cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs text-xs">
+                                    {step.definition}
+                                    {step.forwardOnly && step.trackedSince && (
+                                      <span className="block mt-1 text-muted-foreground">Tracked since {format(new Date(step.trackedSince), "MMM d, yyyy")}.</span>
+                                    )}
+                                  </TooltipContent>
+                                </UITooltip>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="h-5 rounded bg-muted overflow-hidden">
+                                  <div
+                                    className={`h-full rounded ${isLargestDrop ? "bg-destructive/60" : "bg-primary/70"}`}
+                                    style={{ width: `${Math.max(step.pctOfSignups, step.count > 0 ? 2 : 0)}%` }}
+                                  />
+                                </div>
+                              </div>
+                              <div className="w-28 md:w-40 shrink-0 text-right text-sm tabular-nums">
+                                <span className="font-medium">{step.count}</span>
+                                <span className="text-muted-foreground text-xs"> · {step.pctOfSignups}%</span>
+                                {step.pctFromPrevious != null && (
+                                  <span className="hidden md:inline text-muted-foreground text-xs"> · {step.pctFromPrevious}% of prev</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {journeyData.largestDropKey && (
+                        <p className="text-xs text-muted-foreground mt-3">
+                          Highlighted row = largest drop-off from the previous step.
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No signups in this period.</p>
+                )}
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold mb-3" data-testid="text-engagement-title">Engagement ({rangeLabel})</h3>
+                {engagementLoading ? (
+                  <Skeleton className="h-40 w-full" />
+                ) : engagementData ? (
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium flex items-center gap-1.5">
+                          Active Days per Signup
+                          <UITooltip>
+                            <TooltipTrigger asChild><Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" /></TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">
+                              For bakers who signed up in this period: number of distinct calendar days with any product activity (a proxy for sessions — exact session tracking isn't recorded).
+                            </TooltipContent>
+                          </UITooltip>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-1 text-sm">
+                        <div className="flex justify-between"><span className="text-muted-foreground">No activity</span><span className="font-medium tabular-nums" data-testid="text-bucket-0">{engagementData.sessionBuckets.zero}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">1 day</span><span className="font-medium tabular-nums" data-testid="text-bucket-1">{engagementData.sessionBuckets.one}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">2–3 days</span><span className="font-medium tabular-nums" data-testid="text-bucket-2-3">{engagementData.sessionBuckets.twoToThree}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">4–10 days</span><span className="font-medium tabular-nums" data-testid="text-bucket-4-10">{engagementData.sessionBuckets.fourToTen}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">10+ days</span><span className="font-medium tabular-nums" data-testid="text-bucket-10-plus">{engagementData.sessionBuckets.tenPlus}</span></div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium flex items-center gap-1.5">
+                          Returned After Signup
+                          <UITooltip>
+                            <TooltipTrigger asChild><Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" /></TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">
+                              Bakers from this signup cohort who came back (any activity more than 12 hours after signup) within the window. Windows are cumulative.
+                            </TooltipContent>
+                          </UITooltip>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-1 text-sm">
+                        <div className="flex justify-between"><span className="text-muted-foreground">Within 1 day</span><span className="font-medium tabular-nums" data-testid="text-returned-1d">{engagementData.returnWindows.within1d}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Within 7 days</span><span className="font-medium tabular-nums" data-testid="text-returned-7d">{engagementData.returnWindows.within7d}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Within 30 days</span><span className="font-medium tabular-nums" data-testid="text-returned-30d">{engagementData.returnWindows.within30d}</span></div>
+                        <div className="flex justify-between pt-1 border-t"><span className="text-muted-foreground">Cohort size</span><span className="font-medium tabular-nums">{engagementData.cohortTotal}</span></div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium flex items-center gap-1.5">
+                          Recently Active (All Bakers)
+                          <UITooltip>
+                            <TooltipTrigger asChild><Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" /></TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">
+                              Bakers with any product activity in the trailing window, regardless of signup date. Not affected by the date range filter.
+                            </TooltipContent>
+                          </UITooltip>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-1 text-sm">
+                        <div className="flex justify-between"><span className="text-muted-foreground">Last 7 days</span><span className="font-medium tabular-nums" data-testid="text-active-7d">{engagementData.recentlyActive.last7d}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Last 30 days</span><span className="font-medium tabular-nums" data-testid="text-active-30d">{engagementData.recentlyActive.last30d}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Last 90 days</span><span className="font-medium tabular-nums" data-testid="text-active-90d">{engagementData.recentlyActive.last90d}</span></div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                ) : null}
+              </div>
+              </TooltipProvider>
 
               <div>
                 <h3 className="text-lg font-semibold mb-3" data-testid="text-revenue-health-title">Revenue Health ({rangeLabel})</h3>
@@ -3194,31 +3404,91 @@ export default function AdminDashboard() {
                     {cohortsLoading ? (
                       <Skeleton className="h-[200px] w-full" />
                     ) : cohortsData?.cohorts && cohortsData.cohorts.length > 0 ? (
+                      <TooltipProvider delayDuration={150}>
                       <div className="overflow-x-auto">
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>Signup Cohort</TableHead>
+                              <TableHead className="whitespace-nowrap">Signup Cohort</TableHead>
                               <TableHead className="text-right">Users</TableHead>
-                              <TableHead className="text-right">First Quote</TableHead>
-                              <TableHead className="text-right">Stripe Connected</TableHead>
-                              <TableHead className="text-right">First Payment</TableHead>
+                              <TableHead className="text-right whitespace-nowrap">Onboarding Done</TableHead>
+                              <TableHead className="text-right whitespace-nowrap">Pricing Done</TableHead>
+                              <TableHead className="text-right whitespace-nowrap">Express Item</TableHead>
+                              <TableHead className="text-right whitespace-nowrap">
+                                <span className="inline-flex items-center gap-1">
+                                  Link Copied
+                                  <UITooltip>
+                                    <TooltipTrigger asChild><Info className="h-3 w-3 cursor-help" /></TooltipTrigger>
+                                    <TooltipContent className="max-w-xs text-xs">Tracked from feature launch forward only — older cohorts show zero even if they copied their link earlier.</TooltipContent>
+                                  </UITooltip>
+                                </span>
+                              </TableHead>
+                              <TableHead className="text-right whitespace-nowrap">
+                                <span className="inline-flex items-center gap-1">
+                                  External Visit
+                                  <UITooltip>
+                                    <TooltipTrigger asChild><Info className="h-3 w-3 cursor-help" /></TooltipTrigger>
+                                    <TooltipContent className="max-w-xs text-xs">Public calculator page visited by someone other than the baker. Tracked from feature launch forward only.</TooltipContent>
+                                  </UITooltip>
+                                </span>
+                              </TableHead>
+                              <TableHead className="text-right whitespace-nowrap">Inquiry</TableHead>
+                              <TableHead className="text-right whitespace-nowrap">
+                                <span className="inline-flex items-center gap-1">
+                                  First Quote
+                                  <UITooltip>
+                                    <TooltipTrigger asChild><Info className="h-3 w-3 cursor-help" /></TooltipTrigger>
+                                    <TooltipContent className="max-w-xs text-xs">Ever created a quote (no time limit). The "First Quote" card above only counts quotes sent within 14 days of signup, so this number can be higher.</TooltipContent>
+                                  </UITooltip>
+                                </span>
+                              </TableHead>
+                              <TableHead className="text-right whitespace-nowrap">Stripe Attempted</TableHead>
+                              <TableHead className="text-right whitespace-nowrap">Stripe Connected</TableHead>
+                              <TableHead className="text-right whitespace-nowrap">First Payment</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {cohortsData.cohorts.map((cohort) => (
                               <TableRow key={cohort.cohortStart} data-testid={`row-cohort-${cohort.cohortStart}`}>
-                                <TableCell className="font-medium">{cohort.cohortLabel}</TableCell>
+                                <TableCell className="font-medium whitespace-nowrap">{cohort.cohortLabel}</TableCell>
                                 <TableCell className="text-right">{cohort.users}</TableCell>
-                                <TableCell className="text-right">
+                                <TableCell className="text-right whitespace-nowrap">
+                                  <span className="text-muted-foreground">{cohort.onboardingCompletedCount}</span>
+                                  <span className="ml-1 font-medium">({cohort.onboardingCompletedPct}%)</span>
+                                </TableCell>
+                                <TableCell className="text-right whitespace-nowrap">
+                                  <span className="text-muted-foreground">{cohort.pricingCompletedCount}</span>
+                                  <span className="ml-1 font-medium">({cohort.pricingCompletedPct}%)</span>
+                                </TableCell>
+                                <TableCell className="text-right whitespace-nowrap">
+                                  <span className="text-muted-foreground">{cohort.expressItemCount}</span>
+                                  <span className="ml-1 font-medium">({cohort.expressItemPct}%)</span>
+                                </TableCell>
+                                <TableCell className="text-right whitespace-nowrap">
+                                  <span className="text-muted-foreground">{cohort.linkCopiedCount}</span>
+                                  <span className="ml-1 font-medium">({cohort.linkCopiedPct}%)</span>
+                                </TableCell>
+                                <TableCell className="text-right whitespace-nowrap">
+                                  <span className="text-muted-foreground">{cohort.externalVisitCount}</span>
+                                  <span className="ml-1 font-medium">({cohort.externalVisitPct}%)</span>
+                                </TableCell>
+                                <TableCell className="text-right whitespace-nowrap">
+                                  <span className="text-muted-foreground">{cohort.inquiryCount}</span>
+                                  <span className="ml-1 font-medium">({cohort.inquiryPct}%)</span>
+                                </TableCell>
+                                <TableCell className="text-right whitespace-nowrap">
                                   <span className="text-muted-foreground">{cohort.firstQuoteCount}</span>
                                   <span className="ml-1 font-medium">({cohort.firstQuotePct}%)</span>
                                 </TableCell>
-                                <TableCell className="text-right">
+                                <TableCell className="text-right whitespace-nowrap">
+                                  <span className="text-muted-foreground">{cohort.stripeAttemptedCount}</span>
+                                  <span className="ml-1 font-medium">({cohort.stripeAttemptedPct}%)</span>
+                                </TableCell>
+                                <TableCell className="text-right whitespace-nowrap">
                                   <span className="text-muted-foreground">{cohort.stripeConnectedCount}</span>
                                   <span className="ml-1 font-medium">({cohort.stripeConnectedPct}%)</span>
                                 </TableCell>
-                                <TableCell className="text-right">
+                                <TableCell className="text-right whitespace-nowrap">
                                   <span className="text-muted-foreground">{cohort.firstPaymentCount}</span>
                                   <span className="ml-1 font-medium">({cohort.firstPaymentPct}%)</span>
                                 </TableCell>
@@ -3227,6 +3497,7 @@ export default function AdminDashboard() {
                           </TableBody>
                         </Table>
                       </div>
+                      </TooltipProvider>
                     ) : (
                       <p className="text-sm text-muted-foreground text-center py-6">No cohort data available for the selected range.</p>
                     )}
@@ -4121,6 +4392,36 @@ export default function AdminDashboard() {
                 </div>
               </div>
               
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Activation Timeline</h4>
+                {activationLoading ? (
+                  <Skeleton className="h-40 w-full" />
+                ) : bakerActivation ? (
+                  <div className="max-h-64 overflow-y-auto rounded-md border p-3 space-y-1.5">
+                    {bakerActivation.timeline.map((step) => (
+                      <div key={step.key} className="flex items-center gap-2 text-sm" data-testid={`activation-step-${step.key}`}>
+                        {step.done ? (
+                          <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+                        )}
+                        <span className={`min-w-0 truncate ${step.done ? "" : "text-muted-foreground"}`}>
+                          {step.label}
+                          {typeof step.count === "number" && step.count > 0 ? ` (${step.count})` : ""}
+                        </span>
+                        <span className="ml-auto text-xs text-muted-foreground whitespace-nowrap">
+                          {step.date ? format(new Date(step.date), "MMM d, yyyy") : step.done ? "✓" : step.forwardOnly ? "not tracked yet" : "—"}
+                        </span>
+                      </div>
+                    ))}
+                    <div className="pt-2 mt-2 border-t text-xs text-muted-foreground space-y-0.5">
+                      <div>Active days: {bakerActivation.engagement.activeDays}</div>
+                      <div>Last active: {bakerActivation.engagement.lastActiveAt ? format(new Date(bakerActivation.engagement.lastActiveAt), "MMM d, yyyy") : "—"}</div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"

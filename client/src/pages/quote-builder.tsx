@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ArrowLeft, Plus, Trash2, Loader2, Save, CreditCard, CheckCircle, Calendar, Send, Calculator, Search, Info } from "lucide-react";
 import { InstructionModal } from "@/components/instruction-modal";
+import { trackActivationEvent } from "@/lib/activation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -133,6 +134,13 @@ export default function QuoteBuilderPage() {
   // Detect if we're coming from a lead (/leads/:leadId/quote)
   const [isLeadRoute, leadRouteParams] = useRoute("/leads/:leadId/quote");
   const leadId = isLeadRoute && leadRouteParams ? leadRouteParams.leadId : null;
+
+  // Activation tracking: record quote started when a new quote is begun (not when editing)
+  useEffect(() => {
+    if (!quoteId) {
+      trackActivationEvent("quote_started");
+    }
+  }, [quoteId]);
   
   // Determine if this is a new quote or editing an existing one
   const isNew = quoteId === "new" || isLeadRoute || !quoteId;

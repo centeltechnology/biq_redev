@@ -16,6 +16,7 @@ import { useUpload } from "@/hooks/use-upload";
 import { Copy, ExternalLink, Link2, QrCode, Share2, Check, Download, Upload, Save, Image as ImageIcon, Loader2, ChevronDown, ChevronUp, Rocket, Zap, Pencil, CheckCircle2, AlertCircle, Trash2, Camera, X } from "lucide-react";
 import { SiFacebook, SiX, SiPinterest, SiWhatsapp, SiInstagram, SiLinkedin } from "react-icons/si";
 import { downloadCalculatorQR } from "@/lib/qr-download";
+import { trackActivationEvent } from "@/lib/activation";
 
 interface FeaturedItem {
   id: string;
@@ -310,6 +311,7 @@ export default function SharePage() {
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(calculatorUrl);
+      trackActivationEvent("calculator_link_copied");
       setCopiedLink(true);
       toast({ title: "✔ Order Page Launched", description: "Link copied to clipboard!" });
       setTimeout(() => setCopiedLink(false), 2000);

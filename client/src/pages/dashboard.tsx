@@ -9,6 +9,7 @@ import {
   trackStripeEnableClicked,
   trackPricingReviewClicked,
 } from "@/lib/analytics";
+import { trackActivationEvent } from "@/lib/activation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -132,6 +133,7 @@ export default function DashboardPage() {
     try {
       await navigator.clipboard.writeText(orderUrl);
       trackOrderLinkCopied();
+      trackActivationEvent("calculator_link_copied");
       toast({ title: "Order link copied!" });
     } catch {
       toast({ title: "Could not copy", variant: "destructive" });
