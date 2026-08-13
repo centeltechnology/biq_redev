@@ -1,0 +1,393 @@
+I need to expand the **Super Admin → Business Analytics** section of BakerIQ so we can diagnose where users are dropping out after signup.
+
+## IMPORTANT
+
+Do **not** redesign or materially change the existing user onboarding, quoting, payments, pricing, or customer-facing workflows as part of this task.
+
+This task is primarily about **instrumentation, analytics, and admin reporting**.
+
+Before making changes:
+
+1. Inspect the existing database schema, analytics/event tracking, onboarding logic, quote logic, calculator/order page logic, Stripe Connect integration, and Super Admin Business Analytics page.
+2. Reuse existing data/events wherever possible.
+3. Do not create duplicate tracking systems if equivalent data already exists.
+4. Preserve all existing production data.
+5. Do not reset or modify existing user records.
+6. Clearly distinguish between metrics that can be reconstructed historically and behavioral events that can only be tracked accurately going forward.
+
+# Goal
+
+We currently know:
+
+* total signups
+* first quote
+* Stripe connection
+* first payment
+* subscription tier
+* GMV/revenue
+
+However, this does not tell us **where users are abandoning BakerIQ between signup and actual usage**.
+
+I need much deeper activation analytics.
+
+# 1. Track the Baker Activation Journey
+
+Track the following milestones for each account/user where applicable:
+
+### Account / onboarding
+
+* `signup_completed`
+* `onboarding_started`
+* `profile_completed`
+* `portfolio_added`
+* `pricing_setup_started`
+* `pricing_completed`
+* `express_item_created`
+* `onboarding_completed`
+
+### Sharing / customer acquisition
+
+* `calculator_link_copied`
+* `calculator_link_shared` if BakerIQ has a native share action that can actually be measured
+* `calculator_visited`
+* `inquiry_started`
+* `inquiry_submitted`
+
+Do not treat "link copied" as "link shared." These should remain separate concepts because BakerIQ cannot know whether a copied link was actually sent.
+
+Where possible, distinguish the baker viewing their own calculator/order page from an external customer visit so internal/test traffic does not artificially inflate customer engagement.
+
+### Baker workflow
+
+* `lead_viewed`
+* `quote_started`
+* `quote_created`
+* `quote_sent`
+
+### Stripe/payment
+
+Track Stripe Connect as separate steps:
+
+* `stripe_connect_clicked`
+* `stripe_connect_started`
+* `stripe_connect_completed`
+* `stripe_connect_failed_or_abandoned` where this can be reliably determined
+
+Also continue tracking:
+
+* `first_payment`
+* successful payments
+* GMV
+* platform revenue
+
+Do not classify a Stripe onboarding session as "failed" merely because it wasn't completed immediately. Use an accurate definition based on the existing Stripe integration and available status information.
+
+# 2. Add User Engagement Metrics
+
+For each account, track or calculate:
+
+* signup date
+* first activity date
+* last active date
+* total sessions/logins where technically reliable
+* number of active days
+* onboarding completion status
+* onboarding completion date
+* first calculator/customer visit
+* first inquiry
+* first quote
+* first Stripe Connect attempt
+* Stripe Connected date
+* first payment date
+
+Also calculate useful activation timing such as:
+
+* signup → onboarding completion
+* signup → first calculator visit
+* signup → first inquiry
+* signup → first quote
+* signup → Stripe connection
+* signup → first payment
+
+# 3. Expand Super Admin → Business Analytics
+
+Keep the existing visual style.
+
+Add a section called:
+
+## Activation Journey
+
+Display the funnel approximately as:
+
+Signups
+↓
+Onboarding Started
+↓
+Profile Completed
+↓
+Pricing Completed
+↓
+Express Item Created
+↓
+Onboarding Completed
+↓
+Calculator Link Copied
+↓
+External Calculator Visit
+↓
+Inquiry Submitted
+↓
+Quote Created
+↓
+Stripe Connect Clicked
+↓
+Stripe Connect Started
+↓
+Stripe Connected
+↓
+First Payment
+
+For every step show:
+
+* number of users
+* percentage of total signups
+* conversion from previous step where meaningful
+
+Example:
+
+**Pricing Completed**
+
+31 users
+53.4% of signups
+72.1% from previous step
+
+Also identify the **largest funnel drop-off** visually.
+
+# 4. Add Engagement / Retention Analytics
+
+Add an Engagement section showing:
+
+* users who only logged in/used BakerIQ once
+* users with 2–3 sessions
+* users with 4–10 sessions
+* users with 10+ sessions
+
+Also show:
+
+* returned within 1 day
+* returned within 7 days
+* returned within 30 days
+* active in last 7 days
+* active in last 30 days
+* active in last 90 days
+
+Use the most reliable definition of "active" available from actual product activity rather than simply counting background requests or automated system activity.
+
+# 5. Improve Cohort Analytics
+
+The existing Activation Cohorts table currently includes:
+
+* Signup Cohort
+* Users
+* First Quote
+* Stripe Connected
+* First Payment
+
+Expand it to include important earlier activation steps.
+
+Suggested columns:
+
+* Users
+* Onboarding Completed
+* Pricing Completed
+* Express Item Created
+* Link Copied
+* External Calculator Visit
+* Inquiry Submitted
+* First Quote
+* Stripe Attempted
+* Stripe Connected
+* First Payment
+
+Keep the Week / Month toggle.
+
+If this becomes too wide on mobile, use horizontal scrolling or another responsive presentation rather than making the information unreadable.
+
+# 6. Add Account-Level Activation Diagnostics
+
+I need to be able to investigate individual accounts from Super Admin.
+
+Create an account activation view or expand the existing account detail view to show a timeline such as:
+
+**User signed up**
+Aug 10
+
+**Onboarding started**
+Aug 10
+
+**Pricing setup completed**
+Aug 10
+
+**Express Item created**
+Aug 10
+
+**Calculator link copied**
+Aug 11
+
+**External calculator visits**
+4
+
+**Inquiries submitted**
+1
+
+**Quote created**
+Aug 12
+
+**Stripe Connect clicked**
+Aug 12
+
+**Stripe Connect started**
+Aug 12
+
+**Stripe Connected**
+Not completed
+
+This should allow me to compare activated users with users who abandoned the product.
+
+# 7. Investigate Existing Analytics Discrepancy
+
+The current Business Analytics page appears to show:
+
+**First Quote: 3 within 14 days**
+
+However, the visible weekly cohort table appears to contain:
+
+* Jan 5–Jan 11: 1 first quote
+* Feb 16–Feb 22: 2 first quotes
+* Mar 2–Mar 8: 1 first quote
+
+That appears to total 4.
+
+Investigate whether these metrics intentionally use different definitions/time windows or whether there is a calculation inconsistency.
+
+Do not blindly change the numbers.
+
+Determine the reason and make the definitions clear in the UI/tooltips so admin metrics cannot be misinterpreted.
+
+# 8. Historical Data
+
+Before implementing new events, determine which activation milestones can already be reconstructed from existing database records.
+
+For example, historical data may already exist for:
+
+* signup
+* profile completion
+* portfolio
+* pricing setup
+* Express Items
+* quotes
+* inquiries
+* Stripe connection
+* payments
+
+Backfill analytics from existing reliable database records where possible.
+
+Do **not** fabricate historical events that cannot be proven.
+
+For events such as link copying or certain button clicks that were never previously tracked, begin tracking them from deployment forward and mark them appropriately so historical zeroes are not mistaken for actual user behavior.
+
+# 9. Event Tracking Requirements
+
+Event tracking must:
+
+* avoid duplicate events caused by refreshes/re-renders
+* associate events with the correct Baker/account
+* timestamp events
+* support funnel and cohort analysis
+* distinguish user actions from automated/system actions
+* avoid recording sensitive payment or banking information
+* avoid unnecessary personally identifiable information
+* work correctly on desktop and mobile
+* not noticeably slow down the application
+
+Where an event should only happen once per account, store/aggregate it appropriately.
+
+Where repeat activity matters, such as calculator visits, retain useful counts/timestamps.
+
+# 10. Date Filters
+
+The existing:
+
+Today
+Yesterday
+7 Days
+14 Days
+30 Days
+90 Days
+180 Days
+1 Year
+All Time
+
+filters should continue working.
+
+Make sure the meaning is consistent.
+
+For activation funnels/cohorts, the filter should primarily represent the **signup cohort**, so we can answer:
+
+> "Of the users who signed up during this period, what percentage eventually reached each milestone?"
+
+Do not accidentally exclude a conversion just because it occurred after the signup-period filter unless the metric specifically states a conversion window such as "within 7 days."
+
+# 11. Admin Tooltips / Definitions
+
+Add small tooltips or explanatory text for metrics where definitions could be ambiguous.
+
+For example:
+
+**Stripe Connected**
+"Percentage of users in this signup cohort who successfully completed Stripe Connect."
+
+**External Calculator Visit**
+"User's public calculator/order page was visited by someone other than the baker where reliably identifiable."
+
+**First Quote**
+"Percentage of users in this signup cohort who created their first quote."
+
+This is important because I need to be able to trust the dashboard without remembering how every query is calculated.
+
+# 12. Final Verification
+
+After implementation:
+
+1. Verify existing Super Admin analytics still work.
+2. Verify existing signup/onboarding works.
+3. Verify quote creation still works.
+4. Verify public calculator/order pages still work.
+5. Verify Stripe Connect still works.
+6. Verify payments are unaffected.
+7. Verify analytics events aren't duplicated.
+8. Verify mobile responsiveness.
+9. Test the funnel using a test baker account from signup through as many activation steps as possible.
+10. Report which historical metrics were successfully backfilled and which begin tracking only from the deployment date.
+
+## Desired Outcome
+
+After this work I should be able to look at the Super Admin dashboard and answer questions such as:
+
+* Where do new bakers abandon onboarding?
+* How many finish pricing setup?
+* How many create an Express Item?
+* How many actually copy their calculator link?
+* How many receive external customer traffic?
+* How many receive an inquiry?
+* How many create a quote?
+* How many click Stripe Connect?
+* How many actually begin Stripe onboarding?
+* How many complete Stripe?
+* How many return after signup?
+* Which signup cohorts activate better than others?
+* What is the single largest point of friction in BakerIQ?
+
+The purpose is to diagnose BakerIQ's **activation problem with real behavioral data instead of guessing**.
+
+Please inspect the current implementation first, then implement this using the existing architecture and conventions wherever possible.
