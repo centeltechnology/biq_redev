@@ -110,14 +110,12 @@ it("unsigned HTTP delivery cannot reach any existing business writes", async () 
   expect(storage.setActivationTimestamp).not.toHaveBeenCalled();
 });
 
-// Security specifications intentionally marked as expected failures while the
-// external callback dependency is unresolved. These are NOT evidence of a fix.
-// Remove .fails when an approved remediation closes the unsupported endpoint.
-it.fails.each([
+// Containment must reject all callers without reading or mutating records.
+it.each([
   { name: "anonymous upgrade", initial: "free", status: "active", signature: undefined },
   { name: "invalid-signature upgrade", initial: "free", status: "active", signature: "invalid" },
   { name: "anonymous cancellation", initial: "pro", status: "canceled", signature: undefined },
-])("KNOWN VULNERABILITY: $name must not change a baker's plan", async ({ initial, status, signature }) => {
+])("contained callback: $name cannot change a baker's plan", async ({ initial, status, signature }) => {
   const record = { id: "baker_fixture", stripeCustomerId: "cus_fixture", plan: initial };
   vi.mocked(storage.getAllBakers).mockResolvedValue([record as Awaited<ReturnType<typeof storage.getAllBakers>>[number]]);
   vi.mocked(storage.updateBaker).mockImplementation(async (_id, patch) => {
@@ -135,5 +133,13 @@ it.fails.each([
   // this test cannot mistake an error response after a write for protection.
   expect(record.plan).toBe(initial);
   expect(storage.updateBaker).not.toHaveBeenCalled();
-  expect([401, 403, 410, 503]).toContain(response.status);
+  expect(storage.getAllBakers).not.toHaveBeenCalled();
+  expect(storage.getBaker).not.toHaveBeenCalled();
+  expect(getUncachableStripeClient).not.toHaveBeenCalled();
+  expect(response.status).toBe(503);
+  expect(response.headers.get("cache-control")).toBe("no-store");
+  expect(await response.json()).toEqual({
+    code: "SUBSCRIPTION_CALLBACK_DISABLED",
+    message: "Subscription callback temporarily unavailable",
+  });
 });

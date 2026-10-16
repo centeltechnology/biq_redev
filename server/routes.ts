@@ -2439,119 +2439,16 @@ export async function registerRoutes(
     }
   });
 
-  // Webhook handling for subscription updates (called by stripe-replit-sync)
-  app.post("/api/subscription/webhook-update", async (req, res) => {
-    try {
-      const { customerId, subscriptionId, status, priceId } = req.body;
-      
-      // Find baker by Stripe customer ID
-      const allBakers = await storage.getAllBakers();
-      const baker = allBakers.find(b => b.stripeCustomerId === customerId);
-      
-      if (baker) {
-        let plan = "free";
-        if (status === "active" || status === "trialing") {
-          // Try to determine plan from price lookup key or metadata
-          // Default to pro for backwards compatibility
-          plan = req.body.plan || "pro";
-          
-          // If we have a priceId, try to look up the plan
-          if (priceId) {
-            try {
-              const stripe = await getUncachableStripeClient();
-              const price = await stripe.prices.retrieve(priceId);
-              if (price.metadata?.plan) {
-                plan = price.metadata.plan;
-              } else if (price.lookup_key?.includes("basic")) {
-                plan = "basic";
-              }
-            } catch (e) {
-              console.log("Could not retrieve price info, using default plan");
-            }
-          }
-        }
-        await storage.updateBaker(baker.id, {
-          stripeSubscriptionId: subscriptionId,
-          plan,
-        });
-
-        // Track affiliate commission when referred baker subscribes to a paid plan
-        if ((plan === "basic" || plan === "pro") && (status === "active" || status === "trialing") && baker.referredByAffiliateId) {
-          try {
-            const invoiceId = req.body.invoiceId || null;
-            const affiliate = await storage.getBaker(baker.referredByAffiliateId);
-            if (affiliate && affiliate.isAffiliate) {
-              const existingCommissions = await storage.getCommissionsByAffiliate(affiliate.id);
-              const commissionsForThisBaker = existingCommissions.filter(c => c.referredBakerId === baker.id);
-
-              // Idempotency: skip if this invoice was already recorded
-              if (invoiceId && commissionsForThisBaker.some(c => c.stripeInvoiceId === invoiceId)) {
-                console.log(`Affiliate commission already recorded for invoice ${invoiceId}, skipping`);
-              } else {
-                const maxMonths = affiliate.affiliateCommissionMonths || 3;
-                const nextMonth = commissionsForThisBaker.length + 1;
-
-                if (nextMonth <= maxMonths) {
-                  const subscriptionAmount = plan === "basic" ? 4.99 : 9.99;
-                  const rate = parseFloat(affiliate.affiliateCommissionRate || "20");
-                  const commissionAmount = (subscriptionAmount * rate) / 100;
-
-                  await storage.createAffiliateCommission({
-                    affiliateBakerId: affiliate.id,
-                    referredBakerId: baker.id,
-                    stripeInvoiceId: invoiceId,
-                    subscriptionAmount: subscriptionAmount.toFixed(2),
-                    commissionRate: rate.toFixed(2),
-                    commissionAmount: commissionAmount.toFixed(2),
-                    monthNumber: nextMonth,
-                    status: "pending",
-                  });
-                  console.log(`Affiliate commission recorded: ${affiliate.businessName} earns $${commissionAmount.toFixed(2)} from ${baker.businessName} (month ${nextMonth}/${maxMonths})`);
-                }
-              }
-            }
-          } catch (affError) {
-            console.error("Error tracking affiliate commission:", affError);
-          }
-        }
-
-        // Award baker referral credit when referred baker subscribes
-        if ((plan === "basic" || plan === "pro") && (status === "active" || status === "trialing") && baker.referredByBakerId) {
-          try {
-            const referringBaker = await storage.getBaker(baker.referredByBakerId);
-            if (referringBaker) {
-              const referrals = await storage.getBakerReferralsByReferrer(referringBaker.id);
-              const thisReferral = referrals.find(r => r.referredBakerId === baker.id && !r.creditAwarded);
-              if (thisReferral) {
-                const totalCredits = referringBaker.referralCredits + referringBaker.quickQuoteCredits;
-                if (totalCredits < 12) {
-                  if (referringBaker.plan === "basic" || referringBaker.plan === "pro") {
-                    await storage.updateBaker(referringBaker.id, {
-                      referralCredits: referringBaker.referralCredits + 1,
-                    });
-                    await storage.awardBakerReferralCredit(thisReferral.id, "subscription");
-                    console.log(`Baker referral credit awarded: ${referringBaker.businessName} gets 1 free month (subscription credit)`);
-                  } else {
-                    await storage.updateBaker(referringBaker.id, {
-                      quickQuoteCredits: referringBaker.quickQuoteCredits + 1,
-                    });
-                    await storage.awardBakerReferralCredit(thisReferral.id, "quick_quote");
-                    console.log(`Baker referral credit awarded: ${referringBaker.businessName} gets 1 month Quick Quote access`);
-                  }
-                }
-              }
-            }
-          } catch (refError) {
-            console.error("Error awarding baker referral credit:", refError);
-          }
-        }
-      }
-      
-      res.json({ received: true });
-    } catch (error) {
-      console.error("Webhook update error:", error);
-      res.status(500).json({ message: "Failed to process webhook" });
-    }
+  // Owner-approved containment: the legacy callback has no established trust
+  // mechanism. Do not restore body-driven updates or bypass this with login.
+  // Managed Stripe synchronization uses /api/stripe/webhook independently;
+  // a verified bridge to BakerIQ entitlements still needs to be established.
+  app.post("/api/subscription/webhook-update", (_req, res) => {
+    res.set("Cache-Control", "no-store");
+    res.status(503).json({
+      code: "SUBSCRIPTION_CALLBACK_DISABLED",
+      message: "Subscription callback temporarily unavailable",
+    });
   });
 
   // ============================================
