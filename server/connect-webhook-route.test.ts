@@ -14,6 +14,8 @@ vi.mock("./storage", () => ({
     getBaker: vi.fn(),
     getCustomer: vi.fn(),
     getBakerByEmail: vi.fn(async () => ({ id: "existing_fixture" })),
+    getAllBakers: vi.fn(),
+    updateBaker: vi.fn(),
   },
 }));
 vi.mock("./email");
@@ -106,4 +108,32 @@ it("unsigned HTTP delivery cannot reach any existing business writes", async () 
   expect(storage.updateQuote).not.toHaveBeenCalled();
   expect(storage.createQuotePayment).not.toHaveBeenCalled();
   expect(storage.setActivationTimestamp).not.toHaveBeenCalled();
+});
+
+// Security specifications intentionally marked as expected failures while the
+// external callback dependency is unresolved. These are NOT evidence of a fix.
+// Remove .fails when an approved remediation closes the unsupported endpoint.
+it.fails.each([
+  { name: "anonymous upgrade", initial: "free", status: "active", signature: undefined },
+  { name: "invalid-signature upgrade", initial: "free", status: "active", signature: "invalid" },
+  { name: "anonymous cancellation", initial: "pro", status: "canceled", signature: undefined },
+])("KNOWN VULNERABILITY: $name must not change a baker's plan", async ({ initial, status, signature }) => {
+  const record = { id: "baker_fixture", stripeCustomerId: "cus_fixture", plan: initial };
+  vi.mocked(storage.getAllBakers).mockResolvedValue([record as Awaited<ReturnType<typeof storage.getAllBakers>>[number]]);
+  vi.mocked(storage.updateBaker).mockImplementation(async (_id, patch) => {
+    Object.assign(record, patch);
+    return record as Awaited<ReturnType<typeof storage.updateBaker>>;
+  });
+  const response = await fetch(url.replace("/stripe-connect/webhook", "/subscription/webhook-update"), {
+    method: "POST",
+    headers: { "content-type": "application/json", ...(signature ? { "stripe-signature": signature } : {}) },
+    body: JSON.stringify({
+      customerId: "cus_fixture", subscriptionId: "sub_fixture", status, plan: "pro",
+    }),
+  });
+  // Demonstrate the storage mutation before asserting the HTTP status, so
+  // this test cannot mistake an error response after a write for protection.
+  expect(record.plan).toBe(initial);
+  expect(storage.updateBaker).not.toHaveBeenCalled();
+  expect([401, 403, 410, 503]).toContain(response.status);
 });

@@ -1,0 +1,257 @@
+BAKERIQ — GATE 1A CONTINUATION
+RESOLVE UNSUPPORTED SUBSCRIPTION UPDATE ENDPOINT
+
+BACKGROUND
+
+Gate 1A successfully hardened the Stripe Connect webhook.
+
+35 tests passed.
+
+However, Gate 1A remains BLOCKED because:
+
+/api/subscription/webhook-update
+
+still accepts unauthenticated subscription updates.
+
+The previous investigation found:
+
+- A code comment referring to stripe-replit-sync.
+- No caller in the application repository.
+- No caller in the installed library.
+- The installed integration appears to synchronize
+  Stripe subscription records directly.
+
+We need to determine whether this endpoint is obsolete
+or is still required by an external integration.
+
+OBJECTIVE
+
+Establish the authoritative subscription synchronization
+mechanism and eliminate the unauthorized update path
+without breaking legitimate subscriptions.
+
+Do not begin Gate 1B.
+
+-----------------------------------------------
+PHASE 1 — TRACE THE ENTIRE SUBSCRIPTION LIFECYCLE
+-----------------------------------------------
+
+Inspect the existing subscription system end to end.
+
+Trace:
+
+1. Baker selects Basic or Pro.
+2. Subscription Checkout begins.
+3. Stripe processes subscription creation.
+4. Stripe sends subscription events.
+5. Subscription data is synchronized.
+6. BakerIQ determines the effective plan.
+7. Renewals update subscription status.
+8. Failed payments update account state.
+9. Cancellation or downgrade updates account state.
+
+Identify every database table, handler, service,
+function, and endpoint involved.
+
+Specifically determine:
+
+- What writes subscription status to the baker record?
+- What reads subscription status?
+- What writes or reads the managed integration tables?
+- Is synchronization automatic through the managed
+  Stripe integration?
+- Does BakerIQ require a separate callback to update
+  its own baker account records?
+- Is /api/subscription/webhook-update actually used?
+- Is there an internal reconciliation process?
+- What happens when Stripe subscription status changes
+  without an active browser session?
+
+Identify the source of truth for:
+
+- Subscription tier
+- Subscription status
+- Renewal
+- Cancellation
+- Payment failure
+- Effective feature access
+
+Do not assume that the managed integration is
+authoritative until verified through code and
+available configuration evidence.
+
+-----------------------------------------------
+PHASE 2 — INVESTIGATE THE LEGACY ENDPOINT
+-----------------------------------------------
+
+Inspect:
+
+/api/subscription/webhook-update
+
+Determine:
+
+- When it was introduced, if history is available.
+- What fields it accepts.
+- What database records it modifies.
+- Whether any internal or external caller is configured.
+- Whether it duplicates existing subscription logic.
+- Whether removing it would break subscription updates.
+- Whether a managed Stripe service could invoke it
+  independently of the application repository.
+
+Inspect available webhook registrations, service
+configuration, deployment configuration, and
+integration documentation.
+
+Do not disclose any credentials.
+
+If external Stripe Dashboard or Replit configuration
+cannot be inspected, identify exactly what the owner
+must check.
+
+Distinguish confirmed facts from assumptions.
+
+-----------------------------------------------
+PHASE 3 — DETERMINE THE SAFEST REMEDIATION
+-----------------------------------------------
+
+Evaluate these options in order:
+
+OPTION A — REMOVE OBSOLETE ENDPOINT
+
+If evidence establishes that the endpoint is unused
+and subscription synchronization works independently:
+
+- Remove or permanently disable the endpoint.
+- Preserve legitimate subscription updates.
+- Add a regression test confirming the old unauthenticated
+  endpoint cannot modify subscription data.
+
+Do not remove the endpoint based solely on the absence
+of in-repository callers.
+
+OPTION B — REPLACE LEGACY CALLBACK WITH VERIFIED SYNC
+
+If BakerIQ needs subscription synchronization but does
+not require the public endpoint:
+
+- Reuse the existing authoritative Stripe integration.
+- Update BakerIQ account status through a trusted
+  server-side synchronization path.
+- Preserve upgrades, downgrades, renewals, cancellations,
+  and payment-failure behavior.
+- Prevent ordinary HTTP clients from supplying
+  authoritative subscription status.
+
+OPTION C — SECURE A REQUIRED EXTERNAL CALLBACK
+
+If a legitimate external service requires the endpoint:
+
+- Identify that service and its authentication mechanism.
+- Require verified webhook signatures or another
+  provider-supported server-to-server trust mechanism.
+- Verify subscription/account ownership and the
+  authoritative status before applying changes.
+- Reject unauthorized requests.
+- Fail closed if authentication configuration is missing.
+
+Do not invent an authentication scheme that the
+legitimate caller cannot use.
+
+OPTION D — BLOCKED
+
+If the endpoint's legitimate role cannot be established:
+
+- Do not guess.
+- Do not mark Gate 1A complete.
+- Do not deploy the hardened Connect changes together
+  with the still-unsecured subscription endpoint as
+  a supposedly completed security release.
+- Explain the specific evidence or owner action required
+  to resolve the blocker.
+
+If the endpoint is confirmed exposed but its usage
+remains unknown, propose an emergency containment plan
+that fails closed, explains any subscription-sync
+interruption risk, and requires owner approval before
+activation.
+
+-----------------------------------------------
+PHASE 4 — TEST THE SUBSCRIPTION LIFECYCLE
+-----------------------------------------------
+
+Using isolated fixtures and mocks, test:
+
+1. Unauthorized subscription updates are rejected.
+2. Arbitrary requests cannot upgrade Free to Pro.
+3. Arbitrary requests cannot cancel another baker.
+4. Verified subscription creation works.
+5. Verified upgrades and downgrades work.
+6. Renewals are reflected correctly.
+7. Cancellation is reflected correctly.
+8. Failed-payment status is reflected correctly.
+9. Effective-plan entitlements remain correct.
+10. Duplicate subscription events do not produce
+    incorrect state changes.
+
+Tests must verify database effects, not only
+HTTP response codes.
+
+Do not create real subscriptions, payments,
+or production account modifications.
+
+-----------------------------------------------
+PHASE 5 — FINAL REPORT
+-----------------------------------------------
+
+Report:
+
+A. AUTHORITATIVE SUBSCRIPTION SOURCE
+
+What system actually determines subscription status?
+
+B. LEGACY ENDPOINT FINDINGS
+
+Is /api/subscription/webhook-update active,
+obsolete, externally dependent, or unresolved?
+
+C. IMPLEMENTATION
+
+What was changed, and why?
+
+D. SUBSCRIPTION REGRESSION TESTS
+
+Provide passing/failing results.
+
+E. PRODUCTION REQUIREMENTS
+
+List any configuration or external verification
+that the owner must perform.
+
+F. REMAINING RISKS
+
+Identify anything still unverified.
+
+G. GATE 1A FINAL STATUS
+
+PASS / BLOCKED / FAILED
+
+Do not mark PASS unless both security issues
+are remediated and the required validation is complete.
+
+IMPORTANT RESTRICTIONS
+
+- Do not change plan pricing.
+- Do not change platform fees.
+- Do not modify existing customer subscriptions.
+- Do not reset database records.
+- Do not modify unrelated payment accounting.
+- Do not redesign UI.
+- Do not change onboarding.
+- Do not begin Gate 1B.
+- Do not publish automatically.
+
+STOP after completing this investigation and any
+safely justified, tested remediation.
+
+Wait for approval.
