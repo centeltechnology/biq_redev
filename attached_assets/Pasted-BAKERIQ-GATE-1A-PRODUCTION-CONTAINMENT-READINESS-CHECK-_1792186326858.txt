@@ -1,0 +1,182 @@
+BAKERIQ — GATE 1A
+PRODUCTION CONTAINMENT READINESS CHECK
+
+BACKGROUND
+
+The following security changes have been implemented
+and tested in the workspace:
+
+1. Stripe Connect webhook authentication.
+2. Fail-closed containment of the unauthorized
+   /api/subscription/webhook-update endpoint.
+
+All 38 tests pass.
+
+NOTHING HAS BEEN PUBLISHED.
+
+The legacy subscription endpoint now returns 503
+without reading or modifying business records.
+
+However, the authoritative Stripe-to-BakerIQ
+subscription synchronization mechanism remains
+incomplete.
+
+OBJECTIVE
+
+Determine whether we can safely publish the existing
+security containment immediately, or whether a
+replacement subscription synchronization path must
+be deployed at the same time.
+
+THIS IS A READ-ONLY PRODUCTION READINESS CHECK.
+
+Do not modify production records, subscriptions,
+Stripe settings, or application code.
+
+Do not publish automatically.
+
+------------------------------------------
+1. INSPECT CURRENT SUBSCRIPTION DEPENDENCIES
+------------------------------------------
+
+Determine whether current subscriptions rely on
+/api/subscription/webhook-update.
+
+Inspect available application logs and integration
+configuration for calls to this exact endpoint.
+
+Report:
+
+- Whether recent legitimate requests are visible.
+- When the endpoint was last invoked, if known.
+- Whether any identifiable internal service uses it.
+- Whether the evidence is sufficient to conclude
+  it can be disabled without disrupting subscribers.
+
+Do not log or display secrets or customer PII.
+
+Absence of visible requests is not proof that no
+external caller exists.
+
+------------------------------------------
+2. VERIFY CURRENT SUBSCRIPTION CONSISTENCY
+------------------------------------------
+
+Perform a read-only comparison of:
+
+- Active Stripe subscriptions.
+- Managed stripe.subscriptions records.
+- BakerIQ bakers.plan records.
+- Subscription identifiers.
+- Relevant cancellation/past-due states.
+- Trial and gifted-plan overrides.
+
+Determine whether any baker currently has:
+
+- An active paid Stripe subscription but Free access.
+- A canceled subscription but paid access.
+- A subscription tier that disagrees with Stripe.
+- Missing or inconsistent subscription identifiers.
+
+Use redacted internal identifiers in the report.
+
+Do not change account plans.
+
+Do not assume that a local plan mismatch always
+indicates an error without examining trial,
+gifted-plan, and billing rules.
+
+------------------------------------------
+3. AFFILIATE AND REFERRAL DEPENDENCIES
+------------------------------------------
+
+Determine whether disabling the legacy callback
+could prevent:
+
+- Legitimate affiliate commission awards.
+- Referral-credit awards.
+- Subscription-related referral tracking.
+
+Identify which events currently trigger these
+operations and whether any other verified pathway
+handles them.
+
+Do not modify commission or referral records.
+
+------------------------------------------
+4. DEPLOYMENT SAFETY
+------------------------------------------
+
+Evaluate the existing workspace changes.
+
+Confirm:
+
+- Unauthorized subscription updates are blocked.
+- Stripe Connect authentication tests pass.
+- Managed Stripe webhook remains unchanged.
+- Existing subscriptions remain untouched.
+- No unrelated modifications are bundled.
+- Required webhook secrets/configuration are present.
+- No new build errors were introduced.
+
+Identify any existing TypeScript errors that could
+affect deployment independently of these changes.
+
+Provide a specific rollback and monitoring plan.
+
+Do not recommend rolling back to an unauthenticated
+public endpoint as the default recovery strategy.
+
+If containment is published, identify how we can
+detect failed legitimate subscription updates
+or stale BakerIQ plan records.
+
+------------------------------------------
+5. RECOMMEND DEPLOYMENT DECISION
+------------------------------------------
+
+Choose exactly one:
+
+A. SAFE TO PUBLISH CONTAINMENT
+
+Evidence supports immediate deployment with
+defined monitoring and acceptable interruption risk.
+
+B. COORDINATED DEPLOYMENT REQUIRED
+
+Legitimate subscription or affiliate dependencies
+require a verified replacement synchronization
+mechanism before or alongside containment.
+
+C. ADDITIONAL VERIFICATION REQUIRED
+
+Important production dependencies remain unknown
+and must be checked before deployment.
+
+If there is evidence of continuing exposure but
+deployment readiness is uncertain, identify the
+safest immediate containment options and their
+specific operational risks.
+
+------------------------------------------
+6. FINAL REPORT
+------------------------------------------
+
+Provide:
+
+A. Legacy endpoint traffic findings.
+B. Current subscription consistency findings.
+C. Affiliate/referral dependency findings.
+D. Production deployment risks.
+E. Required configuration checks.
+F. Rollback and monitoring plan.
+G. Recommended deployment decision.
+H. Any owner action required.
+
+Do not modify code.
+Do not change subscriptions or account plans.
+Do not alter Stripe configuration.
+Do not publish.
+Do not begin Gate 1B.
+
+STOP after the report.
