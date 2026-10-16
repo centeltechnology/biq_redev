@@ -1,0 +1,163 @@
+
+BAKERIQ — GATE 1A: PAYMENT WEBHOOK AUTHENTICATION & TRUST BOUNDARIES
+
+OBJECTIVE
+Fix the two security vulnerabilities identified in the read-only architecture audit:
+
+1. /api/stripe-connect/webhook can process unsigned requests.
+2. /api/subscription/webhook-update accepts subscription changes without a verified authorization mechanism.
+
+This is a SECURITY-ONLY release. Do not redesign any UI or change pricing, subscriptions, onboarding, or the customer experience.
+
+IMPORTANT RULES
+- Inspect the current implementations and all call sites before changing code.
+- Preserve existing legitimate Stripe Connect, subscription, Checkout, and account-status workflows.
+- Do not expose secrets, tokens, signatures, raw financial data, or customer PII in logs or final reports.
+- Do not create real Stripe accounts, initiate real charges, or change live Stripe settings.
+- Do not reset production records or modify subscription levels.
+- Do not disable legitimate security checks to make tests pass.
+- Do not silently replace an existing managed Stripe integration with an unrelated integration.
+- If an essential trust mechanism cannot be established, report the blocker rather than inventing an insecure workaround.
+
+PHASE 1 — INSPECT THE TRUST BOUNDARIES
+
+Inspect:
+- server/routes.ts
+- The two affected endpoints
+- Existing Stripe initialization and webhook handlers
+- Raw-body handling and JSON middleware order
+- Stripe signing-secret configuration
+- All callers of /api/subscription/webhook-update
+- Any managed Stripe integration or internal subscription sync service
+- Existing webhook and subscription tests
+
+Identify how each request is authenticated and how the current application distinguishes Stripe-originated events from ordinary HTTP requests.
+
+Determine whether /api/subscription/webhook-update is an internal callback, an external provider webhook, or a legacy endpoint.
+
+Before proceeding, document which legitimate flows depend on these endpoints.
+
+PHASE 2 — SECURE STRIPE CONNECT WEBHOOK
+
+For /api/stripe-connect/webhook:
+
+1. Require valid Stripe signature verification using the correct configured endpoint signing secret.
+2. Use Stripe's supported webhook signature-verification mechanism and the exact unmodified raw request body.
+3. Reject requests with missing or invalid signatures.
+4. Never fall back to processing unverified request.body.
+5. Fail closed when the required signing-secret configuration is unavailable.
+6. Ensure an invalid event cannot update a connected account, subscription, quote, payment, or other business record.
+7. Validate the expected event type and event context before processing.
+8. Preserve legitimate webhook behavior.
+9. Do not expose signing secrets or sensitive payload contents in error messages or logs.
+
+Inspect Express middleware ordering carefully. Signature verification must not break because the request body was previously parsed or modified.
+
+Keep other webhook routes functioning.
+
+PHASE 3 — SECURE SUBSCRIPTION UPDATE ENDPOINT
+
+For /api/subscription/webhook-update:
+
+1. Identify every legitimate caller.
+2. Determine the appropriate authentication model based on the actual caller and existing architecture.
+3. If this is an obsolete or unused legacy endpoint, recommend safe removal or disabling after proving there are no legitimate dependencies.
+4. If it is used by a trusted internal service, require a strong server-side authentication mechanism appropriate to that integration.
+5. If it receives provider webhooks, implement the provider's supported signature-verification mechanism.
+6. Do not rely on supplied baker IDs, email addresses, subscription IDs, or client-provided status fields as proof of authorization.
+7. Never accept an arbitrary client request to change a baker's effective subscription tier.
+8. Where subscription status must be confirmed, use authoritative provider data or previously verified provider events.
+9. Preserve legitimate upgrades, downgrades, cancellations, renewals, and payment-failure handling.
+
+Do not introduce a general-purpose administrative subscription-update endpoint accessible to ordinary baker accounts.
+
+If the endpoint's real purpose or legitimate authentication method is unclear, STOP that specific change and report what must be verified. Do not guess.
+
+PHASE 4 — REGRESSION TESTS
+
+Add focused automated tests covering:
+
+STRIPE CONNECT WEBHOOK
+- Missing signature is rejected.
+- Invalid signature is rejected.
+- Valid signed event is accepted.
+- Invalid signed event causes no database mutation.
+- Missing signing-secret configuration fails closed.
+- Valid event follows the existing legitimate processing path.
+- Raw-body signature verification works with the actual Express middleware configuration.
+
+SUBSCRIPTION UPDATE
+- Unauthenticated requests cannot change subscription state.
+- Invalid credentials/signatures cannot change subscription state.
+- A legitimate verified subscription update still succeeds.
+- Client-supplied tier/status values alone cannot authorize an upgrade.
+- Existing subscription state synchronization remains functional.
+
+Use isolated test fixtures, mocks, and synthetic Stripe events.
+
+Do not create real transactions or alter production accounts.
+
+Where practical, verify both HTTP responses and database side effects, not just that the handler returns an error.
+
+PHASE 5 — DEPLOYMENT SAFETY
+
+Before declaring completion:
+
+1. Determine whether production must have any new or existing webhook signing secrets configured.
+2. Confirm the required environment variable names without revealing their values.
+3. Distinguish Stripe Connect webhook signing secrets from unrelated Stripe API keys or signing secrets.
+4. Identify any required Stripe Dashboard or managed-integration configuration changes.
+5. Verify that the application starts and legitimate payment integrations continue functioning.
+6. Ensure unauthorized requests are rejected without affecting valid requests.
+7. Document deployment dependencies and rollback considerations.
+8. Do not report deployment readiness if essential production configuration is unverified.
+
+If configuration changes require owner action, clearly identify them. Do not claim that a code change alone proves the live webhook is secure.
+
+PHASE 6 — FINAL REPORT
+
+Provide a concise report containing:
+
+A. ROOT CAUSES
+What was wrong with each endpoint.
+
+B. CHANGES MADE
+Actual files and functions modified.
+
+C. AUTHENTICATION MODEL
+How each endpoint now verifies trusted requests.
+
+D. DEPENDENCY FINDINGS
+Whether the subscription endpoint is active, legacy, or managed by another integration.
+
+E. TEST RESULTS
+Passing/failing tests and their exact coverage.
+
+F. PRODUCTION CONFIGURATION
+Anything the owner must verify or configure, without exposing secrets.
+
+G. REMAINING RISKS
+Any incomplete work or unverified deployment behavior.
+
+H. GATE 1A STATUS
+PASS / BLOCKED / FAILED
+
+Do not mark PASS if a known unauthorized subscription update or unsigned webhook path remains usable.
+
+SCOPE RESTRICTIONS
+
+DO NOT:
+- Redesign BakerIQ
+- Change subscription pricing or fees
+- Modify onboarding
+- Change the pricing engine
+- Introduce additional payment providers
+- Change customer-facing order forms
+- Modify unrelated analytics
+- Change payment accounting or historical payment records
+- Begin Gate 1B automatically
+
+After implementing and testing Gate 1A, STOP and provide the report.
+
+Wait for approval before beginning the next security gate.
+  

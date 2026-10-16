@@ -7,6 +7,7 @@ import { getStripeSync, verifyStripeAccount } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
 import { startOnboardingScheduler } from "./onboarding-scheduler";
 import { startRetentionScheduler } from "./retention-scheduler";
+import { applicationJson } from "./connect-webhook-auth";
 
 const app = express();
 const httpServer = createServer(app);
@@ -104,13 +105,7 @@ app.post(
   }
 );
 
-app.use(
-  express.json({
-    verify: (req, _res, buf) => {
-      req.rawBody = buf;
-    },
-  }),
-);
+app.use(applicationJson());
 
 app.use(express.urlencoded({ extended: false }));
 

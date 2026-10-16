@@ -18,6 +18,7 @@ import { CAKE_SIZES, CAKE_SHAPES, CAKE_FLAVORS, FROSTING_TYPES, DECORATIONS, DEL
 import { AFFILIATE_HEADLINE_PRESETS } from "@shared/affiliate-content";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import OpenAI from "openai";
+import { authenticateConnectWebhook } from "./connect-webhook-auth";
 import { trackEvent, trackEventOnce, trackEventDeduped } from "./event-tracking";
 import { getPlatformMethodAvailability, resolveBakerMethods, getCheckoutPaymentMethodTypes, isToggleableMethod, createCheckoutSessionWithFallback } from "./payment-methods";
 
@@ -2931,32 +2932,13 @@ export async function registerRoutes(
   });
 
   // Stripe Connect webhook for payment completion
-  app.post("/api/stripe-connect/webhook", async (req, res) => {
+  app.post("/api/stripe-connect/webhook", authenticateConnectWebhook({
+    signingSecret: () => process.env.STRIPE_CONNECT_WEBHOOK_SECRET,
+    stripe: getUncachableStripeClient,
+    getQuote: (id) => storage.getQuote(id),
+  }), async (req, res) => {
     try {
-      const stripe = await getUncachableStripeClient();
-      const sig = req.headers["stripe-signature"];
-
-      let event;
-      if (sig && req.rawBody) {
-        const endpointSecret = process.env.STRIPE_CONNECT_WEBHOOK_SECRET;
-        if (endpointSecret) {
-          try {
-            event = stripe.webhooks.constructEvent(
-              req.rawBody as Buffer,
-              sig as string,
-              endpointSecret
-            );
-          } catch (err: any) {
-            console.error("Connect webhook signature verification failed:", err.message);
-            return res.status(400).json({ message: "Invalid signature" });
-          }
-        } else {
-          console.warn("STRIPE_CONNECT_WEBHOOK_SECRET not set, processing without verification");
-          event = req.body;
-        }
-      } else {
-        event = req.body;
-      }
+      const event = res.locals.verifiedConnectEvent;
 
       if (event.type === "checkout.session.completed") {
         const session = event.data.object;
@@ -3034,7 +3016,7 @@ export async function registerRoutes(
 
       res.json({ received: true });
     } catch (error) {
-      console.error("Connect webhook error:", error);
+      console.error("Connect webhook processing failed");
       res.status(500).json({ message: "Webhook processing failed" });
     }
   });
