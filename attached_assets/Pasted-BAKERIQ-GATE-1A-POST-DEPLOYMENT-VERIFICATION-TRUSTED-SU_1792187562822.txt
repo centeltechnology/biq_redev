@@ -1,0 +1,352 @@
+BAKERIQ — GATE 1A
+POST-DEPLOYMENT VERIFICATION & TRUSTED SUBSCRIPTION SYNC
+
+BACKGROUND
+
+The combined security release has now been published.
+
+It contains:
+1. Stripe Connect webhook signature verification.
+2. Fail-closed containment of the legacy subscription endpoint.
+
+The pre-deployment security suite passed 38 tests.
+The production build passed.
+The owner personally verified the Stripe Connect
+signing secret against the correct live Stripe endpoint.
+
+The architecture audit also identified a separate problem:
+
+Stripe billing data is synchronized into managed Stripe
+tables, but BakerIQ feature access and platform fees
+depend on bakers.plan.
+
+There is no confirmed, reliable synchronization path
+connecting verified Stripe subscription events to
+BakerIQ's own account entitlements.
+
+We need to finish Gate 1A.
+
+IMPORTANT:
+
+There are currently two Pro accounts without Stripe
+subscriptions. The owner confirms BOTH are intentional
+test accounts, including the super-admin account.
+
+Preserve their access.
+Do not classify them as paying subscribers.
+Do not automatically downgrade them.
+
+No existing subscription prices or platform fees
+should change.
+
+
+==================================================
+PHASE 1 — VERIFY THE PUBLISHED SECURITY RELEASE
+==================================================
+
+Perform safe production checks.
+
+Confirm:
+
+1. The public application loads normally.
+2. Login and authentication still function.
+3. The legacy endpoint:
+   POST /api/subscription/webhook-update
+   returns HTTP 503 with
+   SUBSCRIPTION_CALLBACK_DISABLED.
+4. The legacy endpoint performs no business-data writes.
+5. The published Connect webhook rejects requests
+   without a valid Stripe signature.
+6. The managed Stripe webhook remains registered.
+7. The existing Pro test accounts retain access.
+8. No unexpected production startup or webhook errors
+   have appeared since publication.
+
+Use controlled, non-mutating security probes.
+
+Do not create real charges, subscriptions, customers,
+or payment records.
+
+Do not replay historical Stripe payment events.
+
+If available, inspect Stripe's delivery history and
+perform a safe provider-supported signed delivery test.
+
+Distinguish:
+- Verified live behavior
+- Verified local behavior
+- Configuration-only evidence
+- Anything still unverified
+
+If a critical deployed security protection is failing,
+STOP and report it immediately.
+
+Do not proceed to Phase 2 until the production security
+checks that can safely be performed have passed.
+An unavailable safe signed-delivery test must be
+reported as unverified, not represented as passed.
+
+
+==================================================
+PHASE 2 — IMPLEMENT VERIFIED SUBSCRIPTION SYNC
+==================================================
+
+Implement a reliable server-side bridge between
+verified Stripe subscription information and
+BakerIQ account entitlements.
+
+Reuse the existing managed Stripe integration wherever
+possible.
+
+Do not create a second competing webhook system.
+
+The intended architecture is:
+
+Stripe billing events
+    ↓
+Verified managed Stripe integration
+    ↓
+Authoritative subscription status
+    ↓
+BakerIQ subscription synchronization
+    ↓
+Correct baker plan and platform-fee entitlement
+
+
+REQUIREMENTS
+
+1. Only trusted server-side Stripe data may authorize
+   changes to a baker's subscription entitlements.
+
+2. Never trust client-submitted plan names, status
+   strings, customer IDs, or subscription IDs as
+   authorization to upgrade an account.
+
+3. Verify the association between the Stripe customer,
+   subscription, Checkout session, and BakerIQ baker.
+
+4. Use the configured Stripe Price IDs to determine
+   Basic versus Pro.
+
+5. Preserve existing plan definitions:
+
+   FREE: $0/month, 7% platform fee
+   BASIC: $4.99/month, 5% platform fee
+   PRO: $9.99/month, 3% platform fee
+
+6. Support subscription lifecycle events:
+
+   - New paid subscription
+   - Upgrade
+   - Downgrade
+   - Renewal
+   - Trial where applicable
+   - Failed payment
+   - Past-due subscription
+   - Cancellation scheduled for period end
+   - Immediate cancellation
+   - Expired subscription
+
+7. Use a clearly defined entitlement policy.
+   Preserve paid access through an already-paid period
+   when applicable.
+
+   If cancellation, grace-period, or past-due policies
+   are ambiguous, identify the decision rather than
+   silently imposing a new policy.
+
+8. Make processing idempotent.
+
+   Duplicate or delayed Stripe events must not cause
+   duplicate subscription effects or regress account
+   state to an older status.
+
+9. Use authoritative event data and, where appropriate,
+   retrieve current subscription state directly from
+   Stripe before updating local access.
+
+10. Keep subscription synchronization independent of
+    whether the baker has an active browser session.
+
+11. Include a safe reconciliation mechanism for missed
+    or delayed events, with bounded retries, failure
+    visibility, and no uncontrolled concurrent updates.
+
+12. Never restore the unauthenticated legacy callback.
+
+
+==================================================
+PHASE 3 — PROTECT TEST AND ADMINISTRATIVE ACCESS
+==================================================
+
+We have two intentional Pro test accounts.
+
+These accounts do not represent paid subscribers.
+
+Implement or preserve a clearly distinguishable
+administrative/test entitlement mechanism.
+
+Requirements:
+
+- Preserve both existing Pro test accounts.
+- Do not automatically downgrade them.
+- Do not count them as paid subscription revenue.
+- Do not count them as active paying subscribers.
+- Do not allow ordinary bakers to grant themselves
+  administrative or complimentary entitlements.
+- Do not change unrelated existing accounts.
+
+Keep paid subscription state distinguishable from
+trial, gifted, test, and administrative access.
+
+Do not automatically migrate or rewrite historical
+entitlements without an approved migration plan.
+
+
+==================================================
+PHASE 4 — PRESERVE AFFILIATE & REFERRAL INTEGRITY
+==================================================
+
+The disabled legacy callback previously performed
+affiliate commission and referral-credit operations.
+
+Inspect those business rules and preserve the ability
+to process legitimate awards through a trusted path.
+
+Requirements:
+
+- Awards must be based on verified qualifying activity.
+- Never trust arbitrary client-submitted paid status.
+- Prevent duplicate awards.
+- Preserve existing referral and affiliate relationships.
+- Preserve historical records.
+- Do not issue real payouts or historical adjustments.
+- Do not invent new commission percentages or rules.
+
+If a qualifying billing event or existing award rule
+cannot be established safely, isolate that portion
+and report the blocker without fabricating awards.
+
+Do not silently discard legitimate existing rules.
+
+
+==================================================
+PHASE 5 — TEST THE COMPLETE SUBSCRIPTION LIFECYCLE
+==================================================
+
+Add automated tests using isolated fixtures and
+mocked provider interactions.
+
+Test:
+
+1. Free account subscribes to Basic.
+2. Free account subscribes to Pro.
+3. Basic upgrades to Pro.
+4. Pro downgrades to Basic.
+5. Successful renewal.
+6. Failed renewal.
+7. Past-due subscription.
+8. Scheduled cancellation.
+9. Immediate cancellation.
+10. Subscription expiration.
+11. Duplicate event delivery.
+12. Out-of-order event delivery.
+13. Missed event reconciliation.
+14. Invalid subscription/customer association.
+15. Unverified subscription update attempt.
+16. Preservation of the two Pro test accounts.
+17. Correct effective platform fee by plan.
+18. Correct classification of paid versus test access.
+19. Affiliate/referral award idempotency where applicable.
+20. Correct behavior without an active user session.
+
+Confirm business-record effects, not just HTTP responses.
+
+Also verify that subscription changes cannot alter
+another baker's account.
+
+Run existing regression tests and the production build.
+
+Do not initiate actual Stripe charges or live
+subscription changes.
+
+
+==================================================
+PHASE 6 — OPERATIONAL VISIBILITY
+==================================================
+
+Ensure admins can diagnose subscription synchronization
+problems without accessing sensitive billing data.
+
+At minimum, support reliable diagnostics for:
+
+- Stripe billing status
+- Local subscription status
+- Effective account entitlement
+- Last successful synchronization
+- Synchronization errors
+- Missing Stripe customer/subscription associations
+- Outstanding reconciliation work
+
+Reuse existing administration and analytics
+infrastructure where practical.
+
+Do not redesign the entire admin interface.
+
+Do not expose signing secrets, financial account
+details, or unnecessary customer PII.
+
+
+==================================================
+PHASE 7 — REPORT AND STOP
+==================================================
+
+Provide:
+
+A. POST-DEPLOYMENT SECURITY VERIFICATION
+What was actually confirmed in production.
+
+B. SUBSCRIPTION BRIDGE
+How verified Stripe events now update BakerIQ.
+
+C. FILES AND DATABASE CHANGES
+Exactly what changed, including migration requirements.
+
+D. ENTITLEMENT POLICY
+How subscriptions, trials, gifts, test accounts,
+cancellations, and failed payments are handled.
+
+E. AFFILIATE/REFERRAL PROCESSING
+How legitimate verified awards are preserved.
+
+F. TEST RESULTS
+Passing tests and any remaining failures.
+
+G. DEPLOYMENT REQUIREMENTS
+Configuration, migrations, rollout, and monitoring.
+
+H. REMAINING RISKS
+Anything still unverified or requiring owner approval.
+
+I. GATE 1A STATUS
+PASS / BLOCKED / FAILED
+
+IMPORTANT LIMITS
+
+- Do not modify subscription prices.
+- Do not modify platform-fee percentages.
+- Do not modify real customer billing records.
+- Do not run production data migrations automatically.
+- Do not redesign BakerIQ's homepage or onboarding.
+- Do not change the customer ordering interface.
+- Do not begin Gate 1B.
+- Do not publish automatically.
+
+Implement the trusted subscription bridge in the
+workspace only, after production verification.
+
+If an essential business rule or provider trust
+boundary remains unclear, stop that specific part
+and report the decision required.
+
+Wait for approval before publishing.

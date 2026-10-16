@@ -15,8 +15,8 @@ The user approved implementing and testing fail-closed containment of the unsupp
 
 **How to apply:** Do not restore the body-driven callback to resolve sync issues. Establish a verified synchronization path and obtain separate publishing approval.
 
-Emergency containment must preserve every existing plan assignment, including the super-admin Pro account and the other unbilled Pro account, plus Free accounts, trial/gift settings, and affiliate/referral records.
+Emergency containment must preserve every existing plan assignment, including the super-admin Pro account and the other unbilled Pro account, plus Free accounts, trial/gift settings, and affiliate/referral records. The owner confirmed both unbilled Pro accounts are intentional test accounts: preserve their access and exclude them from paying-subscriber and subscription-revenue counts.
 
-**Why:** The user explicitly reserved investigation of the source of Pro access for later subscription reconciliation and accepted possible delays to an unidentified caller's entitlement and award updates.
+**Why:** The owner confirmed the test-access purpose and prohibited automatic downgrades or historical entitlement rewrites without an approved migration plan.
 
 **How to apply:** Do not treat missing billing identifiers as authorization to downgrade accounts. Prepare containment separately from unresolved Connect changes where possible; if bundled, stop until Connect configuration and valid delivery are verified. Publishing still requires explicit approval.
