@@ -8,6 +8,8 @@ import { WebhookHandlers } from "./webhookHandlers";
 import { startOnboardingScheduler } from "./onboarding-scheduler";
 import { startRetentionScheduler } from "./retention-scheduler";
 import { applicationJson } from "./connect-webhook-auth";
+import { enqueueVerifiedSubscriptionEvent, startSubscriptionReconciliation } from "./subscriptions/service";
+import { managedSubscriptionHandler } from "./subscriptions/managed-handler";
 
 const app = express();
 const httpServer = createServer(app);
@@ -20,6 +22,12 @@ declare module "http" {
 
 // Initialize Stripe (called after server starts)
 async function initStripe() {
+  // Workspace restarts must not provision live webhooks/products using shared
+  // credentials. Production retains its existing managed initialization.
+  if (process.env.NODE_ENV !== "production") {
+    console.log("Live Stripe provisioning skipped in development");
+    return;
+  }
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
     console.log("DATABASE_URL not set, skipping Stripe initialization");
@@ -83,26 +91,10 @@ async function initStripe() {
 app.post(
   "/api/stripe/webhook",
   express.raw({ type: "application/json" }),
-  async (req, res) => {
-    const signature = req.headers["stripe-signature"];
-    if (!signature) {
-      return res.status(400).json({ error: "Missing stripe-signature" });
-    }
-
-    try {
-      const sig = Array.isArray(signature) ? signature[0] : signature;
-      if (!Buffer.isBuffer(req.body)) {
-        console.error("Stripe webhook: req.body is not a Buffer");
-        return res.status(500).json({ error: "Webhook processing error" });
-      }
-
-      await WebhookHandlers.processWebhook(req.body as Buffer, sig);
-      res.status(200).json({ received: true });
-    } catch (error: any) {
-      console.error("Webhook error:", error.message);
-      res.status(400).json({ error: "Webhook processing error" });
-    }
-  }
+  managedSubscriptionHandler({
+    verify: (raw,sig) => WebhookHandlers.processWebhook(raw,sig),
+    enqueue: enqueueVerifiedSubscriptionEvent,
+  })
 );
 
 app.use(applicationJson());
@@ -188,6 +180,7 @@ app.use((req, res, next) => {
       
       startOnboardingScheduler();
       startRetentionScheduler();
+      startSubscriptionReconciliation();
     },
   );
 })();

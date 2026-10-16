@@ -36,7 +36,8 @@ export const bakers = pgTable("bakers", {
   // Role for admin access: "baker", "admin" (support/ops), or "super_admin"
   role: text("role").notNull().default("baker"),
   // Subscription
-  plan: text("plan").notNull().default("free"), // "free" or "pro"
+  plan: text("plan").notNull().default("free"), // billing base: free/basic/pro
+  administrativePlan: text("administrative_plan"), // super-admin-only complimentary access
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   // Stripe Connect - for receiving payments from customers
@@ -120,6 +121,39 @@ export const bakers = pgTable("bakers", {
   giftedPlanExpiresAt: timestamp("gifted_plan_expires_at"),
   invitedByAdminId: varchar("invited_by_admin_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Trusted billing reconciliation state. Migration is deliberately owner-applied,
+// never an application-startup entitlement backfill.
+export const subscriptionSync = pgTable("subscription_sync", {
+  bakerId: varchar("baker_id").primaryKey().references(() => bakers.id, { onDelete: "cascade" }),
+  billingPlan: text("billing_plan").notNull().default("free"),
+  billingStatus: text("billing_status"),
+  subscriptionId: text("subscription_id"),
+  paidThrough: timestamp("paid_through", { withTimezone: true }),
+  trialEnd: timestamp("trial_end", { withTimezone: true }),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+  entitlementSource: text("entitlement_source").notNull().default("unreconciled"),
+  lastSuccessAt: timestamp("last_success_at", { withTimezone: true }),
+  lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }),
+  errorCode: text("error_code"),
+  needsReconcile: boolean("needs_reconcile").notNull().default(true),
+  attempts: integer("attempts").notNull().default(0),
+  nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).notNull().defaultNow(),
+}, table => [index("subscription_sync_due").on(table.nextAttemptAt).where(sql`${table.needsReconcile}`)]);
+
+export const subscriptionSyncEvents = pgTable("subscription_sync_events", {
+  eventId: text("event_id").primaryKey(),
+  receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const subscriptionAwardCandidates = pgTable("subscription_award_candidates", {
+  invoiceId: text("invoice_id").primaryKey(),
+  bakerId: varchar("baker_id").notNull().references(() => bakers.id, { onDelete: "cascade" }),
+  subscriptionId: text("subscription_id").notNull(),
+  plan: text("plan").notNull(),
+  status: text("status").notNull().default("policy_review"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 // Password reset tokens table

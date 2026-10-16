@@ -62,6 +62,12 @@ const payload = JSON.stringify({
 beforeAll(async () => {
   const app = express();
   app.use(applicationJson());
+  // Test-only session fixture. No production auth bypass is installed.
+  app.use((req,_res,next) => {
+    if (req.headers["x-test-session"] === "baker")
+      req.session = {bakerId:"baker_fixture"} as typeof req.session;
+    next();
+  });
   server = createServer(app);
   await registerRoutes(server, app);
   await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
@@ -80,6 +86,32 @@ afterAll(async () => {
     server.close(() => resolve());
     server.closeAllConnections();
   });
+});
+
+it("ordinary baker cannot grant plan, billing IDs or administrative entitlements through profile edits",async()=>{
+  const base=url.replace("/api/stripe-connect/webhook","");
+  vi.mocked(storage.updateBaker).mockResolvedValue({id:"baker_fixture",plan:"free"} as any);
+  const response=await fetch(`${base}/api/bakers/me`,{
+    method:"PATCH",headers:{"content-type":"application/json","x-test-session":"baker"},
+    body:JSON.stringify({businessName:"Fixture Bakery",plan:"pro",administrativePlan:"pro",
+      role:"super_admin",stripeCustomerId:"other_customer",stripeSubscriptionId:"other_subscription"}),
+  });
+  expect(response.status).toBe(200);
+  const changes=vi.mocked(storage.updateBaker).mock.calls[0][1];
+  for(const key of ["plan","administrativePlan","role","stripeCustomerId","stripeSubscriptionId"])
+    expect(changes).not.toHaveProperty(key);
+});
+
+it("subscription diagnostics and reconciliation require super-admin authorization",async()=>{
+  const base=url.replace("/api/stripe-connect/webhook","");
+  expect((await fetch(`${base}/api/admin/subscription-sync`)).status).toBe(401);
+  vi.mocked(storage.getBaker).mockResolvedValue({id:"baker_fixture",role:"baker"} as any);
+  expect((await fetch(`${base}/api/admin/subscription-sync`,{
+    headers:{"x-test-session":"baker"},
+  })).status).toBe(403);
+  expect((await fetch(`${base}/api/admin/subscription-sync/reconcile`,{
+    method:"POST",headers:{"x-test-session":"baker"},
+  })).status).toBe(403);
 });
 
 it("signed HTTP delivery reaches the existing payment handler and its storage writes", async () => {

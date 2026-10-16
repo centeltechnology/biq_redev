@@ -19,6 +19,9 @@ import { AFFILIATE_HEADLINE_PRESETS } from "@shared/affiliate-content";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import OpenAI from "openai";
 import { authenticateConnectWebhook } from "./connect-webhook-auth";
+import { billingSummary, registerSubscriptionDiagnostics } from "./subscriptions/service";
+import { priceCatalog } from "./subscriptions/provider";
+import { asPlan, effective } from "./subscriptions/policy";
 import { trackEvent, trackEventOnce, trackEventDeduped } from "./event-tracking";
 import { getPlatformMethodAvailability, resolveBakerMethods, getCheckoutPaymentMethodTypes, isToggleableMethod, createCheckoutSessionWithFallback } from "./payment-methods";
 
@@ -104,17 +107,14 @@ function getPlatformFeePercent(plan: string): number {
 }
 
 // Helper to get effective plan (checks survey trial, gifted plan, subscription)
-function getEffectivePlan(baker: { plan: string; surveyTrialEndDate?: Date | null; giftedPlan?: string | null; giftedPlanExpiresAt?: Date | null }): string {
-  if (baker.surveyTrialEndDate && new Date(baker.surveyTrialEndDate) > new Date()) {
-    return "pro";
-  }
-  if (baker.plan && baker.plan !== "free") {
-    return baker.plan;
-  }
-  if (baker.giftedPlan && baker.giftedPlanExpiresAt && new Date(baker.giftedPlanExpiresAt) > new Date()) {
-    return baker.giftedPlan;
-  }
-  return baker.plan || "free";
+function getEffectivePlan(baker: { id?: string; plan: string; administrativePlan?: string | null; stripeCustomerId?: string | null; surveyTrialEndDate?: Date | null; giftedPlan?: string | null; giftedPlanExpiresAt?: Date | null }): string {
+  return effective({
+    id:baker.id ?? "",plan:asPlan(baker.plan),customerId:baker.stripeCustomerId ?? null,
+    subscriptionId:null,administrativePlan:baker.administrativePlan ? asPlan(baker.administrativePlan) : null,
+    surveyTrialEnd:baker.surveyTrialEndDate ? new Date(baker.surveyTrialEndDate).getTime() : null,
+    giftedPlan:asPlan(baker.giftedPlan),
+    giftEnd:baker.giftedPlanExpiresAt ? new Date(baker.giftedPlanExpiresAt).getTime() : null,
+  },asPlan(baker.plan),Date.now()).plan;
 }
 
 const PgSession = connectPgSimple(session);
@@ -2372,31 +2372,9 @@ export async function registerRoutes(
       }
 
       // Get the price from Stripe by lookup key
-      const prices = await stripe.prices.list({
-        lookup_keys: [lookupKey],
-        active: true,
-        limit: 1,
-      });
-
-      let priceId: string;
-      if (prices.data.length > 0) {
-        priceId = prices.data[0].id;
-      } else {
-        // Fallback: search for the product by name
-        const products = await stripe.products.search({ query: `name:'${productName}'` });
-        if (products.data.length === 0) {
-          return res.status(400).json({ message: "No subscription product found. Please run the seed script." });
-        }
-        const productPrices = await stripe.prices.list({
-          product: products.data[0].id,
-          active: true,
-          limit: 1,
-        });
-        if (productPrices.data.length === 0) {
-          return res.status(400).json({ message: "No price found for subscription." });
-        }
-        priceId = productPrices.data[0].id;
-      }
+      const catalog = await priceCatalog(stripe);
+      const priceId = Array.from(catalog).find(([, plan]) => plan === requestedPlan)?.[0];
+      if (!priceId) return res.status(503).json({message:"Subscription price configuration unavailable"});
 
       // Create checkout session
       const baseUrl = `https://${req.get("host")}`;
@@ -3067,6 +3045,8 @@ export async function registerRoutes(
   }
 
   // Audit logging helper
+  registerSubscriptionDiagnostics(app, requireSuperAdmin);
+
   async function logAdminAction(adminUserId: string, actionKey: string, targetId?: string, metadata?: any) {
     try {
       await db.insert(adminAuditLogs).values({
@@ -3101,7 +3081,12 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Baker not found" });
       }
 
-      const updated = await storage.updateBaker(req.params.id, data);
+      const updated = await storage.updateBaker(req.params.id, {
+        ...data,
+        ...(data.plan !== undefined ? {
+          administrativePlan: data.plan === "free" ? null : data.plan,
+        } : {}),
+      });
       if (!updated) {
         return res.status(404).json({ message: "Baker not found" });
       }
@@ -3342,15 +3327,8 @@ export async function registerRoutes(
       const cr = connectRateResult.rows[0];
       const stripeConnectRateOverall = cr.total > 0 ? Math.round((cr.connected / cr.total) * 1000) / 10 : 0;
 
-      // Subscriptions MRR from current plan distribution
-      const mrrResult = await pool.query(`
-        SELECT
-          COUNT(*) FILTER (WHERE plan = 'basic')::int AS basic_count,
-          COUNT(*) FILTER (WHERE plan = 'pro')::int AS pro_count
-        FROM bakers WHERE role != 'super_admin'
-      `);
-      const mrrRow = mrrResult.rows[0];
-      const subscriptionsMrrCurrent = (mrrRow.basic_count * 4.99) + (mrrRow.pro_count * 9.99);
+      // Never infer subscription revenue from complimentary/test plan assignments.
+      const subscriptionsMrrCurrent = (await billingSummary()).mrr;
 
       const revenueHealth = {
         active_processors_30d: activeProcessors,
@@ -3861,7 +3839,7 @@ export async function registerRoutes(
       const platformFeeRevenue = succeeded.reduce((sum: number, p: any) => sum + parseFloat(p.platformFee), 0);
       const monthlyPlatformFees = thisMonthPayments.reduce((sum: number, p: any) => sum + parseFloat(p.platformFee), 0);
 
-      const subscriptionMonthly = (bakersByPlan.basic * 4.99) + (bakersByPlan.pro * 9.99);
+      const subscriptionMonthly = (await billingSummary()).mrr;
       const subscriptionRevenue = {
         monthly: subscriptionMonthly,
         annual: subscriptionMonthly * 12,

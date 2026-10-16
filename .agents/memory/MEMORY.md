@@ -2,3 +2,4 @@
 - [Dashboard header overflow](dashboard-header-overflow.md) — mobile sideways scroll on list pages came from the shared DashboardLayout header, not page cards; keep title truncate + right group shrink-0.
 - [Web Push notifications](web-push.md) — opt-in device alerts (lead/quote-accepted/payment); VAPID env gating, iOS install rule, dev SW cache must stay /assets-only, unsubscribe scoped by bakerId.
 - [Payment trust boundaries](payment-trust-boundaries.md) — absent repository callers do not prove a billing callback unused; verify external dependencies before changing its contract.
+- [Subscription entitlement policy](subscription-entitlement-policy.md) — paid-through only, no extra grace; provider failures preserve access; keep test/admin/gift/trial access separate from billing.

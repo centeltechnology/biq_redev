@@ -57,6 +57,7 @@ import type { Baker, BakerOnboardingEmail, SupportTicket, TicketMessage, AdminEm
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SubscriptionSyncPanel } from "@/components/subscription-sync-panel";
 
 interface AdminAnalytics {
   totalBakers: number;
@@ -2656,7 +2657,7 @@ export default function AdminDashboard() {
       </div>
 
       <Tabs defaultValue="accounts" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-9 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-5 lg:grid-cols-10 lg:w-auto lg:inline-flex">
           <TabsTrigger value="accounts" className="gap-2" data-testid="tab-accounts">
             <Users className="h-4 w-4" />
             <span className="hidden sm:inline">Accounts</span>
@@ -2692,6 +2693,10 @@ export default function AdminDashboard() {
           <TabsTrigger value="financials" className="gap-2" data-testid="tab-financials">
             <Calculator className="h-4 w-4" />
             <span className="hidden sm:inline">Financials</span>
+          </TabsTrigger>
+          <TabsTrigger value="subscription-sync" className="gap-2" data-testid="tab-subscription-sync">
+            <RefreshCw className="h-4 w-4" />
+            <span className="hidden sm:inline">Subscription sync</span>
           </TabsTrigger>
         </TabsList>
 
@@ -4281,6 +4286,11 @@ export default function AdminDashboard() {
         {/* FINANCIALS TAB */}
         <TabsContent value="financials" className="space-y-4">
           <FinancialsTab />
+        </TabsContent>
+
+        {/* SUBSCRIPTION SYNC TAB */}
+        <TabsContent value="subscription-sync" className="space-y-4">
+          <SubscriptionSyncPanel />
         </TabsContent>
 
       </Tabs>
