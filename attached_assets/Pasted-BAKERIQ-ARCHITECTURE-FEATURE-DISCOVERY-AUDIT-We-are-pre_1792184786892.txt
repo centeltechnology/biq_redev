@@ -1,0 +1,513 @@
+BAKERIQ — ARCHITECTURE & FEATURE DISCOVERY AUDIT
+
+We are preparing a significant UX and product-experience
+improvement for BakerIQ.
+
+DO NOT IMPLEMENT ANY CHANGES YET.
+
+This is a READ-ONLY discovery and documentation task.
+
+Do not modify application code, database schemas,
+production data, billing configurations, or existing
+user accounts.
+
+Do not install packages or run migrations.
+
+Do not expose secrets, credentials, API keys, or
+sensitive customer information.
+
+I need you to inspect the EXISTING application and
+provide a factual report of its current capabilities,
+architecture, data models, and limitations.
+
+We are planning to make BakerIQ easier for beginners
+while retaining all functionality for experienced bakers.
+
+The goal is to reuse existing functionality wherever
+possible rather than rebuild working systems.
+
+
+=============================================
+1. APPLICATION ARCHITECTURE
+=============================================
+
+Identify:
+
+- Frontend framework and routing structure
+- Backend framework
+- Database and ORM
+- Authentication and authorization
+- Account/tenant architecture
+- Existing analytics and event tracking
+- Background jobs and scheduled processes
+- Email/notification infrastructure
+- File/image storage
+- Stripe integration architecture
+- Existing automated tests
+
+Identify major application modules and their
+responsibilities.
+
+Explain how bakery accounts, their users,
+customers, products, prices, requests, quotes,
+orders, and payments are related.
+
+Identify areas of tight coupling that could
+complicate changes.
+
+Do not recommend a new technology stack unless
+there is a demonstrated technical necessity.
+
+
+=============================================
+2. SIGNUP & ONBOARDING
+=============================================
+
+Inspect the complete account creation and
+seven-step onboarding process.
+
+Document:
+
+- What information each step collects
+- Which fields are required
+- Which fields are optional
+- How progress is saved
+- Whether onboarding can be resumed
+- Whether completed steps can be revisited
+- What happens when onboarding is skipped
+- What records are created during signup
+- What records are created during onboarding
+- How starter pricing is generated
+- How bakery URLs are assigned
+- When order pages become publicly accessible
+- How Stripe onboarding is triggered
+- How onboarding completion is determined
+
+IMPORTANT:
+
+Determine whether onboarding can support
+different experiences without creating
+separate account systems.
+
+We are considering three presentation modes:
+
+GUIDED
+- Simplified initial dashboard
+- Recommended next actions
+- Less visual complexity
+
+FOCUSED
+- User selects a specific goal
+- Interface emphasizes related tools
+
+FULL
+- Existing complete dashboard and navigation
+- No mandatory tutorials
+
+All users must retain access to features allowed
+by their subscriptions.
+
+Determine what existing architecture could
+support this approach.
+
+Do not implement it.
+
+
+=============================================
+3. PRICING SYSTEM
+=============================================
+
+This is especially important.
+
+Inspect ALL existing pricing functionality:
+
+A. Product/menu pricing
+
+- Cake sizes
+- Serving counts
+- Cake shapes
+- Flavors
+- Frostings
+- Decorations
+- Add-ons
+- Treat products
+- Delivery/setup prices
+- Pricing presets
+- Custom pricing options
+
+B. Cost-based pricing calculator
+
+- Material costs
+- Labor hours
+- Hourly labor rate
+- Overhead percentage
+- Profit calculation
+- Suggested selling price
+- Saved calculations
+- Express Item integration
+
+C. Customer-facing price calculations
+
+- Custom cake estimates
+- Multi-tier calculations
+- Treat quantities
+- Add-ons
+- Taxes
+- Delivery charges
+- Quote adjustments
+
+Determine:
+
+1. Whether these systems share pricing logic.
+2. Whether calculations can produce inconsistent
+   results across screens.
+3. How profit margin is actually calculated.
+4. Whether the suggested price includes a separate
+   profit target or only cost plus overhead.
+5. Whether default prices are editable.
+6. Whether prices must be explicitly reviewed
+   before publishing.
+7. Whether an existing saved calculation can be
+   turned into a quote or Express Item.
+8. Whether cost-calculator values can be passed
+   between screens without reentry.
+
+Also investigate whether any AI-powered pricing
+recommendation functionality exists.
+
+Look for:
+
+- AI pricing suggestions
+- AI-assisted quote pricing
+- Market-based starting prices
+- AI recommendations during onboarding
+- AI pricing APIs or service modules
+
+Clearly distinguish:
+
+IMPLEMENTED AND ACTIVE
+IMPLEMENTED BUT UNUSED
+PARTIALLY IMPLEMENTED
+NOT IMPLEMENTED
+
+Do not infer AI functionality simply because
+the application has pricing presets.
+
+
+=============================================
+4. BAKERY ORDER PAGES
+=============================================
+
+Inspect the existing customer-facing bakery pages.
+
+Determine:
+
+- How pages are created
+- How URLs are generated
+- Whether pages have draft/published states
+- Whether visibility can be controlled
+- How unpublished pages are handled
+- How branding is stored
+- How photos and galleries are stored
+- How product categories are configured
+- How Express Items appear
+- How public pricing options are populated
+- Whether bakers can receive inquiries without
+  completing detailed pricing setup
+- Whether Stripe is required for inquiries
+- What happens if pricing is incomplete
+- How existing published links are preserved
+
+We are considering automatically preparing a
+DRAFT order page during signup.
+
+The baker would then review pricing, preview the
+page, and explicitly publish it.
+
+Evaluate whether existing architecture supports
+this safely.
+
+Do not implement.
+
+
+=============================================
+5. CUSTOMER ORDERING ENGINE
+=============================================
+
+Inspect BOTH customer ordering flows:
+
+CUSTOM CAKES
+- Cake sizes and shapes
+- Multiple tiers
+- Flavor and frosting selection
+- Decorations
+- Add-ons
+- Event details
+- Delivery options
+- Contact information
+- Review and submission
+
+TREATS
+- Product selection
+- Quantity selection
+- Event details
+- Delivery options
+- Contact information
+- Review and submission
+
+Determine:
+
+- How both forms are implemented
+- Whether they share components
+- Whether they share validation logic
+- Whether they share pricing logic
+- The actual maximum supported cake tiers
+- Whether customer selections are saved
+  while navigating between steps
+- Whether draft requests can be resumed
+- Whether customers can upload inspiration images
+- How products and required fields are configured
+- How requests are validated on the server
+- How duplicate submissions are prevented
+- How customer-entered prices are verified
+- How tax is determined and applied
+
+We are considering replacing the multi-page
+customer ordering wizard with ONE adaptive form
+that expands sections based on the selected order.
+
+For example:
+
+CAKES:
+Show relevant cake customization sections.
+
+TREATS:
+Show products and quantities without cake fields.
+
+COMPLEX ORDERS:
+Reveal additional sections as needed.
+
+Evaluate whether the existing ordering engine
+could support this using reusable components.
+
+Do not design or implement the new form yet.
+
+
+=============================================
+6. REQUEST TO QUOTE TO ORDER
+=============================================
+
+Trace the COMPLETE lifecycle:
+
+Customer submits request
+→ Baker receives request
+→ Baker reviews details
+→ Prepared quote is generated
+→ Baker edits pricing if needed
+→ Baker saves draft
+→ Baker sends quote
+→ Customer accepts or declines
+→ Order is confirmed
+→ Deposit/payment is handled
+→ Order appears in business records
+
+Document:
+
+- Actual existing statuses and transitions
+- Which actions are automatic
+- Which actions require baker approval
+- Whether creating a quote sends an email
+- Whether sending a quote requires Stripe
+- Whether accepting a quote creates an order
+- Whether payments are required to confirm orders
+- How manual/offline payments work
+- How customers are associated with requests
+- How duplicate customers are handled
+- How notifications are sent
+
+Identify any ambiguous or inconsistent states.
+
+Distinguish what the current code ACTUALLY does
+from what the UI appears to suggest.
+
+
+=============================================
+7. STRIPE CONNECT & SUBSCRIPTIONS
+=============================================
+
+Inspect the existing Stripe Connect integration.
+
+Determine:
+
+- How connected accounts are created
+- How onboarding links are generated
+- How Stripe return/refresh URLs work
+- How onboarding completion is verified
+- Which Stripe account capabilities are required
+- How incomplete accounts are handled
+- How Stripe webhook events are processed
+- How account status is synchronized
+- Whether failures are logged
+- Whether the admin dashboard distinguishes
+  attempted, pending, restricted, and completed
+
+Our analytics currently show Stripe attempts
+but no completed connections.
+
+Determine whether the code reveals a likely
+technical issue or whether the cause cannot
+be established without additional evidence.
+
+Do not initiate real onboarding or payments.
+
+Also document the current Free, Basic, and Pro
+subscription logic and platform-fee calculations.
+
+We are NOT changing subscription prices as
+part of this audit.
+
+
+=============================================
+8. DATE & TIME HANDLING
+=============================================
+
+We observed a potential bug:
+
+A customer selects an event date, but the
+review screen sometimes displays the
+previous calendar day.
+
+This appeared in BOTH cake and treat orders.
+
+Inspect:
+
+- Date picker input handling
+- Frontend date parsing
+- Backend date storage
+- Timezone conversion
+- Review screen formatting
+- Request records
+- Quote generation
+- Order records
+- Calendar entries
+- Customer notification emails
+
+Determine the likely cause.
+
+Identify affected code paths.
+
+Do not modify anything during this audit.
+
+
+=============================================
+9. ADMIN ANALYTICS
+=============================================
+
+Inspect the current activation analytics.
+
+Determine which existing events track:
+
+- Signup
+- Onboarding started/completed
+- First pricing calculation
+- Saved calculation
+- Express Item creation
+- Order page readiness
+- Link copied
+- External page visit
+- Customer request
+- Quote creation
+- Stripe onboarding attempt
+- Stripe completion
+- Payment completion
+- Returning user activity
+
+Identify missing events needed to evaluate
+a redesigned onboarding and first-use journey.
+
+Also determine whether the landing-page analytics
+and business analytics use consistent definitions
+for signup and account creation.
+
+Do not modify tracking yet.
+
+
+=============================================
+10. SECURITY, RELIABILITY & TEST COVERAGE
+=============================================
+
+Identify major risks affecting the redesign:
+
+- Cross-account data isolation
+- Public order form security
+- Pricing manipulation
+- Duplicate submissions
+- File upload validation
+- Unauthorized quote/order access
+- Payment and webhook idempotency
+- Broken links during migrations
+- Existing account compatibility
+- Missing automated coverage
+
+Focus on practical risks in the existing system,
+not speculative rewrites.
+
+
+=============================================
+11. REQUIRED FINAL REPORT
+=============================================
+
+Provide a structured report with these sections:
+
+A. CURRENT SYSTEM SUMMARY
+A concise overview of what already exists.
+
+B. FEATURE INVENTORY
+For each major feature, identify whether it is:
+- Working
+- Partially implemented
+- Present but unused
+- Missing
+- Unable to verify
+
+C. REUSABLE COMPONENTS
+What can be reused for the planned improvements.
+
+D. IMPORTANT DEPENDENCIES
+What relies on what, especially pricing,
+order pages, requests, quotes, and payments.
+
+E. CONFIRMED ISSUES
+Problems supported by code or existing evidence.
+
+F. UNVERIFIED CONCERNS
+Issues requiring live testing or additional data.
+
+G. RECOMMENDED IMPLEMENTATION ORDER
+A dependency-aware sequence for safely improving
+the application without rebuilding working systems.
+
+H. COMPLEXITY ESTIMATES
+For each major proposed area, estimate:
+- Low
+- Medium
+- High
+
+Explain any high-risk or high-complexity work.
+
+I. KEY QUESTIONS
+List decisions that should be made BEFORE coding.
+
+Where useful, reference actual source files,
+modules, database tables, and functions.
+
+Keep the report understandable to a product
+owner without requiring deep programming knowledge.
+
+Do not generate implementation code.
+
+Do not begin development.
+
+Wait for explicit approval before making changes.
+
+END OF DISCOVERY AUDIT.
