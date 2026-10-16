@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, integer, decimal, date, timestamp, jsonb, uniqueIndex, boolean, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, decimal, date, timestamp, jsonb, uniqueIndex, boolean, index, check } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -121,7 +121,10 @@ export const bakers = pgTable("bakers", {
   giftedPlanExpiresAt: timestamp("gifted_plan_expires_at"),
   invitedByAdminId: varchar("invited_by_admin_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, table => [
+  check("bakers_administrative_plan_check",
+    sql`${table.administrativePlan} IS NULL OR ${table.administrativePlan} IN ('basic','pro')`),
+]);
 
 // Trusted billing reconciliation state. Migration is deliberately owner-applied,
 // never an application-startup entitlement backfill.
@@ -140,7 +143,11 @@ export const subscriptionSync = pgTable("subscription_sync", {
   needsReconcile: boolean("needs_reconcile").notNull().default(true),
   attempts: integer("attempts").notNull().default(0),
   nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).notNull().defaultNow(),
-}, table => [index("subscription_sync_due").on(table.nextAttemptAt).where(sql`${table.needsReconcile}`)]);
+}, table => [
+  index("subscription_sync_due").on(table.nextAttemptAt).where(sql`${table.needsReconcile}`),
+  check("subscription_sync_billing_plan_check",
+    sql`${table.billingPlan} IN ('free','basic','pro')`),
+]);
 
 export const subscriptionSyncEvents = pgTable("subscription_sync_events", {
   eventId: text("event_id").primaryKey(),
@@ -154,7 +161,9 @@ export const subscriptionAwardCandidates = pgTable("subscription_award_candidate
   plan: text("plan").notNull(),
   status: text("status").notNull().default("policy_review"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, table => [
+  check("subscription_award_candidates_plan_check", sql`${table.plan} IN ('basic','pro')`),
+]);
 
 // Password reset tokens table
 export const passwordResetTokens = pgTable("password_reset_tokens", {

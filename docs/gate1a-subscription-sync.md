@@ -194,7 +194,9 @@ additive schema compatibly; do not drop new tables or rewrite account histories.
 
 ## Verification
 
-`TEST_SUBSCRIPTION_DB=1 npx vitest run`: 80 passing tests.
+`TEST_SUBSCRIPTION_DB=1 npx vitest run`: 90 passing tests after the narrow
+CHECK-parity correction, including permanent migration-preservation and
+SQL/Drizzle CHECK consistency coverage.
 `npm run build`: successful frontend and server bundle.
 TypeScript retains the 16 previously identified unrelated errors; no new bridge,
 schema, admin diagnostics, or component errors are accepted.

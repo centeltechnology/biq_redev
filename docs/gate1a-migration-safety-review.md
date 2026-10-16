@@ -3,6 +3,11 @@
 Review date: 2026-10-16. **SAFE TO APPROVE PRODUCTION MIGRATION: NO — pending
 the specific evidence and schema-parity gaps below.**
 
+Follow-up: `docs/gate1a-final-publication-readiness.md` records the subsequently
+authorized CHECK-parity correction and current test results. The missing-CHECK
+finding below is historical and resolved; production approval remains blocked
+on the operational evidence described in the follow-up.
+
 This is a read-only production review. No production migration, publishing,
 feature-flag changes, reconciliation, provider mutations, or Gate 1B work was
 performed. Only documentation was edited. Validation used connection-local

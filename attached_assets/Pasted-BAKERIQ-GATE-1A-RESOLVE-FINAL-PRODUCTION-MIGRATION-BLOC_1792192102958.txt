@@ -1,0 +1,224 @@
+BAKERIQ — GATE 1A
+RESOLVE FINAL PRODUCTION MIGRATION BLOCKERS
+
+BACKGROUND
+
+The subscription bridge is implemented in the workspace.
+
+Current results:
+- 80 regression tests passed.
+- 17 migration assertions passed.
+- Production build passed.
+- Production contains 61 Free and 2 intentional Pro test accounts.
+- Subscription synchronization remains disabled.
+- Nothing has been published.
+
+The production migration safety review identified four
+remaining blockers:
+
+1. Three SQL CHECK constraints missing from Drizzle schema.
+2. Unverified production database recovery point.
+3. Publish-generated schema diff not yet approved.
+4. Migration permissions and lock/abort safeguards
+   not yet confirmed.
+
+OBJECTIVE
+
+Resolve these specific blockers and prepare the existing
+subscription bridge for safe production publication.
+
+DO NOT perform another broad architecture audit.
+DO NOT rebuild the subscription bridge.
+DO NOT change subscription business rules.
+DO NOT publish automatically.
+
+==================================================
+1. CORRECT SQL / DRIZZLE SCHEMA PARITY
+==================================================
+
+Inspect:
+
+- migrations/20261016_subscription_sync.sql
+- shared/schema.ts
+- Relevant Drizzle schema configuration
+
+Identify the three CHECK constraints present in SQL
+but missing from the corresponding Drizzle definitions.
+
+Update the Drizzle definitions to match the approved
+SQL constraints exactly.
+
+Requirements:
+
+- Preserve the intended validation rules.
+- Do not weaken or remove existing SQL constraints.
+- Do not modify unrelated tables.
+- Do not change existing account values.
+- Do not introduce additional business logic.
+- Avoid generating duplicate or conflicting migrations.
+
+After correction, confirm that SQL and Drizzle
+represent the same intended schema.
+
+==================================================
+2. VERIFY PRODUCTION RECOVERY READINESS
+==================================================
+
+Determine the actual backup/recovery capabilities
+available for the production PostgreSQL database.
+
+We need evidence of:
+
+- An existing usable recovery point or snapshot.
+- Its creation timestamp.
+- Which production database it covers.
+- Whether the owner can initiate a restore.
+- Whether recovery restores the entire database.
+- Any documented recovery limitations.
+
+Do not initiate a production restore.
+
+If the platform permits a safe, isolated restore
+verification without affecting production, explain
+the procedure and request approval before executing it.
+
+If recovery readiness cannot be verified through
+available tools, report the exact owner action needed.
+
+Do not claim that general Replit recovery support
+proves this database has a usable recovery point.
+
+==================================================
+3. REVIEW PUBLISH SCHEMA CHANGES
+==================================================
+
+Inspect the actual schema changes that Replit Publish
+would apply.
+
+Confirm the intended additions are limited to:
+
+- Nullable administrative_plan field.
+- subscription_sync table.
+- subscription_sync_events table.
+- subscription_award_candidates table.
+- Approved constraints and indexes.
+
+Confirm:
+
+- No existing table will be dropped.
+- No existing column will be removed.
+- No existing baker plan will be rewritten.
+- No historical subscription backfill will run.
+- No payment, quote, order, commission, or referral
+  records will be modified.
+- No additional unexpected schema changes are included.
+
+If Publish generates additional changes, identify
+them before approving deployment.
+
+If the exact Publish schema diff cannot be obtained
+without starting the publication process, report
+that limitation and provide the specific review
+point where the owner must inspect and approve it.
+
+==================================================
+4. VERIFY MIGRATION EXECUTION SAFETY
+==================================================
+
+Confirm:
+
+- The production database role has the required
+  schema migration permissions.
+- The migration has a safe execution strategy.
+- Partial failures will not leave unrecognized
+  schema states.
+- Repeated publication will not duplicate objects
+  or corrupt records.
+- Lock acquisition and timeout behavior are understood.
+- Long-running or blocking database operations
+  can be detected.
+- There is a clear abort procedure if the migration
+  cannot complete safely.
+- Existing application operations remain compatible
+  during the transition.
+
+Do not change production database settings
+without approval.
+
+Do not run the production migration yet.
+
+==================================================
+5. CONFIRM SYNCHRONIZATION REMAINS DISABLED
+==================================================
+
+SUBSCRIPTION_SYNC_ENABLED must remain unset or false.
+
+Verify that publication alone will not:
+
+- Reconcile live subscriptions.
+- Change baker plans.
+- Change platform-fee entitlements.
+- Downgrade either Pro test account.
+- Create affiliate commissions.
+- Award referral credits.
+- Alter historical subscription records.
+
+Verify that the new code can start safely with
+synchronization disabled.
+
+==================================================
+6. FINAL REGRESSION VERIFICATION
+==================================================
+
+Run:
+
+- Subscription security and lifecycle tests.
+- Migration assertions.
+- Schema consistency checks.
+- Production build.
+
+Confirm no new TypeScript errors.
+
+Report unrelated existing TypeScript errors separately.
+
+==================================================
+7. FINAL PUBLICATION READINESS REPORT
+==================================================
+
+Provide:
+
+A. The three CHECK constraints corrected.
+
+B. Exact files modified.
+
+C. Production recovery verification results.
+
+D. Publish-generated schema changes.
+
+E. Database migration execution safeguards.
+
+F. Test and build results.
+
+G. Remaining owner actions.
+
+H. Exact recommended publication procedure.
+
+I. READY FOR PRODUCTION MIGRATION AND PUBLISH:
+   YES / NO
+
+IMPORTANT:
+
+Do not mark YES if production recovery is unverified
+or unexpected schema changes remain unresolved.
+
+Do not publish.
+
+Do not enable subscription synchronization.
+
+Do not run production migrations.
+
+Do not modify existing production customer records.
+
+Do not begin Gate 1B.
+
+STOP after the report and wait for approval.

@@ -20,3 +20,14 @@ Emergency containment must preserve every existing plan assignment, including th
 **Why:** The owner confirmed the test-access purpose and prohibited automatic downgrades or historical entitlement rewrites without an approved migration plan.
 
 **How to apply:** Do not treat missing billing identifiers as authorization to downgrade accounts. Prepare containment separately from unresolved Connect changes where possible; if bundled, stop until Connect configuration and valid delivery are verified. Publishing still requires explicit approval.
+
+Treat production read-only SQL observations as replica-scoped, not proof of
+the primary migration writer's execution safeguards.
+
+**Why:** The production inspection connection reports recovery/replica mode while
+also reporting schema CREATE, baker ownership, and unbounded connection timeouts.
+Those apparent privileges/settings do not establish the Publish writer's role,
+primary lock availability, or migration timeout/cancellation guarantees.
+
+**How to apply:** Label permission, lock, and timeout evidence by connection scope;
+require separate primary/platform execution evidence before approving a release.
