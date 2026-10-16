@@ -1,0 +1,94 @@
+BAKERIQ — GATE 1A
+PRODUCTION MIGRATION SAFETY REVIEW
+
+We have reviewed docs/gate1a-subscription-sync.md.
+
+The subscription synchronization implementation has
+80 passing tests and a successful production build.
+
+The implementation is not yet published or enabled.
+
+Our next objective is to verify that the additive
+production database migration is safe.
+
+DO NOT APPLY THE MIGRATION YET.
+DO NOT PUBLISH.
+DO NOT ENABLE SUBSCRIPTION SYNCHRONIZATION.
+
+Inspect:
+
+migrations/20261016_subscription_sync.sql
+
+Also inspect the corresponding Drizzle schema definitions,
+subscription repository, and startup dependencies.
+
+VERIFY:
+
+1. The migration only adds the documented nullable
+   administrative_plan column and three sync tables.
+
+2. Existing baker accounts, subscription plans,
+   Stripe identifiers, quotes, payments, commissions,
+   and referrals are not rewritten.
+
+3. Existing Free, Basic, and Pro entitlements remain
+   unchanged after the migration.
+
+4. The two intentional Pro test accounts remain Pro.
+
+5. All foreign keys, uniqueness constraints, indexes,
+   and default values are appropriate.
+
+6. The migration is safe to execute against the current
+   production schema and will not unexpectedly delete,
+   replace, or overwrite records.
+
+7. Migration execution can be tracked to prevent
+   accidental reapplication.
+
+8. The currently published application remains
+   compatible with the migrated schema.
+
+9. The new application will start safely with
+   SUBSCRIPTION_SYNC_ENABLED unset or false.
+
+10. No reconciliation, entitlement changes, commission
+    awards, or referral-credit awards occur merely
+    because the migration is applied.
+
+11. Production has a verified backup or recovery
+    mechanism available before the schema change.
+
+12. Any production permissions, locks, migration
+    dependencies, or expected downtime are documented.
+
+13. Provide a safe deployment sequence covering:
+    - Migration
+    - Application publishing
+    - Diagnostics verification
+    - Scheduler configuration
+    - Controlled synchronization enablement
+
+14. Explain how the intentional Pro test entitlements
+    will eventually move to explicit administrative
+    grants without automatic downgrades.
+
+RUN:
+- Migration validation tests where supported.
+- Existing subscription regression tests.
+- Production build if needed to confirm compatibility.
+
+Do not change application behavior or production data.
+
+FINAL REPORT:
+
+A. Migration contents
+B. Schema compatibility
+C. Data preservation assessment
+D. Test results
+E. Backup/recovery readiness
+F. Risks or blockers
+G. Exact recommended migration procedure
+H. SAFE TO APPROVE PRODUCTION MIGRATION: YES / NO
+
+Stop and wait for approval.

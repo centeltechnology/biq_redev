@@ -153,8 +153,13 @@ connection-local TEMP tables and mocked provider results, not application rows.
 
 ## Production rollout requirements — owner approval required
 
-1. Review and approve the additive SQL migration. Apply it before deploying the
-   schema-dependent application. Do not run a broad schema push/backfill.
+1. Review and approve the additive schema change. For this Replit-managed
+   production database, schema changes are applied by the owner-approved Publish
+   flow, not a separate production SQL script, startup migration, or build hook.
+   Review the actual development-to-production schema diff before authorizing
+   publishing; migration approval alone does not authorize publishing. See
+   `docs/gate1a-migration-safety-review.md` for unresolved approval requirements.
+   Do not overwrite production data with development data or run a backfill.
 2. Keep `SUBSCRIPTION_SYNC_ENABLED` unset/false during migration and initial review.
    This flag gates new queue/worker activity, not the existing managed webhook.
 3. Review configured Price IDs/lookup keys and Checkout associations. Unsupported
