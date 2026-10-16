@@ -1,0 +1,190 @@
+BAKERIQ — GATE 1A
+EMERGENCY SUBSCRIPTION CALLBACK CONTAINMENT
+
+DECISION
+
+We are approving the deployment preparation for
+fail-closed containment of the unauthorized endpoint:
+
+POST /api/subscription/webhook-update
+
+Do not publish automatically.
+
+BACKGROUND
+
+The current workspace contains:
+
+1. Hardened Stripe Connect webhook authentication.
+2. A 503 fail-closed subscription callback.
+3. 38 passing tests.
+
+Production still contains the previously unsecured
+subscription callback.
+
+The production readiness audit found:
+
+- 63 bakery accounts.
+- No active Stripe subscriptions in the inspected account.
+- No affiliate commission records.
+- No recorded referral awards.
+- No identifiable caller of the legacy endpoint.
+- No matching requests in the limited available logs.
+
+This reduces the apparent operational risk of
+containment, although unknown external dependencies
+remain possible.
+
+OBJECTIVE
+
+Prepare the smallest safe production release that
+disables the unauthorized subscription callback.
+
+Do not allow unresolved Stripe Connect configuration
+to unnecessarily delay this specific containment.
+
+----------------------------------------
+1. ISOLATE THE SECURITY CHANGE
+----------------------------------------
+
+Determine the safest method of deploying ONLY the
+subscription callback containment.
+
+Preferred behavior:
+
+POST /api/subscription/webhook-update
+
+Returns HTTP 503 with:
+
+SUBSCRIPTION_CALLBACK_DISABLED
+
+It must not:
+
+- Read or modify baker records.
+- Update subscription plans.
+- Change affiliate commissions.
+- Award referral credits.
+- Call Stripe.
+- Process unverified subscription information.
+
+Determine whether this can be achieved through:
+
+A. A focused application patch, or
+B. A trusted production ingress rule.
+
+Choose the lowest-risk approach supported by the
+current deployment architecture.
+
+Do not introduce a broad application rewrite.
+
+Do not accidentally publish unfinished changes
+from other development work.
+
+If an isolated deployment cannot be prepared safely,
+report the blocker.
+
+----------------------------------------
+2. VERIFY DEPLOYMENT READINESS
+----------------------------------------
+
+Before requesting publication approval:
+
+- Run the focused containment security tests.
+- Run the production build.
+- Confirm the exact deployment artifact or changeset.
+- Verify that unrelated changes are excluded.
+- Confirm application startup requirements.
+- Check that the managed Stripe webhook remains intact.
+- Check that the Connect webhook remains intact.
+- Confirm signup and login routes remain unaffected.
+- Confirm existing plans and subscription records
+  will not be changed.
+
+If the containment must be bundled with the
+Connect authentication changes, STOP and report
+that dependency before proceeding.
+
+Do not publish the bundled release until the
+Connect signing-secret configuration and valid
+webhook delivery are verified.
+
+----------------------------------------
+3. DOCUMENT ACCEPTED RISK
+----------------------------------------
+
+We understand that disabling the legacy endpoint
+may interrupt an unidentified external caller.
+
+Potential consequences include:
+
+- Delayed subscription entitlement updates.
+- Delayed affiliate commissions.
+- Delayed referral-credit awards.
+
+Do not treat this as proof that the subscription
+system is fully repaired.
+
+Document how any legitimate callback dependency
+would be identified and restored through a
+verified mechanism.
+
+Do not restore anonymous subscription updates
+as a rollback strategy.
+
+----------------------------------------
+4. PRODUCTION MONITORING PLAN
+----------------------------------------
+
+Prepare monitoring for:
+
+- 503 responses from the disabled endpoint.
+- Unexpected legitimate traffic to that endpoint.
+- Managed Stripe webhook delivery failures.
+- Subscription status disagreements.
+- Unexpected plan changes.
+- Affiliate/referral processing failures.
+
+Keep logs free of customer PII and credentials.
+
+Explain exactly what should be checked immediately
+after deployment and over the following seven days.
+
+----------------------------------------
+5. PROTECT EXISTING ENTITLEMENTS
+----------------------------------------
+
+Do not change any existing plan assignments.
+
+In particular:
+
+- Preserve the current super-admin Pro account.
+- Preserve the other unbilled Pro account.
+- Preserve existing Free accounts.
+- Preserve trial/gift settings.
+- Preserve all affiliate and referral records.
+
+The intended source of Pro access will be
+investigated during subscription reconciliation.
+
+----------------------------------------
+6. FINAL REPORT AND APPROVAL HOLD
+----------------------------------------
+
+Report:
+
+A. Exact containment deployment method.
+B. Files or deployment rules affected.
+C. Whether changes can be isolated.
+D. Production build results.
+E. Security and regression test results.
+F. Known operational risks.
+G. Monitoring plan.
+H. Rollback/incident-response plan.
+I. Ready for publication: YES / NO.
+
+Do not publish until I explicitly approve.
+
+Do not start subscription bridge implementation.
+Do not begin Gate 1B.
+Do not alter live Stripe configuration.
+
+STOP after deployment preparation and verification.
