@@ -1,0 +1,216 @@
+BAKERIQ — GATE 1A
+SUBSCRIPTION SYNC ADMIN USABILITY & ACTIVATION READINESS
+
+BACKGROUND
+
+The production subscription synchronization bridge
+and database migration have been published successfully.
+
+The super-admin Subscription Sync diagnostics page
+loads correctly.
+
+Current production observations:
+
+- 63 bakery accounts
+- 0 verified paid subscribers
+- 0 trial/prepaid subscribers
+- $0 recorded subscription MRR
+- 3 accounts marked Needs Review
+- SUBSCRIPTION_SYNC_ENABLED is unset/false
+- Synchronization and reconciliation controls disabled
+
+The administrator has two problems:
+
+1. The Needs Review summary is not clickable and
+   does not filter the account list.
+
+2. The dashboard says synchronization is disabled
+   but does not explain what is required to enable it.
+
+OBJECTIVE
+
+Improve the existing admin diagnostics interface
+without changing subscription business logic.
+
+Also provide a clear operational activation plan.
+
+DO NOT ENABLE SYNCHRONIZATION.
+DO NOT MODIFY PRODUCTION ACCOUNT DATA.
+DO NOT PUBLISH AUTOMATICALLY.
+
+==================================================
+1. INVESTIGATE THE THREE REVIEW FLAGS
+==================================================
+
+Using read-only production diagnostics:
+
+Identify the three accounts contributing to
+the Needs Review count.
+
+For each, report:
+
+- Redacted account identifier
+- Current entitlement
+- Stored billing association status
+- Exact reason for Needs Review
+- Whether the flag is expected while sync is disabled
+- Whether the account requires actual corrective action
+- Recommended action, if any
+
+Do not assume these are errors.
+
+Do not automatically modify plans, Stripe customer
+associations, subscriptions, or account records.
+
+Do not expose customer PII or Stripe credentials.
+
+==================================================
+2. MAKE SUMMARY CARDS CLICKABLE
+==================================================
+
+Update the existing Subscription Sync admin page.
+
+When the administrator clicks Needs Review:
+
+- Filter the accounts table immediately.
+- Display only accounts needing review.
+- Show an active filter indicator.
+- Provide a Clear Filter / Show All option.
+- Display the filtered record count.
+- Preserve the filter while refreshing diagnostics.
+- Show a useful empty state when no accounts
+  need attention.
+
+The filtering must use the same diagnostic
+definition as the Needs Review summary count.
+
+Avoid displaying misleading or inconsistent totals.
+
+Make relevant other summary cards actionable
+only when a meaningful filtered view exists.
+
+==================================================
+3. IMPROVE ACCOUNT DIAGNOSTICS
+==================================================
+
+Add or improve:
+
+- Search by safe account identifier or bakery name
+  where authorized.
+- Filters for relevant billing/diagnostic statuses.
+- Pagination or bounded table rendering.
+- Readable diagnostic reasons.
+- Clear separation of informational states,
+  warnings, and genuine errors.
+- Actionable next-step guidance for flagged accounts.
+
+Keep the page compact and responsive.
+
+The admin should never need to scroll through
+dozens of accounts just to locate three exceptions.
+
+Preserve super-admin-only access.
+
+Do not expose sensitive Stripe information.
+
+==================================================
+4. EXPLAIN DISABLED SYNCHRONIZATION
+==================================================
+
+Replace the vague disabled message with clearer
+administrative guidance.
+
+For example:
+
+"Automatic subscription synchronization is currently
+disabled in the production deployment."
+
+Explain that activation is controlled by:
+
+SUBSCRIPTION_SYNC_ENABLED
+
+Do not display environment-variable values,
+credentials, or secrets.
+
+Provide a short explanation of the remaining
+requirements before activation.
+
+Do not add a client-side switch that changes
+production environment settings.
+
+Do not enable reconciliation merely because
+an administrator opens the page.
+
+==================================================
+5. CONFIRM ACTIVATION REQUIREMENTS
+==================================================
+
+Inspect the current production deployment configuration.
+
+Report:
+
+A. Exactly where the owner must configure
+   SUBSCRIPTION_SYNC_ENABLED.
+
+B. Whether changing this setting requires
+   Republish, deployment restart, or another action.
+
+C. Whether enabling the flag starts an in-process
+   worker under the current Autoscale deployment.
+
+D. What happens when Autoscale scales to zero.
+
+E. Whether there is an existing reliable external
+   scheduler for the server-only reconciliation command.
+
+F. The simplest reliable scheduling approach
+   compatible with the existing hosting plan.
+
+G. Whether the managed Stripe subscription webhook
+   is enabled and targets the correct deployment.
+
+H. Any outstanding verification required before
+   processing real subscription changes.
+
+Do not configure a scheduler yet.
+Do not change deployment settings.
+Do not activate synchronization.
+
+==================================================
+6. TESTING
+==================================================
+
+Add focused tests verifying:
+
+- Needs Review filter matches the summary count.
+- Clearing the filter restores all accounts.
+- Search and pagination operate correctly.
+- Empty review state behaves correctly.
+- Diagnostic reasons remain accurate.
+- Super-admin authorization is preserved.
+- Ordinary bakers cannot access diagnostics.
+- No filter or UI action changes subscription data.
+- Sync controls remain disabled when the server
+  feature flag is off.
+
+Run the relevant regression tests and production build.
+
+==================================================
+7. FINAL REPORT
+==================================================
+
+Provide:
+
+A. Explanation of the three review flags.
+B. Admin interface changes made.
+C. Files modified.
+D. Test results.
+E. Production activation instructions.
+F. Recommended scheduling solution.
+G. Remaining activation blockers.
+
+Do not publish.
+Do not enable synchronization.
+Do not begin Gate 1B.
+
+STOP and wait for approval.
