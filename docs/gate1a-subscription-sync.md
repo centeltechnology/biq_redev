@@ -96,7 +96,10 @@ require explicit operator investigation; they are not automatically adopted.
 - Per-baker PostgreSQL transaction/advisory locks prevent simultaneous updates
   across instances. A busy account is retried by the durable/periodic queue.
 - Periodic reconciliation scans up to 20 due accounts per tick and normally
-  revisits successful accounts within 15 minutes or at a known coverage boundary.
+  makes successful accounts eligible after 15 minutes or at a known coverage
+  boundary. Actual verification waits for the next approved worker execution;
+  a 15-minute cron can mean 15–30 minutes between ordinary successful checks
+  because of due-time/cron alignment, with longer delays under failures/backlog.
 - Per-request timeout is 10 seconds with one network retry; account work has a
   40-request/45-second checked budget. A final in-flight request can exceed the
   checked deadline by its bounded timeout/retry.
@@ -107,6 +110,12 @@ require explicit operator investigation; they are not automatically adopted.
 - The CLI `npx tsx script/reconcile-subscriptions.ts` runs one batch and exits
   unsuccessfully when a batch contains failures. It is server-only and requires
   explicit enablement.
+- Prepared scheduling separation requires a second, default-off
+  `SUBSCRIPTION_SYNC_IN_PROCESS_ENABLED` opt-in for the legacy web timer.
+  Scheduled execution uses the existing master gate with that timer off.
+  Whole-batch coordination adds a transaction-scoped advisory lock, preserving
+  existing per-account locks and policy. See `gate1a-reconciliation-scheduling.md`
+  for costs, platform-validation blockers and the unexecuted activation procedure.
 
 ## Affiliate/referral hold
 

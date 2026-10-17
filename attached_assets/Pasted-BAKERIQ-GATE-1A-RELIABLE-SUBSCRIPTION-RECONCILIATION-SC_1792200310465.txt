@@ -1,0 +1,118 @@
+BAKERIQ — GATE 1A
+RELIABLE SUBSCRIPTION RECONCILIATION SCHEDULING
+
+We have completed the subscription bridge, production
+migration, security fixes, and admin diagnostics.
+
+Our next task is to establish reliable subscription
+reconciliation while keeping our existing Autoscale
+web application.
+
+OBJECTIVE
+
+Find and prepare the simplest reliable and
+cost-effective scheduling solution using the
+subscription reconciliation system already built.
+
+IMPORTANT:
+
+- Do not rebuild the subscription bridge.
+- Do not change subscription pricing or fees.
+- Do not upgrade our web hosting.
+- Do not enable live reconciliation yet.
+- Do not publish automatically.
+- Do not create paid infrastructure without approval.
+
+STEP 1 — CHECK SCHEDULING OPTIONS
+
+Determine whether Replit supports a Scheduled
+Deployment or equivalent scheduled job that can
+execute:
+
+npx tsx script/reconcile-subscriptions.ts
+
+Evaluate:
+
+- Compatibility with our production application
+- Access to the correct production database
+- Secure access to required Stripe credentials
+- Supported scheduling intervals
+- Estimated additional monthly cost
+- Execution time limits
+- Logging and failure alerts
+
+Prefer an interval of approximately 15 minutes
+if supported and cost-effective.
+
+If another interval is more practical, explain why.
+
+Compare against the cost of a Reserved VM.
+
+Do not recommend additional infrastructure
+unless it provides a clear operational benefit.
+
+STEP 2 — CHECK THE EXISTING ENABLEMENT LOGIC
+
+Currently, enabling SUBSCRIPTION_SYNC_ENABLED
+starts the in-process worker.
+
+We do NOT want to depend on an Autoscale timer
+that stops when the web application is idle.
+
+Determine the smallest safe adjustment needed to
+allow a scheduled job to run independently while
+the web application's in-process timer stays off.
+
+Preserve:
+- Existing webhook verification
+- Existing subscription reconciliation logic
+- Database locking and deduplication
+- Retry limits
+- Admin diagnostics
+- Test/admin entitlements
+- Affiliate award hold
+
+Do not create competing reconciliation processes.
+
+STEP 3 — PREPARE SAFE ACTIVATION
+
+Create a controlled activation procedure:
+
+1. Verify production configuration.
+2. Confirm the scheduler uses the correct environment.
+3. Prevent overlapping scheduled executions.
+4. Run one supervised bounded reconciliation batch.
+5. Review admin diagnostics and account changes.
+6. Confirm both Pro test accounts remain protected.
+7. Activate recurring execution only after approval.
+
+Do not execute these production steps yet.
+
+STEP 4 — VERIFICATION
+
+Run relevant automated tests and production build.
+
+If any code changes are necessary, implement only
+the minimal scheduling/enablement changes and
+test them locally.
+
+Do not modify production subscriptions,
+plans, payments, or historical records.
+
+STEP 5 — REPORT
+
+Provide:
+
+A. Recommended scheduling method
+B. Estimated monthly cost
+C. Required configuration
+D. Whether any code changes were needed
+E. Test/build results
+F. Exact activation steps
+G. Remaining blockers
+
+Stop and wait for approval.
+
+Do not publish.
+Do not enable live reconciliation.
+Do not begin Gate 1B.

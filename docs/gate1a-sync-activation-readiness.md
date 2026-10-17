@@ -54,18 +54,21 @@ the **published app**, not for the development workspace:
 The server accepts only its explicit enabled setting. The interface never
 displays environment values or edits settings.
 
-**Republishing with activation configured is not a harmless preparation step.**
-At server startup, `startSubscriptionReconciliation()` immediately starts a
-bounded reconciliation tick, then schedules ticks every 60 seconds. It does not
-wait for an administrator to open the page or press Queue reconciliation.
+**Scheduling preparation changes the startup contract, once published:**
+the master gate alone no longer starts the web worker. The legacy timer also
+requires `SUBSCRIPTION_SYNC_IN_PROCESS_ENABLED` to be explicitly enabled.
+Keep that second setting absent/off in every scheduled-only environment.
+The private command still requires the master gate and runs one bounded batch.
+Do not activate either setting or execute the command without separate approval.
 Successful authoritative checks can update plan/subscription state under the
-already approved entitlement policy.
+already approved entitlement policy. Until these code changes are published,
+the previous production startup behavior still applies.
 
 ## Reliable scheduling
 
 Autoscale may scale to zero when idle. Its Node process and in-process timer
-cannot provide unattended deadlines while stopped. A later request/startup can
-resume checks, but is not a reliable reconciliation schedule.
+cannot provide unattended deadlines while stopped. The prepared scheduled-only
+mode deliberately does not start a timer when traffic wakes the web app.
 
 Recommended approach **if retaining Autoscale**:
 
@@ -106,7 +109,9 @@ workspace uptime for a durable trusted scheduler.
 3. Select and approve reliable scheduling/always-on compute. None was configured
    by this work.
 4. Separately approve activation, a supervised first batch, monitoring, and a
-   stop plan. Activation can start work immediately on the next server startup.
+   stop plan. Publish the flag separation first with all execution disabled;
+   then follow `gate1a-reconciliation-scheduling.md`. Do not enable the master
+   gate on the previous production build, which starts a timer immediately.
 5. Re-establish the aggregate production baseline immediately before activation.
    Observe diagnostics, errors, authoritative paid-through states, and affected
    entitlements/fee tiers. Preserve test/admin/trial/gift access and all customer

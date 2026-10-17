@@ -1,4 +1,5 @@
 import type { Express, RequestHandler } from "express";
+import type { PoolClient } from "pg";
 import { pool } from "../db";
 import { getUncachableStripeClient } from "../stripeClient";
 import { diagnostics, repository } from "./repository";
@@ -44,37 +45,79 @@ export async function queueReconciliation() {
     ON CONFLICT (baker_id) DO UPDATE SET needs_reconcile=true,attempts=0,next_attempt_at=now()`);
 }
 let running = false;
+export const reconciliationBatchLock = "bakeriq:subscription:batch";
 export async function reconciliationTick() {
   if (!syncEnabled() || running) return;
   running = true;
   let failed = false;
+  let processed = 0;
+  let skipped = false;
+  let client: PoolClient | undefined;
+  let transaction = false;
+  let discard = false;
   try {
-    // At most 20 candidates per minute per instance. Each account additionally
-    // has a cross-instance PostgreSQL transaction lock and at most five retries.
-    const due = await pool.query(`SELECT b.id FROM bakers b
-      LEFT JOIN subscription_sync s ON s.baker_id=b.id
-      WHERE b.stripe_customer_id IS NOT NULL AND COALESCE(s.attempts,0)<5
-        AND (s.baker_id IS NULL OR s.next_attempt_at<=now())
-      ORDER BY s.last_attempt_at NULLS FIRST,b.id LIMIT 20`);
-    const stripe = await getUncachableStripeClient();
-    const repo = repository(pool);
-    for (const row of due.rows) {
-      const outcome = await synchronize(row.id,repo,
-        (s,p,now) => currentBilling(stripe,s,p,now));
-      if (outcome === "failed") {
-        failed = true;
-        console.warn(`Subscription reconciliation failed for ${accountRef(row.id)}; see admin diagnostics`);
+    // A dedicated coordination transaction spans the batch, including with a
+    // transaction-pooling database proxy. Account writes keep their existing,
+    // separate per-account transactions; this transaction performs no writes.
+    client = await pool.connect();
+    await client.query("BEGIN");
+    transaction = true;
+    const lock = await client.query(
+      "SELECT pg_try_advisory_xact_lock(hashtextextended($1,0)) AS acquired", [reconciliationBatchLock]);
+    if (!lock.rows[0].acquired) {
+      skipped = true;
+      console.warn("Subscription reconciliation skipped: another batch holds the worker lock");
+    } else {
+      // At most 20 candidates per batch; existing five-attempt policy unchanged.
+      const due = await client.query(`SELECT b.id FROM bakers b
+        LEFT JOIN subscription_sync s ON s.baker_id=b.id
+        WHERE b.stripe_customer_id IS NOT NULL AND COALESCE(s.attempts,0)<5
+          AND (s.baker_id IS NULL OR s.next_attempt_at<=now())
+        ORDER BY s.last_attempt_at NULLS FIRST,b.id LIMIT 20`);
+      const stripe = await getUncachableStripeClient();
+      const repo = repository(pool);
+      for (const row of due.rows) {
+        const outcome = await synchronize(row.id,repo,
+          (s,p,now) => currentBilling(stripe,s,p,now));
+        processed++;
+        if (outcome === "failed") {
+          failed = true;
+          console.warn(`Subscription reconciliation failed for ${accountRef(row.id)}; see admin diagnostics`);
+        }
       }
     }
   } catch {
     failed = true;
+    discard = true;
     console.error("Subscription reconciliation unavailable; no entitlement fallback applied");
-  } finally { running = false; }
-  return { failed };
+  } finally {
+    if (client) {
+      if (transaction) {
+        try {
+          // Ends the read-only coordination transaction and releases its lock.
+          await client.query("ROLLBACK");
+        } catch {
+          failed = true;
+          discard = true;
+          console.error("Subscription worker lock cleanup failed; discarding its connection");
+        }
+      }
+      // Never return a connection with a possibly held transaction to the pool.
+      client.release(discard);
+    }
+    running = false;
+  }
+  return { failed, processed, skipped };
 }
 export function startSubscriptionReconciliation() {
   if (!syncEnabled()) {
     console.log("Subscription reconciliation disabled pending approved migration/rollout");
+    return;
+  }
+  // Scheduled execution is independent. Enabling the master gate must not
+  // silently start a second worker inside every Autoscale web instance.
+  if (process.env.SUBSCRIPTION_SYNC_IN_PROCESS_ENABLED !== "true") {
+    console.log("Subscription reconciliation in-process timer disabled; scheduled execution only");
     return;
   }
   void reconciliationTick();
