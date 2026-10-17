@@ -4,7 +4,7 @@ import { createServer, type Server } from "node:http";
 import Stripe from "stripe";
 import { applicationJson } from "./connect-webhook-auth";
 
-vi.mock("./db", () => ({ pool: {}, db: {} }));
+vi.mock("./db", () => ({ pool: { query: vi.fn() }, db: {} }));
 vi.mock("./storage", () => ({
   storage: {
     getQuote: vi.fn(),
@@ -46,6 +46,7 @@ vi.mock("./connect-webhook-auth", async importOriginal => {
 import { registerRoutes } from "./routes";
 import { storage } from "./storage";
 import { getUncachableStripeClient } from "./stripeClient";
+import { pool } from "./db";
 
 let server: Server;
 let url: string;
@@ -112,6 +113,36 @@ it("subscription diagnostics and reconciliation require super-admin authorizatio
   expect((await fetch(`${base}/api/admin/subscription-sync/reconcile`,{
     method:"POST",headers:{"x-test-session":"baker"},
   })).status).toBe(403);
+  vi.mocked(storage.getBaker).mockResolvedValue({id:"baker_fixture",role:"admin"} as any);
+  expect((await fetch(`${base}/api/admin/subscription-sync`,{
+    headers:{"x-test-session":"baker"},
+  })).status).toBe(403);
+  expect(pool.query).not.toHaveBeenCalled();
+  expect(storage.updateBaker).not.toHaveBeenCalled();
+});
+
+it("super-admin diagnostics remain read-only and cannot queue reconciliation while the flag is off",async()=>{
+  vi.stubEnv("SUBSCRIPTION_SYNC_ENABLED","false");
+  try {
+    const base=url.replace("/api/stripe-connect/webhook","");
+    vi.mocked(storage.getBaker).mockResolvedValue({id:"baker_fixture",role:"super_admin"} as any);
+    vi.mocked(pool.query).mockResolvedValue({rows:[]} as never);
+    const response=await fetch(`${base}/api/admin/subscription-sync`,{headers:{"x-test-session":"baker"}});
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(await response.json()).toMatchObject({enabled:false,accounts:[],paidSubscribers:0});
+    expect(pool.query).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(pool.query).mock.calls[0][0]).toMatch(/^SELECT/);
+    vi.mocked(pool.query).mockClear();
+    const reconcile=await fetch(`${base}/api/admin/subscription-sync/reconcile`,{
+      method:"POST",headers:{"x-test-session":"baker"},
+    });
+    expect(reconcile.status).toBe(503);
+    expect(pool.query).not.toHaveBeenCalled();
+    expect(storage.updateBaker).not.toHaveBeenCalled();
+    expect(storage.updateQuote).not.toHaveBeenCalled();
+    expect(getUncachableStripeClient).not.toHaveBeenCalled();
+  } finally { vi.unstubAllEnvs(); }
 });
 
 it("signed HTTP delivery reaches the existing payment handler and its storage writes", async () => {

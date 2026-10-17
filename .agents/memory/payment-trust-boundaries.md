@@ -31,3 +31,13 @@ primary lock availability, or migration timeout/cancellation guarantees.
 
 **How to apply:** Label permission, lock, and timeout evidence by connection scope;
 require separate primary/platform execution evidence before approving a release.
+
+Publishing diagnostics or security changes is not authorization to activate
+subscription synchronization.
+
+**Why:** The owner treats interface/readiness work and operational activation as
+separate approvals and prohibits automatic activation or production account changes.
+
+**How to apply:** Keep activation approval separate from release approval. Confirm
+actual provider-signed delivery evidence, reliable scheduling and a monitored
+rollout before requesting activation; never enable sync as an admin-page side effect.

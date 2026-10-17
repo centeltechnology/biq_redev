@@ -1,30 +1,12 @@
+import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Check, Clock3, RefreshCw, ShieldAlert } from "lucide-react";
+import { AlertTriangle, Check, RefreshCw, ShieldAlert } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-
-interface SubscriptionSyncAccount {
-  accountRef: string;
-  entitlementSource: string;
-  localPlan: string;
-  effectivePlan: string;
-  billingPlan: string | null;
-  billingStatus: string | null;
-  paidThrough: string | null;
-  trialEnd: string | null;
-  lastSuccessAt: string | null;
-  lastAttemptAt: string | null;
-  errorCode: string | null;
-  needsReconcile: boolean;
-  attempts: number;
-  hasCustomer: boolean;
-  hasSubscription: boolean;
-  awardReviewCount: number;
-}
+import { SubscriptionSyncAccounts } from "@/components/subscription-sync-accounts";
+import { needsReview, type ReviewFilter, type SubscriptionSyncAccount } from "@/lib/subscription-diagnostics";
 
 interface SubscriptionSyncData {
   enabled: boolean;
@@ -35,29 +17,13 @@ interface SubscriptionSyncData {
   mrr: number;
 }
 
-function privateAccountLabel(value: string): string {
-  // A short, deterministic pseudonym avoids rendering account identifiers or PII.
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return `acct-${(hash >>> 0).toString(16).slice(0, 6).toUpperCase()}`;
-}
-
-function formatDate(value: string | null): string {
-  if (!value) return "—";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? "—"
-    : date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
-}
-
 function formatMoney(value: number): string {
   return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(value);
 }
 
 export function SubscriptionSyncPanel() {
+  const [filter, setFilter] = useState<ReviewFilter>("all");
+  const [viewReset, setViewReset] = useState(0);
   const syncQuery = useQuery<SubscriptionSyncData>({
     queryKey: ["/api/admin/subscription-sync"],
     queryFn: async () => {
@@ -68,6 +34,7 @@ export function SubscriptionSyncPanel() {
 
   const reconcileMutation = useMutation({
     mutationFn: async () => {
+      if (!syncQuery.data?.enabled || syncQuery.isError) throw new Error("Synchronization is disabled or diagnostics are stale");
       await apiRequest("POST", "/api/admin/subscription-sync/reconcile");
     },
     onSuccess: () => {
@@ -76,7 +43,7 @@ export function SubscriptionSyncPanel() {
   });
 
   const data = syncQuery.data;
-  const needsAttention = data?.accounts.filter(account => account.needsReconcile || !!account.errorCode) ?? [];
+  const needsAttention = data?.accounts.filter(needsReview) ?? [];
 
   return (
     <Card>
@@ -101,7 +68,7 @@ export function SubscriptionSyncPanel() {
           <Button
             size="sm"
             onClick={() => reconcileMutation.mutate()}
-            disabled={!data?.enabled || reconcileMutation.isPending}
+            disabled={!data?.enabled || syncQuery.isError || reconcileMutation.isPending}
             data-testid="button-queue-subscription-reconcile"
           >
             <RefreshCw className={`mr-2 h-4 w-4 ${reconcileMutation.isPending ? "animate-spin" : ""}`} />
@@ -119,7 +86,7 @@ export function SubscriptionSyncPanel() {
             </div>
             <Skeleton className="h-40 w-full" />
           </div>
-        ) : syncQuery.isError ? (
+        ) : syncQuery.isError && !data ? (
           <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4" role="alert">
             <div className="flex items-start gap-3">
               <AlertTriangle className="mt-0.5 h-4 w-4 text-destructive" />
@@ -136,12 +103,29 @@ export function SubscriptionSyncPanel() {
           </div>
         ) : data ? (
           <>
+            {syncQuery.isError && (
+              <p role="alert" className="rounded-md border border-destructive/30 p-3 text-sm">
+                Refresh failed. Showing the last available diagnostics; filters are preserved and reconciliation is unavailable until refresh succeeds.
+              </p>
+            )}
             {!data.enabled && (
               <div className="flex items-start gap-3 rounded-md border bg-muted/50 p-3" role="status">
                 <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium">Subscription sync is disabled</p>
-                  <p className="text-sm text-muted-foreground">Diagnostics are shown as returned; reconciliation is unavailable.</p>
+                  <p className="text-sm font-medium">Automatic subscription synchronization is disabled for this deployment</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Controlled by the server setting <code className="break-all">SUBSCRIPTION_SYNC_ENABLED</code>.
+                    Opening this page, filtering, and refreshing do not change accounts or enable synchronization.
+                  </p>
+                  <details className="mt-2 text-sm">
+                    <summary className="cursor-pointer font-medium">What is required before production activation?</summary>
+                    <ol className="mt-2 list-decimal space-y-1 pl-5 text-muted-foreground">
+                      <li>Approve provider-signed webhook verification and review billing associations without guessing or rewriting them.</li>
+                      <li>Approve reliable scheduling and a monitored first batch. Autoscale can stop the in-process worker when idle.</li>
+                      <li>After explicit activation approval, the owner uses Replit: Secrets → Configurations → More → New published app configuration, then republishes. This page cannot change deployment settings.</li>
+                    </ol>
+                    <p className="mt-2 text-muted-foreground">Pending first-sync flags are expected while disabled; they are not proof of billing errors. Existing entitlements remain unchanged by diagnostics.</p>
+                  </details>
                 </div>
               </div>
             )}
@@ -172,80 +156,25 @@ export function SubscriptionSyncPanel() {
                 <p className="text-xs text-muted-foreground">Reported MRR</p>
                 <p className="mt-1 text-xl font-semibold tabular-nums">{formatMoney(data.mrr)}</p>
               </div>
-              <div className="rounded-md border p-3">
+              <button type="button"
+                className={`rounded-md border p-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${filter === "review" ? "border-primary bg-primary/5" : ""}`}
+                onClick={() => { setFilter("review"); setViewReset(value => value + 1); }} aria-pressed={filter === "review"}
+                aria-label={`Needs review: ${needsAttention.length} accounts`}
+                data-testid="button-filter-subscription-review">
                 <p className="text-xs text-muted-foreground">Needs review</p>
                 <p className="mt-1 flex items-center gap-2 text-xl font-semibold tabular-nums">
                   {needsAttention.length}
                   {needsAttention.length > 0 && <AlertTriangle className="h-4 w-4 text-amber-600" />}
                 </p>
-              </div>
+                <p className="mt-1 text-xs text-muted-foreground">View flagged accounts</p>
+              </button>
             </div>
             <p className="text-xs text-muted-foreground">
               Revenue figures reflect paid billing subscriptions only. Test, admin, gift, and trial entitlements are not revenue.
             </p>
 
-            {data.accounts.length === 0 ? (
-              <div className="rounded-md border border-dashed px-4 py-8 text-center">
-                <p className="text-sm font-medium">No subscription sync records</p>
-                <p className="mt-1 text-sm text-muted-foreground">There are no accounts to diagnose at this time.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto rounded-md border">
-                <Table className="min-w-[980px]">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Account ref</TableHead>
-                      <TableHead>Entitlement</TableHead>
-                      <TableHead>Plans · local / effective / billing</TableHead>
-                      <TableHead>Billing state</TableHead>
-                      <TableHead>Last attempt / success</TableHead>
-                      <TableHead>Diagnostics</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {data.accounts.map(account => (
-                      <TableRow key={account.accountRef}>
-                        <TableCell className="font-mono text-xs">{privateAccountLabel(account.accountRef)}</TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <Badge variant="outline">{account.entitlementSource || "unknown"}</Badge>
-                            {(account.entitlementSource || "").toLowerCase().match(/test|admin|gift|trial/) && (
-                              <p className="text-xs text-muted-foreground">Not revenue</p>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          <span>{account.localPlan}</span>
-                          <span className="text-muted-foreground"> / {account.effectivePlan} / {account.billingPlan ?? "—"}</span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">{account.billingStatus ?? "—"}</div>
-                          <div className="mt-1 text-xs text-muted-foreground">
-                            Paid through {formatDate(account.paidThrough)}
-                            {account.trialEnd && <span className="block">Trial ends {formatDate(account.trialEnd)}</span>}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          <div className="flex items-center gap-1"><Clock3 className="h-3 w-3 text-muted-foreground" />{formatDate(account.lastAttemptAt)}</div>
-                          <div className="mt-1 text-muted-foreground">Success: {formatDate(account.lastSuccessAt)}</div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {account.needsReconcile && <Badge variant="secondary">Reconcile</Badge>}
-                            {account.errorCode && <Badge variant="destructive">{account.errorCode}</Badge>}
-                            {!account.needsReconcile && !account.errorCode && <Badge variant="outline">No error</Badge>}
-                          </div>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {account.attempts} attempts · customer {account.hasCustomer ? "yes" : "no"} · subscription {account.hasSubscription ? "yes" : "no"}
-                            {account.awardReviewCount > 0 && <span className="block">Award reviews: {account.awardReviewCount}</span>}
-                          </p>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
+            {/* Selecting a summary starts a fresh view; refetching keeps its state. */}
+            <SubscriptionSyncAccounts key={viewReset} accounts={data.accounts} enabled={data.enabled} filter={filter} onFilterChange={setFilter} />
           </>
         ) : null}
       </CardContent>
