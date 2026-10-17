@@ -1,0 +1,159 @@
+BAKERIQ — GATE 1A
+POST-PUBLICATION PRODUCTION VERIFICATION
+
+The subscription bridge and additive database migration
+have just been published to production.
+
+We need to verify the deployment was successful.
+
+THIS IS A READ-ONLY PRODUCTION SMOKE TEST.
+
+DO NOT:
+- Modify application code
+- Run migrations
+- Change subscription plans
+- Enable subscription synchronization
+- Trigger subscription reconciliation
+- Create payments or subscriptions
+- Modify customer records
+- Change Stripe configuration
+- Publish anything
+
+1. DATABASE VERIFICATION
+
+Confirm the following exist in PRODUCTION:
+
+- bakers.administrative_plan
+- subscription_sync
+- subscription_sync_events
+- subscription_award_candidates
+
+Verify that the migration completed successfully.
+
+Confirm the existing bakery records were preserved.
+
+Previous baseline:
+- 63 bakery accounts
+- 61 Free accounts
+- 2 intentional Pro test accounts
+
+Report current counts and any unexpected differences.
+
+Confirm both intentional Pro test accounts retain
+their existing access.
+
+Confirm no unexpected changes to:
+- Existing subscription plans
+- Stripe customer identifiers
+- Customer payments
+- Quotes and orders
+- Affiliate commissions
+- Referral credits
+
+Where a trustworthy before/after baseline is
+unavailable, state that explicitly.
+
+Do not modify records.
+
+2. APPLICATION HEALTH
+
+Verify:
+
+- https://bakeriq.app loads
+- Login page loads
+- Existing authenticated session or approved test
+  login works, if safely available
+- Dashboard loads
+- Pricing page loads
+- Customer-facing bakery order page loads
+- Existing public bakery URLs remain functional
+
+Do not create or modify production accounts.
+
+3. SECURITY VERIFICATION
+
+Confirm:
+
+- /api/subscription/webhook-update returns 503
+  with SUBSCRIPTION_CALLBACK_DISABLED.
+- Invalid or missing Connect webhook signatures
+  are rejected.
+- Invalid or missing managed webhook signatures
+  are rejected.
+- No unauthorized subscription changes occur.
+
+Use safe requests without valid payment events.
+
+Do not replay historical Stripe events.
+
+4. SUBSCRIPTION BRIDGE STATUS
+
+Confirm:
+
+SUBSCRIPTION_SYNC_ENABLED is unset or false
+in the actual production environment.
+
+Verify:
+
+- No automatic reconciliation worker is active.
+- No scheduled reconciliation job was enabled.
+- No subscription records are being processed
+  by the new bridge.
+- No entitlement changes are being applied.
+- The existing managed Stripe webhook remains intact.
+
+The existing provider syncBackfill() behavior may
+still operate independently. Distinguish that
+from the NEW subscription bridge.
+
+5. ADMIN DIAGNOSTICS
+
+Verify that the new super-admin subscription
+diagnostics panel loads in production.
+
+Confirm:
+
+- Access is restricted to super admins.
+- Status information displays correctly.
+- No sensitive Stripe credentials are exposed.
+- Manual retry/reconciliation controls cannot
+  execute while synchronization is disabled.
+
+Do not activate any retry or reconciliation.
+
+6. PRODUCTION ERRORS
+
+Inspect available post-publication logs.
+
+Check for:
+
+- Database migration failures
+- Missing table or column errors
+- Application startup failures
+- Subscription bridge initialization errors
+- Stripe webhook registration errors
+- Unexpected authentication errors
+
+Distinguish new errors from known existing warnings.
+
+7. FINAL REPORT
+
+Provide a concise report:
+
+A. Deployment health: PASS / FAIL
+B. Database migration: PASS / FAIL
+C. Existing accounts preserved: PASS / FAIL
+D. Security protections: PASS / FAIL
+E. Subscription sync disabled: YES / NO
+F. Admin diagnostics: PASS / FAIL
+G. Production errors or warnings
+H. Remaining blockers before controlled activation
+
+If any check cannot be safely performed, report
+UNVERIFIED rather than assuming it passed.
+
+Do not begin Gate 1B.
+Do not enable synchronization.
+Do not publish.
+
+STOP after the report.
