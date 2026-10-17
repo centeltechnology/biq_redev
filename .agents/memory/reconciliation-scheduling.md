@@ -3,12 +3,13 @@ name: Reconciliation scheduling constraints
 description: Owner hosting/cost constraints and Scheduled Deployment versus Agent Routine distinction.
 ---
 
-Keep the existing Autoscale web application. Do not upgrade web hosting or
-create paid infrastructure without approval. Prefer approximately 15-minute
-reconciliation if supported and cost-effective.
+Keep the existing Autoscale web application and use a separate Replit Scheduled
+Deployment for periodic subscription reconciliation. Do not upgrade to Reserved
+VM or create paid infrastructure without approval. Prefer approximately
+15-minute reconciliation if supported and cost-effective.
 
-**Why:** The owner explicitly requires reliable reconciliation without changing
-web hosting and requires approval before paid infrastructure or live execution.
+**Why:** The owner approved this implementation direction and explicitly requires
+approval before paid infrastructure or live execution.
 
 **How to apply:** Prepare the existing private command and confirm the owner's
 actual scheduling/coexistence path, production bindings, timeout and quote before
