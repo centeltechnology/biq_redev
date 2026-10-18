@@ -1,0 +1,56 @@
+BAKERIQ — GATE 1A: CLOUDFLARE CRON SCHEDULER
+
+**Decision:** We will use Cloudflare Workers Cron Triggers instead of Replit Scheduled Deployments.
+
+We already use Cloudflare Workers for scheduling in another project. BakerIQ must have its own independent Worker and secrets.
+
+Keep BakerIQ's existing Replit Autoscale deployment.
+
+### Objective
+
+Prepare a secure Cloudflare-triggered subscription reconciliation mechanism using the existing Gate 1A reconciliation engine.
+
+Target schedule: every 15 minutes.
+
+### Requirements
+
+1. Inspect the existing reconciliation service and determine whether it can safely execute within a Replit Autoscale HTTP request.
+
+2. Account for the current 20-account batch limit, provider retries, execution duration, and request timeouts.
+
+3. Design the smallest reliable solution. A Cloudflare request must trigger bounded work that finishes safely. Do not introduce an unreliable fire-and-forget background task.
+
+4. Add a dedicated server-to-server endpoint for Cloudflare, using strong authentication, replay protection, and appropriate rate limiting.
+
+5. Keep Stripe credentials and production database access exclusively on BakerIQ's server. Cloudflare should only send authenticated triggers.
+
+6. Reuse existing database locks, reconciliation safeguards, durable retry handling, test-account protections, and affiliate award restrictions.
+
+7. Maintain `SUBSCRIPTION_SYNC_ENABLED` as a separate, default-off activation gate.
+
+8. Keep `SUBSCRIPTION_SYNC_IN_PROCESS_ENABLED` disabled. Do not reintroduce the Autoscale background timer.
+
+9. Prepare the Cloudflare Worker code, cron configuration, secret configuration instructions, failure logging, and retry/alerting approach.
+
+10. Ensure one failed or overlapping invocation cannot cause duplicate entitlement changes.
+
+### Verification
+
+Implement and locally test the proposed solution, including unauthorized requests, replays, overlapping invocations, timeouts, and failed Stripe requests.
+
+Run relevant regression tests and the production build.
+
+### Restrictions
+
+- Do not modify TextBack's existing Worker.
+- Do not activate the new Cloudflare Worker.
+- Do not enable subscription reconciliation.
+- Do not change production data, accounts, or payments.
+- Do not publish automatically.
+- Do not begin Gate 1B.
+
+### Final report
+
+Explain the architecture in plain English, list changed files and test results, identify anything that needs configuring in Cloudflare, and state whether the solution is ready for a disabled-first release.
+
+Stop for approval.
