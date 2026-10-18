@@ -63,7 +63,8 @@ it.each([0, 1])("verified webhook queueing and event deduplication remain indepe
 it("the scheduled entry point works with the in-process timer off and keeps existing candidate/retry bounds", async () => {
   expect(await reconciliationTick()).toEqual({ failed: false, processed: 1, skipped: false });
   const selection = mocks.query.mock.calls.find(([sql]) => sql.includes("SELECT b.id"))![0];
-  expect(selection).toContain("LIMIT 20");
+  expect(selection).toContain("LIMIT $1");
+  expect(mocks.query.mock.calls.find(([sql]) => sql.includes("SELECT b.id"))![1]).toEqual([20]);
   expect(selection).toContain("COALESCE(s.attempts,0)<5");
   expect(selection).toContain("s.next_attempt_at<=now()");
   expect(mocks.sync).toHaveBeenCalledTimes(1);

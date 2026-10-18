@@ -2,6 +2,7 @@ import type { Pool, PoolClient } from "pg";
 import { accountRef, asPlan, billingAccess, effective, isTestAccount, paying, type Billing, type Subject } from "./policy";
 import type { SyncRepository } from "./synchronizer";
 import type { Snapshot } from "./provider";
+import { connectWithTimeout } from "./bounded-pool";
 
 const millis = (v: any) => v ? new Date(v).getTime() : null;
 const date = (v: number | null) => v === null ? null : new Date(v);
@@ -48,12 +49,17 @@ async function save(client: PoolClient, id: string, snapshot: Snapshot, plan: st
       ON CONFLICT (invoice_id) DO NOTHING`, [a.invoiceId,id,a.subscriptionId,a.plan]);
   }
 }
-export function repository(pool: Pool): SyncRepository {
+export function repository(pool: Pool, statementTimeoutMs?: number): SyncRepository {
   return {
     async locked(id, work) {
-      const client = await pool.connect();
+      const client = statementTimeoutMs
+        ? await connectWithTimeout(pool, statementTimeoutMs)
+        : await pool.connect();
       try {
         await client.query("BEGIN");
+        if (statementTimeoutMs) {
+          await client.query("SELECT set_config('statement_timeout',$1,true)", [`${statementTimeoutMs}ms`]);
+        }
         const lock = await client.query(
           "SELECT pg_try_advisory_xact_lock(hashtextextended($1,0)) AS acquired",
           [`bakeriq:subscription:${id}`]);
@@ -77,14 +83,36 @@ export function repository(pool: Pool): SyncRepository {
       } finally { client.release(); }
     },
     async failure(id, code, now) {
-      await pool.query(`INSERT INTO subscription_sync
+      if (!statementTimeoutMs) {
+        await pool.query(`INSERT INTO subscription_sync
         (baker_id,error_code,last_attempt_at,attempts,next_attempt_at,needs_reconcile)
         SELECT id,$2,$3,1,$3::timestamptz+interval '1 minute',true FROM bakers WHERE id=$1
         ON CONFLICT (baker_id) DO UPDATE SET error_code=$2,last_attempt_at=$3,
           attempts=LEAST(subscription_sync.attempts+1,5),needs_reconcile=true,
           next_attempt_at=$3::timestamptz+
             (LEAST(900,60*power(2,subscription_sync.attempts)) * interval '1 second')`,
-      [id, code, new Date(now)]);
+        [id, code, new Date(now)]);
+        return;
+      }
+      const client = await connectWithTimeout(pool, statementTimeoutMs);
+      try {
+        await client.query("BEGIN");
+        await client.query("SELECT set_config('statement_timeout',$1,true)", [`${statementTimeoutMs}ms`]);
+        await client.query(`INSERT INTO subscription_sync
+          (baker_id,error_code,last_attempt_at,attempts,next_attempt_at,needs_reconcile)
+          SELECT id,$2,$3,1,$3::timestamptz+interval '1 minute',true FROM bakers WHERE id=$1
+          ON CONFLICT (baker_id) DO UPDATE SET error_code=$2,last_attempt_at=$3,
+            attempts=LEAST(subscription_sync.attempts+1,5),needs_reconcile=true,
+            next_attempt_at=$3::timestamptz+
+              (LEAST(900,60*power(2,subscription_sync.attempts)) * interval '1 second')`,
+        [id, code, new Date(now)]);
+        await client.query("COMMIT");
+      } catch (error) {
+        await client.query("ROLLBACK").catch(() => {});
+        throw error;
+      } finally {
+        client.release();
+      }
     },
   };
 }

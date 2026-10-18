@@ -1,27 +1,19 @@
 ---
 name: Reconciliation scheduling constraints
-description: Owner hosting/cost constraints and Scheduled Deployment versus Agent Routine distinction.
+description: BakerIQ's Cloudflare scheduler decision and activation safety boundaries.
 ---
 
-Keep the existing Autoscale web application and use a separate Replit Scheduled
-Deployment for periodic subscription reconciliation. Do not upgrade to Reserved
-VM or create paid infrastructure without approval. Prefer approximately
-15-minute reconciliation if supported and cost-effective.
+Keep the existing Replit Autoscale web application. Use a standalone BakerIQ
+Cloudflare Worker Cron Trigger for periodic subscription reconciliation, with
+its own Worker and secrets; never modify the other project's Worker. Target a
+15-minute UTC cadence.
 
-**Why:** The owner approved this implementation direction and explicitly requires
-approval before paid infrastructure or live execution.
+**Why:** The owner changed the scheduler decision to Cloudflare Cron Triggers and
+requires BakerIQ to have an independent Worker and secrets while preserving the
+existing website deployment.
 
-**How to apply:** Prepare the existing private command and confirm the owner's
-actual scheduling/coexistence path, production bindings, timeout and quote before
-configuration. Do not migrate the whole project merely to add a job without
-separate approval. Treat supervised execution and recurrence as separate approvals.
-
-Do not apply Agent Routines' one-hour minimum to Scheduled Deployments.
-
-**Why:** Documentation-search summaries conflated them; the Routine source has
-the limit, while the Scheduled Deployment source describes cron without specifying
-a minimum interval or numeric maximum timeout.
-
-**How to apply:** Check the actual Scheduled deployment UI for cadence/timeout
-limits; do not promise 15-minute support or assert an hourly restriction from
-search summaries alone.
+**How to apply:** Keep Cloudflare Cron execution gated off until explicitly
+approved. Keep Stripe credentials and database access on BakerIQ's server; the
+Worker only sends a signed trigger. Treat a supervised first run, reconciliation
+activation, and recurring scheduling as separate approvals. Do not deploy or
+activate the Worker without approval.

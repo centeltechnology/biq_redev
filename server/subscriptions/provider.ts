@@ -7,12 +7,15 @@ export class SyncError extends Error {
 export interface PaidActivity { invoiceId: string; subscriptionId: string; plan: Plan }
 export interface Snapshot { billing: Billing; activities: PaidActivity[] }
 type Catalog = Map<string, "basic" | "pro">;
-const requestOptions = { timeout: 10_000, maxNetworkRetries: 1 };
+const defaultRequestOptions = { timeout: 10_000, maxNetworkRetries: 1 };
 const ident = (value: any): string | undefined => typeof value === "string" ? value : value?.id;
 function subscriptionOf(invoice: any) {
   return ident(invoice.parent?.subscription_details?.subscription ?? invoice.subscription);
 }
-export async function priceCatalog(stripe: Stripe): Promise<Catalog> {
+export async function priceCatalog(
+  stripe: Stripe,
+  requestOptions = defaultRequestOptions,
+): Promise<Catalog> {
   const prices = await stripe.prices.list({
     lookup_keys: ["bakeriq_basic_monthly", "bakeriq_pro_monthly"], active: true, limit: 100,
   }, requestOptions);
@@ -35,16 +38,21 @@ export async function priceCatalog(stripe: Stripe): Promise<Catalog> {
 // never authority for status, customer identity, prices, or entitlement.
 export async function currentBilling(
   stripe: Stripe, subject: Subject, previous: Billing | null, now: number,
+  options: { budgetMs?: number; requestTimeoutMs?: number; maxNetworkRetries?: number } = {},
 ): Promise<Snapshot> {
   if (!subject.customerId) throw new SyncError("MISSING_CUSTOMER");
   const customerId = subject.customerId;
-  const deadline = Date.now() + 45_000;
+  const deadline = Date.now() + (options.budgetMs ?? 45_000);
+  const requestOptions = {
+    timeout: options.requestTimeoutMs ?? defaultRequestOptions.timeout,
+    maxNetworkRetries: options.maxNetworkRetries ?? defaultRequestOptions.maxNetworkRetries,
+  };
   let requests = 0;
   const request = async <T>(operation: () => Promise<T>): Promise<T> => {
     if (++requests > 40 || Date.now() > deadline) throw new SyncError("RECONCILIATION_BUDGET");
     return operation();
   };
-  const catalog = await priceCatalog(stripe);
+  const catalog = await request(() => priceCatalog(stripe, requestOptions));
   const subscriptions = await request(() => stripe.subscriptions.list({
     customer: customerId, status: "all", limit: 100,
   }, requestOptions));

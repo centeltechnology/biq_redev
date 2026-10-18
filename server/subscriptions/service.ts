@@ -6,6 +6,7 @@ import { diagnostics, repository } from "./repository";
 import { currentBilling } from "./provider";
 import { synchronize } from "./synchronizer";
 import { accountRef } from "./policy";
+import { connectWithTimeout } from "./bounded-pool";
 
 export const syncEnabled = () => process.env.SUBSCRIPTION_SYNC_ENABLED === "true";
 const relevant = (type: string) => type.startsWith("customer.subscription.") ||
@@ -46,9 +47,17 @@ export async function queueReconciliation() {
 }
 let running = false;
 export const reconciliationBatchLock = "bakeriq:subscription:batch";
-export async function reconciliationTick() {
+export interface ReconciliationOptions {
+  maxAccounts?: number;
+  accountBudgetMs?: number;
+  stripeRequestTimeoutMs?: number;
+  stripeNetworkRetries?: number;
+  statementTimeoutMs?: number;
+}
+export async function reconciliationTick(options: ReconciliationOptions = {}) {
   if (!syncEnabled() || running) return;
   running = true;
+  const maxAccounts = Math.max(1, Math.min(20, Math.trunc(options.maxAccounts ?? 20)));
   let failed = false;
   let processed = 0;
   let skipped = false;
@@ -59,9 +68,14 @@ export async function reconciliationTick() {
     // A dedicated coordination transaction spans the batch, including with a
     // transaction-pooling database proxy. Account writes keep their existing,
     // separate per-account transactions; this transaction performs no writes.
-    client = await pool.connect();
+    client = options.statementTimeoutMs
+      ? await connectWithTimeout(pool, options.statementTimeoutMs)
+      : await pool.connect();
     await client.query("BEGIN");
     transaction = true;
+    if (options.statementTimeoutMs) {
+      await client.query("SELECT set_config('statement_timeout',$1,true)", [`${options.statementTimeoutMs}ms`]);
+    }
     const lock = await client.query(
       "SELECT pg_try_advisory_xact_lock(hashtextextended($1,0)) AS acquired", [reconciliationBatchLock]);
     if (!lock.rows[0].acquired) {
@@ -73,12 +87,16 @@ export async function reconciliationTick() {
         LEFT JOIN subscription_sync s ON s.baker_id=b.id
         WHERE b.stripe_customer_id IS NOT NULL AND COALESCE(s.attempts,0)<5
           AND (s.baker_id IS NULL OR s.next_attempt_at<=now())
-        ORDER BY s.last_attempt_at NULLS FIRST,b.id LIMIT 20`);
+        ORDER BY s.last_attempt_at NULLS FIRST,b.id LIMIT $1`, [maxAccounts]);
       const stripe = await getUncachableStripeClient();
-      const repo = repository(pool);
+      const repo = repository(pool, options.statementTimeoutMs);
       for (const row of due.rows) {
         const outcome = await synchronize(row.id,repo,
-          (s,p,now) => currentBilling(stripe,s,p,now));
+          (s,p,now) => currentBilling(stripe,s,p,now, {
+            budgetMs: options.accountBudgetMs,
+            requestTimeoutMs: options.stripeRequestTimeoutMs,
+            maxNetworkRetries: options.stripeNetworkRetries,
+          }));
         processed++;
         if (outcome === "failed") {
           failed = true;

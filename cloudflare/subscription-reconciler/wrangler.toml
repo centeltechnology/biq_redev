@@ -1,0 +1,11 @@
+name = "bakeriq-subscription-reconciler"
+main = "src/index.ts"
+compatibility_date = "2026-10-18"
+workers_dev = false
+
+[vars]
+BAKERIQ_TRIGGER_URL = "https://bakeriq.app/api/internal/subscription-reconcile"
+SUBSCRIPTION_CRON_ENABLED = "false"
+
+[triggers]
+crons = ["*/15 * * * *"]

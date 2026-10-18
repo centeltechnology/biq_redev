@@ -10,6 +10,7 @@ import { startRetentionScheduler } from "./retention-scheduler";
 import { applicationJson } from "./connect-webhook-auth";
 import { enqueueVerifiedSubscriptionEvent, startSubscriptionReconciliation } from "./subscriptions/service";
 import { managedSubscriptionHandler } from "./subscriptions/managed-handler";
+import { registerCloudflareSubscriptionTrigger } from "./subscriptions/cloudflare-trigger";
 
 const app = express();
 const httpServer = createServer(app);
@@ -96,6 +97,9 @@ app.post(
     enqueue: enqueueVerifiedSubscriptionEvent,
   })
 );
+
+// Keep the Cloudflare trigger's bounded raw-body parser ahead of the shared JSON parser.
+registerCloudflareSubscriptionTrigger(app);
 
 app.use(applicationJson());
 

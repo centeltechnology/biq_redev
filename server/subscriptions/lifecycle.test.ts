@@ -179,6 +179,18 @@ describe("trusted billing lifecycle (no real provider/customer changes)",() => {
     await synchronize(m.s.id,m.repo,(s,p,n)=>currentBilling(f.stripe,s,p,n),now+day*21);
     expect(m.s.plan).toBe("basic");expect(m.error).toBe("PROVIDER_OR_STORAGE_UNAVAILABLE");
   });
+  it("uses the bounded trigger Stripe timeout without retrying and preserves access on timeout",async()=>{
+    const f=fixtures(),m=memoryRepo();m.s.plan="pro";
+    f.api.prices.list.mockRejectedValue(new Error("synthetic Stripe timeout"));
+    expect(await synchronize(m.s.id,m.repo,
+      (s,p,n)=>currentBilling(f.stripe,s,p,n,{
+        budgetMs:15_000,requestTimeoutMs:5_000,maxNetworkRetries:0,
+      }),now)).toBe("failed");
+    expect((f.api.prices.list as any).mock.calls[0][1])
+      .toEqual({timeout:5_000,maxNetworkRetries:0});
+    expect(m.s.plan).toBe("pro");
+    expect(m.writes).toBe(0);
+  });
   it("eventual invoice omission cannot erase verified unexpired payment",async()=>{
     const f=fixtures(),m=memoryRepo();
     await synchronize(m.s.id,m.repo,(s,p,n)=>currentBilling(f.stripe,s,p,n),now);
