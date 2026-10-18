@@ -1,74 +1,211 @@
-# BakerIQ subscription reconciliation trigger
+# BakerIQ Gate 1A — consolidated Cloudflare rollout
 
-This is an independent Cloudflare Worker. It does not contain a Stripe key or
-database credential; it only signs a short server-to-server trigger for BakerIQ.
-The existing Replit Autoscale deployment remains the web app and executes the
-existing reconciliation service synchronously. There is no detached/background
-task.
+**Prepared, not activated.** Keep the existing Autoscale website. This is a
+separate BakerIQ Worker, not TextBack's Worker. No database or Stripe credentials
+belong in Cloudflare. The checked-in configuration has `crons = []`,
+`SUBSCRIPTION_CRON_ENABLED = "false"`, no public Worker route, and logging enabled.
 
-## Disabled-first configuration
+## Security and execution contract
 
-`wrangler.toml` contains the UTC cron schedule (`*/15 * * * *`) but keeps
-`SUBSCRIPTION_CRON_ENABLED = "false"`. The Worker skips every scheduled event
-until that variable is deliberately changed and deployed. BakerIQ separately
-requires `SUBSCRIPTION_SYNC_ENABLED=true`; its in-process timer remains controlled
-by the separate `SUBSCRIPTION_SYNC_IN_PROCESS_ENABLED` flag and is not started by
-this Worker.
+- BakerIQ accepts only a fixed signed POST on
+  `/api/internal/subscription-reconcile`. HMAC-SHA256 covers method, path,
+  timestamp, UUID nonce and exact body hash. Constant-time signature comparison;
+  timestamps must be within five minutes. Request body limit: 512 bytes.
+- Execution requires the independent Replit `SUBSCRIPTION_SYNC_ENABLED=true`.
+  Missing signing secret, invalid auth or unavailable protection storage fails
+  closed. `SUBSCRIPTION_SYNC_IN_PROCESS_ENABLED` must remain unset/false.
+- The signed `verify` body is always non-mutating, even if sync is unexpectedly
+  enabled. It never claims a nonce or runs reconciliation. An authenticated
+  disabled response is 503 with `Subscription synchronization is disabled`.
+- Execution nonces persist in PostgreSQL. A transaction/advisory lock serializes
+  replay claims and the four-per-rolling-minute limit across Autoscale instances.
+  Replays return 409; rate limits return 429; storage/provider failures return 503.
+- One awaited HTTP request processes at most one due account, retaining existing
+  whole-batch/account locks, transaction rollback, paid-through policy, test/admin
+  protections and invoice-candidate uniqueness. No commissions are paid.
+- Provider reads have a 15-second budget, including the price lookup; each Stripe
+  request is limited to five seconds or the remaining budget, with no retries.
+  Late responses are discarded before entitlements can be saved. Database
+  checkout/statements use two-second limits (three seconds for nonce protection).
+  Limits are per operation, not a claim of a hard OS-level end-to-end deadline.
+- Client disconnection propagates cancellation. Cancellation observed before
+  commit rolls back staged entitlement/candidate writes. A disconnect racing
+  with an already-started successful COMMIT can still leave **one authorized
+  commit**. A network error is never proof that no work committed: inspect
+  diagnostics before retrying. Replayed nonces and overlapping batches cannot
+  bypass the locks; fresh authenticated requests can legitimately recheck an
+  account, with idempotent entitlement/candidate storage—not exactly-once HTTP.
+- Cron, once approved, awaits up to 30 separate requests, spaces them by at least
+  16 seconds and reserves each request's 60-second timeout inside a 12-minute
+  wall-clock allowance. It stops on empty work or any failure. It never launches
+  detached background work or immediately retries a failed request. Eligible
+  accounts resume on later runs using existing durable retry/backoff; the
+  five-attempt cap leaves unresolved accounts visible for review.
+- Normal short Stripe histories fit the 15-second allowance; unusually long or
+  slow histories fail safely for review. Thirty checks per invocation is a
+  capacity cap, **not** a promise that every account is checked every 15 minutes.
+  Simulated timing tests verify bounds; actual live latency remains for the
+  supervised run. Replit's docs do not specify a hard inbound Autoscale timeout.
 
-Do not deploy or enable the Worker until the owner approves. Do not turn on either
-BakerIQ synchronization setting during preparation.
+## Migration review
 
-## Owner setup after approval
+`migrations/20261018_subscription_trigger_nonces.sql` is additive and transactional:
+only the nonce table, unique primary key and `received_at` index. Five-second lock
+and 30-second statement limits bound DDL waits. It has no business-table updates,
+foreign keys, backfills, drops or startup/build-time DDL. Drizzle's
+`shared/schema.ts` declares the same table so a future schema push preserves it.
 
-1. Apply the additive migration
-   `migrations/20261018_subscription_trigger_nonces.sql` to the intended
-   development database, run its tests, then obtain separate production-migration
-   approval before applying it to production.
-2. Generate one high-entropy shared signing secret (at least 32 bytes). Store it
-   only as Replit secret `CLOUDFLARE_SUBSCRIPTION_TRIGGER_SECRET` and Cloudflare
-   Worker secret `BAKERIQ_TRIGGER_SECRET` (for example, enter it through
-   `wrangler secret put BAKERIQ_TRIGGER_SECRET --config cloudflare/subscription-reconciler/wrangler.toml`).
-   Never put it in `wrangler.toml`, logs, source control, or chat.
-3. Confirm `BAKERIQ_TRIGGER_URL` is the BakerIQ production endpoint. It is pinned
-   in the Worker code to HTTPS `bakeriq.app` and the exact private path.
-4. Keep `SUBSCRIPTION_CRON_ENABLED=false` for the first Worker deployment. The
-   Worker emits a safe disabled log and sends no request. Configure Cloudflare
-   Worker invocation/error logs and an owner alert for thrown scheduled errors.
-5. The Worker exposes no public manual-trigger route. Before the supervised first
-   production run, choose and verify an owner-controlled one-shot invocation
-   method that sends exactly one signed request. Keep the recurring Worker gate
-   false during that preparation. A disabled BakerIQ master gate returns 503
-   and performs no synchronization.
-6. A successful first run requires separate approval to set BakerIQ
-   `SUBSCRIPTION_SYNC_ENABLED=true`. Inspect its response, production logs, and
-   Super Admin diagnostics before separately approving recurring execution.
-   Keep `SUBSCRIPTION_SYNC_IN_PROCESS_ENABLED` unset/false throughout.
+Accepted execution requests prune **security metadata only** older than ten
+minutes, longer than the authentication window (including allowed future clock
+skew). The timestamp index supports pruning and rolling counts. At four accepted
+requests/minute the active window is small. If execution stops, expired rows remain
+until the next accepted trigger; no separate cleanup scheduler is needed.
 
-## Bounds, locking, retries, and alerts
+## Production rollout checklist — owner approval required at each stage
 
-Each signed HTTP request synchronously handles at most one due account. Provider
-work is budgeted to 15 seconds per account, each Stripe request times out after
-5 seconds, and Stripe network retries are disabled for this path. The Worker
-waits at least 16 seconds between requests and stops after 30 account requests
-or 12 minutes of work, whichever comes first; each HTTP request has a 60-second
-caller timeout to leave headroom below Cloudflare's documented 15-minute
-scheduled-invocation ceiling. Database checkout is limited to 2 seconds and SQL
-statements in the trigger path use a 2-second statement timeout. The endpoint uses the existing whole-batch and
-per-account PostgreSQL advisory locks.
+Commands below are instructions only; none were executed against production.
 
-HMAC-SHA256 authenticates method, path, timestamp, nonce, and body hash. The
-server rejects timestamps outside five minutes, stores accepted nonces durably,
-and rate-limits to four accepted requests per rolling minute. Exact replays are
-rejected. Each request has a fresh UUID nonce. No automatic Cloudflare retry is
-performed: if an invocation fails, Cloudflare records an error and the next
-15-minute run resumes eligible work using the existing durable per-account
-retry/backoff policy. Configure an owner alert against Worker invocation errors;
-this code does not create or configure account-level alerts.
+### 1. Publish BakerIQ disabled, with the additive schema
 
-## Local checks
+- Confirm both production sync flags unset/false. Preserve Autoscale and all
+  existing Stripe webhook handlers/settings.
+- Review the Publish schema diff for the managed production database: expect
+  only `subscription_trigger_nonces`, its primary key and timestamp index.
+  If unrelated changes, renames, drops or data overwrite appear, **stop**.
+  Do not select “overwrite production data”.
+- Approve Publish only when ready. Replit's supported Publish flow applies the
+  development-to-production schema diff. The SQL file is a review/reference
+  artifact; do not run a custom production migration script, startup DDL,
+  `db:push` against production, or a migration build hook.
+- Confirm normal startup, sync-disabled log, existing app/Stripe endpoints healthy.
 
-The BakerIQ Vitest suite covers invalid signatures, timestamp/body tampering,
-replays, rate limiting, disabled gates, overlap/failure responses, and Worker
-signing/disabled behavior. `npm run build` builds BakerIQ; it does not deploy
-this Worker. Use Wrangler's local validation/build after installing Wrangler in
-the separate Cloudflare project. No Worker has been deployed by this change.
+### 2. Configure signing secrets and deploy an inert independent Worker
+
+- After separate configuration approval, generate a random secret with at least
+  32 bytes of entropy in a trusted secret manager. Store the same value as Replit
+  production secret `CLOUDFLARE_SUBSCRIPTION_TRIGGER_SECRET` and Worker secret
+  `BAKERIQ_TRIGGER_SECRET`. Never put values in chat, command arguments, source
+  control or logs. Do not reuse TextBack's or Stripe's secrets.
+- From the approved Cloudflare account, with the default config unchanged:
+  `npx wrangler deploy --config cloudflare/subscription-reconciler/wrangler.toml`
+- Then enter the Worker secret using the secure prompt:
+  `npx wrangler secret put BAKERIQ_TRIGGER_SECRET --config cloudflare/subscription-reconciler/wrangler.toml`
+- Confirm **zero Cron Triggers**, runtime flag false, correct distinct Worker
+  name, `workers_dev=false`, no routes, and the pinned HTTPS BakerIQ target.
+  No reconciliation can start just by deploying this Worker.
+
+### 3. Verify auth without executing reconciliation
+
+- In a trusted owner/operator shell, securely inject
+  `CLOUDFLARE_SUBSCRIPTION_TRIGGER_SECRET` from the secret manager. This operator
+  tool needs no database or Stripe credentials. Do not copy the live key into a
+  committed `.env` file or casually into the development app.
+- Run once: `npx tsx script/trigger-subscription-sync-once.ts --disabled-check`
+- Expected: authenticated disabled-check success. A missing secret, wrong key,
+  unreachable endpoint or unexpectedly enabled gate fails the check. The signed
+  probe cannot change entitlements even if a flag was enabled unexpectedly.
+- The tool and scheduled Worker share the identical signer, pinned URL and endpoint.
+  It does not validate Cloudflare-hosted network delivery; that is observed on
+  the first approved Cron event.
+
+### 4. Supervised first account run — separate execution approval
+
+- Keep Cloudflare **without Cron** and runtime flag false. Keep the in-process
+  Replit flag unset/false. Record aggregate account/plan and financial baselines.
+- Explicitly approve and apply `SUBSCRIPTION_SYNC_ENABLED=true` in the production
+  configuration, including any platform-required republish. This also enables
+  existing verified-webhook queueing; it does not start the web timer.
+- With the same trusted operator secret, run exactly once:
+  `npx tsx script/trigger-subscription-sync-once.ts --single-run --confirm-entitlement-write`
+- Expect 200 and `processed=0` or `1`. Zero means no due account and is not proof
+  of a successful account synchronization. Inspect Super Admin diagnostics,
+  production logs and aggregate baselines; verify test access and award holds.
+- On timeout/error/409/429/503, do not blindly rerun. Check whether a prior
+  authorized transaction committed and whether work is pending or locked.
+- Return the master flag to unset/false until recurring execution is separately
+  approved. Never enable the in-process flag.
+
+### 5. Monitoring and later recurring activation
+
+- During supervised work watch BakerIQ logs and `/api/admin/subscription-sync`.
+  Worker logs: `npx wrangler tail --config cloudflare/subscription-reconciler/wrangler.toml --format json`.
+  After Cron activation also inspect Cloudflare's Cron Past Events/observability.
+- Before unattended activation, connect invocation-error logs to the owner's
+  approved notification destination. No alert recipient/channel has been
+  configured by this work; log retention alone does not guarantee notifications.
+- Only after recurring-activation approval: enable Replit's master flag, edit
+  the Worker config to `SUBSCRIPTION_CRON_ENABLED = "true"` and
+  `crons = ["*/15 * * * *"]` (UTC), then deploy that same BakerIQ Worker.
+  Observe the first actual Cloudflare event and its completed origin response.
+- Alert/investigate 409/429/503/timeouts, repeated failures, attempts reaching
+  five, or accounts whose last success stops advancing. Keep logs free of PII,
+  signatures and secrets.
+
+### Stop/rollback controls
+
+Remove Cron entries and set the Worker runtime flag false, deploy that Worker
+configuration, and disable Replit's master flag. Keep the in-process flag off.
+Allow/check any already-committing authorized transaction; do not delete customer
+data or blindly reverse billing state. Missing schema/secrets always fail closed,
+so the app and inert Worker may be released in either order while flags remain off.
+
+## Reproducible local checks
+
+`TEST_SUBSCRIPTION_DB=1 npx vitest run` enables the previously skipped PostgreSQL
+suites. Old migration/repository tests use session-local TEMP business fixtures;
+the new security suite uses only development nonce metadata and removes its own
+fixture nonces. No real Stripe reads/writes or business rows are used.
+`npm run build` builds BakerIQ, not a Worker deployment. Worker source is also
+bundled locally with esbuild. No production activation is implied by a passing test.
+
+## Final preparation evidence — 2026-10-18
+
+- Full regression run with development PostgreSQL: **159 passed, zero skipped**.
+  All 12 formerly skipped tests ran; newly added PostgreSQL security cases also ran.
+- Production app build, Worker/operator esbuild bundles, and focused
+  Worker/operator TypeScript check passed. The application-wide TypeScript check
+  still reports 16 pre-existing unrelated errors; it is not a clean global check.
+  Existing HTML/noscript, Browserslist, PostCSS and chunk-size warnings remain.
+- Development migration applied/reapplied successfully. Development counts
+  remained 11 bakers, 8 customers, 18 quotes, 9 orders, zero quote payments and zero
+  commissions. The aggregate baker-record fingerprint was identical before/after;
+  all synthetic nonce fixtures were removed.
+- Production flag metadata confirmed both reconciliation flags unset. A
+  read-only production catalog check confirmed the nonce table is not yet present:
+  production migration remains pending approval. No secret values were read.
+- Development app restarted and rendered normally; startup logged reconciliation
+  disabled. No production reconciliation, migration, flag change, publication,
+  Worker deployment or Cron activation was performed. No production signed
+  delivery or live account-latency claim is made.
+- Before unattended activation, owner secret binding, production schema approval,
+  notification routing and supervised-run approval remain required.
+
+## Exact finalization change manifest
+
+Existing implementation is retained; these are the files changed in this pass,
+not a claim that publishing uploads only these files:
+
+```text
+cloudflare/subscription-reconciler/src/index.ts
+cloudflare/subscription-reconciler/wrangler.toml
+cloudflare/subscription-reconciler/README.md
+script/trigger-subscription-sync-once.ts
+server/subscriptions/cloudflare-trigger.ts
+server/subscriptions/provider.ts
+server/subscriptions/repository.ts
+server/subscriptions/service.ts
+server/subscriptions/synchronizer.ts
+shared/schema.ts
+migrations/20261018_subscription_trigger_nonces.sql
+server/subscriptions/cloudflare-trigger-storage.test.ts
+server/subscriptions/cloudflare-trigger.test.ts
+server/subscriptions/cloudflare-worker.test.ts
+server/subscriptions/lifecycle.test.ts
+server/subscriptions/repository.test.ts
+server/subscriptions/cloudflare-postgres.test.ts
+server/subscriptions/trigger-once.test.ts
+.agents/memory/reconciliation-scheduling.md
+```
+
+No payment handlers, entitlement policy, test/admin account definitions,
+award-hold policy, web UI or existing deployment type were changed.

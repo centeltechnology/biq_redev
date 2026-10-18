@@ -154,6 +154,14 @@ export const subscriptionSyncEvents = pgTable("subscription_sync_events", {
   receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// Short-lived trigger security metadata, never customer/subscription data.
+export const subscriptionTriggerNonces = pgTable("subscription_trigger_nonces", {
+  nonce: varchar("nonce", { length: 36 }).primaryKey(),
+  receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
+}, table => [
+  index("subscription_trigger_nonces_received_at").on(table.receivedAt),
+]);
+
 export const subscriptionAwardCandidates = pgTable("subscription_award_candidates", {
   invoiceId: text("invoice_id").primaryKey(),
   bakerId: varchar("baker_id").notNull().references(() => bakers.id, { onDelete: "cascade" }),

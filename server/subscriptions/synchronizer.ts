@@ -14,14 +14,18 @@ export async function synchronize(
   id: string, repo: SyncRepository,
   fetchCurrent: (s: Subject, p: Billing | null, now: number) => Promise<Snapshot>,
   now = Date.now(),
+  signal?: AbortSignal,
 ) {
   try {
+    signal?.throwIfAborted();
     const acquired = await repo.locked(id, async account => {
+      signal?.throwIfAborted();
       // No provider reads or billing ownership transitions for test/admin access.
       if (isTestAccount(account.subject.id) ||
         !account.subject.customerId && account.subject.plan !== "free") return;
       if (!account.subject.customerId) throw new SyncError("MISSING_CUSTOMER");
       const snapshot = await fetchCurrent(account.subject, account.previous, now);
+      signal?.throwIfAborted();
       const access = billingAccess(snapshot.billing, now);
       const entitlement = effective(account.subject, access, now);
       // Persist the billing tier, not a temporary trial/gift overlay, so an

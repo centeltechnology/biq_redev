@@ -38,7 +38,7 @@ export async function priceCatalog(
 // never authority for status, customer identity, prices, or entitlement.
 export async function currentBilling(
   stripe: Stripe, subject: Subject, previous: Billing | null, now: number,
-  options: { budgetMs?: number; requestTimeoutMs?: number; maxNetworkRetries?: number } = {},
+  options: { budgetMs?: number; requestTimeoutMs?: number; maxNetworkRetries?: number; signal?: AbortSignal } = {},
 ): Promise<Snapshot> {
   if (!subject.customerId) throw new SyncError("MISSING_CUSTOMER");
   const customerId = subject.customerId;
@@ -49,8 +49,14 @@ export async function currentBilling(
   };
   let requests = 0;
   const request = async <T>(operation: () => Promise<T>): Promise<T> => {
-    if (++requests > 40 || Date.now() > deadline) throw new SyncError("RECONCILIATION_BUDGET");
-    return operation();
+    options.signal?.throwIfAborted();
+    const remaining = deadline - Date.now();
+    if (++requests > 40 || remaining <= 0) throw new SyncError("RECONCILIATION_BUDGET");
+    requestOptions.timeout = Math.min(options.requestTimeoutMs ?? defaultRequestOptions.timeout, remaining);
+    const result = await operation();
+    options.signal?.throwIfAborted();
+    if (Date.now() >= deadline) throw new SyncError("RECONCILIATION_BUDGET");
+    return result;
   };
   const catalog = await request(() => priceCatalog(stripe, requestOptions));
   const subscriptions = await request(() => stripe.subscriptions.list({

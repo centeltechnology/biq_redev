@@ -49,12 +49,14 @@ async function save(client: PoolClient, id: string, snapshot: Snapshot, plan: st
       ON CONFLICT (invoice_id) DO NOTHING`, [a.invoiceId,id,a.subscriptionId,a.plan]);
   }
 }
-export function repository(pool: Pool, statementTimeoutMs?: number): SyncRepository {
+export function repository(pool: Pool, statementTimeoutMs?: number, signal?: AbortSignal): SyncRepository {
   return {
     async locked(id, work) {
+      signal?.throwIfAborted();
       const client = statementTimeoutMs
         ? await connectWithTimeout(pool, statementTimeoutMs)
         : await pool.connect();
+      let discard = false;
       try {
         await client.query("BEGIN");
         if (statementTimeoutMs) {
@@ -75,12 +77,13 @@ export function repository(pool: Pool, statementTimeoutMs?: number): SyncReposit
         const state = await client.query("SELECT * FROM subscription_sync WHERE baker_id=$1", [id]);
         await work({ subject, previous: billingFromRow(state.rows[0]),
           save: (snapshot,plan,source,now) => save(client,id,snapshot,plan,source,now) });
+        signal?.throwIfAborted();
         await client.query("COMMIT");
         return true;
       } catch (error) {
-        await client.query("ROLLBACK");
+        await client.query("ROLLBACK").catch(() => { discard = true; });
         throw error;
-      } finally { client.release(); }
+      } finally { client.release(discard); }
     },
     async failure(id, code, now) {
       if (!statementTimeoutMs) {
@@ -95,6 +98,7 @@ export function repository(pool: Pool, statementTimeoutMs?: number): SyncReposit
         return;
       }
       const client = await connectWithTimeout(pool, statementTimeoutMs);
+      let discard = false;
       try {
         await client.query("BEGIN");
         await client.query("SELECT set_config('statement_timeout',$1,true)", [`${statementTimeoutMs}ms`]);
@@ -108,10 +112,10 @@ export function repository(pool: Pool, statementTimeoutMs?: number): SyncReposit
         [id, code, new Date(now)]);
         await client.query("COMMIT");
       } catch (error) {
-        await client.query("ROLLBACK").catch(() => {});
+        await client.query("ROLLBACK").catch(() => { discard = true; });
         throw error;
       } finally {
-        client.release();
+        client.release(discard);
       }
     },
   };

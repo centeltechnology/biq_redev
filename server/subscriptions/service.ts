@@ -53,6 +53,7 @@ export interface ReconciliationOptions {
   stripeRequestTimeoutMs?: number;
   stripeNetworkRetries?: number;
   statementTimeoutMs?: number;
+  signal?: AbortSignal;
 }
 export async function reconciliationTick(options: ReconciliationOptions = {}) {
   if (!syncEnabled() || running) return;
@@ -65,6 +66,7 @@ export async function reconciliationTick(options: ReconciliationOptions = {}) {
   let transaction = false;
   let discard = false;
   try {
+    options.signal?.throwIfAborted();
     // A dedicated coordination transaction spans the batch, including with a
     // transaction-pooling database proxy. Account writes keep their existing,
     // separate per-account transactions; this transaction performs no writes.
@@ -89,14 +91,16 @@ export async function reconciliationTick(options: ReconciliationOptions = {}) {
           AND (s.baker_id IS NULL OR s.next_attempt_at<=now())
         ORDER BY s.last_attempt_at NULLS FIRST,b.id LIMIT $1`, [maxAccounts]);
       const stripe = await getUncachableStripeClient();
-      const repo = repository(pool, options.statementTimeoutMs);
+      const repo = repository(pool, options.statementTimeoutMs, options.signal);
       for (const row of due.rows) {
+        options.signal?.throwIfAborted();
         const outcome = await synchronize(row.id,repo,
           (s,p,now) => currentBilling(stripe,s,p,now, {
             budgetMs: options.accountBudgetMs,
             requestTimeoutMs: options.stripeRequestTimeoutMs,
             maxNetworkRetries: options.stripeNetworkRetries,
-          }));
+            signal: options.signal,
+          }), Date.now(), options.signal);
         processed++;
         if (outcome === "failed") {
           failed = true;

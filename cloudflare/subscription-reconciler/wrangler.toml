@@ -8,4 +8,8 @@ BAKERIQ_TRIGGER_URL = "https://bakeriq.app/api/internal/subscription-reconcile"
 SUBSCRIPTION_CRON_ENABLED = "false"
 
 [triggers]
-crons = ["*/15 * * * *"]
+# Add "*/15 * * * *" only after the supervised run and activation approval.
+crons = []
+
+[observability]
+enabled = true

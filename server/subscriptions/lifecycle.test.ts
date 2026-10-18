@@ -191,6 +191,23 @@ describe("trusted billing lifecycle (no real provider/customer changes)",() => {
     expect(m.s.plan).toBe("pro");
     expect(m.writes).toBe(0);
   });
+  it("rejects an authoritative response arriving after the 15-second budget without saving",async()=>{
+    const f=fixtures(),m=memoryRepo();m.s.plan="pro";
+    let clock=1_000_000;
+    const time=vi.spyOn(Date,"now").mockImplementation(()=>clock);
+    f.api.subscriptions.list.mockImplementation(async()=>{
+      clock+=16_000;
+      return {has_more:false,data:[]};
+    });
+    try {
+      expect(await synchronize(m.s.id,m.repo,
+        (s,p,n)=>currentBilling(f.stripe,s,p,n,{budgetMs:15_000,requestTimeoutMs:5_000,maxNetworkRetries:0}),now))
+        .toBe("failed");
+      expect(m.s.plan).toBe("pro");
+      expect(m.writes).toBe(0);
+      expect(m.error).toBe("RECONCILIATION_BUDGET");
+    } finally {time.mockRestore();}
+  });
   it("eventual invoice omission cannot erase verified unexpired payment",async()=>{
     const f=fixtures(),m=memoryRepo();
     await synchronize(m.s.id,m.repo,(s,p,n)=>currentBilling(f.stripe,s,p,n),now);

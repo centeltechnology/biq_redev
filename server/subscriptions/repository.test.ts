@@ -65,4 +65,23 @@ describe.runIf(process.env.TEST_SUBSCRIPTION_DB === "1")("PostgreSQL atomic subs
     expect((await client.query("SELECT plan FROM pg_temp.bakers")).rows[0].plan).toBe("free");
     expect((await diagnostics(tempPool,true)).paidSubscribers).toBe(0);
   });
+  it("rolls back staged entitlement and candidate writes on cancellation before commit",async()=>{
+    const controller=new AbortController();
+    const repo=repository(tempPool,2_000,controller.signal);
+    await expect(repo.locked("fixture_baker",async account=>{
+      await account.save(snapshot,"pro","subscription",now);
+      controller.abort();
+    })).rejects.toThrow();
+    expect((await client.query("SELECT plan FROM pg_temp.bakers")).rows[0].plan).toBe("free");
+    expect((await client.query("SELECT count(*)::int n FROM pg_temp.subscription_sync")).rows[0].n).toBe(0);
+    expect((await client.query("SELECT count(*)::int n FROM pg_temp.subscription_award_candidates")).rows[0].n).toBe(0);
+  });
+  it("recovers from a PostgreSQL statement timeout without an entitlement fallback",async()=>{
+    const repo=repository(tempPool,100);
+    await expect(repo.locked("fixture_baker",async()=>{
+      await client.query("SELECT pg_sleep(0.2)");
+    })).rejects.toMatchObject({code:"57014"});
+    expect((await client.query("SELECT plan FROM pg_temp.bakers")).rows[0].plan).toBe("free");
+    expect(await synchronize("fixture_baker",repository(tempPool,2_000),async()=>snapshot,now)).toBe("synced");
+  });
 });

@@ -19,10 +19,13 @@ export async function sendReconciliationTrigger(
   fetcher: typeof fetch = fetch,
   now = Date.now(),
   nonce = crypto.randomUUID(),
+  checkOnly = false,
 ) {
+  const body = checkOnly ? '{"trigger":"verify"}' : BODY;
   const target = new URL(env.BAKERIQ_TRIGGER_URL);
   if (target.protocol !== "https:" || target.hostname !== ALLOWED_HOST ||
-      target.pathname !== PATH || target.search || target.hash) {
+      target.pathname !== PATH || target.search || target.hash ||
+      target.username || target.password || target.port) {
     throw new Error("BakerIQ trigger URL failed its safety check");
   }
   if (!env.BAKERIQ_TRIGGER_SECRET || new TextEncoder().encode(env.BAKERIQ_TRIGGER_SECRET).byteLength < 32) {
@@ -30,7 +33,7 @@ export async function sendReconciliationTrigger(
   }
 
   const timestamp = Math.floor(now / 1000).toString();
-  const bodyHash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(BODY));
+  const bodyHash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(body));
   const bodyHashHex = [...new Uint8Array(bodyHash)].map(byte => byte.toString(16).padStart(2, "0")).join("");
   const canonical = `POST\n${PATH}\n${timestamp}\n${nonce}\n${bodyHashHex}`;
   const key = await crypto.subtle.importKey(
@@ -47,13 +50,20 @@ export async function sendReconciliationTrigger(
       "x-bakeriq-nonce": nonce,
       "x-bakeriq-signature": signature,
     },
-    body: BODY,
+    body,
+    redirect: "error",
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
 }
 
-const worker = {
-  async scheduled(_event: unknown, env: Env) {
+export async function runScheduled(env: Env, runtime: {
+  now?: () => number;
+  sleep?: (ms: number) => Promise<unknown>;
+  send?: (env: Env) => Promise<Response>;
+} = {}) {
+    const now = runtime.now ?? Date.now;
+    const sleep = runtime.sleep ?? pause;
+    const send = runtime.send ?? sendReconciliationTrigger;
     if (env.SUBSCRIPTION_CRON_ENABLED !== "true") {
       console.info("BakerIQ subscription cron is disabled; no request sent");
       return;
@@ -61,29 +71,36 @@ const worker = {
     try {
       let processed = 0;
       let requests = 0;
-      const startedAt = Date.now();
+      const startedAt = now();
       while (requests < MAX_REQUESTS_PER_CRON) {
         // Leave enough headroom for the last bounded HTTP request under
         // Cloudflare's scheduled-invocation duration ceiling.
-        if (Date.now() - startedAt + REQUEST_TIMEOUT_MS > MAX_CRON_WORK_MS) break;
+        if (now() - startedAt + REQUEST_TIMEOUT_MS > MAX_CRON_WORK_MS) break;
         requests++;
-        const response = await sendReconciliationTrigger(env);
+        const response = await send(env);
         if (!response.ok) {
           console.error(`BakerIQ subscription trigger failed with HTTP ${response.status}`);
           throw new Error(`BakerIQ subscription trigger returned HTTP ${response.status}`);
         }
-        const result = await response.json() as { processed?: number };
-        const count = Number.isSafeInteger(result.processed) ? result.processed! : 0;
+        const result = await response.json() as { ok?: boolean; processed?: number };
+        if (result.ok !== true || (result.processed !== 0 && result.processed !== 1)) {
+          throw new Error("BakerIQ trigger returned invalid aggregate progress");
+        }
+        const count = result.processed;
         processed += count;
         if (count === 0) break;
-        if (requests < MAX_REQUESTS_PER_CRON) await pause(MIN_REQUEST_INTERVAL_MS);
+        if (now() - startedAt + MIN_REQUEST_INTERVAL_MS + REQUEST_TIMEOUT_MS > MAX_CRON_WORK_MS) break;
+        if (requests < MAX_REQUESTS_PER_CRON) await sleep(MIN_REQUEST_INTERVAL_MS);
       }
       console.info(`BakerIQ subscription cron completed; requests=${requests}, processed=${processed}`);
     } catch (error) {
       console.error("BakerIQ subscription cron invocation failed");
       throw error;
     }
-  },
+}
+
+const worker = {
+  scheduled: (_event: unknown, env: Env) => runScheduled(env),
 };
 
 export default worker;

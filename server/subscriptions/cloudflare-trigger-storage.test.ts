@@ -35,6 +35,19 @@ function fakePool(initial: Array<{ nonce: string; receivedAt: number }> = []) {
 }
 
 describe("Cloudflare trigger replay/rate-limit storage", () => {
+  it("discards a connection whose failed rollback could retain a transaction lock", async () => {
+    const release = vi.fn();
+    const client = {
+      query: vi.fn(async (sql: string) => {
+        if (sql.startsWith("INSERT") || sql === "ROLLBACK") throw new Error("synthetic disconnected transaction");
+        return { rows: [], rowCount: 0 };
+      }),
+      release,
+    };
+    await expect(claimCloudflareTriggerNonce({ connect: async () => client } as any,
+      "00000000-0000-4000-8000-000000000001")).rejects.toThrow();
+    expect(release).toHaveBeenCalledWith(true);
+  });
   it("accepts each nonce once and rejects replay", async () => {
     const f = fakePool();
     expect(await claimCloudflareTriggerNonce(f.pool, "00000000-0000-4000-8000-000000000001")).toBe("accepted");

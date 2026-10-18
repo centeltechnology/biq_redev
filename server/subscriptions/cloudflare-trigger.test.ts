@@ -26,9 +26,9 @@ let now: number;
 let claimNonce: ReturnType<typeof vi.fn>;
 let run: ReturnType<typeof vi.fn>;
 
-function signedHeaders(nonceValue = nonce, timestampMs = now) {
+function signedHeaders(nonceValue = nonce, timestampMs = now, signedBody = body) {
   const timestamp = Math.floor(timestampMs / 1000).toString();
-  const digest = crypto.createHash("sha256").update(body).digest("hex");
+  const digest = crypto.createHash("sha256").update(signedBody).digest("hex");
   const canonical = `POST\n${path}\n${timestamp}\n${nonceValue}\n${digest}`;
   const signature = crypto.createHmac("sha256", secret).update(canonical).digest("hex");
   return {
@@ -104,6 +104,15 @@ describe("Cloudflare reconciliation trigger authentication", () => {
     expect(run).not.toHaveBeenCalled();
   });
 
+  it("keeps the signed verification mode non-mutating even with sync unexpectedly enabled", async () => {
+    const probe = Buffer.from('{"trigger":"verify"}');
+    const response = await post(signedHeaders(nonce, now, probe), probe);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true, checkOnly: true, enabled: true });
+    expect(claimNonce).not.toHaveBeenCalled();
+    expect(run).not.toHaveBeenCalled();
+  });
+
   it("rejects replay and rate-limited nonce claims", async () => {
     claimNonce.mockResolvedValueOnce("replay").mockResolvedValueOnce("rate_limited");
     expect((await post()).status).toBe(409);
@@ -124,5 +133,33 @@ describe("Cloudflare reconciliation trigger authentication", () => {
       .mockResolvedValueOnce({ failed: true, processed: 1, skipped: false });
     expect((await post()).status).toBe(409);
     expect((await post(signedHeaders("00000000-0000-4000-8000-000000000003"))).status).toBe(503);
+  });
+
+  it("fails closed when persistent protection storage is unavailable", async () => {
+    claimNonce.mockRejectedValueOnce(new Error("synthetic storage outage"));
+    expect((await post()).status).toBe(503);
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it("passes client disconnection to the awaited reconciliation as cancellation", async () => {
+    let signal: AbortSignal | undefined;
+    let writes = 0;
+    run.mockImplementationOnce(async (received: AbortSignal) => {
+      signal = received;
+      await new Promise<void>(resolve => received.addEventListener("abort", () => resolve(), { once: true }));
+      if (!received.aborted) writes++;
+      return { failed: true, processed: 0, skipped: false };
+    });
+    const controller = new AbortController();
+    const pending = fetch(url, {
+      method: "POST", headers: signedHeaders(), body, signal: controller.signal,
+    });
+    const rejected = expect(pending).rejects.toThrow();
+    await vi.waitFor(() => expect(run).toHaveBeenCalledOnce());
+    controller.abort();
+    await rejected;
+    await vi.waitFor(() => expect(signal?.aborted).toBe(true));
+    expect(writes).toBe(0);
+    expect(claimNonce).toHaveBeenCalledOnce();
   });
 });
